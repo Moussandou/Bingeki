@@ -1,7 +1,8 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { MaintenanceScreen } from '@/components/ui/MaintenanceScreen';
 import { useAuthStore } from '@/store/authStore';
 import { useLibraryStore } from '@/store/libraryStore';
 import { useGamificationStore } from '@/store/gamificationStore';
@@ -15,7 +16,8 @@ import {
   loadGamificationFromFirestore,
   saveLibraryToFirestore,
   saveGamificationToFirestore,
-  saveUserProfileToFirestore
+  saveUserProfileToFirestore,
+  subscribeToGlobalConfig
 } from '@/firebase/firestore';
 import { mergeLibraryData, mergeGamificationData } from '@/utils/dataProtection';
 import { ToastProvider } from '@/context/ToastContext';
@@ -91,7 +93,9 @@ const RootRedirect = () => {
 };
 
 function App() {
-  const { setUser, setUserProfile, syncUserProfile, setLoading, user } = useAuthStore();
+  const { setUser, setUserProfile, syncUserProfile, setLoading, user, userProfile, loading } = useAuthStore();
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
 
   const libraryWorks = useLibraryStore((s) => s.works);
   const libraryFolders = useLibraryStore((s) => s.folders);
@@ -235,6 +239,28 @@ function App() {
       // document.documentElement.style.setProperty('--gradient-primary', `linear-gradient(135deg, ${accentColor} 0%, ${accentColor} 100%)`);
     }
   }, [accentColor]);
+
+  // Subscribe to global config for maintenance mode
+  useEffect(() => {
+    const unsubscribe = subscribeToGlobalConfig((config) => {
+      if (config) {
+        setIsMaintenance(config.maintenance);
+      }
+      setConfigLoaded(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Show loading screen while initializing auth or config
+  if (loading || !configLoaded) {
+    return <LoadingScreen />;
+  }
+
+  // Show maintenance screen if active and user is not admin
+  // We allow the check to pass if userProfile.isAdmin is true
+  if (isMaintenance && userProfile?.isAdmin !== true) {
+    return <MaintenanceScreen />;
+  }
 
   return (
     <ToastProvider>

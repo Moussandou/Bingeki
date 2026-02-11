@@ -123,8 +123,8 @@ service cloud.firestore {
     
     // GLOBAL CONFIG (for announcements, maintenance mode, etc.)
     match /config/{configId} {
-      // Allow authenticated users to read global config (e.g., announcements)
-      allow read: if isAuthenticated();
+      // Allow everyone to read global config (needed for maintenance mode)
+      allow read: if true;
       // Only admins can update global config
       allow write: if isAdmin();
     }

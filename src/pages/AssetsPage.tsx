@@ -6,11 +6,28 @@ import { XPBar } from '@/components/gamification/XPBar';
 import { Home, Book, Search, MessageSquare, Calendar, User, Flame, Star, Heart, Zap, Shield } from 'lucide-react';
 import { DeveloperLicenseCard } from '@/components/profile/DeveloperLicenseCard';
 
+import { BingekiBanner } from '@/components/ui/BingekiBanner';
+import { ComparisonTable } from '@/components/ui/ComparisonTable';
+
 export default function AssetsPage() {
     return (
         <div style={{ padding: '40px', background: '#f5f5f5', minHeight: '100vh', color: '#000' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                 <h1 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '2rem', textTransform: 'uppercase', letterSpacing: '-2px', fontFamily: '"Outfit", sans-serif' }}>Visual Assets Gallery</h1>
+
+                {/* SECTION: BRAND BANNER */}
+                <section style={{ marginBottom: '4rem' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', borderBottom: '2px solid #000', paddingBottom: '0.5rem' }}>Brand Banner</h2>
+                    <div style={{ width: '100%', border: '2px solid #000' }}>
+                        <BingekiBanner style={{ height: '300px' }} />
+                    </div>
+                </section>
+
+                {/* SECTION: COMPARISON TABLE */}
+                <section style={{ marginBottom: '4rem' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', borderBottom: '2px solid #000', paddingBottom: '0.5rem' }}>Comparison Table</h2>
+                    <ComparisonTable />
+                </section>
 
                 {/* SECTION: FONTS */}
                 <section style={{ marginBottom: '4rem' }}>

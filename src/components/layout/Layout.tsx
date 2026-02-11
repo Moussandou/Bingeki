@@ -1,6 +1,7 @@
 import React from 'react';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { GuestBanner } from './GuestBanner';
 import { motion } from 'framer-motion';
 
 interface LayoutProps {
@@ -15,12 +16,15 @@ export function Layout({ children }: LayoutProps) {
                 <div className="manga-speedlines" />
             </div>
             <Header />
+            <div style={{ paddingTop: '80px' }}>
+                <GuestBanner />
+            </div>
             <motion.main
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.4 }}
-                style={{ paddingTop: '80px', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}
+                style={{ minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}
             >
                 {children}
                 <Footer />

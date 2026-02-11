@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, deleteDoc, addDoc, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './config';
 import type { Work, Folder } from '@/store/libraryStore';
@@ -1393,6 +1393,21 @@ export async function setGlobalConfig(config: Partial<Omit<GlobalConfig, 'announ
         throw error;
     }
 }
+// Subscribe to global config updates (Real-time)
+export function subscribeToGlobalConfig(callback: (config: GlobalConfig | null) => void): () => void {
+    const docRef = doc(db, 'config', 'global');
+    return onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            callback(docSnap.data() as GlobalConfig);
+        } else {
+            callback(null);
+        }
+    }, (error) => {
+        console.error('[Firestore] Error subscribing to global config:', error);
+        callback(null);
+    });
+}
+
 // ==================== TIER LIST FUNCTIONS ====================
 
 export interface TierList {

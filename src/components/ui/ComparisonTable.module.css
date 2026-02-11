@@ -1,0 +1,135 @@
+.container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    position: relative;
+    padding: 2rem;
+    /* Use site background and border style */
+    background-color: var(--color-surface, #fff);
+    border: 3px solid var(--color-border-heavy, #000);
+    box-shadow: 8px 8px 0 var(--color-shadow-solid, #000);
+}
+
+.heading {
+    text-align: center;
+    font-family: var(--font-heading, 'Outfit', sans-serif);
+    font-weight: 900;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    /* Manga title style */
+    transform: rotate(-1deg);
+    display: inline-block;
+    width: 100%;
+    text-shadow: 2px 2px 0 var(--color-primary, #FF2E63);
+}
+
+.tableContainer {
+    width: 100%;
+    border: 2px solid var(--color-border-heavy, #000);
+}
+
+.headerRow {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    background-color: var(--color-border-heavy, #000);
+    color: var(--color-background, #fff);
+    padding: 1rem 1.5rem;
+    align-items: center;
+}
+
+.headerCell {
+    font-family: var(--font-heading, 'Outfit', sans-serif);
+    font-weight: 800;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.headerBingeki {
+    color: var(--color-primary, #FF2E63);
+    text-align: center;
+    font-weight: 900;
+    text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.headerMal {
+    color: #aaa;
+    text-align: center;
+    font-weight: 700;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    padding: 1rem 1.5rem;
+    align-items: center;
+    border-bottom: 1px solid var(--color-border, #eee);
+    background-color: var(--color-surface, #fff);
+    transition: background-color 0.2s;
+}
+
+.row:last-child {
+    border-bottom: none;
+}
+
+.row:hover {
+    background-color: var(--color-surface-hover, #f5f5f5);
+}
+
+.featureCell {
+    font-family: var(--font-heading, 'Outfit', sans-serif);
+    font-size: 0.95rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--color-text, #000);
+    letter-spacing: 0.01em;
+}
+
+.checkCell {
+    text-align: center;
+    font-family: var(--font-heading, 'Outfit', sans-serif);
+    font-size: 1.5rem;
+    font-weight: 900;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.checkBingeki {
+    color: var(--color-primary, #FF2E63);
+    /* Manga checkmark style */
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.checkMal {
+    color: var(--color-text-dim, #ccc);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+    .container {
+        padding: 1rem;
+        box-shadow: 4px 4px 0 var(--color-shadow-solid, #000);
+    }
+
+    .headerRow,
+    .row {
+        grid-template-columns: 1.5fr 1fr 1fr;
+        padding: 0.75rem 0.5rem;
+    }
+
+    .heading {
+        font-size: 1.5rem;
+    }
+
+    .featureCell {
+        font-size: 0.75rem;
+    }
+
+    .checkCell {
+        font-size: 1.2rem;
+    }
+}

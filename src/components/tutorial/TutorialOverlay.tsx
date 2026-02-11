@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
-import { Zap, User, Compass, Book, Languages, Search, TrendingUp, Upload, FileJson, ArrowUp } from 'lucide-react'; // Added icons
+import { Zap, User, Compass, Book, Languages, Search, TrendingUp, Upload, ArrowUp } from 'lucide-react'; // Added icons
 import { NenChart } from '@/components/profile/NenChart'; // Import NenChart
 
 // --- MOCK COMPONENTS FOR VISUALS ---
