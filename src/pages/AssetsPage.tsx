@@ -8,6 +8,8 @@ import { DeveloperLicenseCard } from '@/components/profile/DeveloperLicenseCard'
 
 import { BingekiBanner } from '@/components/ui/BingekiBanner';
 import { ComparisonTable } from '@/components/ui/ComparisonTable';
+import { MockupBrowser } from '@/components/mockups/MockupBrowser';
+import { MockupDashboard, MockupProfile } from '@/components/mockups/PageLayouts';
 
 export default function AssetsPage() {
     return (
@@ -433,6 +435,26 @@ export default function AssetsPage() {
                                 '// Développeur Full-Stack //'
                             ]}
                         />
+                    </div>
+                </section>
+
+                {/* SECTION: PAGE MOCKUPS */}
+                <section style={{ marginBottom: '4rem' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', borderBottom: '2px solid #000', paddingBottom: '0.5rem' }}>Page Mockups (High Fidelity)</h2>
+                    <div style={{ display: 'grid', gap: '3rem' }}>
+                        <div>
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Dashboard View</h3>
+                            <MockupBrowser url="bingeki.app/dashboard">
+                                <MockupDashboard />
+                            </MockupBrowser>
+                        </div>
+
+                        <div>
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Profile View</h3>
+                            <MockupBrowser url="bingeki.app/profile/moussandou">
+                                <MockupProfile />
+                            </MockupBrowser>
+                        </div>
                     </div>
                 </section>
 
