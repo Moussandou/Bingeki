@@ -12,6 +12,7 @@ interface Deployment {
     expiresAt: string;
     type: string;
     status: string;
+    message?: string;
 }
 
 export default function DeploymentsList() {
@@ -84,6 +85,8 @@ export default function DeploymentsList() {
                 ) : (
                     deployments.map((deploy) => {
                         const expired = isExpired(deploy.expiresAt);
+                        const isCommit = deploy.type === 'commit';
+
                         return (
                             <div key={deploy.id} style={{
                                 display: 'flex',
@@ -98,13 +101,18 @@ export default function DeploymentsList() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <div>
                                         <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: expired ? '#6b7280' : 'var(--color-primary)' }}>
-                                            {deploy.channelId}
+                                            {isCommit ? `Commit: ${deploy.channelId}` : deploy.channelId}
                                         </div>
                                         <div style={{ fontSize: '0.75rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                             <Clock size={12} /> {formatDate(deploy.createdAt)}
                                         </div>
+                                        {deploy.message && (
+                                            <div style={{ fontSize: '0.85rem', marginTop: '0.25rem', fontStyle: 'italic', color: 'var(--color-text)' }}>
+                                                "{deploy.message}"
+                                            </div>
+                                        )}
                                     </div>
-                                    {!expired && (
+                                    {!expired && deploy.url && (
                                         <a
                                             href={deploy.url}
                                             target="_blank"
@@ -125,8 +133,20 @@ export default function DeploymentsList() {
                                             OPEN <ExternalLink size={12} />
                                         </a>
                                     )}
+                                    {isCommit && (
+                                        <div style={{
+                                            fontSize: '0.75rem',
+                                            padding: '0.25rem 0.5rem',
+                                            backgroundColor: '#e5e7eb',
+                                            color: '#374151',
+                                            borderRadius: '0.25rem',
+                                            fontWeight: 'bold'
+                                        }}>
+                                            GIT COMMIT
+                                        </div>
+                                    )}
                                 </div>
-                                {expired && (
+                                {expired && !isCommit && (
                                     <div style={{ fontSize: '0.75rem', color: '#ef4444', fontStyle: 'italic' }}>
                                         Expired on {formatDate(deploy.expiresAt)}
                                     </div>

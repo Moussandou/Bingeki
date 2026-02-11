@@ -16,6 +16,7 @@
     "test:e2e:ui": "playwright test --ui",
     "validate:i18n": "npx tsx scripts/check-translations.ts",
     "deploy:preview": "npx tsx scripts/deploy-preview.ts",
+    "sync:history": "npx tsx scripts/sync-git-history.ts",
     "audit": "npm run build && lhci autorun",
     "prepare": "husky"
   },
