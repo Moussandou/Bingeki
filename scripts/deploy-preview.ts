@@ -3,10 +3,7 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import * as dotenv from 'dotenv';
-import { signInAnonymously, getAuth } from 'firebase/auth';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,19 +25,16 @@ if (!config.apiKey) {
     process.exit(1);
 }
 
-// Initialize Firebase
-const app = initializeApp(config);
-const db = getFirestore(app);
-const auth = getAuth(app);
+// Load environment variables
+dotenv.config();
+
+const deploymentsFile = path.join(__dirname, '../src/data/deployments.json');
 
 async function deployPreview() {
     try {
         console.log('🚀 Starting Preview Deployment...');
 
-        // Login anonymously to write to Firestore (ensure rules allow this or use a service account for better security)
-        // For this script, we assume specific rules or temporary open access for 'deployments' collection or we use a service account in a real CI env.
-        // To make it simple for the user locally:
-        await signInAnonymously(auth);
+
 
         // Generate a channel ID
         const hash = Math.random().toString(36).substring(7);
@@ -60,25 +54,53 @@ async function deployPreview() {
         const output = execSync(`npx firebase hosting:channel:deploy ${channelId} --expires 7d --json`, { encoding: 'utf-8' });
 
         const result = JSON.parse(output);
-        const previewUrl = result.result[channelId].url;
-        const expireTime = result.result[channelId].expireTime;
+        const deployKeys = Object.keys(result.result || {});
+        if (deployKeys.length === 0) {
+            console.error('❌ Unexpected JSON structure. keys:', deployKeys);
+            throw new Error('Could not find channel info in output');
+        }
+
+        const deployInfo = result.result[deployKeys[0]];
+        const previewUrl = deployInfo.url;
+        const expireTime = deployInfo.expireTime;
 
         console.log(`✅ Deployed successfully!`);
         console.log(`🔗 Preview URL: ${previewUrl}`);
         console.log(`⏳ Expires: ${expireTime}`);
 
-        // Save to Firestore
-        console.log('💾 Saving deployment record to Firestore...');
-        await addDoc(collection(db, 'deployments'), {
+        // Save to local JSON file
+        console.log('💾 Saving deployment record to src/data/deployments.json...');
+
+        let deployments = [];
+        if (fs.existsSync(deploymentsFile)) {
+            try {
+                const fileContent = fs.readFileSync(deploymentsFile, 'utf-8');
+                deployments = JSON.parse(fileContent);
+            } catch (e) {
+                console.warn('⚠️ Could not read existing deployments file, starting fresh.');
+            }
+        }
+
+        const newDeployment = {
+            id: channelId,
             channelId,
             url: previewUrl,
-            createdAt: serverTimestamp(),
-            expiresAt: new Date(expireTime),
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(expireTime).toISOString(),
             type: 'preview',
             status: 'active'
-        });
+        };
 
-        console.log('📝 Deployment recorded in Firestore.');
+        // Prepend new deployment
+        deployments.unshift(newDeployment);
+
+        // Keep only last 20
+        if (deployments.length > 20) {
+            deployments = deployments.slice(0, 20);
+        }
+
+        fs.writeFileSync(deploymentsFile, JSON.stringify(deployments, null, 4));
+        console.log('📝 Deployment recorded locally.');
         process.exit(0);
 
     } catch (error: any) {

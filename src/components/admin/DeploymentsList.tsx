@@ -2,34 +2,46 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { ExternalLink, Clock, GitCommit, RefreshCw } from 'lucide-react';
-import { getDeployments, type DeploymentEvent } from '@/firebase/firestore';
+import deploymentsData from '@/data/deployments.json';
+
+interface Deployment {
+    id: string;
+    channelId: string;
+    url: string;
+    createdAt: string;
+    expiresAt: string;
+    type: string;
+    status: string;
+}
 
 export default function DeploymentsList() {
-    const [deployments, setDeployments] = useState<DeploymentEvent[]>([]);
+    const [deployments, setDeployments] = useState<Deployment[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const fetchDeployments = async () => {
+    // In a real app we might fetch this from an API, 
+    // but here we just read the static JSON bundled with the build.
+    // To refresh, we would need to reload the page or implement HMR/Polling if it was a real backend.
+    const fetchDeployments = () => {
         setLoading(true);
-        const data = await getDeployments(5);
-        setDeployments(data);
-        setLoading(false);
+        // Simulate a small delay for UX
+        setTimeout(() => {
+            setDeployments(deploymentsData as Deployment[]);
+            setLoading(false);
+        }, 300);
     };
 
     useEffect(() => {
         fetchDeployments();
     }, []);
 
-    const formatDate = (timestamp: any) => {
-        if (!timestamp) return 'Unknown';
-        // Handle Firestore Timestamp or serialized date
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        return date.toLocaleString();
+    const formatDate = (dateString: string) => {
+        if (!dateString) return 'Unknown';
+        return new Date(dateString).toLocaleString();
     };
 
-    const isExpired = (expiresAt: any) => {
+    const isExpired = (expiresAt: string) => {
         if (!expiresAt) return false;
-        const date = expiresAt.toDate ? expiresAt.toDate() : new Date(expiresAt);
-        return date < new Date();
+        return new Date(expiresAt) < new Date();
     };
 
     return (
