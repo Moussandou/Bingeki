@@ -705,6 +705,10 @@ const resources = {
                 friends: "AMIS",
                 remove_friend: "RETIRER DES AMIS"
             },
+            maintenance: {
+                title: "Maintenance en cours",
+                description: "Nous améliorons Bingeki pour vous offrir une meilleure expérience. Le service sera de retour très bientôt."
+            },
             settings: {
                 title: "Paramètres",
                 appearance: {
@@ -1569,6 +1573,10 @@ const resources = {
                 duplicate_character: "Character already in tier list!",
                 save_success: "Tier list saved successfully!",
                 save_error: "Error saving tier list"
+            },
+            maintenance: {
+                title: "Maintenance in Progress",
+                description: "We are improving Bingeki to provide you with a better experience. Service will be back very soon."
             },
             settings: {
                 title: "Settings",
