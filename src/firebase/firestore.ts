@@ -373,6 +373,21 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     }
 }
 
+// Subscribe to User Profile (Real-time)
+export function subscribeToUserProfile(uid: string, callback: (profile: UserProfile | null) => void): () => void {
+    const docRef = doc(db, 'users', uid);
+    return onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            callback({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
+        } else {
+            callback(null);
+        }
+    }, (error) => {
+        console.error('[Firestore] Error subscribing to user profile:', error);
+        callback(null);
+    });
+}
+
 // Send Friend Request
 export async function sendFriendRequest(currentUserId: string, currentUserData: { displayName: string, photoURL: string }, targetUser: UserProfile): Promise<void> {
     try {

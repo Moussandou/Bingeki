@@ -93,7 +93,7 @@ const RootRedirect = () => {
 };
 
 function App() {
-  const { setUser, setUserProfile, syncUserProfile, setLoading, user, userProfile, loading } = useAuthStore();
+  const { setUser, setUserProfile, setLoading, user, userProfile, loading } = useAuthStore();
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
 
@@ -115,6 +115,8 @@ function App() {
 
   // Auth state listener + Firestore sync
   useEffect(() => {
+    let profileUnsubscribe: (() => void) | undefined;
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
 
@@ -127,8 +129,9 @@ function App() {
         // Sync user profile (email, name, photo)
         await saveUserProfileToFirestore(firebaseUser);
 
-        // Sync detailed profile data (including custom overrides) to store
-        await syncUserProfile(firebaseUser.uid);
+        // REAL-TIME: Subscribe to profile changes (handling admin status updates instantly)
+        if (profileUnsubscribe) profileUnsubscribe(); // Cleanup previous if any
+        profileUnsubscribe = useAuthStore.getState().subscribeToProfile(firebaseUser.uid);
 
         // Load cloud data
         const cloudLibrary = await loadLibraryFromFirestore(firebaseUser.uid);
@@ -153,7 +156,13 @@ function App() {
           level: mergedGamification.level
         });
       } else {
-        // User logged out - clear local stores
+        // User logged out - cleanup
+        if (profileUnsubscribe) {
+          profileUnsubscribe();
+          profileUnsubscribe = undefined;
+        }
+
+        // Clear local stores
         useLibraryStore.getState().resetStore();
         useGamificationStore.getState().resetStore();
         setUserProfile(null);
@@ -162,8 +171,11 @@ function App() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [setUser, setLoading, setUserProfile, syncUserProfile]);
+    return () => {
+      unsubscribe();
+      if (profileUnsubscribe) profileUnsubscribe();
+    };
+  }, [setUser, setLoading, setUserProfile]);
 
   // Auto-save to Firestore when data changes (debounced)
   useEffect(() => {

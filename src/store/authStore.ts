@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { type User } from 'firebase/auth';
-import { type UserProfile, getUserProfile } from '@/firebase/firestore';
+import { type UserProfile, getUserProfile, subscribeToUserProfile } from '@/firebase/firestore';
 
 interface AuthState {
     user: User | null;
@@ -11,6 +11,7 @@ interface AuthState {
     setLoading: (loading: boolean) => void;
     logout: () => void;
     syncUserProfile: (uid: string) => Promise<void>;
+    subscribeToProfile: (uid: string) => () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -30,5 +31,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         } catch (error) {
             console.error('Error syncing user profile:', error);
         }
+    },
+    subscribeToProfile: (uid: string) => {
+        // Return the unsubscribe function so the component can clean it up
+        return subscribeToUserProfile(uid, (profile) => {
+            console.log('[AuthStore] Real-time profile update received:', profile?.isAdmin ? 'Admin' : 'User');
+            set({ userProfile: profile });
+        });
     }
 }));
