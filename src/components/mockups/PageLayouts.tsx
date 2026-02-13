@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/Card';
 import { XPBar } from '@/components/gamification/XPBar';
 import { StreakCounter } from '@/components/gamification/StreakCounter';
 import { HunterLicenseCard } from '@/components/profile/HunterLicenseCard';
-import { Target, TrendingUp, BookOpen, Users, Flame, ChevronRight, Play, Plus, Star, Award, Library, Image as ImageIcon, Home, Compass, Book, Search, Menu, SlidersHorizontal, ArrowLeft, LayoutGrid, List } from 'lucide-react';
+import { Target, TrendingUp, BookOpen, Users, Flame, ChevronRight, Play, Plus, Star, Award, Library, Image as ImageIcon, Home, Compass, Book, Search, Menu, SlidersHorizontal, ArrowLeft, LayoutGrid, List, Calendar, Clock, Trophy, Activity, Swords, Mail, Lock } from 'lucide-react';
 import styles from '../../pages/Dashboard.module.css';
 
 // --- PLACEHOLDER UTILS ---
@@ -971,6 +971,364 @@ export function MockupLibraryMobile() {
             </div>
 
             <MockupBottomNav />
+        </MockupContentWrapperMobile>
+    );
+}
+
+// --- SCHEDULE MOCKUPS ---
+
+export function MockupSchedule() {
+    const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    const activeDay = 'wed';
+
+    return (
+        <MockupContentWrapper>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div>
+                    <h1 style={{ fontSize: '2rem', fontWeight: 900, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem', lineHeight: 1 }}>
+                        <Calendar size={32} /> Planning
+                    </h1>
+                    <p style={{ opacity: 0.6 }}>Sorties de la semaine (Simulcast)</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ padding: '0.5rem 1rem', background: '#fff', border: '2px solid #000', fontWeight: 700, boxShadow: '4px 4px 0 #000' }}>
+                        UTC+1
+                    </div>
+                </div>
+            </div>
+
+            {/* Days Selector */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+                {days.map(day => (
+                    <div key={day} style={{
+                        padding: '0.75rem 1.5rem',
+                        border: '2px solid #000',
+                        fontWeight: 900,
+                        textTransform: 'uppercase',
+                        background: day === activeDay ? '#FF2E63' : '#fff',
+                        color: day === activeDay ? '#fff' : '#000',
+                        boxShadow: day === activeDay ? '2px 2px 0 #000' : '4px 4px 0 #000',
+                        transform: day === activeDay ? 'translate(2px, 2px)' : 'none',
+                        cursor: 'default'
+                    }}>
+                        {day}
+                    </div>
+                ))}
+            </div>
+
+            {/* Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <div key={i} className="manga-panel" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ aspectRatio: '16/9', background: '#333', position: 'relative' }}>
+                            <PlaceholderImage text={`Anime ${i}`} />
+                            <div style={{
+                                position: 'absolute', bottom: 0, left: 0, right: 0,
+                                background: 'rgba(0,0,0,0.8)', color: '#fff',
+                                padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 700,
+                                display: 'flex', alignItems: 'center', gap: '0.25rem'
+                            }}>
+                                <Clock size={12} /> 18:30
+                            </div>
+                        </div>
+                        <div style={{ padding: '0.75rem', background: '#fff', flex: 1 }}>
+                            <h3 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: '0.25rem', lineHeight: 1.2 }}>
+                                Jujutsu Kaisen: Shibuya Arc
+                            </h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', opacity: 0.7 }}>
+                                <span>EP 12</span>
+                                <span>TV</span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </MockupContentWrapper>
+    );
+}
+
+export function MockupScheduleMobile() {
+    const days = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
+    const activeDay = 'mer';
+
+    return (
+        <MockupContentWrapperMobile>
+            <MockupMobileHeader />
+
+            {/* Header */}
+            <div style={{ padding: '1rem', textAlign: 'center' }}>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <Calendar size={24} /> Planning
+                </h1>
+            </div>
+
+            {/* Days Scroll */}
+            <div style={{
+                display: 'flex', gap: '0.5rem', padding: '0 1rem 1rem 1rem', overflowX: 'hidden',
+                maskImage: 'linear-gradient(to right, black 80%, transparent 100%)'
+            }}>
+                {days.map(day => (
+                    <div key={day} style={{
+                        padding: '0.5rem 1rem',
+                        border: '2px solid #000',
+                        fontWeight: 800,
+                        fontSize: '0.8rem',
+                        textTransform: 'uppercase',
+                        background: day === activeDay ? '#FF2E63' : '#fff',
+                        color: day === activeDay ? '#fff' : '#000',
+                        boxShadow: day === activeDay ? '1px 1px 0 #000' : '2px 2px 0 #000',
+                        flexShrink: 0
+                    }}>
+                        {day}
+                    </div>
+                ))}
+            </div>
+
+            {/* List */}
+            <div style={{ padding: '0 1rem 1rem 1rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '6rem' }}>
+                {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="manga-panel" style={{ padding: 0, overflow: 'hidden', display: 'flex', height: '80px' }}>
+                        <div style={{ width: '60px', background: '#333', position: 'relative' }}>
+                            <PlaceholderImage text="" />
+                        </div>
+                        <div style={{ padding: '0.5rem', background: '#fff', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#FF2E63', marginBottom: '0.1rem' }}>18:30</div>
+                            <h3 style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '0.1rem', lineHeight: 1.1 }}>
+                                Jujutsu Kaisen
+                            </h3>
+                            <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Episode 12 • TV</div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <MockupBottomNav />
+        </MockupContentWrapperMobile>
+    );
+}
+
+// --- SOCIAL MOCKUPS ---
+
+export function MockupSocial() {
+    return (
+        <MockupContentWrapper>
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '2rem', borderBottom: '2px solid var(--color-border)', marginBottom: '2rem' }}>
+                <div style={{ paddingBottom: '1rem', borderBottom: '4px solid var(--color-primary)', fontWeight: 900, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Trophy size={24} /> CLASSEMENT
+                </div>
+                <div style={{ paddingBottom: '1rem', opacity: 0.5, fontWeight: 900, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Activity size={24} /> ACTIVITÉ
+                </div>
+                <div style={{ paddingBottom: '1rem', opacity: 0.5, fontWeight: 900, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Swords size={24} /> DÉFIS
+                </div>
+                <div style={{ paddingBottom: '1rem', opacity: 0.5, fontWeight: 900, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Users size={24} /> AMIS
+                </div>
+            </div>
+
+            {/* Podium */}
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '1rem', marginBottom: '3rem', height: '300px' }}>
+                {/* 2nd Place */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '120px' }}>
+                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#ccc', border: '4px solid silver', marginBottom: '1rem', position: 'relative' }}>
+                        <PlaceholderImage text="AVATAR" />
+                        <div style={{ position: 'absolute', bottom: -10, left: '50%', transform: 'translateX(-50%)', background: 'silver', color: '#000', fontWeight: 900, padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem' }}>2</div>
+                    </div>
+                    <div style={{ fontWeight: 800, marginBottom: '0.5rem' }}>SilverSurfer</div>
+                    <div style={{ height: '120px', width: '100%', background: 'silver', border: '2px solid #000', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '1rem', fontWeight: 900, fontSize: '1.5rem', boxShadow: '4px 4px 0 #000' }}>
+                        2
+                    </div>
+                </div>
+
+                {/* 1st Place */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '140px', zIndex: 1 }}>
+                    <div style={{ width: 100, height: 100, borderRadius: '50%', background: '#ccc', border: '4px solid gold', marginBottom: '1rem', position: 'relative' }}>
+                        <PlaceholderImage text="AVATAR" />
+                        <div style={{ position: 'absolute', bottom: -10, left: '50%', transform: 'translateX(-50%)', background: 'gold', color: '#000', fontWeight: 900, padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem' }}>1</div>
+                        <Trophy size={32} color="gold" style={{ position: 'absolute', top: -30, left: '50%', transform: 'translateX(-50%)' }} />
+                    </div>
+                    <div style={{ fontWeight: 800, marginBottom: '0.5rem', fontSize: '1.2rem' }}>GoldKing</div>
+                    <div style={{ height: '160px', width: '100%', background: 'gold', border: '2px solid #000', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '1rem', fontWeight: 900, fontSize: '2rem', boxShadow: '4px 4px 0 #000' }}>
+                        1
+                    </div>
+                </div>
+
+                {/* 3rd Place */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '120px' }}>
+                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#ccc', border: '4px solid #cd7f32', marginBottom: '1rem', position: 'relative' }}>
+                        <PlaceholderImage text="AVATAR" />
+                        <div style={{ position: 'absolute', bottom: -10, left: '50%', transform: 'translateX(-50%)', background: '#cd7f32', color: '#fff', fontWeight: 900, padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem' }}>3</div>
+                    </div>
+                    <div style={{ fontWeight: 800, marginBottom: '0.5rem' }}>BronzeBoi</div>
+                    <div style={{ height: '80px', width: '100%', background: '#cd7f32', border: '2px solid #000', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '1rem', fontWeight: 900, fontSize: '1.5rem', boxShadow: '4px 4px 0 #000' }}>
+                        3
+                    </div>
+                </div>
+            </div>
+
+            {/* List */}
+            <div style={{ background: 'var(--color-surface)', border: '2px solid var(--color-border)', boxShadow: '4px 4px 0 var(--color-shadow)' }}>
+                {[4, 5, 6].map(i => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '1rem', borderBottom: i === 6 ? 'none' : '1px solid var(--color-border)' }}>
+                        <div style={{ width: '40px', fontWeight: 900, fontSize: '1.2rem', opacity: 0.5 }}>{i}</div>
+                        <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#ccc', marginRight: '1rem', overflow: 'hidden' }}>
+                            <PlaceholderImage text="" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 800 }}>User_{i}</div>
+                            <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>Level {20 - i} • 4500 XP</div>
+                        </div>
+                        <div style={{ fontWeight: 900 }}>12,450 pts</div>
+                    </div>
+                ))}
+            </div>
+        </MockupContentWrapper>
+    );
+}
+
+export function MockupSocialMobile() {
+    return (
+        <MockupContentWrapperMobile>
+            <MockupMobileHeader />
+
+            {/* Header */}
+            <div style={{ padding: '1rem' }}>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Users size={24} /> Communauté
+                </h1>
+            </div>
+
+            {/* Tabs Mobile */}
+            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', padding: '0 1rem 1rem 1rem', scrollbarWidth: 'none' }}>
+                <button style={{ padding: '0.5rem 1rem', background: 'var(--color-primary)', color: '#fff', fontWeight: 800, border: '2px solid var(--color-primary)', flexShrink: 0 }}>CLASSEMENT</button>
+                <button style={{ padding: '0.5rem 1rem', background: 'var(--color-surface)', border: '2px solid var(--color-border)', fontWeight: 800, flexShrink: 0 }}>ACTIVITÉ</button>
+                <button style={{ padding: '0.5rem 1rem', background: 'var(--color-surface)', border: '2px solid var(--color-border)', fontWeight: 800, flexShrink: 0 }}>AMIS</button>
+            </div>
+
+            {/* Activity Feed */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0 1rem 5rem 1rem' }}>
+                {[1, 2, 3].map(i => (
+                    <div key={i} style={{ background: 'var(--color-surface)', border: '2px solid var(--color-border)', padding: '1rem', boxShadow: '2px 2px 0 var(--color-shadow)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ccc', overflow: 'hidden' }}>
+                                <PlaceholderImage text="" />
+                            </div>
+                            <div>
+                                <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>User_{i}</div>
+                                <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Il y a 2h</div>
+                            </div>
+                        </div>
+                        <p style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+                            A terminé l'épisode 12 de <span style={{ fontWeight: 800, color: 'var(--color-primary)' }}>Jujutsu Kaisen</span>.
+                        </p>
+                        <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', opacity: 0.6 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Flame size={14} /> 24</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>Commenter</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <MockupBottomNav />
+        </MockupContentWrapperMobile>
+    );
+}
+
+// --- AUTH MOCKUPS ---
+
+export function MockupAuth() {
+    return (
+        <MockupContentWrapper>
+            <div style={{ display: 'flex', height: '100%', minHeight: '500px' }}>
+                {/* Left: Visuals */}
+                <div style={{ flex: 1, background: '#333', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <PlaceholderImage text="ARTWORK" />
+                    <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', color: '#fff', maxWidth: '80%' }}>
+                        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1 }}>REJOINS L'AVENTURE.</h1>
+                        <p style={{ fontSize: '1.2rem', opacity: 0.8, marginTop: '1rem' }}>Suis tes animes préférés, partage ta passion et découvre de nouvelles pépites.</p>
+                    </div>
+                </div>
+
+                {/* Right: Form */}
+                <div style={{ flex: 1, padding: '4rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--color-background)' }}>
+                    <div style={{ marginBottom: '3rem' }}>
+                        <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '0.5rem' }}>CONNEXION</h2>
+                        <p style={{ opacity: 0.6 }}>Content de te revoir, Hunter.</p>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.5rem', fontSize: '0.9rem' }}>EMAIL</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', border: '2px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                                <Mail size={20} style={{ opacity: 0.5 }} />
+                                <span style={{ opacity: 0.5 }}>exemple@email.com</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.5rem', fontSize: '0.9rem' }}>MOT DE PASSE</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', border: '2px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                                <Lock size={20} style={{ opacity: 0.5 }} />
+                                <span style={{ opacity: 0.5 }}>••••••••</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Button variant="primary" style={{ width: '100%', marginBottom: '1.5rem' }}>SE CONNECTER</Button>
+                    <div style={{ textAlign: 'center', fontSize: '0.9rem', opacity: 0.6, marginBottom: '1.5rem' }}>OU CONTINUER AVEC</div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <button style={{ padding: '0.75rem', background: '#fff', border: '2px solid #000', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ width: 20, height: 20, background: 'red', borderRadius: '50%' }}></div> Google
+                        </button>
+                        <button style={{ padding: '0.75rem', background: '#5865F2', color: '#fff', border: '2px solid #000', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ width: 20, height: 20, background: '#fff', borderRadius: '50%' }}></div> Discord
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </MockupContentWrapper>
+    );
+}
+
+export function MockupAuthMobile() {
+    return (
+        <MockupContentWrapperMobile>
+            <div style={{ padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+                    <div style={{ width: 60, height: 60, background: '#000', margin: '0 auto 1.5rem', borderRadius: '50%' }}></div>
+                    <h1 style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '0.5rem' }}>BINGEKI</h1>
+                    <p style={{ opacity: 0.6 }}>La plateforme ultime pour les fans.</p>
+                </div>
+
+                <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                        <div style={{ padding: '1rem', border: '2px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <Mail size={20} style={{ opacity: 0.5 }} />
+                            <span style={{ opacity: 0.5 }}>Email</span>
+                        </div>
+                        <div style={{ padding: '1rem', border: '2px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <Lock size={20} style={{ opacity: 0.5 }} />
+                            <span style={{ opacity: 0.5 }}>Mot de passe</span>
+                        </div>
+                    </div>
+
+                    <button style={{ width: '100%', padding: '1rem', background: 'var(--color-primary)', color: '#fff', fontWeight: 900, border: '2px solid #000', boxShadow: '4px 4px 0 #000', marginBottom: '2rem' }}>
+                        SE CONNECTER
+                    </button>
+
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                        <button style={{ width: 50, height: 50, borderRadius: '50%', border: '2px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>G</button>
+                        <button style={{ width: 50, height: 50, borderRadius: '50%', border: '2px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#5865F2', color: '#fff' }}>D</button>
+                    </div>
+                </div>
+
+                <div style={{ textAlign: 'center', opacity: 0.6, fontSize: '0.8rem', marginTop: 'auto' }}>
+                    Pas encore de compte ? <span style={{ fontWeight: 800, textDecoration: 'underline' }}>S'inscrire</span>
+                </div>
+            </div>
         </MockupContentWrapperMobile>
     );
 }

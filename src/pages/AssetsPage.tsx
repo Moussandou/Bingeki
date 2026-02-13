@@ -9,7 +9,7 @@ import { DeveloperLicenseCard } from '@/components/profile/DeveloperLicenseCard'
 import { BingekiBanner } from '@/components/ui/BingekiBanner';
 import { ComparisonTable } from '@/components/ui/ComparisonTable';
 import { MockupBrowser, MockupPhone } from '@/components/mockups/MockupBrowser';
-import { MockupDashboard, MockupProfile, MockupDashboardMobile, MockupProfileMobile, MockupDiscover, MockupDiscoverMobile, MockupDetails, MockupDetailsMobile, MockupLibrary, MockupLibraryMobile } from '@/components/mockups/PageLayouts';
+import { MockupDashboard, MockupProfile, MockupDashboardMobile, MockupProfileMobile, MockupDiscover, MockupDiscoverMobile, MockupDetails, MockupDetailsMobile, MockupLibrary, MockupLibraryMobile, MockupSchedule, MockupScheduleMobile, MockupSocial, MockupSocialMobile, MockupAuth, MockupAuthMobile } from '@/components/mockups/PageLayouts';
 
 export default function AssetsPage() {
     return (
@@ -538,6 +538,72 @@ export default function AssetsPage() {
                                 <h3 style={{ marginBottom: '1rem', fontSize: '1rem', textAlign: 'center' }}>Library Mobile</h3>
                                 <MockupPhone>
                                     <MockupLibraryMobile />
+                                </MockupPhone>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* SECTION: SCHEDULE MOCKUPS */}
+                <section style={{ marginBottom: '4rem' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', borderBottom: '2px solid #000', paddingBottom: '0.5rem' }}>Maquettes Planning</h2>
+                    <div style={{ display: 'grid', gap: '3rem' }}>
+                        <div>
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Schedule View (Desktop)</h3>
+                            <MockupBrowser url="bingeki.app/schedule">
+                                <MockupSchedule />
+                            </MockupBrowser>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <div>
+                                <h3 style={{ marginBottom: '1rem', fontSize: '1rem', textAlign: 'center' }}>Schedule Mobile</h3>
+                                <MockupPhone>
+                                    <MockupScheduleMobile />
+                                </MockupPhone>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* SECTION: SOCIAL MOCKUPS */}
+                <section style={{ marginBottom: '4rem' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', borderBottom: '2px solid #000', paddingBottom: '0.5rem' }}>Maquettes Social</h2>
+                    <div style={{ display: 'grid', gap: '3rem' }}>
+                        <div>
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Social View (Desktop)</h3>
+                            <MockupBrowser url="bingeki.app/social">
+                                <MockupSocial />
+                            </MockupBrowser>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <div>
+                                <h3 style={{ marginBottom: '1rem', fontSize: '1rem', textAlign: 'center' }}>Social Mobile</h3>
+                                <MockupPhone>
+                                    <MockupSocialMobile />
+                                </MockupPhone>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* SECTION: AUTH MOCKUPS */}
+                <section style={{ marginBottom: '4rem' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', borderBottom: '2px solid #000', paddingBottom: '0.5rem' }}>Maquettes Authentification</h2>
+                    <div style={{ display: 'grid', gap: '3rem' }}>
+                        <div>
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Login View (Desktop)</h3>
+                            <MockupBrowser url="bingeki.app/login">
+                                <MockupAuth />
+                            </MockupBrowser>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <div>
+                                <h3 style={{ marginBottom: '1rem', fontSize: '1rem', textAlign: 'center' }}>Login Mobile</h3>
+                                <MockupPhone>
+                                    <MockupAuthMobile />
                                 </MockupPhone>
                             </div>
                         </div>
