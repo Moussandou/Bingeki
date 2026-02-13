@@ -1242,50 +1242,116 @@ export function MockupSocialMobile() {
 export function MockupAuth() {
     return (
         <MockupContentWrapper>
-            <div style={{ display: 'flex', height: '100%', minHeight: '500px' }}>
-                {/* Left: Visuals */}
-                <div style={{ flex: 1, background: '#333', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <PlaceholderImage text="ARTWORK" />
-                    <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', color: '#fff', maxWidth: '80%' }}>
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1 }}>REJOINS L'AVENTURE.</h1>
-                        <p style={{ fontSize: '1.2rem', opacity: 0.8, marginTop: '1rem' }}>Suis tes animes préférés, partage ta passion et découvre de nouvelles pépites.</p>
-                    </div>
-                </div>
+            <div style={{
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#f5f5f5',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                {/* Background Effects */}
+                <div style={{
+                    position: 'absolute', inset: 0, opacity: 0.05,
+                    backgroundImage: 'radial-gradient(#000 2px, transparent 2.5px)',
+                    backgroundSize: '20px 20px', pointerEvents: 'none'
+                }} />
 
-                {/* Right: Form */}
-                <div style={{ flex: 1, padding: '4rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--color-background)' }}>
-                    <div style={{ marginBottom: '3rem' }}>
-                        <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '0.5rem' }}>CONNEXION</h2>
-                        <p style={{ opacity: 0.6 }}>Content de te revoir, Hunter.</p>
-                    </div>
+                <div style={{
+                    maxWidth: '900px', width: '90%',
+                    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem',
+                    alignItems: 'center', position: 'relative', zIndex: 1
+                }}>
+                    {/* Left: Visuals */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ width: 60, height: 60, background: '#000', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: '1.5rem' }}>B</div>
+                            <span style={{ fontSize: '2rem', fontFamily: 'var(--font-heading)', fontWeight: 900 }}>BINGEKI</span>
+                        </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
-                        <div>
-                            <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.5rem', fontSize: '0.9rem' }}>EMAIL</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', border: '2px solid var(--color-border)', background: 'var(--color-surface)' }}>
-                                <Mail size={20} style={{ opacity: 0.5 }} />
-                                <span style={{ opacity: 0.5 }}>exemple@email.com</span>
+                        <h1 style={{ fontSize: '3rem', lineHeight: 1, fontFamily: 'var(--font-heading)', fontWeight: 900, textTransform: 'uppercase' }}>
+                            LE Q.G. DES<br /><span style={{ color: 'var(--color-primary)' }}>OTAKUS</span>.
+                        </h1>
+                        <p style={{ fontSize: '1rem', opacity: 0.7, lineHeight: 1.6 }}>
+                            Rejoins une communauté de passionnés, suis ta progression et découvre tes prochains coups de cœur.
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div style={{ padding: '0.5rem 1rem', background: '#fff', border: '3px solid #000', fontWeight: 900, fontSize: '0.8rem', textTransform: 'uppercase', boxShadow: '4px 4px 0 var(--color-primary)' }}>
+                                GAMIFICATION
+                            </div>
+                            <div style={{ padding: '0.5rem 1rem', background: '#fff', border: '3px solid #000', fontWeight: 900, fontSize: '0.8rem', textTransform: 'uppercase', boxShadow: '4px 4px 0 var(--color-secondary)' }}>
+                                COMMUNAUTÉ
                             </div>
                         </div>
-                        <div>
-                            <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.5rem', fontSize: '0.9rem' }}>MOT DE PASSE</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', border: '2px solid var(--color-border)', background: 'var(--color-surface)' }}>
-                                <Lock size={20} style={{ opacity: 0.5 }} />
-                                <span style={{ opacity: 0.5 }}>••••••••</span>
-                            </div>
-                        </div>
                     </div>
 
-                    <Button variant="primary" style={{ width: '100%', marginBottom: '1.5rem' }}>SE CONNECTER</Button>
-                    <div style={{ textAlign: 'center', fontSize: '0.9rem', opacity: 0.6, marginBottom: '1.5rem' }}>OU CONTINUER AVEC</div>
+                    {/* Right: Form */}
+                    <div style={{
+                        padding: '2.5rem',
+                        background: '#fff',
+                        border: '3px solid #000',
+                        boxShadow: '8px 8px 0 rgba(0,0,0,0.2)'
+                    }}>
+                        <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+                            <h2 style={{ fontSize: '1.8rem', fontFamily: 'var(--font-heading)', fontWeight: 900, marginBottom: '0.5rem' }}>BON RETOUR</h2>
+                            <p style={{ fontSize: '0.9rem', opacity: 0.6 }}>Reprends ton aventure là où tu l'as laissée.</p>
+                        </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <button style={{ padding: '0.75rem', background: '#fff', border: '2px solid #000', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                            <div style={{ width: 20, height: 20, background: 'red', borderRadius: '50%' }}></div> Google
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: '2px solid #ddd', borderRadius: '0.5rem', background: '#f9f9f9' }}>
+                                <Mail size={18} style={{ opacity: 0.5 }} />
+                                <span style={{ opacity: 0.5, fontSize: '0.9rem' }}>moussandou@exemple.com</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: '2px solid #ddd', borderRadius: '0.5rem', background: '#f9f9f9' }}>
+                                <Lock size={18} style={{ opacity: 0.5 }} />
+                                <span style={{ opacity: 0.5, fontSize: '0.9rem' }}>••••••••••••</span>
+                            </div>
+                        </div>
+
+                        <button style={{
+                            width: '100%', padding: '1rem',
+                            background: '#000', color: '#fff',
+                            fontWeight: 900, border: 'none',
+                            textTransform: 'uppercase',
+                            clipPath: 'polygon(5% 0, 100% 0, 100% 80%, 95% 100%, 0% 100%, 0 20%)',
+                            marginBottom: '1rem',
+                            cursor: 'pointer'
+                        }}>
+                            SE CONNECTER
                         </button>
-                        <button style={{ padding: '0.75rem', background: '#5865F2', color: '#fff', border: '2px solid #000', fontWeight: 800, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                            <div style={{ width: 20, height: 20, background: '#fff', borderRadius: '50%' }}></div> Discord
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1rem 0', opacity: 0.5 }}>
+                            <div style={{ flex: 1, height: '1px', background: '#000' }} />
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>OU</span>
+                            <div style={{ flex: 1, height: '1px', background: '#000' }} />
+                        </div>
+
+                        <button style={{
+                            width: '100%', padding: '0.75rem',
+                            background: '#fff', color: '#000',
+                            fontWeight: 800, border: '2px solid #000',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                            marginBottom: '0.5rem',
+                            boxShadow: '2px 2px 0 #000'
+                        }}>
+                            <div style={{ width: 14, height: 14, background: 'red', borderRadius: '50%' }}></div> Google
                         </button>
+
+                        <button style={{
+                            width: '100%', padding: '0.75rem',
+                            background: '#5865F2', color: '#fff',
+                            fontWeight: 800, border: '2px solid #000',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                            boxShadow: '2px 2px 0 #000'
+                        }}>
+                            <div style={{ width: 14, height: 14, background: '#fff', borderRadius: '50%' }}></div> Discord
+                        </button>
+
+                        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                            <span style={{ fontSize: '0.8rem', textDecoration: 'underline', fontWeight: 600, cursor: 'pointer' }}>Créer un compte</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1296,37 +1362,70 @@ export function MockupAuth() {
 export function MockupAuthMobile() {
     return (
         <MockupContentWrapperMobile>
-            <div style={{ padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-                    <div style={{ width: 60, height: 60, background: '#000', margin: '0 auto 1.5rem', borderRadius: '50%' }}></div>
-                    <h1 style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '0.5rem' }}>BINGEKI</h1>
-                    <p style={{ opacity: 0.6 }}>La plateforme ultime pour les fans.</p>
+            <div style={{
+                padding: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                height: '100%',
+                background: '#f5f5f5'
+            }}>
+                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                        <div style={{ width: 50, height: 50, background: '#000', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900 }}>B</div>
+                        <span style={{ fontSize: '1.5rem', fontFamily: 'var(--font-heading)', fontWeight: 900 }}>BINGEKI</span>
+                    </div>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 900, lineHeight: 1.1, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                        VERSION MOBILE
+                    </h1>
+                    <p style={{ fontSize: '0.8rem', opacity: 0.6, maxWidth: '250px', margin: '0 auto' }}>
+                        L'expérience complète dans votre poche.
+                    </p>
                 </div>
 
-                <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-                        <div style={{ padding: '1rem', border: '2px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <Mail size={20} style={{ opacity: 0.5 }} />
-                            <span style={{ opacity: 0.5 }}>Email</span>
+                <div style={{
+                    padding: '1.5rem',
+                    background: '#fff',
+                    border: '3px solid #000',
+                    boxShadow: '6px 6px 0 rgba(0,0,0,0.2)'
+                }}>
+                    <h2 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)', fontWeight: 900, marginBottom: '1.5rem', textAlign: 'center' }}>CONNEXION</h2>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', border: '2px solid #ddd', borderRadius: '0.5rem', background: '#f9f9f9' }}>
+                            <Mail size={16} style={{ opacity: 0.5 }} />
+                            <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>Email</span>
                         </div>
-                        <div style={{ padding: '1rem', border: '2px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <Lock size={20} style={{ opacity: 0.5 }} />
-                            <span style={{ opacity: 0.5 }}>Mot de passe</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', border: '2px solid #ddd', borderRadius: '0.5rem', background: '#f9f9f9' }}>
+                            <Lock size={16} style={{ opacity: 0.5 }} />
+                            <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>Mot de passe</span>
                         </div>
                     </div>
 
-                    <button style={{ width: '100%', padding: '1rem', background: 'var(--color-primary)', color: '#fff', fontWeight: 900, border: '2px solid #000', boxShadow: '4px 4px 0 #000', marginBottom: '2rem' }}>
+                    <button style={{
+                        width: '100%', padding: '0.8rem',
+                        background: '#000', color: '#fff',
+                        fontWeight: 900, border: 'none',
+                        textTransform: 'uppercase',
+                        clipPath: 'polygon(5% 0, 100% 0, 100% 80%, 95% 100%, 0% 100%, 0 20%)',
+                        marginBottom: '1rem',
+                        fontSize: '0.9rem'
+                    }}>
                         SE CONNECTER
                     </button>
 
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                        <button style={{ width: 50, height: 50, borderRadius: '50%', border: '2px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>G</button>
-                        <button style={{ width: 50, height: 50, borderRadius: '50%', border: '2px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#5865F2', color: '#fff' }}>D</button>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <button style={{ height: 40, border: '2px solid #000', background: '#fff', boxShadow: '2px 2px 0 #000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 12, height: 12, background: 'red', borderRadius: '50%' }}></div>
+                        </button>
+                        <button style={{ height: 40, border: '2px solid #000', background: '#5865F2', boxShadow: '2px 2px 0 #000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 12, height: 12, background: '#fff', borderRadius: '50%' }}></div>
+                        </button>
                     </div>
                 </div>
 
-                <div style={{ textAlign: 'center', opacity: 0.6, fontSize: '0.8rem', marginTop: 'auto' }}>
-                    Pas encore de compte ? <span style={{ fontWeight: 800, textDecoration: 'underline' }}>S'inscrire</span>
+                <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+                    <span style={{ fontSize: '0.8rem', textDecoration: 'underline', fontWeight: 600, opacity: 0.6 }}>Pas encore de compte ?</span>
                 </div>
             </div>
         </MockupContentWrapperMobile>
