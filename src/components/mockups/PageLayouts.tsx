@@ -574,7 +574,8 @@ export function MockupDiscover() {
                 display: 'flex',
                 alignItems: 'flex-end',
                 padding: '3rem',
-                borderBottom: '4px solid var(--color-border)'
+                borderBottom: '4px solid var(--color-border)',
+                color: '#fff'
             }}>
                 <div style={{ maxWidth: '600px' }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-primary)', color: '#fff', padding: '0.5rem 1rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1rem', boxShadow: '4px 4px 0 #000' }}>
@@ -659,12 +660,12 @@ export function MockupDiscoverMobile() {
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.5 }}>
                     <PlaceholderImage height="200px" text="HERO" />
                 </div>
-                <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ position: 'relative', zIndex: 1, color: '#fff' }}>
                     <span style={{ background: 'var(--color-primary)', color: '#fff', padding: '0.25rem 0.5rem', fontSize: '0.7rem', fontWeight: 800 }}>A L'AFFICHE</span>
                     <h1 style={{ fontSize: '2rem', fontFamily: 'var(--font-heading)', fontWeight: 900, lineHeight: 1, margin: '0.5rem 0' }}>CHAINSAW MAN</h1>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button style={{ flex: 1, background: 'var(--color-text)', color: 'var(--color-background)', border: 'none', padding: '0.75rem', fontWeight: 800 }}>AJOUTER</button>
-                        <button style={{ flex: 1, background: 'transparent', border: '2px solid var(--color-text)', color: 'var(--color-text)', padding: '0.75rem', fontWeight: 800 }}>INFO</button>
+                        <button style={{ flex: 1, background: '#fff', color: '#000', border: 'none', padding: '0.75rem', fontWeight: 800 }}>AJOUTER</button>
+                        <button style={{ flex: 1, background: 'transparent', border: '2px solid #fff', color: '#fff', padding: '0.75rem', fontWeight: 800 }}>INFO</button>
                     </div>
                 </div>
             </div>
