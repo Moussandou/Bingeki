@@ -6,7 +6,6 @@ import { logDataBackup } from '@/utils/dataProtection';
 import { getAllActivities, setGlobalAnnouncement, setGlobalConfig, getGlobalConfig, type ActivityEvent } from '@/firebase/firestore';
 import { useTranslation } from 'react-i18next';
 import { checkJikanStatus, type JikanStatusResponse } from '@/services/animeApi';
-import DeploymentsList from '@/components/admin/DeploymentsList';
 
 export default function AdminSystem() {
     const { t } = useTranslation();
@@ -209,8 +208,7 @@ export default function AdminSystem() {
                         </div>
                     </Card>
 
-                    {/* Deployments List */}
-                    <DeploymentsList />
+
 
                     <Card variant="manga" style={{ padding: '1.5rem', backgroundColor: 'var(--color-surface)' }}>
                         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', textTransform: 'uppercase', borderBottom: '2px solid var(--color-border)', paddingBottom: '0.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
