@@ -369,7 +369,7 @@ export default function AssetsPage() {
                                     marginBottom: '0.5rem'
                                 }}>
                                     <img
-                                        src="https://cdn.myanimelist.net/images/anime/1286/134440l.jpg"
+                                        src="https://placehold.co/400x600/222/fff?text=Frieren"
                                         alt="Frieren"
                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     />
