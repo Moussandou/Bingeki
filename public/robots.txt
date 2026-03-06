@@ -18,6 +18,10 @@ Allow: /auth
 Allow: /feedback
 Allow: /changelog
 Allow: /legal
+Allow: /privacy
+Allow: /terms
+Allow: /contact
+Allow: /about
 Allow: /credits
 Allow: /profile
 Allow: /work/*
