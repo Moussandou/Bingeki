@@ -1053,7 +1053,7 @@ export default function AssetsPage() {
 
                             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '1rem', fontWeight: 600 }}>
                                 <span>🌐 bingeki.web.app</span>
-                                <span>📧 moussandou.m@gmail.com</span>
+                                <span>📧 bingeki.official@gmail.com</span>
                                 <span>📱 07 81 63 32 78</span>
                             </div>
                         </div>

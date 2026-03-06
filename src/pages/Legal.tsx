@@ -25,7 +25,7 @@ export default function Legal() {
                         <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '1rem', borderBottom: '2px solid var(--color-border-heavy)', paddingBottom: '0.5rem' }}>{t('legal.section1_title')}</h2>
                         <p><strong>{t('legal.name')}</strong> Moussandou Mroivili</p>
                         <p><strong>{t('legal.address')}</strong> Marseille, France</p>
-                        <p><strong>{t('legal.contact')}</strong> moussandou.m@gmail.com | 07 81 63 32 78</p>
+                        <p><strong>{t('legal.contact')}</strong> bingeki.official@gmail.com</p>
                         <p><strong>{t('legal.status')}</strong> {t('legal.status_value')}</p>
                     </section>
 
@@ -55,7 +55,7 @@ export default function Legal() {
 
                     <section>
                         <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '1rem', borderBottom: '2px solid var(--color-border-heavy)', paddingBottom: '0.5rem' }}>{t('legal.section5_title')}</h2>
-                        <p>{t('legal.contact_text')} <strong>moussandou.m@gmail.com</strong></p>
+                        <p>{t('legal.contact_text')} <strong>bingeki.official@gmail.com</strong></p>
                     </section>
                 </div>
             </div>

@@ -277,6 +277,10 @@ const resources = {
                 copyright: "Bingeki Experience.",
                 changelog: "CHANGELOG",
                 legal: "MENTIONS LÉGALES & RGPD",
+                privacy: "CONFIDENTIALITÉ",
+                terms: "CGU",
+                contact: "CONTACT",
+                about: "À PROPOS",
                 credits: "CRÉDITS",
                 wiki: "WIKI",
                 contribution_msg: "Chaque contribution aide à ajouter de nouvelles fonctionnalités !",
@@ -1073,6 +1077,33 @@ const resources = {
                 gdpr_cookies: "Ce site utilise uniquement des cookies techniques nécessaires à l'authentification (Firebase Auth).",
                 section5_title: "5. CONTACT",
                 contact_text: "Pour toute question relative à ces mentions légales ou à vos données, veuillez contacter :"
+            },
+            privacy: {
+                title: "POLITIQUE DE CONFIDENTIALITÉ",
+                intro: "La protection de votre vie privée est importante pour nous.",
+                cookies_title: "Cookies",
+                cookies_desc: "Ce site utilise des cookies (y compris des cookies tiers) pour personnaliser le contenu et analyser notre trafic.",
+                ads_title: "Publicités Google (AdSense)",
+                ads_desc: "Des fournisseurs tiers, y compris Google, utilisent des cookies pour diffuser des annonces en fonction des visites antérieures des utilisateurs sur votre site web ou sur d'autres sites web. L'utilisation de cookies publicitaires par Google permet à Google et à ses partenaires de diffuser des annonces auprès de vos utilisateurs en fonction de leur visite sur vos sites et/ou d'autres sites sur Internet.",
+                data_title: "Collecte de données",
+                data_desc: "Nous recueillons certaines données (comme votre progression de lecture) uniquement pour vous fournir nos services. Nous ne vendons en aucun cas vos données personnelles à des tiers."
+            },
+            terms: {
+                title: "CONDITIONS GÉNÉRALES D'UTILISATION",
+                intro: "En utilisant Bingeki, vous acceptez de respecter ces conditions d'utilisation.",
+                rules_title: "Règles de bonne conduite",
+                rules_desc: "Soyez respectueux envers les autres membres de la communauté. Aucun contenu abusif ou illégal ne sera toléré."
+            },
+            contact: {
+                title: "CONTACTER L'ÉQUIPE",
+                intro: "Une question, une suggestion ou un problème technique ? N'hésitez pas à nous contacter.",
+                email_label: "Email direct :"
+            },
+            about: {
+                title: "À PROPOS DE BINGEKI",
+                intro: "Bingeki est né d'une passion pour le manga et l'animation japonaise.",
+                mission_title: "Notre mission",
+                mission_desc: "Fournir aux passionnés les meilleurs outils pour suivre leurs lectures et visionnages tout en profitant d'une expérience gamifiée."
             },
             credits: {
                 title: "CRÉDITS",

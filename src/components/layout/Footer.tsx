@@ -110,6 +110,18 @@ export function Footer() {
                         <Link to="/legal" style={{ color: 'var(--color-text)', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, opacity: 0.8 }}>
                             {t('footer.legal')}
                         </Link>
+                        <Link to="/privacy" style={{ color: 'var(--color-text)', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, opacity: 0.8 }}>
+                            {t('footer.privacy')}
+                        </Link>
+                        <Link to="/terms" style={{ color: 'var(--color-text)', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, opacity: 0.8 }}>
+                            {t('footer.terms')}
+                        </Link>
+                        <Link to="/contact" style={{ color: 'var(--color-text)', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, opacity: 0.8 }}>
+                            {t('footer.contact')}
+                        </Link>
+                        <Link to="/about" style={{ color: 'var(--color-text)', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, opacity: 0.8 }}>
+                            {t('footer.about')}
+                        </Link>
                         <Link to="/credits" style={{ color: 'var(--color-text)', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, opacity: 0.8 }}>
                             {t('footer.credits')}
                         </Link>

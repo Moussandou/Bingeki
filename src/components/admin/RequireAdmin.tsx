@@ -12,7 +12,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
     }
 
     // Hardcoded admin email for safety first approach
-    const ADMIN_EMAILS = ['moussandou.m@gmail.com'];
+    const ADMIN_EMAILS = ['moussandou.m@gmail.com', 'bingeki.official@gmail.com'];
     const isAdmin = user && ADMIN_EMAILS.includes(user.email || '');
 
     if (!user || !isAdmin) {

@@ -44,6 +44,11 @@ const Credits = lazy(() => import('@/pages/Credits'));
 const Assets = lazy(() => import('@/pages/AssetsPage'));
 const Donors = lazy(() => import('@/pages/Donors'));
 const Notifications = lazy(() => import('@/pages/Notifications')); // Added
+
+const Privacy = lazy(() => import('@/pages/Privacy'));
+const Terms = lazy(() => import('@/pages/Terms'));
+const Contact = lazy(() => import('@/pages/Contact'));
+const About = lazy(() => import('@/pages/About'));
 // MyTickets and TicketDetail are now merged into Feedback.tsx
 
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -336,6 +341,10 @@ function App() {
               } />
 
               <Route path="legal" element={<Legal />} />
+              <Route path="privacy" element={<Privacy />} />
+              <Route path="terms" element={<Terms />} />
+              <Route path="contact" element={<Contact />} />
+              <Route path="about" element={<About />} />
               <Route path="credits" element={
                 <Suspense fallback={<LoadingScreen />}>
                   <Credits />
