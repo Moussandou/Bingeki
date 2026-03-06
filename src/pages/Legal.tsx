@@ -53,6 +53,11 @@ export default function Legal() {
                         </ul>
                     </section>
 
+                    <section style={{ marginBottom: '3rem' }}>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '1rem', borderBottom: '2px solid var(--color-border-heavy)', paddingBottom: '0.5rem' }}>{t('legal.ai_title')}</h2>
+                        <p>{t('legal.ai_text')}</p>
+                    </section>
+
                     <section>
                         <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '1rem', borderBottom: '2px solid var(--color-border-heavy)', paddingBottom: '0.5rem' }}>{t('legal.section5_title')}</h2>
                         <p>{t('legal.contact_text')} <strong>bingeki.official@gmail.com</strong></p>

@@ -1072,11 +1072,13 @@ const resources = {
                 gdpr_access_title: "Droit d'accès :",
                 gdpr_access: "Vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Vous pouvez supprimer votre compte et toutes les données associées directement depuis les paramètres de l'application ou en nous contactant.",
                 gdpr_share_title: "Partage :",
-                gdpr_share: "Aucune donnée personnelle n'est vendue à des tiers.",
+                gdpr_share: "Vos données ne sont ni vendues, ni louées, ni cédées à des tiers.",
                 gdpr_cookies_title: "Cookies :",
-                gdpr_cookies: "Ce site utilise uniquement des cookies techniques nécessaires à l'authentification (Firebase Auth).",
+                gdpr_cookies: "Nous utilisons des cookies techniques essentiels pour maintenir votre session. Pour en savoir plus, consultez notre Politique de Confidentialité.",
+                ai_title: "Transparence Intelligence Artificielle (AI Act)",
+                ai_text: "Conformément aux principes de transparence, nous informons nos utilisateurs que des outils basés sur l'intelligence artificielle ont été utilisés pour assister la création d'éléments graphiques (comme des logos) ainsi qu'une partie du code source de ce site web. Tous les contenus générés ont fait l'objet d'une révision et d'une validation humaine.",
                 section5_title: "5. CONTACT",
-                contact_text: "Pour toute question relative à ces mentions légales ou à vos données, veuillez contacter :"
+                contact_text: "Pour toute question, demande d'information ou réclamation, vous pouvez nous contacter à l'adresse suivante :"
             },
             privacy: {
                 title: "POLITIQUE DE CONFIDENTIALITÉ",
@@ -1126,7 +1128,7 @@ const resources = {
                 dashboard: {
                     loading: "Chargement du dashboard...",
                     title: "Centre de Contrôle",
-                    subtitle: "Vue d'ensemble de l'activité sur Bingeki",
+                    subtitle: "Vue d'overview de l'activité sur Bingeki",
                     users_label: "Utilisateurs",
                     today: "aujourd'hui",
                     feedback_label: "Feedback",
@@ -2310,11 +2312,13 @@ const resources = {
                 gdpr_access_title: "Right of access:",
                 gdpr_access: "You have the right to access, rectify, and delete your data. You can delete your account and all associated data directly from the application settings or by contacting us.",
                 gdpr_share_title: "Sharing:",
-                gdpr_share: "No personal data is sold to third parties.",
+                gdpr_share: "Your data is neither sold, rented, nor transferred to third parties.",
                 gdpr_cookies_title: "Cookies:",
-                gdpr_cookies: "This site only uses technical cookies necessary for authentication (Firebase Auth).",
+                gdpr_cookies: "We use essential technical cookies to maintain your session. To learn more, see our Privacy Policy.",
+                ai_title: "Artificial Intelligence Transparency (AI Act)",
+                ai_text: "In accordance with transparency principles, we inform our users that artificial intelligence-based tools were used to assist in the creation of graphic elements (such as logos) as well as part of the source code for this website. All generated content has undergone human review and validation.",
                 section5_title: "5. CONTACT",
-                contact_text: "For any questions regarding these legal notices or your data, please contact:"
+                contact_text: "For any questions, information requests or complaints, you can contact us at the following address:"
             },
             credits: {
                 title: "CREDITS",
