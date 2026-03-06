@@ -1951,6 +1951,10 @@ const resources = {
                 copyright: "Bingeki Experience.",
                 changelog: "CHANGELOG",
                 legal: "LEGAL & GDPR",
+                privacy: "PRIVACY",
+                terms: "TERMS",
+                contact: "CONTACT",
+                about: "ABOUT",
                 credits: "CREDITS",
                 wiki: "WIKI",
                 contribution_msg: "Every contribution helps add new features!",
@@ -2754,6 +2758,33 @@ const resources = {
                 seiyuu: "SEIYUU (JP VOICE ACTORS)",
                 anime_appearances: "ANIME APPEARANCES",
                 manga_appearances: "MANGA APPEARANCES"
+            },
+            privacy: {
+                title: "PRIVACY POLICY",
+                intro: "Protecting your privacy is important to us.",
+                cookies_title: "Cookies",
+                cookies_desc: "This site uses cookies (including third-party cookies) to personalize content and analyze our traffic.",
+                ads_title: "Google Ads (AdSense)",
+                ads_desc: "Third party vendors, including Google, use cookies to serve ads based on a user's prior visits to your website or other websites. Google's use of advertising cookies enables it and its partners to serve ads to your users based on their visit to your sites and/or other sites on the Internet.",
+                data_title: "Data Collection",
+                data_desc: "We collect certain data (such as your reading progress) solely to provide you with our services. We never sell your personal data to third parties."
+            },
+            terms: {
+                title: "TERMS OF SERVICE",
+                intro: "By using Bingeki, you agree to comply with these terms of use.",
+                rules_title: "Rules of Conduct",
+                rules_desc: "Be respectful to other members of the community. No abusive or illegal content will be tolerated."
+            },
+            contact: {
+                title: "CONTACT US",
+                intro: "A question, a suggestion or a technical issue? Feel free to contact us.",
+                email_label: "Direct email:"
+            },
+            about: {
+                title: "ABOUT BINGEKI",
+                intro: "Bingeki was born from a passion for manga and Japanese animation.",
+                mission_title: "Our mission",
+                mission_desc: "To provide fans with the best tools to track their reading and watching while enjoying a gamified experience."
             },
             person_details: {
                 loading_title: "Loading...",
