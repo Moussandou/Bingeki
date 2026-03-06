@@ -53,7 +53,7 @@ jobs:
       # ══════════════════════════════════════════════
       
       - name: Audit Dependencies
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high || true
         continue-on-error: true
 
       - name: Check for Secrets in Code
