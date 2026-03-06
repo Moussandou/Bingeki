@@ -1,11 +1,15 @@
-import { Mail, MapPin, Github, Linkedin, Globe, Briefcase } from 'lucide-react';
+import { Mail, MapPin, Github, Linkedin, Globe, Briefcase, Coffee } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { InstallPWA } from '@/components/pwa/InstallPWA';
 import { Link } from '@/components/routing/LocalizedLink';
 import styles from './Footer.module.css';
 
 export function Footer() {
     const { t } = useTranslation();
+    const location = useLocation();
+    const isLandingPage = /^\/(en|fr)?\/?$/.test(location.pathname);
+
     return (
         <footer className={styles.footer}>
             {/* Center "End" marker */}
@@ -59,41 +63,51 @@ export function Footer() {
                     >
                         <Globe size={20} />
                     </a>
+                    {!isLandingPage && (
+                        <a href="https://ko-fi.com/moussandou" target="_blank" rel="noopener noreferrer"
+                            title="Ko-fi"
+                            className={styles.socialIcon}
+                        >
+                            <Coffee size={20} color="#ff5e5b" />
+                        </a>
+                    )}
                 </div>
 
                 {/* Tips for Devs Section */}
-                <div className={styles.supportSection}>
-                    <div className={styles.supportTag}>
-                        {t('landing.features.support.tag')}
+                {isLandingPage && (
+                    <div className={styles.supportSection}>
+                        <div className={styles.supportTag}>
+                            {t('landing.features.support.tag')}
+                        </div>
+                        <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                            <p style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '1rem', color: '#000' }}>
+                                {t('landing.features.support.description_1')}
+                            </p>
+                            <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem', color: '#000', opacity: 0.85 }}>
+                                {t('landing.features.support.description_2')}
+                            </p>
+                            <a
+                                href="https://ko-fi.com/moussandou"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.kofiButton}
+                            >
+                                <img
+                                    src="/Ko-fi logo.gif"
+                                    alt={t('landing.features.support.kofi_alt')}
+                                    style={{
+                                        height: '36px',
+                                        display: 'block',
+                                        margin: '0 auto'
+                                    }}
+                                />
+                            </a>
+                            <p style={{ fontSize: '0.75rem', marginTop: '1rem', color: '#000', opacity: 0.7, fontWeight: 600 }}>
+                                {t('footer.contribution_msg')}
+                            </p>
+                        </div>
                     </div>
-                    <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
-                        <p style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '1rem', color: '#000' }}>
-                            {t('landing.features.support.description_1')}
-                        </p>
-                        <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem', color: '#000', opacity: 0.85 }}>
-                            {t('landing.features.support.description_2')}
-                        </p>
-                        <a
-                            href="https://ko-fi.com/moussandou"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.kofiButton}
-                        >
-                            <img
-                                src="/Ko-fi logo.gif"
-                                alt={t('landing.features.support.kofi_alt')}
-                                style={{
-                                    height: '36px',
-                                    display: 'block',
-                                    margin: '0 auto'
-                                }}
-                            />
-                        </a>
-                        <p style={{ fontSize: '0.75rem', marginTop: '1rem', color: '#000', opacity: 0.7, fontWeight: 600 }}>
-                            {t('footer.contribution_msg')}
-                        </p>
-                    </div>
-                </div>
+                )}
 
                 {/* Copyright & Legal */}
                 <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
