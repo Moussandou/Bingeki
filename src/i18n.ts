@@ -1400,6 +1400,19 @@ const resources = {
                 sheet: "FICHE",
                 biography: "BIOGRAPHIE",
                 roles: "RÔLES"
+            },
+            news: {
+                not_found: "Article introuvable",
+                back: "RETOUR",
+                source_badge: "SOURCE",
+                read_full: "LIRE L'INFORMATION COMPLÈTE ORIGINELLE",
+                disclaimer: "Cet article est un résumé automatisé. Pour lire l'intégralité du contenu et soutenir les créateurs originaux, veuillez consulter l'article complet sur le site source.",
+                go_to_source: "ALLER VERS LA SOURCE",
+                title: "ACTUALITÉS ANIMÉS & MANGAS",
+                description: "Les dernières news Anime et Manga en temps réel.",
+                heading: "ACTUALITÉS RÉCENTES",
+                featured: "À LA UNE",
+                empty: "Aucune actualité trouvée."
             }
         },
     },
@@ -2801,6 +2814,19 @@ const resources = {
                 sheet: "FACT SHEET",
                 biography: "BIOGRAPHY",
                 roles: "ROLES"
+            },
+            news: {
+                not_found: "Article not found",
+                back: "BACK",
+                source_badge: "SOURCE",
+                read_full: "READ THE FULL ORIGINAL STORY",
+                disclaimer: "This article is an automated summary. To read the full content and support the original creators, please visit the source website.",
+                go_to_source: "GO TO SOURCE",
+                title: "ANIME & MANGA NEWS",
+                description: "The latest Anime and Manga news in real time.",
+                heading: "LATEST NEWS",
+                featured: "FEATURED",
+                empty: "No news found."
             }
         }
     }
