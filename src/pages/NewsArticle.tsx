@@ -143,7 +143,7 @@ export default function NewsArticle() {
                     }}>
                         {/* Header Image */}
                         {article.imageUrl && (
-                            <div style={{ width: '100%', height: '450px', borderBottom: '3px solid var(--color-border-heavy)', position: 'relative' }}>
+                            <div className="news-article-header-image" style={{ width: '100%', borderBottom: '3px solid var(--color-border-heavy)', position: 'relative' }}>
                                 <img
                                     src={article.imageUrl}
                                     alt={article.title}
@@ -478,6 +478,45 @@ export default function NewsArticle() {
                 .source-button:hover {
                     transform: translate(3px, 3px);
                     box-shadow: 5px 5px 0 var(--color-primary) !important;
+                }
+
+                .news-article-header-image {
+                    height: 450px;
+                }
+
+                @media (max-width: 768px) {
+                    .news-article-header-image {
+                        height: clamp(200px, 40vh, 300px);
+                    }
+                    
+                    .article-content h2 {
+                        margin-top: 3rem;
+                        margin-bottom: 1.5rem;
+                        font-size: 1.75rem;
+                        gap: 1rem;
+                    }
+
+                    .article-content h2::before {
+                        font-size: 1rem;
+                        padding: 2px 8px;
+                    }
+
+                    .article-content img {
+                        margin: 1.5rem 0;
+                        border-width: 3px;
+                        box-shadow: 6px 6px 0 var(--color-shadow-solid);
+                    }
+
+                    .article-content blockquote {
+                        padding: 1.5rem;
+                        margin: 2rem 0;
+                        font-size: 1.15rem;
+                        border-left-width: 4px;
+                    }
+                    
+                    .article-content p, .article-content li {
+                        font-size: 1.05rem;
+                    }
                 }
                 `}
             </style>

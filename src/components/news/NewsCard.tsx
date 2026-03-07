@@ -30,17 +30,7 @@ export function NewsCard({ title, slug, imageUrl, sourceName, publishedAt, tags 
     return (
         <Link to={`/news/article/${slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
             <div
-                style={{
-                    display: 'flex',
-                    flexDirection: featured ? 'row' : 'column',
-                    background: 'var(--color-surface)',
-                    border: '3px solid var(--color-border-heavy)',
-                    boxShadow: '8px 8px 0 var(--color-shadow-solid)',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                    height: '100%',
-                    position: 'relative',
-                    cursor: 'pointer'
-                }}
+                className={`news-card-wrapper ${featured ? 'featured' : ''}`}
                 onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translate(-4px, -4px)';
                     e.currentTarget.style.boxShadow = '12px 12px 0 var(--color-primary)';
@@ -55,17 +45,7 @@ export function NewsCard({ title, slug, imageUrl, sourceName, publishedAt, tags 
                 }}
             >
                 {/* Thumbnail */}
-                <div style={{
-                    position: 'relative',
-                    flexShrink: 0,
-                    width: featured ? '50%' : '100%',
-                    height: featured ? '100%' : 'auto',
-                    borderRight: featured ? '3px solid var(--color-border-heavy)' : 'none',
-                    borderBottom: !featured ? '3px solid var(--color-border-heavy)' : 'none',
-                    backgroundColor: 'var(--color-border)',
-                    overflow: 'hidden',
-                    aspectRatio: featured ? 'auto' : '16/9'
-                }}>
+                <div className="news-thumbnail">
                     {imageUrl ? (
                         <img
                             src={imageUrl}
@@ -97,7 +77,7 @@ export function NewsCard({ title, slug, imageUrl, sourceName, publishedAt, tags 
                 </div>
 
                 {/* Content */}
-                <div style={{ padding: featured ? '2rem' : '1.25rem', display: 'flex', flexDirection: 'column', flex: 1, background: 'var(--color-surface)' }}>
+                <div className="news-content" style={{ padding: featured ? '2rem' : '1.25rem', display: 'flex', flexDirection: 'column', flex: 1, background: 'var(--color-surface)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-text-dim)', marginBottom: '12px' }}>
                         <span style={{ color: 'var(--color-text)' }}>{sourceName || 'Anime News'}</span>
                         <span>•</span>
@@ -105,7 +85,7 @@ export function NewsCard({ title, slug, imageUrl, sourceName, publishedAt, tags 
                     </div>
 
                     <h3 className="news-title" style={{
-                        fontSize: featured ? '2rem' : '1.2rem',
+                        fontSize: featured ? '1.75rem' : '1.2rem',
                         fontWeight: 900,
                         fontFamily: 'var(--font-heading)',
                         marginBottom: 'auto',
@@ -127,6 +107,64 @@ export function NewsCard({ title, slug, imageUrl, sourceName, publishedAt, tags 
                     )}
                 </div>
             </div>
+
+            <style>
+                {`
+                .news-card-wrapper {
+                    display: flex;
+                    flex-direction: column;
+                    background: var(--color-surface);
+                    border: 3px solid var(--color-border-heavy);
+                    box-shadow: 8px 8px 0 var(--color-shadow-solid);
+                    transition: transform 0.2s, box-shadow 0.2s;
+                    height: 100%;
+                    position: relative;
+                    cursor: pointer;
+                }
+                
+                .news-card-wrapper.featured {
+                    flex-direction: row;
+                }
+
+                .news-thumbnail {
+                    position: relative;
+                    flex-shrink: 0;
+                    width: 100%;
+                    height: auto;
+                    border-bottom: 3px solid var(--color-border-heavy);
+                    background-color: var(--color-border);
+                    overflow: hidden;
+                    aspect-ratio: 16/9;
+                }
+
+                .news-card-wrapper.featured .news-thumbnail {
+                    width: 50%;
+                    height: 100%;
+                    border-right: 3px solid var(--color-border-heavy);
+                    border-bottom: none;
+                    aspect-ratio: auto;
+                }
+
+                @media (max-width: 768px) {
+                    .news-card-wrapper.featured {
+                        flex-direction: column;
+                    }
+                    .news-card-wrapper.featured .news-thumbnail {
+                        width: 100%;
+                        height: 250px;
+                        border-right: none;
+                        border-bottom: 3px solid var(--color-border-heavy);
+                    }
+                    .news-card-wrapper.featured .news-content {
+                        padding: 1.25rem !important;
+                    }
+                    .news-card-wrapper.featured .news-title {
+                        font-size: 1.5rem !important;
+                        -webkit-line-clamp: 3 !important;
+                    }
+                }
+                `}
+            </style>
         </Link>
     );
 }

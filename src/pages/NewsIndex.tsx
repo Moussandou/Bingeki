@@ -184,7 +184,7 @@ export default function NewsIndex() {
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#ef4444', color: '#fff', padding: '0.5rem 1rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '-1px', position: 'relative', zIndex: 1, boxShadow: '4px 4px 0 var(--color-shadow-solid)' }}>
                                 <Flame size={18} fill="#fff" /> {t('news.featured', 'À LA UNE')}
                             </div>
-                            <div style={{ height: '400px' }}>
+                            <div className="featured-news-wrapper">
                                 <NewsCard
                                     title={featuredNews.title}
                                     slug={featuredNews.slug}
@@ -234,6 +234,20 @@ export default function NewsIndex() {
                     )}
                 </motion.div>
             </div>
+
+            <style>
+                {`
+                .featured-news-wrapper {
+                    height: 400px;
+                }
+                
+                @media (max-width: 768px) {
+                    .featured-news-wrapper {
+                        height: auto;
+                    }
+                }
+                `}
+            </style>
         </Layout>
     );
 }
