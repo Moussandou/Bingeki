@@ -83,6 +83,22 @@ async function fetchAndSaveNews() {
                     if (imgMatch) imageUrl = imgMatch[1];
                 }
 
+                // fallback: if no image found (common for ANN), try to fetch og:image from the source URL
+                if (!imageUrl && item.link) {
+                    try {
+                        console.log(`   - Scraping og:image for: ${item.link}`);
+                        const response = await fetch(item.link);
+                        const html = await response.text();
+                        const ogImageMatch = html.match(/<meta[^>]+property="og:image"[^>]+content="([^">]+)"/);
+                        if (ogImageMatch) {
+                            imageUrl = ogImageMatch[1];
+                            console.log(`     + Found og:image: ${imageUrl}`);
+                        }
+                    } catch (scrapeError) {
+                        console.error(`     ! Error scraping image for ${item.link}:`, scrapeError);
+                    }
+                }
+
                 // Clean HTML content
                 const rawContent = item['content:encoded'] || item.content || item.contentSnippet || '';
                 const cleanContent = sanitizeHtml(rawContent, {
