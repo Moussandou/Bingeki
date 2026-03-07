@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, RequestHandler } from 'express';
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
@@ -18,9 +18,10 @@ const app = express();
 app.use(express.static(distPath));
 
 // For all other routes, serve index.html
-app.use((req, res) => {
+const catchAll: RequestHandler = (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
-});
+};
+app.use(catchAll);
 
 const PORT = 54321;
 app.listen(PORT, async () => {
