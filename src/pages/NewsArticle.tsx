@@ -8,7 +8,7 @@ import { Layout } from '@/components/layout/Layout';
 import { SEO } from '@/components/layout/SEO';
 import { Link } from '@/components/routing/LocalizedLink';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, ExternalLink, Calendar, Link as LinkIcon, List, BookOpen } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Calendar, Link as LinkIcon, List, BookOpen, ArrowUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 
@@ -37,6 +37,7 @@ export default function NewsArticle() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [headings, setHeadings] = useState<Heading[]>([]);
+    const [showBackToTop, setShowBackToTop] = useState(false);
 
     useEffect(() => {
         async function fetchArticle() {
@@ -82,6 +83,18 @@ export default function NewsArticle() {
         fetchArticle();
         window.scrollTo(0, 0);
     }, [slug]);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setShowBackToTop(window.scrollY > 400);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     if (loading) return <LoadingScreen />;
 
@@ -339,6 +352,42 @@ export default function NewsArticle() {
                 </div>
             </div>
 
+            {/* Back to Top Button */}
+            <button
+                onClick={scrollToTop}
+                style={{
+                    position: 'fixed',
+                    bottom: '2rem',
+                    right: '2rem',
+                    width: '60px',
+                    height: '60px',
+                    background: 'var(--color-primary)',
+                    color: '#fff',
+                    border: '3px solid #000',
+                    boxShadow: '4px 4px 0 #000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    zIndex: 100,
+                    opacity: showBackToTop ? 1 : 0,
+                    transform: showBackToTop ? 'translateY(0)' : 'translateY(20px)',
+                    pointerEvents: showBackToTop ? 'all' : 'none',
+                    transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                }}
+                className="back-to-top"
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translate(-2px, -2px)';
+                    e.currentTarget.style.boxShadow = '6px 6px 0 #000';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translate(0, 0)';
+                    e.currentTarget.style.boxShadow = '4px 4px 0 #000';
+                }}
+            >
+                <ArrowUp size={30} strokeWidth={3} />
+            </button>
+
             <style>
                 {`
                 @media (max-width: 1100px) {
@@ -354,9 +403,10 @@ export default function NewsArticle() {
                 .article-content h2 {
                     font-family: var(--font-heading);
                     font-weight: 900;
-                    margin-top: 4rem;
+                    margin-top: 5rem;
                     margin-bottom: 2rem;
-                    font-size: 2.2rem;
+                    font-size: 2.22rem;
+                    padding-top: 1.5rem;
                     padding-bottom: 1rem;
                     border-bottom: 3px solid var(--color-border);
                     display: flex;
@@ -379,14 +429,23 @@ export default function NewsArticle() {
                 .article-content h3 {
                     font-family: var(--font-heading);
                     font-weight: 900;
-                    margin-top: 2.5rem;
+                    margin-top: 3.5rem;
                     margin-bottom: 1.5rem;
                     font-size: 1.6rem;
                     color: var(--color-primary);
                 }
 
                 .article-content p {
-                    margin-bottom: 1.5rem;
+                    margin-bottom: 2rem;
+                }
+
+                .article-content ul, .article-content ol {
+                    margin-bottom: 2rem;
+                    padding-left: 2rem;
+                }
+
+                .article-content li {
+                    margin-bottom: 0.8rem;
                 }
 
                 .article-content img {
@@ -394,7 +453,7 @@ export default function NewsArticle() {
                     height: auto;
                     border: 4px solid var(--color-border-heavy);
                     box-shadow: 10px 10px 0 var(--color-shadow-solid);
-                    margin: 2.5rem 0;
+                    margin: 3rem 0;
                 }
 
                 .article-content a {
@@ -407,9 +466,9 @@ export default function NewsArticle() {
                 .article-content blockquote {
                     border-left: 8px solid var(--color-primary);
                     background: var(--color-surface-hover);
-                    padding: 2rem;
-                    margin: 2.5rem 0;
-                    font-size: 1.3rem;
+                    padding: 2.5rem;
+                    margin: 3rem 0;
+                    font-size: 1.35rem;
                     font-style: italic;
                     color: var(--color-text-dim);
                     font-family: var(--font-heading);

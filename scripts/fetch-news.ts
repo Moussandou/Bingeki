@@ -100,9 +100,40 @@ async function fetchAndSaveNews() {
                 }
 
                 // Clean HTML content
-                const rawContent = item['content:encoded'] || item.content || item.contentSnippet || '';
-                const cleanContent = sanitizeHtml(rawContent, {
-                    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
+                let rawContent = item['content:encoded'] || item.content || item.contentSnippet || '';
+
+                // Helper to format content if it's mostly plain text or poorly structured
+                function formatContent(html: string): string {
+                    // if it's already got decent HTML structure (multiple p or h tags), don't mess too much
+                    if ((html.match(/<p>/g) || []).length > 1 || (html.match(/<h[1-6]>/g) || []).length > 0) {
+                        return html;
+                    }
+
+                    // Convert double newlines to paragraphs
+                    let formatted = html
+                        .replace(/\r\n/g, '\n')
+                        .split(/\n\n+/)
+                        .map(para => {
+                            const trimmed = para.trim();
+                            if (!trimmed) return '';
+
+                            // Try to detect if this paragraph is actually a heading
+                            // Condition: short (less than 80 chars), no period at end, not starting with common lowercase words
+                            if (trimmed.length < 80 && !trimmed.endsWith('.') && !trimmed.match(/^[a-z]/)) {
+                                return `<h2>${trimmed}</h2>`;
+                            }
+                            return `<p>${trimmed}</p>`;
+                        })
+                        .filter(p => p !== '')
+                        .join('\n');
+
+                    return formatted;
+                }
+
+                const structuredContent = formatContent(rawContent);
+
+                const cleanContent = sanitizeHtml(structuredContent, {
+                    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h2', 'h3', 'blockquote']),
                     allowedAttributes: {
                         ...sanitizeHtml.defaults.allowedAttributes,
                         img: ['src', 'alt', 'width', 'height']
@@ -118,7 +149,7 @@ async function fetchAndSaveNews() {
                     title: item.title,
                     slug: slug,
                     content: cleanContent,
-                    contentSnippet: item.contentSnippet || item.title,
+                    contentSnippet: (item.contentSnippet || item.title).substring(0, 300),
                     sourceUrl: item.link,
                     sourceName: feedConfig.name,
                     publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
