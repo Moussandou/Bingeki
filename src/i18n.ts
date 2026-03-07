@@ -1412,7 +1412,13 @@ const resources = {
                 description: "Les dernières news Anime et Manga en temps réel.",
                 heading: "ACTUALITÉS RÉCENTES",
                 featured: "À LA UNE",
-                empty: "Aucune actualité trouvée."
+                empty: "Aucune actualité trouvée.",
+                summary_box_title: "EN UN CLIN D'ŒIL",
+                toc: "Sommaire",
+                search_placeholder: "Rechercher par titre ou tag...",
+                filter_all_sources: "Toutes les sources",
+                results_found: "{{count}} actualité trouvée",
+                results_found_plural: "{{count}} actualités trouvées"
             }
         },
     },
@@ -2826,7 +2832,13 @@ const resources = {
                 description: "The latest Anime and Manga news in real time.",
                 heading: "LATEST NEWS",
                 featured: "FEATURED",
-                empty: "No news found."
+                empty: "No news found.",
+                summary_box_title: "AT A GLANCE",
+                toc: "Table of Contents",
+                search_placeholder: "Search by title or tag...",
+                filter_all_sources: "All sources",
+                results_found: "{{count}} news item found",
+                results_found_plural: "{{count}} news items found"
             }
         }
     }
