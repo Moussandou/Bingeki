@@ -112,19 +112,24 @@ async function processItem(item: any, feedConfig: any, forceUpdate: boolean) {
             let foundBody = null;
 
             for (const selector of selectors) {
-                // Simplified regex to match div content by class or ID
                 const isClass = selector.startsWith('.');
-                const name = selector.substring(1);
-                const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const isId = selector.startsWith('#');
+                const name = selector.substring(1).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 
+                // Use a non-greedy match for the content and allow more flexibility in the div attributes
                 const regex = isClass 
-                    ? new RegExp(`<div[^>]+class="[^"]*${escapedName}[^"]*"[^>]*>([\\s\\S]*?)<\\/div>`, 'i')
-                    : new RegExp(`<div[^>]+id="${escapedName}"[^>]*>([\\s\\S]*?)<\\/div>`, 'i');
+                    ? new RegExp(`<div[^>]+class="[^"]*${name}[^"]*"[^>]*>([\\s\\S]*?)<\\/div>`, 'i')
+                    : isId 
+                        ? new RegExp(`<div[^>]+id="${name}"[^>]*>([\\s\\S]*?)<\\/div>`, 'i')
+                        : null;
                 
-                const match = html.match(regex);
-                if (match) {
-                    foundBody = match[1];
-                    break;
+                if (regex) {
+                    const match = html.match(regex);
+                    if (match) {
+                        foundBody = match[1];
+                        // If it's a very short body, keep looking for a better match
+                        if (foundBody.length > 200) break;
+                    }
                 }
             }
 
@@ -134,17 +139,44 @@ async function processItem(item: any, feedConfig: any, forceUpdate: boolean) {
                     .replace(/<aside[\s\S]*?<\/aside>/gi, '')
                     .replace(/<div class="ad-container"[\s\S]*?<\/div>/gi, '');
 
+                // ANN specific: restore data-src images if they exist
+                scrapedBody = scrapedBody.replace(/<img[^>]+data-src="([^">]+)"[^>]*>/gi, '<img src="$1">');
+
                 if (scrapedBody.length > fullContent.length) {
                     fullContent = scrapedBody;
+                }
+            } else if (html.includes('id="maincontent"') || html.includes('class="meat"')) {
+                // Fallback for ANN specifically if the regex above fails
+                const bodyMatch = html.match(/<div[^>]+class="meat"[^>]*>([\s\S]*?)<\/div>/) ||
+                    html.match(/<div[^>]+id="maincontent"[^>]*>([\s\S]*?)<\/div>/);
+
+                if (bodyMatch) {
+                    let scrapedBody = bodyMatch[1]
+                        .replace(/<script[\s\S]*?<\/script>/gi, '')
+                        .replace(/<aside[\s\S]*?<\/aside>/gi, '')
+                        .replace(/<div class="ad-container"[\s\S]*?<\/div>/gi, '');
+
+                    scrapedBody = scrapedBody.replace(/<img[^>]+data-src="([^">]+)"[^>]*>/gi, '<img src="$1">');
+
+                    if (scrapedBody.length > fullContent.length) {
+                        fullContent = scrapedBody;
+                    }
                 }
             }
         }
 
         // 3. Fallback Image from body if metadata was generic or missing
         if (!imageUrl || genericLogos.some(logo => imageUrl!.toLowerCase().includes(logo))) {
-            const imgMatch = fullContent.match(/<img[^>]+src="([^">]+)"/);
-            if (imgMatch) {
-                imageUrl = imgMatch[1];
+            // Priority to non-spacer images
+            const imgMatches = fullContent.match(/<img[^>]+src="([^">]+)"/g);
+            if (imgMatches) {
+                for (const imgTag of imgMatches) {
+                    const srcMatch = imgTag.match(/src="([^">]+)"/);
+                    if (srcMatch && !srcMatch[1].includes('spacer.gif')) {
+                        imageUrl = srcMatch[1];
+                        break;
+                    }
+                }
             }
         }
 
