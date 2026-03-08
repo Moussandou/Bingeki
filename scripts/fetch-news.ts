@@ -37,6 +37,7 @@ const FEEDS = [
     {
         name: "Crunchyroll News",
         url: "https://cr-news-api-service.prd.crunchyrollsvc.com/v1/en-US/rss",
+        selector: ".article_mainlayout__MokpK, .article_view__content, .article-body",
         limit: 15
     },
     {
@@ -65,7 +66,12 @@ async function processItem(item: any, feedConfig: any, forceUpdate: boolean) {
         return;
     }
 
+    // 0. High Priority: RSS Metadata Image (media:thumbnail or media:content)
+    // Crunchyroll provides high-quality images directly in the feed
     let imageUrl = null;
+    if (item['media:thumbnail'] && item['media:thumbnail'].$) imageUrl = item['media:thumbnail'].$.url;
+    else if (item['media:content'] && item['media:content'].$) imageUrl = item['media:content'].$.url;
+
     let fullContent = item['content:encoded'] || item.content || item.contentSnippet || '';
 
     // Content & Image Extraction via Scraping
@@ -78,25 +84,52 @@ async function processItem(item: any, feedConfig: any, forceUpdate: boolean) {
         const html = await response.text();
 
         // 1. Better Image Scraping (og:image or twitter:image)
-        const genericLogos = ['crunchyroll-logo', 'mal-logo', 'ann-logo', 'logo-full', 'default-meta'];
-        const ogMatch = html.match(/<meta[^>]+property="og:image"[^>]+content="([^">]+)"/) ||
-            html.match(/<meta[^>]+name="twitter:image"[^>]+content="([^">]+)"/);
+        const genericLogos = [
+            'crunchyroll-logo', 'mal-logo', 'ann-logo', 'logo-full', 
+            'default-meta', 'favicon', '96x96', 'default-image'
+        ];
+        
+        // Only try scraping if we don't have an image OR the current one looks generic
+        const currentIsGeneric = imageUrl && genericLogos.some(logo => imageUrl.toLowerCase().includes(logo));
+        
+        if (!imageUrl || currentIsGeneric) {
+            const ogMatch = html.match(/<meta[^>]+property="og:image"[^>]+content="([^">]+)"/) ||
+                html.match(/<meta[^>]+name="twitter:image"[^>]+content="([^">]+)"/);
 
-        if (ogMatch) {
-            const foundUrl = ogMatch[1];
-            const isGeneric = genericLogos.some(logo => foundUrl.toLowerCase().includes(logo));
-            if (!isGeneric) {
-                imageUrl = foundUrl;
+            if (ogMatch) {
+                const foundUrl = ogMatch[1];
+                const isGeneric = genericLogos.some(logo => foundUrl.toLowerCase().includes(logo));
+                if (!isGeneric) {
+                    imageUrl = foundUrl;
+                }
             }
         }
 
-        // 2. Full Content Scraping for ANN (or broad content sites)
-        if (feedConfig.selector && (html.includes('id="maincontent"') || html.includes('class="meat"'))) {
-            const bodyMatch = html.match(/<div[^>]+class="meat"[^>]*>([\s\S]*?)<\/div>/) ||
-                html.match(/<div[^>]+id="maincontent"[^>]*>([\s\S]*?)<\/div>/);
+        // 2. Full Content Scraping
+        if (feedConfig.selector) {
+            // Try specific selectors first
+            const selectors = feedConfig.selector.split(',').map((s: string) => s.trim());
+            let foundBody = null;
 
-            if (bodyMatch) {
-                let scrapedBody = bodyMatch[1]
+            for (const selector of selectors) {
+                // Simplified regex to match div content by class or ID
+                const isClass = selector.startsWith('.');
+                const name = selector.substring(1);
+                const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                
+                const regex = isClass 
+                    ? new RegExp(`<div[^>]+class="[^"]*${escapedName}[^"]*"[^>]*>([\\s\\S]*?)<\\/div>`, 'i')
+                    : new RegExp(`<div[^>]+id="${escapedName}"[^>]*>([\\s\\S]*?)<\\/div>`, 'i');
+                
+                const match = html.match(regex);
+                if (match) {
+                    foundBody = match[1];
+                    break;
+                }
+            }
+
+            if (foundBody) {
+                let scrapedBody = foundBody
                     .replace(/<script[\s\S]*?<\/script>/gi, '')
                     .replace(/<aside[\s\S]*?<\/aside>/gi, '')
                     .replace(/<div class="ad-container"[\s\S]*?<\/div>/gi, '');
@@ -108,16 +141,10 @@ async function processItem(item: any, feedConfig: any, forceUpdate: boolean) {
         }
 
         // 3. Fallback Image from body if metadata was generic or missing
-        if (!imageUrl) {
-            // Look for the first large-looking image in the content
+        if (!imageUrl || genericLogos.some(logo => imageUrl.toLowerCase().includes(logo))) {
             const imgMatch = fullContent.match(/<img[^>]+src="([^">]+)"/);
             if (imgMatch) {
                 imageUrl = imgMatch[1];
-            } else {
-                // Last resort: use the generic one if nothing else exists
-                if (ogMatch) imageUrl = ogMatch[1];
-                else if (item['media:content'] && item['media:content'].$) imageUrl = item['media:content'].$.url;
-                else if (item['media:thumbnail'] && item['media:thumbnail'].$) imageUrl = item['media:thumbnail'].$.url;
             }
         }
 
