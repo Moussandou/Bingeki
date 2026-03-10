@@ -20,9 +20,7 @@ import {
     Plus,
     UserPlus,
     UserCheck,
-    Clock,
-    MoveUp,
-    MoveDown
+    Clock
 } from 'lucide-react';
 import { HunterLicenseCard } from '@/components/profile/HunterLicenseCard';
 import { getUserProfile, saveUserProfileToFirestore, compareLibraries, checkFriendship, sendFriendRequest, type UserProfile } from '@/firebase/firestore';
@@ -719,315 +717,299 @@ export default function Profile() {
                     </div>
 
                     {/* Edit Profile Modal */}
-                    <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={t('profile.edit_modal.title')} maxWidth="1000px">
+                    <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={t('profile.edit_modal.title')} maxWidth="1000px" variant="manga">
                         <div style={{ 
                             display: 'flex', 
                             flexDirection: 'row', 
-                            gap: '2.5rem', 
-                            maxHeight: '80vh', 
+                            gap: '0', 
+                            height: '80vh', 
                             width: '100%',
+                            overflow: 'hidden'
                         }} className="modal-content-container">
-                            {/* Left Col: Form */}
-                            <div style={{ flex: '1 1 50%', display: 'flex', flexDirection: 'column', gap: '1.5rem', overflowY: 'auto', paddingRight: '1rem', minWidth: 0 }}>
-
-                            {/* AVATAR & NAME */}
-                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                <div style={{ position: 'relative', width: '80px', height: '80px', flexShrink: 0 }}>
-                                    <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-border-heavy)' }}>
-                                        <img
-                                            src={editForm.avatar || 'https://via.placeholder.com/150'}
-                                            alt="Avatar"
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        />
-                                    </div>
-                                    <label htmlFor="avatar-upload" style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--color-border-heavy)', color: 'var(--color-text-inverse)', borderRadius: '50%', padding: '4px', cursor: 'pointer' }}>
-                                        <PenTool size={12} />
-                                    </label>
-                                    <input
-                                        id="avatar-upload"
-                                        type="file"
-                                        accept="image/*"
-                                        style={{ display: 'none' }}
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) {
-                                                const reader = new FileReader();
-                                                reader.onloadend = () => {
-                                                    setEditForm(prev => ({ ...prev, avatar: reader.result as string }));
-                                                };
-                                                reader.readAsDataURL(file);
-                                            }
-                                        }}
-                                    />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ fontWeight: 900, display: 'block', marginBottom: '0.5rem' }}>{t('profile.edit_modal.pseudo')}</label>
-                                    <Input
-                                        placeholder="Pseudo"
-                                        value={editForm.displayName}
-                                        onChange={(e) => setEditForm(prev => ({ ...prev, displayName: e.target.value }))}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* BANNER URL */}
-                            <div>
-                                <label style={{ fontWeight: 900, display: 'block', marginBottom: '0.5rem' }}>{t('profile.edit_modal.banner_label')}</label>
-                                <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>
-                                    {t('profile.edit_modal.banner_help')}
-                                </div>
-                                <Input
-                                    placeholder={t('profile.edit_modal.banner_placeholder')}
-                                    value={editForm.banner}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, banner: e.target.value }))}
-                                />
-                                {editForm.banner && (
-                                    <div style={{ marginTop: '1rem', width: '100%', height: '180px', border: '3px solid var(--color-border)', overflow: 'hidden', position: 'relative', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)', background: '#222' }}>
-                                        <img
-                                            src={editForm.banner}
-                                            alt="Aperçu"
-                                            style={{ 
-                                                width: '100%', 
-                                                height: '100%', 
-                                                objectFit: 'cover',
-                                                objectPosition: `center ${editForm.bannerPosition || '50%'}`
-                                            }}
-                                            onError={(e) => (e.currentTarget.style.display = 'none')}
-                                        />
-                                        <div className="manga-title" style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(0,0,0,0.7)', padding: '2px 8px', fontSize: '0.6rem', color: '#fff', border: '1px solid var(--color-border)' }}>
-                                            APERCU BANNIIERE
-                                        </div>
-                                        <button
-                                            onClick={() => setEditForm(prev => ({ ...prev, banner: '' }))}
-                                            style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(255,0,0,0.8)', color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
-                                        >
-                                            <X size={14} />
-                                        </button>
-                                    </div>
-                                )}
-                                {editForm.banner && (
-                                    <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(var(--color-primary-rgb), 0.05)', border: '1px dashed var(--color-border)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
-                                            <label style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                                Ajustement Vertical
+                            {/* Unified Scroll Container */}
+                            <div className="manga-scroll" style={{ flex: 1, display: 'flex', flexDirection: 'row', overflowY: 'auto', gap: 0 }}>
+                                {/* Left Col: Form */}
+                                <div style={{ flex: '1 1 50%', display: 'flex', flexDirection: 'column', gap: '2.5rem', padding: '2rem 1.5rem', paddingRight: '2.5rem', minWidth: 0, borderRight: '3px solid var(--color-border)' }}>
+                                
+                                {/* SECTION: BASIC INFO */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', borderBottom: '4px solid var(--color-text)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
+                                        {t('profile.edit_modal.pseudo')} & Photo
+                                    </h3>
+                                    
+                                    <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+                                        <div style={{ position: 'relative', width: '100px', height: '100px', flexShrink: 0 }}>
+                                            <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', border: '4px solid var(--color-text)', boxShadow: '6px 6px 0 var(--color-shadow-solid)' }}>
+                                                <img
+                                                    src={editForm.avatar || 'https://via.placeholder.com/150'}
+                                                    alt="Avatar"
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                            </div>
+                                            <label htmlFor="avatar-upload" style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--color-text)', color: 'var(--color-surface)', borderRadius: '50%', padding: '8px', cursor: 'pointer', border: '3px solid var(--color-text)', display: 'flex', boxShadow: '2px 2px 0 var(--color-shadow-solid)' }}>
+                                                <PenTool size={16} />
                                             </label>
-                                            <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)' }}>
-                                                {editForm.bannerPosition?.includes('%') ? editForm.bannerPosition : '50%'}
-                                            </span>
-                                        </div>
-                                        <div style={{ position: 'relative', height: '30px', display: 'flex', alignItems: 'center' }}>
-                                            <input 
-                                                type="range" 
-                                                min="0" 
-                                                max="100" 
-                                                value={parseInt(editForm.bannerPosition?.replace('%', '') || '50')} 
-                                                onChange={(e) => setEditForm(prev => ({ ...prev, bannerPosition: `${e.target.value}%` }))}
-                                                style={{ 
-                                                    width: '100%',
-                                                    height: '6px',
-                                                    appearance: 'none',
-                                                    background: 'var(--color-border)',
-                                                    outline: 'none',
-                                                    borderRadius: '3px'
+                                            <input id="avatar-upload" type="file" accept="image/*" style={{ display: 'none' }} 
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => setEditForm(prev => ({ ...prev, avatar: reader.result as string }));
+                                                        reader.readAsDataURL(file);
+                                                    }
                                                 }}
                                             />
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', fontWeight: 700, opacity: 0.6, marginTop: '2px' }}>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><MoveUp size={10} /> HAUT</span>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><MoveDown size={10} /> BAS</span>
+                                        <div style={{ flex: 1 }}>
+                                            <Input
+                                                placeholder="Pseudo"
+                                                value={editForm.displayName}
+                                                onChange={(e) => setEditForm(prev => ({ ...prev, displayName: e.target.value }))}
+                                                style={{ height: '50px', fontSize: '1.1rem', borderRadius: 0, border: '3px solid var(--color-text)', fontWeight: 900, boxShadow: '4px 4px 0 var(--color-shadow-solid)' }}
+                                            />
                                         </div>
                                     </div>
-                                )}
-                            </div>
-
-                            {/* COLORS */}
-                            <div>
-                                <label style={{ fontWeight: 900, display: 'block', marginBottom: '0.5rem' }}>{t('profile.edit_modal.colors')}</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                                    <div>
-                                        <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>{t('profile.edit_modal.accent')}</span>
-                                        <input type="color" value={editForm.themeColor} onChange={(e) => setEditForm(prev => ({ ...prev, themeColor: e.target.value }))} style={{ width: '100%', height: '40px', border: '2px solid var(--color-border-heavy)' }} />
-                                    </div>
-                                    <div>
-                                        <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>{t('profile.edit_modal.background')}</span>
-                                        <input type="color" value={editForm.cardBgColor} onChange={(e) => setEditForm(prev => ({ ...prev, cardBgColor: e.target.value }))} style={{ width: '100%', height: '40px', border: '2px solid var(--color-border-heavy)' }} />
-                                    </div>
-                                    <div>
-                                        <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>{t('profile.edit_modal.border')}</span>
-                                        <input type="color" value={editForm.borderColor} onChange={(e) => setEditForm(prev => ({ ...prev, borderColor: e.target.value }))} style={{ width: '100%', height: '40px', border: '2px solid var(--color-border-heavy)' }} />
-                                    </div>
                                 </div>
-                            </div>
 
-                            {/* SELECTORS */}
-                            <div>
-                                <label style={{ fontWeight: 900, display: 'block', marginBottom: '0.5rem' }}>{t('profile.edit_modal.top3')}</label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    {[0, 1, 2].map(index => (
-                                        <select
-                                            key={index}
-                                            value={editForm.top3Favorites[index] || ''}
-                                            onChange={(e) => {
-                                                const newTop3 = [...editForm.top3Favorites];
-                                                if (e.target.value === "") {
-                                                    newTop3.splice(index, 1);
-                                                } else {
-                                                    newTop3[index] = e.target.value;
-                                                }
-                                                setEditForm(prev => ({ ...prev, top3Favorites: newTop3 }));
-                                            }}
-                                            style={{ width: '100%', padding: '0.75rem', border: '2px solid var(--color-border-heavy)', fontWeight: 'bold', background: 'var(--color-surface)', color: 'var(--color-text)' }}
-                                        >
-                                            <option value="">{t('profile.edit_modal.select_favorite', { index: index + 1 })}</option>
-                                            {works.sort((a, b) => a.title.localeCompare(b.title)).map(w => (
-                                                <option key={w.id} value={w.id} disabled={editForm.top3Favorites.includes(String(w.id)) && editForm.top3Favorites[index] !== String(w.id)}>
-                                                    {w.title}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label style={{ fontWeight: 900, display: 'block', marginBottom: '0.5rem' }}>{t('profile.edit_modal.featured_badge')}</label>
-                                <select
-                                    value={editForm.featuredBadge}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, featuredBadge: e.target.value }))}
-                                    style={{ width: '100%', padding: '0.75rem', border: '2px solid var(--color-border-heavy)', fontWeight: 'bold', background: 'var(--color-surface)', color: 'var(--color-text)' }}
-                                >
-                                    <option value="">{t('profile.edit_modal.none')}</option>
-                                    {badges.map(b => (
-                                        <option key={b.id} value={b.id}>{b.name} ({b.rarity})</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label style={{ fontWeight: 900, display: 'block', marginBottom: '0.5rem' }}>{t('profile.edit_modal.bio')}</label>
-                                <textarea
-                                    className="manga-input" // Assuming existence or using raw style
-                                    placeholder={t('profile.edit_modal.bio_placeholder')}
-                                    value={editForm.bio}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
-                                    rows={3}
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem',
-                                        border: '2px solid var(--color-border-heavy)',
-                                        fontFamily: 'inherit',
-                                        fontSize: '1rem',
-                                        resize: 'vertical',
-                                        background: 'var(--color-surface)',
-                                        color: 'var(--color-text)'
-                                    }}
-                                />
-                            </div>
-
-                            <Button variant="primary" onClick={handleSaveProfile} style={{ marginTop: '1rem' }}>
-                                {t('profile.edit_modal.save')}
-                            </Button>
-                        </div>
-
-                        {/* Right Col: Live Preview (Desktop Only) */}
-                        <div className="desktop-only-preview" style={{ flex: '1 1 45%', minWidth: '400px', background: 'var(--color-surface-hover)', padding: '1.5rem', borderLeft: '2px solid var(--color-border)', overflowY: 'auto' }}>
-                            <div style={{ width: '100%' }}>
-                                <div style={{ fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <div style={{ width: '8px', height: '8px', background: 'var(--color-primary)' }}></div>
-                                    Aperçu en direct
-                                </div>
-                                <div style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
-                                    <div style={{ transform: 'scale(0.8)', transformOrigin: 'top center' }}>
-                                        <HunterLicenseCard
-                                        user={{
-                                            ...extendedProfile,
-                                            uid: uid || user?.uid || '',
-                                            displayName: editForm.displayName,
-                                            photoURL: editForm.avatar,
-                                            bio: editForm.bio,
-                                            banner: editForm.banner,
-                                            bannerPosition: editForm.bannerPosition,
-                                            themeColor: editForm.themeColor,
-                                            cardBgColor: editForm.cardBgColor,
-                                            borderColor: editForm.borderColor,
-                                            featuredBadge: editForm.featuredBadge,
-                                            top3Favorites: editForm.top3Favorites
-                                        }}
-                                        isOwnProfile={false}
-                                        featuredBadgeData={editForm.featuredBadge ? displayBadges.find((b: Badge) => b.id === editForm.featuredBadge) : null}
-                                        top3FavoritesData={editForm.top3Favorites.map(fid => {
-                                            const w = works.find(w => w.id === Number(fid) || w.title === fid);
-                                            return w ? { id: String(w.id), title: w.title, image: w.image } : null;
-                                        }).filter((item): item is { id: string; title: string; image: string } => item !== null)}
-                                        stats={{
-                                            ...displayStats,
-                                            totalChaptersRead: displayTotalChapters,
-                                            totalWorksAdded: displayTotalWorks,
-                                            totalWorksCompleted: displayWorksCompleted
-                                        }}
+                                {/* SECTION: BANNER */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', borderBottom: '4px solid var(--color-text)', paddingBottom: '0.5rem' }}>
+                                        {t('profile.edit_modal.banner_label')}
+                                    </h3>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text)', opacity: 0.8, fontWeight: 700, marginBottom: '0.5rem' }}>
+                                        {t('profile.edit_modal.banner_help')}
+                                    </div>
+                                    <Input
+                                        placeholder={t('profile.edit_modal.banner_placeholder')}
+                                        value={editForm.banner}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, banner: e.target.value }))}
+                                        style={{ height: '45px', borderRadius: 0, border: '3px solid var(--color-text)', fontWeight: 900, boxShadow: '4px 4px 0 var(--color-shadow-solid)' }}
                                     />
+                                    
+                                    {editForm.banner && (
+                                        <div style={{ marginTop: '0.5rem' }}>
+                                            <div style={{ width: '100%', height: '150px', border: '4px solid var(--color-text)', overflow: 'hidden', position: 'relative', background: '#000', boxShadow: '6px 6px 0 var(--color-shadow-solid)' }}>
+                                                <img
+                                                    src={editForm.banner}
+                                                    alt="Aperçu"
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${editForm.bannerPosition || '50%'}` }}
+                                                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                                                />
+                                                <button onClick={() => setEditForm(prev => ({ ...prev, banner: '' }))}
+                                                    style={{ position: 'absolute', top: 10, right: 10, background: '#ff4444', color: 'white', border: '3px solid #000', borderRadius: '50%', width: 30, height: 30, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}
+                                                >
+                                                    <X size={18} />
+                                                </button>
+                                            </div>
+                                            <div style={{ marginTop: '1.5rem', padding: '1rem', border: '2px dashed var(--color-text)', background: 'rgba(var(--color-text-rgb), 0.03)' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                    <label style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase' }}>Position Verticale</label>
+                                                    <span style={{ fontWeight: 900 }}>{editForm.bannerPosition || '50%'}</span>
+                                                </div>
+                                                <input type="range" min="0" max="100" value={parseInt(editForm.bannerPosition?.replace('%', '') || '50')} 
+                                                    onChange={(e) => setEditForm(prev => ({ ...prev, bannerPosition: `${e.target.value}%` }))}
+                                                    style={{ width: '100%', accentColor: 'var(--color-text)' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* SECTION: STYLE */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', borderBottom: '4px solid var(--color-text)', paddingBottom: '0.5rem' }}>
+                                        {t('profile.edit_modal.colors')}
+                                    </h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                                        {['themeColor', 'cardBgColor', 'borderColor'].map((key) => (
+                                            <div key={key}>
+                                                <div style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                                                    {key === 'themeColor' ? t('profile.edit_modal.accent') : key === 'cardBgColor' ? t('profile.edit_modal.background') : t('profile.edit_modal.border')}
+                                                </div>
+                                                <div style={{ position: 'relative', height: '50px', border: '3px solid var(--color-text)', boxShadow: '4px 4px 0 var(--color-shadow-solid)', background: 'var(--color-surface)', overflow: 'hidden' }}>
+                                                    <input type="color" value={editForm[key as keyof typeof editForm] as string} onChange={(e) => setEditForm(prev => ({ ...prev, [key]: e.target.value }))} 
+                                                        style={{ position: 'absolute', top: '-10px', left: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', border: 'none', cursor: 'pointer' }} 
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--color-surface)', border: '1px dashed var(--color-border)', fontSize: '0.75rem', textAlign: 'center', opacity: 0.8 }}>
-                                        Les modifications sont visibles instantanément ici avant l'enregistrement.
+                                </div>
+
+                                {/* SECTION: CONTENT */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', borderBottom: '4px solid var(--color-text)', paddingBottom: '0.5rem' }}>
+                                        Contenu & Favoris
+                                    </h3>
+                                    
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase' }}>{t('profile.edit_modal.top3')}</div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            {[0, 1, 2].map(index => (
+                                                <select key={index} value={editForm.top3Favorites[index] || ''}
+                                                    onChange={(e) => {
+                                                        const newTop3 = [...editForm.top3Favorites];
+                                                        e.target.value === "" ? newTop3.splice(index, 1) : newTop3[index] = e.target.value;
+                                                        setEditForm(prev => ({ ...prev, top3Favorites: newTop3 }));
+                                                    }}
+                                                    style={{ width: '100%', padding: '0.8rem', border: '3px solid var(--color-text)', fontWeight: '900', background: 'var(--color-surface)', color: 'var(--color-text)', borderRadius: 0, boxShadow: '4px 4px 0 var(--color-shadow-solid)' }}
+                                                >
+                                                    <option value="">{t('profile.edit_modal.select_favorite', { index: index + 1 })}</option>
+                                                    {works.sort((a, b) => a.title.localeCompare(b.title)).map(w => (
+                                                        <option key={w.id} value={w.id} disabled={editForm.top3Favorites.includes(String(w.id)) && editForm.top3Favorites[index] !== String(w.id)}>
+                                                            {w.title}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase' }}>{t('profile.edit_modal.featured_badge')}</div>
+                                        <select value={editForm.featuredBadge} onChange={(e) => setEditForm(prev => ({ ...prev, featuredBadge: e.target.value }))}
+                                            style={{ width: '100%', padding: '0.8rem', border: '3px solid var(--color-text)', fontWeight: '900', background: 'var(--color-surface)', color: 'var(--color-text)', borderRadius: 0, boxShadow: '4px 4px 0 var(--color-shadow-solid)' }}
+                                        >
+                                            <option value="">{t('profile.edit_modal.none')}</option>
+                                            {badges.map(b => <option key={b.id} value={b.id}>{b.name} ({b.rarity})</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase' }}>{t('profile.edit_modal.bio')}</div>
+                                        <textarea className="manga-input" placeholder={t('profile.edit_modal.bio_placeholder')} value={editForm.bio} onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))} rows={4}
+                                            style={{ width: '100%', padding: '1rem', border: '3px solid var(--color-text)', fontFamily: 'inherit', fontSize: '1rem', fontWeight: 700, resize: 'vertical', background: 'var(--color-surface)', color: 'var(--color-text)', borderRadius: 0, boxShadow: '4px 4px 0 var(--color-shadow-solid)' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <Button variant="primary" onClick={handleSaveProfile} 
+                                    style={{ marginTop: '2rem', borderRadius: 0, border: '4px solid #000', boxShadow: '8px 8px 0 #000', height: '60px', fontSize: '1.2rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px' }}
+                                >
+                                    {t('profile.edit_modal.save')}
+                                </Button>
+                                </div>
+
+                                {/* Right Col: Live Preview (Desktop Only) */}
+                                <div className="desktop-only-preview" style={{ flex: '1 1 45%', minWidth: '400px', background: 'var(--color-surface-hover)', padding: '2rem 1.5rem', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                                    <div className="manga-halftone" style={{ opacity: 0.1, pointerEvents: 'none' }}></div>
+                                    <div style={{ width: '100%', position: 'sticky', top: 0, zIndex: 1 }}>
+                                        <div style={{ fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <div className="manga-title" style={{ width: 'auto', padding: '2px 10px', fontSize: '0.7rem' }}>
+                                                Aperçu en direct
+                                            </div>
+                                        </div>
+                                        <div style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+                                            <div style={{ transform: 'scale(0.85)', transformOrigin: 'top center' }}>
+                                                <HunterLicenseCard
+                                                user={{
+                                                    ...extendedProfile,
+                                                    uid: uid || user?.uid || '',
+                                                    displayName: editForm.displayName,
+                                                    photoURL: editForm.avatar,
+                                                    bio: editForm.bio,
+                                                    banner: editForm.banner,
+                                                    bannerPosition: editForm.bannerPosition,
+                                                    themeColor: editForm.themeColor,
+                                                    cardBgColor: editForm.cardBgColor,
+                                                    borderColor: editForm.borderColor,
+                                                    featuredBadge: editForm.featuredBadge,
+                                                    top3Favorites: editForm.top3Favorites
+                                                }}
+                                                isOwnProfile={false}
+                                                featuredBadgeData={editForm.featuredBadge ? displayBadges.find((b: Badge) => b.id === editForm.featuredBadge) : null}
+                                                top3FavoritesData={editForm.top3Favorites.map(fid => {
+                                                    const w = works.find(w => w.id === Number(fid) || w.title === fid);
+                                                    return w ? { id: String(w.id), title: w.title, image: w.image } : null;
+                                                }).filter((item): item is { id: string; title: string; image: string } => item !== null)}
+                                                stats={{
+                                                    ...displayStats,
+                                                    totalChaptersRead: displayTotalChapters,
+                                                    totalWorksAdded: displayTotalWorks,
+                                                    totalWorksCompleted: displayWorksCompleted
+                                                }}
+                                            />
+                                            </div>
+                                            <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--color-surface)', border: '1px dashed var(--color-border)', fontSize: '0.75rem', textAlign: 'center', opacity: 0.8 }}>
+                                                Les modifications sont visibles instantanément ici avant l'enregistrement.
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+
+
+
                     <style>{`
                         @media (max-width: 900px) {
-                            .modal-content-container { flex-direction: column !important; }
+                            .modal-content-container { flex-direction: column !important; height: auto !important; }
                             .desktop-only-preview { display: none !important; }
+                        }
+                        .manga-scroll::-webkit-scrollbar {
+                            width: 10px;
+                        }
+                        .manga-scroll::-webkit-scrollbar-track {
+                            background: var(--color-surface);
+                            border-left: 2px solid var(--color-text);
+                        }
+                        .manga-scroll::-webkit-scrollbar-thumb {
+                            background: var(--color-text);
+                            border: 2px solid var(--color-surface);
+                        }
+                        .manga-scroll::-webkit-scrollbar-thumb:hover {
+                            background: var(--color-primary);
                         }
                     `}</style>
                 </Modal>
-                    <AddFavoriteCharacterModal
-                        isOpen={isAddCharModalOpen}
-                        onClose={() => setIsAddCharModalOpen(false)}
-                        currentFavorites={extendedProfile.favoriteCharacters || []}
-                        onUpdate={(newFavs) => setExtendedProfile(prev => ({ ...prev, favoriteCharacters: newFavs }))}
-                    />
-                    {/* Guide Modal (unchanged) */}
-                    <Modal isOpen={showGuide} onClose={() => setShowGuide(false)} title={t('profile.guide_modal.title')}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <div style={{ background: 'var(--color-border-heavy)', color: 'var(--color-text-inverse)', padding: '1rem', borderRadius: '4px', flex: 1 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                        <Trophy size={20} className="text-primary" />
-                                        <h4 style={{ fontSize: '1.2rem', fontWeight: 900 }}>{t('profile.guide_modal.xp_title')}</h4>
-                                    </div>
-                                    <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-                                        {t('profile.guide_modal.xp_desc')}
-                                    </p>
-                                    <ul style={{ fontSize: '0.85rem', marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-                                        <li>{t('profile.guide_modal.xp_read')} <strong>+10 XP</strong></li>
-                                        <li>{t('profile.guide_modal.xp_add')} <strong>+15 XP</strong></li>
-                                        <li>{t('profile.guide_modal.xp_complete')} <strong>+50 XP</strong></li>
-                                        <li>{t('profile.guide_modal.xp_daily')} <strong>+5 XP</strong></li>
-                                    </ul>
+
+                <AddFavoriteCharacterModal
+                    isOpen={isAddCharModalOpen}
+                    onClose={() => setIsAddCharModalOpen(false)}
+                    currentFavorites={extendedProfile.favoriteCharacters || []}
+                    onUpdate={(newFavs) => setExtendedProfile(prev => ({ ...prev, favoriteCharacters: newFavs }))}
+                />
+
+                {/* Guide Modal (unchanged) */}
+                <Modal isOpen={showGuide} onClose={() => setShowGuide(false)} title={t('profile.guide_modal.title')}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div style={{ background: 'var(--color-border-heavy)', color: 'var(--color-text-inverse)', padding: '1rem', borderRadius: '4px', flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                    <Trophy size={20} className="text-primary" />
+                                    <h4 style={{ fontSize: '1.2rem', fontWeight: 900 }}>{t('profile.guide_modal.xp_title')}</h4>
                                 </div>
-                                <div style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '2px solid var(--color-border-heavy)', padding: '1rem', borderRadius: '4px', flex: 1 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                        <Flame size={20} color="var(--color-primary)" />
-                                        <h4 style={{ fontSize: '1.2rem', fontWeight: 900 }}>{t('profile.guide_modal.streak_title')}</h4>
-                                    </div>
-                                    <p style={{ fontSize: '0.9rem' }}>
-                                        {t('profile.guide_modal.streak_desc')}
-                                    </p>
-                                    <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', fontStyle: 'italic' }}>
-                                        {t('profile.guide_modal.streak_warning')}
-                                    </p>
-                                </div>
+                                <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                                    {t('profile.guide_modal.xp_desc')}
+                                </p>
+                                <ul style={{ fontSize: '0.85rem', marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+                                    <li>{t('profile.guide_modal.xp_read')} <strong>+10 XP</strong></li>
+                                    <li>{t('profile.guide_modal.xp_add')} <strong>+15 XP</strong></li>
+                                    <li>{t('profile.guide_modal.xp_complete')} <strong>+50 XP</strong></li>
+                                    <li>{t('profile.guide_modal.xp_daily')} <strong>+5 XP</strong></li>
+                                </ul>
                             </div>
-                            <div style={{ background: 'var(--color-surface-hover)', padding: '1rem', borderRadius: '4px', borderLeft: '4px solid var(--color-primary)' }}>
-                                <h4 style={{ fontSize: '1.1rem', fontWeight: 900, marginBottom: '0.5rem' }}>{t('profile.guide_modal.ranks_title')}</h4>
+                            <div style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '2px solid var(--color-border-heavy)', padding: '1rem', borderRadius: '4px', flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                    <Flame size={20} color="var(--color-primary)" />
+                                    <h4 style={{ fontSize: '1.2rem', fontWeight: 900 }}>{t('profile.guide_modal.streak_title')}</h4>
+                                </div>
                                 <p style={{ fontSize: '0.9rem' }}>
-                                    {t('profile.guide_modal.ranks_desc')}
+                                    {t('profile.guide_modal.streak_desc')}
+                                </p>
+                                <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                                    {t('profile.guide_modal.streak_warning')}
                                 </p>
                             </div>
                         </div>
-                    </Modal>
-
+                        <div style={{ background: 'var(--color-surface-hover)', padding: '1rem', borderRadius: '4px', borderLeft: '4px solid var(--color-primary)' }}>
+                            <h4 style={{ fontSize: '1.1rem', fontWeight: 900, marginBottom: '0.5rem' }}>{t('profile.guide_modal.ranks_title')}</h4>
+                            <p style={{ fontSize: '0.9rem' }}>
+                                {t('profile.guide_modal.ranks_desc')}
+                            </p>
+                        </div>
+                    </div>
+                </Modal>
                 </div>
             </div>
         </Layout>
