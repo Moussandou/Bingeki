@@ -377,9 +377,9 @@ export default function Profile() {
                                     <div style={{ padding: '0.75rem', background: 'var(--color-border-heavy)', color: 'var(--color-text-inverse)' }}>
                                         <BookOpen size={24} />
                                     </div>
-                                    <div>
-                                        <div style={{ fontSize: '1.75rem', fontWeight: 900 }}>{displayTotalChapters}</div>
-                                        <p style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', opacity: 0.6 }}>{t('profile.chapters_read')}</p>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: displayTotalChapters > 9999 ? '1.25rem' : '1.75rem', fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayTotalChapters}</div>
+                                        <p style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('profile.chapters_read')}</p>
                                     </div>
                                 </div>
 
@@ -719,8 +719,16 @@ export default function Profile() {
                     </div>
 
                     {/* Edit Profile Modal */}
-                    <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={t('profile.edit_modal.title')}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '70vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                    <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={t('profile.edit_modal.title')} maxWidth="1000px">
+                        <div style={{ 
+                            display: 'flex', 
+                            flexDirection: 'row', 
+                            gap: '2.5rem', 
+                            maxHeight: '80vh', 
+                            width: '100%',
+                        }} className="modal-content-container">
+                            {/* Left Col: Form */}
+                            <div style={{ flex: '1 1 50%', display: 'flex', flexDirection: 'column', gap: '1.5rem', overflowY: 'auto', paddingRight: '1rem', minWidth: 0 }}>
 
                             {/* AVATAR & NAME */}
                             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -920,7 +928,59 @@ export default function Profile() {
                                 {t('profile.edit_modal.save')}
                             </Button>
                         </div>
-                    </Modal>
+
+                        {/* Right Col: Live Preview (Desktop Only) */}
+                        <div className="desktop-only-preview" style={{ flex: '1 1 45%', minWidth: '400px', background: 'var(--color-surface-hover)', padding: '1.5rem', borderLeft: '2px solid var(--color-border)', overflowY: 'auto' }}>
+                            <div style={{ width: '100%' }}>
+                                <div style={{ fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{ width: '8px', height: '8px', background: 'var(--color-primary)' }}></div>
+                                    Aperçu en direct
+                                </div>
+                                <div style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+                                    <div style={{ transform: 'scale(0.8)', transformOrigin: 'top center' }}>
+                                        <HunterLicenseCard
+                                        user={{
+                                            ...extendedProfile,
+                                            uid: uid || user?.uid || '',
+                                            displayName: editForm.displayName,
+                                            photoURL: editForm.avatar,
+                                            bio: editForm.bio,
+                                            banner: editForm.banner,
+                                            bannerPosition: editForm.bannerPosition,
+                                            themeColor: editForm.themeColor,
+                                            cardBgColor: editForm.cardBgColor,
+                                            borderColor: editForm.borderColor,
+                                            featuredBadge: editForm.featuredBadge,
+                                            top3Favorites: editForm.top3Favorites
+                                        }}
+                                        isOwnProfile={false}
+                                        featuredBadgeData={editForm.featuredBadge ? displayBadges.find((b: Badge) => b.id === editForm.featuredBadge) : null}
+                                        top3FavoritesData={editForm.top3Favorites.map(fid => {
+                                            const w = works.find(w => w.id === Number(fid) || w.title === fid);
+                                            return w ? { id: String(w.id), title: w.title, image: w.image } : null;
+                                        }).filter((item): item is { id: string; title: string; image: string } => item !== null)}
+                                        stats={{
+                                            ...displayStats,
+                                            totalChaptersRead: displayTotalChapters,
+                                            totalWorksAdded: displayTotalWorks,
+                                            totalWorksCompleted: displayWorksCompleted
+                                        }}
+                                    />
+                                    </div>
+                                    <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--color-surface)', border: '1px dashed var(--color-border)', fontSize: '0.75rem', textAlign: 'center', opacity: 0.8 }}>
+                                        Les modifications sont visibles instantanément ici avant l'enregistrement.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <style>{`
+                        @media (max-width: 900px) {
+                            .modal-content-container { flex-direction: column !important; }
+                            .desktop-only-preview { display: none !important; }
+                        }
+                    `}</style>
+                </Modal>
                     <AddFavoriteCharacterModal
                         isOpen={isAddCharModalOpen}
                         onClose={() => setIsAddCharModalOpen(false)}

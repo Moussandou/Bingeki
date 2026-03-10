@@ -10,11 +10,12 @@ interface ModalProps {
     title?: string;
     children: React.ReactNode;
     variant?: 'glass' | 'manga';
+    maxWidth?: string;
 }
 
 import { createPortal } from 'react-dom';
 
-export function Modal({ isOpen, onClose, title, children, variant = 'glass' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, variant = 'glass', maxWidth = '600px' }: ModalProps) {
     if (!isOpen) return null;
 
     return createPortal(
@@ -39,7 +40,7 @@ export function Modal({ isOpen, onClose, title, children, variant = 'glass' }: M
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            style={{ pointerEvents: 'auto', width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}
+                            style={{ pointerEvents: 'auto', width: '95%', maxWidth: maxWidth, maxHeight: '90vh', overflowY: 'auto' }}
                         >
                             <Card variant={variant} style={{ padding: '1.5rem', background: variant === 'manga' ? 'var(--color-surface)' : undefined, border: variant === 'manga' ? '3px solid var(--color-border-heavy)' : undefined, boxShadow: variant === 'manga' ? '8px 8px 0 var(--color-shadow-solid)' : undefined }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
