@@ -67,9 +67,11 @@ app.listen(PORT, async () => {
       try {
         await page.goto(`http://localhost:${PORT}${route}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
         
-        // Wait an extra bit for React to fully render any async components or fetch firestore data
-        await new Promise(resolve => setTimeout(resolve, 5000));
-  
+        // Inject a class to body so the client knows it was prerendered
+        await page.evaluate(() => {
+          document.body.classList.add('is-prerendered');
+        });
+
         const html = await page.content();
         
         // Save the HTML to dist

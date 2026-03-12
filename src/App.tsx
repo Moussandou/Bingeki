@@ -302,8 +302,11 @@ function App() {
   }, [loading, configLoaded, setLoading]);
 
   // Show loading screen while initializing auth or config
-  // Skip loading screen for bots to ensure they capture the actual content/meta tags
-  if ((loading || !configLoaded) && !isBot()) {
+  // Skip loading screen for bots OR if we are on a prerendered page
+  // This avoids flickering the loading screen over static content
+  const isPrerendered = typeof document !== 'undefined' && document.body.classList.contains('is-prerendered');
+  
+  if ((loading || !configLoaded) && !isBot() && !isPrerendered) {
     return <LoadingScreen />;
   }
 

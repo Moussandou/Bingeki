@@ -44,7 +44,15 @@ export const isBot = (): boolean => {
     'telegrambot',
     'ia_archiver',
     'headlesschrome',
-    'puppeteer'
+    'puppeteer',
+    'lighthouse',
+    'pingdom',
+    'gtmetrix',
+    'adidxbot',
+    'uptimerobot',
+    'pageranger',
+    'screener',
+    'screenshot'
   ];
 
   return bots.some(bot => ua.includes(bot));
