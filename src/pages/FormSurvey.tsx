@@ -245,15 +245,17 @@ export default function FormSurvey() {
     try {
       setIsSubmitting(true);
       
-      // Cleanup data for Firestore (remove undefined values)
-      const sanitizedData = Object.entries(data).reduce((acc, [key, value]) => {
+      const sanitizedAnswers = Object.entries(data).reduce((acc, [key, value]) => {
         acc[key] = value === undefined ? '' : value;
         return acc;
       }, {} as any);
 
       const docData = {
-        ...sanitizedData,
-        createdAt: serverTimestamp(),
+        surveyId: 'main-survey',
+        answers: sanitizedAnswers,
+        submittedAt: Date.now(),
+        userAgent: window.navigator.userAgent,
+        language: lang || 'fr'
       };
       
       await addDoc(collection(db, 'survey_responses'), docData);
