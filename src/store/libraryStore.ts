@@ -16,12 +16,19 @@ export const FOLDER_COLORS = [
 // Folder emojis
 export const FOLDER_EMOJIS = ['📁', '⭐', '❤️', '🔥', '📚', '🎬', '✨', '🏆', '💎', '🎯'] as const;
 
+export interface FolderSharing {
+    enabled: boolean;
+    access: 'public' | 'friends';
+    sharedAt?: number;
+}
+
 export interface Folder {
     id: string;
     name: string;
     color: string;
     emoji: string;
     createdAt: number;
+    sharing?: FolderSharing;
 }
 
 export interface Work {

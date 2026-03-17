@@ -16,6 +16,11 @@ interface LibraryData {
     folders?: Folder[];
     lastUpdated: number;
     version?: number;
+    sharing?: {
+        enabled: boolean;
+        access: 'public' | 'friends';
+        sharedAt?: number;
+    };
 }
 
 interface GamificationData {
@@ -187,6 +192,63 @@ export async function loadLibraryFromFirestore(userId: string): Promise<Work[] |
     } catch (error) {
         console.error('[Firestore] Error loading library:', error);
         return null;
+    }
+}
+
+// Load full library data including folders and sharing settings
+export async function loadFullLibraryData(userId: string): Promise<LibraryData | null> {
+    try {
+        const docRef = doc(db, 'users', userId, 'data', 'library');
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data() as LibraryData;
+            console.log('[Firestore] Full library data loaded');
+            return data;
+        }
+        return null;
+    } catch (error) {
+        console.error('[Firestore] Error loading full library data:', error);
+        return null;
+    }
+}
+
+// Update folder sharing settings
+export async function updateFolderSharing(
+    userId: string,
+    folderId: string,
+    sharing: { enabled: boolean; access: 'public' | 'friends' }
+): Promise<void> {
+    try {
+        const docRef = doc(db, 'users', userId, 'data', 'library');
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) return;
+
+        const data = docSnap.data() as LibraryData;
+        const folders = data.folders || [];
+        const updatedFolders = folders.map(f =>
+            f.id === folderId
+                ? { ...f, sharing: { ...sharing, sharedAt: Date.now() } }
+                : f
+        );
+        await updateDoc(docRef, { folders: updatedFolders });
+        console.log('[Firestore] Folder sharing updated');
+    } catch (error) {
+        console.error('[Firestore] Error updating folder sharing:', error);
+    }
+}
+
+// Update library-level sharing settings
+export async function updateLibrarySharing(
+    userId: string,
+    sharing: { enabled: boolean; access: 'public' | 'friends' }
+): Promise<void> {
+    try {
+        const docRef = doc(db, 'users', userId, 'data', 'library');
+        await updateDoc(docRef, { sharing: { ...sharing, sharedAt: Date.now() } });
+        console.log('[Firestore] Library sharing updated');
+    } catch (error) {
+        console.error('[Firestore] Error updating library sharing:', error);
     }
 }
 

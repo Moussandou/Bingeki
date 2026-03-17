@@ -20,7 +20,11 @@ import {
     Plus,
     UserPlus,
     UserCheck,
-    Clock
+    Clock,
+    Share2,
+    Copy,
+    Check,
+    Link2
 } from 'lucide-react';
 import { HunterLicenseCard } from '@/components/profile/HunterLicenseCard';
 import { getUserProfile, saveUserProfileToFirestore, compareLibraries, checkFriendship, sendFriendRequest, type UserProfile } from '@/firebase/firestore';
@@ -36,6 +40,7 @@ import { storage } from '@/firebase/config';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/context/ToastContext';
 import { AddFavoriteCharacterModal } from '@/components/profile/AddFavoriteCharacterModal';
+import { useShare } from '@/hooks/useShare';
 
 export default function Profile() {
     const { user, setUser, loading, userProfile } = useAuthStore();
@@ -43,6 +48,7 @@ export default function Profile() {
     const { level, xp, xpToNextLevel, streak, badges, totalChaptersRead, totalAnimeEpisodesWatched, totalMoviesWatched, totalWorksAdded, totalWorksCompleted } = useGamificationStore();
     const { works, favoriteCharacters, setFavoriteCharacters } = useLibraryStore();
     const { addToast } = useToast();
+    const { share } = useShare();
 
     // Router
     const navigate = useNavigate();
@@ -52,6 +58,8 @@ export default function Profile() {
     const [showGuide, setShowGuide] = useState(false);
     const [hoveredBadgeId, setHoveredBadgeId] = useState<string | null>(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
+    const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     // Extended Profile State (for current or visited user)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -70,7 +78,7 @@ export default function Profile() {
     const isOwnProfile = !uid || (user && user.uid === uid);
 
     // Translation
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     // Load Profile Data logic
     useEffect(() => {
@@ -330,6 +338,93 @@ export default function Profile() {
                                     <Button variant="ghost" onClick={() => navigate(-1)}>{t('profile.back')}</Button>
                                 </>
                             )}
+                            <div style={{ position: 'relative' }}>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title={t('profile.share', 'Partager')}
+                                    onClick={() => { setShareModalOpen(!shareModalOpen); setCopied(false); }}
+                                >
+                                    <Share2 size={18} />
+                                </Button>
+                                <AnimatePresence>
+                                    {shareModalOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                                            transition={{ duration: 0.15 }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: 'calc(100% + 8px)',
+                                                right: 0,
+                                                background: 'var(--color-surface)',
+                                                border: '2px solid var(--color-border)',
+                                                borderRadius: '12px',
+                                                padding: '1rem',
+                                                boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+                                                zIndex: 50,
+                                                width: '320px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '0.75rem',
+                                            }}
+                                        >
+                                            {/* Mini profile preview */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <img
+                                                    src={extendedProfile.photoURL || (isOwnProfile ? user?.photoURL : '') || `https://api.dicebear.com/7.x/avataaars/svg?seed=${extendedProfile.displayName}`}
+                                                    alt=""
+                                                    style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--color-primary)' }}
+                                                />
+                                                <div>
+                                                    <p style={{ fontWeight: 800, fontSize: '0.9rem', margin: 0 }}>{extendedProfile.displayName || (isOwnProfile ? user?.displayName : 'User')}</p>
+                                                    <p style={{ fontSize: '0.7rem', opacity: 0.5, margin: 0 }}>Lvl {extendedProfile.level || 1}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Link + copy */}
+                                            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                                <div style={{ flex: 1, padding: '0.5rem 0.6rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '6px', overflow: 'hidden' }}>
+                                                    <span style={{ fontSize: '0.7rem', opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', fontFamily: 'monospace' }}>
+                                                        {`${window.location.origin}/${i18n.language || 'fr'}/profile/${uid || user?.uid || ''}`}
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    onClick={async () => {
+                                                        const profileUid = uid || user?.uid || '';
+                                                        const lang = i18n.language || 'fr';
+                                                        const url = `${window.location.origin}/${lang}/profile/${profileUid}`;
+                                                        const result = await share({ url, title: `${extendedProfile.displayName} - Bingeki` });
+                                                        if (result === 'copied') {
+                                                            setCopied(true);
+                                                            addToast(t('profile.link_copied', 'Lien copié !'), 'success');
+                                                            setTimeout(() => setCopied(false), 2000);
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                                                        padding: '0.5rem 0.75rem', background: copied ? '#22c55e' : 'var(--color-primary)',
+                                                        color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer',
+                                                        fontWeight: 700, fontSize: '0.75rem', whiteSpace: 'nowrap',
+                                                        transition: 'background 0.2s',
+                                                    }}
+                                                >
+                                                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                                                    {copied ? 'Copié !' : t('share.copy_link', 'Copier')}
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                                {/* Backdrop to close */}
+                                {shareModalOpen && (
+                                    <div
+                                        onClick={() => setShareModalOpen(false)}
+                                        style={{ position: 'fixed', inset: 0, zIndex: 49 }}
+                                    />
+                                )}
+                            </div>
                         </div>
                     </div>
 

@@ -1,0 +1,128 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 0.5rem 0;
+}
+
+.toggleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--color-surface-hover);
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.toggleRow:hover {
+    border-color: var(--color-primary);
+}
+
+.toggleInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.toggleLabel {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.toggle {
+    width: 3rem;
+    height: 1.6rem;
+    border-radius: 999px;
+    background: var(--color-border-heavy);
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.toggleActive {
+    background: var(--color-primary);
+}
+
+.toggleDot {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 0.2rem;
+    left: 0.2rem;
+    transition: transform 0.2s;
+}
+
+.toggleActive .toggleDot {
+    transform: translateX(1.4rem);
+}
+
+.accessOptions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.accessOption {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 2px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--color-text);
+    transition: all 0.2s;
+}
+
+.accessOption:hover {
+    border-color: var(--color-primary);
+}
+
+.accessActive {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: white;
+}
+
+.linkSection {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.linkPreview {
+    flex: 1;
+    padding: 0.6rem 0.75rem;
+    background: var(--color-surface-hover);
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+.linkText {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: monospace;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--color-border);
+}

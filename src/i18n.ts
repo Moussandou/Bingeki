@@ -709,7 +709,26 @@ const resources = {
                 add_friend: "AJOUTER EN AMI",
                 request_pending: "DEMANDE EN ATTENTE",
                 friends: "AMIS",
-                remove_friend: "RETIRER DES AMIS"
+                remove_friend: "RETIRER DES AMIS",
+                share: "Partager",
+                share_text: "Découvre mon profil sur Bingeki !",
+                link_copied: "Lien du profil copié !",
+                share_failed: "Échec du partage"
+            },
+            share: {
+                share: "Partager",
+                link_copied: "Lien copié !",
+                enable_sharing: "Activer le partage",
+                access_public: "Public (tout le monde)",
+                access_friends: "Amis uniquement",
+                copy_link: "Copier le lien",
+                share_folder: "Partager le dossier",
+                share_library: "Partager la bibliothèque",
+                access_denied: "Accès refusé",
+                access_denied_msg: "Ce contenu est réservé aux amis de l'utilisateur.",
+                login_required: "Connexion requise pour voir ce contenu.",
+                sharing_updated: "Paramètres de partage mis à jour !",
+                not_shared: "Ce contenu n'est pas partagé."
             },
             maintenance: {
                 title: "Maintenance en cours",
@@ -1569,7 +1588,26 @@ const resources = {
                 add_friend: "ADD FRIEND",
                 request_pending: "REQUEST PENDING",
                 friends: "FRIENDS",
-                remove_friend: "REMOVE FRIEND"
+                remove_friend: "REMOVE FRIEND",
+                share: "Share",
+                share_text: "Check out my profile on Bingeki!",
+                link_copied: "Profile link copied!",
+                share_failed: "Share failed"
+            },
+            share: {
+                share: "Share",
+                link_copied: "Link copied!",
+                enable_sharing: "Enable sharing",
+                access_public: "Public (everyone)",
+                access_friends: "Friends only",
+                copy_link: "Copy link",
+                share_folder: "Share folder",
+                share_library: "Share library",
+                access_denied: "Access denied",
+                access_denied_msg: "This content is reserved for the user's friends.",
+                login_required: "Login required to view this content.",
+                sharing_updated: "Sharing settings updated!",
+                not_shared: "This content is not shared."
             },
             content_list: {
                 no_content: "No content available.",

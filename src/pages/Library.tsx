@@ -6,31 +6,44 @@ import { Modal } from '@/components/ui/Modal';
 import { AddWorkModal } from '@/components/library/AddWorkModal';
 import { useLibraryStore, type Work } from '@/store/libraryStore';
 import { useAuthStore } from '@/store/authStore';
-import { Search, Plus, Filter, Grid, List, Trash2, AlertTriangle, BookOpen, CheckCircle, SortAsc, ChevronDown, Download, Upload, TrendingUp, User, FolderPlus } from 'lucide-react';
+import { Search, Plus, Filter, Grid, List, Trash2, AlertTriangle, BookOpen, CheckCircle, SortAsc, ChevronDown, Download, Upload, TrendingUp, User, FolderPlus, Share2 } from 'lucide-react';
 import styles from './Library.module.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SEO } from '@/components/layout/SEO';
 import { statusToFrench } from '@/utils/statusTranslation';
 import { useToast } from '@/context/ToastContext';
 import { exportData, importData } from '@/utils/storageUtils';
 import { useTranslation } from 'react-i18next';
-import { loadLibraryFromFirestore, getUserProfile, type UserProfile } from '@/firebase/firestore';
+import { loadLibraryFromFirestore, loadFullLibraryData, getUserProfile, updateFolderSharing, updateLibrarySharing, checkFriendship, type UserProfile } from '@/firebase/firestore';
 import { MALImportModal } from '@/components/library/MALImportModal';
 import { FolderModal } from '@/components/library/FolderModal';
+import { ShareModal } from '@/components/library/ShareModal';
+import type { Folder, FolderSharing } from '@/store/libraryStore';
 
 export default function Library() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const { uid } = useParams();
+    const [searchParams] = useSearchParams();
     const { user: currentUser } = useAuthStore();
     const { addToast } = useToast();
-    const { works: localWorks, removeWork, folders, createFolder, addToFolder } = useLibraryStore();
+    const { works: localWorks, removeWork, folders, createFolder, addToFolder, updateFolder } = useLibraryStore();
 
     // Friend Library State
     const [friendWorks, setFriendWorks] = useState<Work[]>([]);
+    const [friendFolders, setFriendFolders] = useState<Folder[]>([]);
     const [friendProfile, setFriendProfile] = useState<UserProfile | null>(null);
+    const [friendLibrarySharing, setFriendLibrarySharing] = useState<FolderSharing | undefined>(undefined);
     const [isLoadingFriend, setIsLoadingFriend] = useState(false);
+    const [accessDenied, setAccessDenied] = useState<string | null>(null);
+
+    // Share Modal State
+    const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [shareModalType, setShareModalType] = useState<'folder' | 'library'>('library');
+    const [shareModalFolderId, setShareModalFolderId] = useState<string | null>(null);
+    const [shareModalFolderName, setShareModalFolderName] = useState<string>('');
+    const [shareModalCurrentSharing, setShareModalCurrentSharing] = useState<FolderSharing | undefined>(undefined);
 
     const isReadOnly = useMemo(() => {
         return !!uid && uid !== currentUser?.uid;
@@ -39,18 +52,98 @@ export default function Library() {
     // Determines which works to display
     const currentWorks = isReadOnly ? friendWorks : localWorks;
 
-    // Load Friend Data
+    // Load Friend Data (with folders and access control)
     useEffect(() => {
         if (isReadOnly && uid) {
             const loadFriend = async () => {
                 setIsLoadingFriend(true);
+                setAccessDenied(null);
                 try {
-                    const [profile, lib] = await Promise.all([
+                    const [profile, libraryData] = await Promise.all([
                         getUserProfile(uid),
-                        loadLibraryFromFirestore(uid)
+                        loadFullLibraryData(uid)
                     ]);
                     setFriendProfile(profile);
-                    setFriendWorks(lib || []);
+
+                    if (libraryData) {
+                        const requestedFolderId = searchParams.get('folder');
+                        const libSharing = libraryData.sharing;
+                        setFriendLibrarySharing(libSharing as FolderSharing | undefined);
+
+                        // Check access for specific folder or full library
+                        if (requestedFolderId) {
+                            const folder = libraryData.folders?.find(f => f.id === requestedFolderId);
+                            if (folder?.sharing?.enabled) {
+                                if (folder.sharing.access === 'friends') {
+                                    if (!currentUser) {
+                                        setAccessDenied('login_required');
+                                        return;
+                                    }
+                                    const friendship = await checkFriendship(currentUser.uid, uid);
+                                    if (friendship !== 'accepted') {
+                                        setAccessDenied('friends_only');
+                                        return;
+                                    }
+                                }
+                                // Access granted - show only this folder's works
+                                setFriendFolders(libraryData.folders || []);
+                                const folderWorks = (libraryData.works || []).filter(w => w.collections?.includes(requestedFolderId));
+                                setFriendWorks(folderWorks);
+                            } else {
+                                // Folder not shared - check if user is a friend (existing behavior)
+                                if (currentUser) {
+                                    const friendship = await checkFriendship(currentUser.uid, uid);
+                                    if (friendship === 'accepted') {
+                                        setFriendFolders(libraryData.folders || []);
+                                        setFriendWorks(libraryData.works || []);
+                                    } else {
+                                        setAccessDenied('not_shared');
+                                        return;
+                                    }
+                                } else {
+                                    setAccessDenied('not_shared');
+                                    return;
+                                }
+                            }
+                        } else {
+                            // No specific folder requested - check library-level or friend access
+                            if (libSharing?.enabled && libSharing.access === 'public') {
+                                setFriendFolders(libraryData.folders || []);
+                                setFriendWorks(libraryData.works || []);
+                            } else if (libSharing?.enabled && libSharing.access === 'friends') {
+                                if (!currentUser) {
+                                    setAccessDenied('login_required');
+                                    return;
+                                }
+                                const friendship = await checkFriendship(currentUser.uid, uid);
+                                if (friendship === 'accepted') {
+                                    setFriendFolders(libraryData.folders || []);
+                                    setFriendWorks(libraryData.works || []);
+                                } else {
+                                    setAccessDenied('friends_only');
+                                    return;
+                                }
+                            } else {
+                                // Library not shared - fallback to friend check (existing behavior)
+                                if (currentUser) {
+                                    const friendship = await checkFriendship(currentUser.uid, uid);
+                                    if (friendship === 'accepted') {
+                                        setFriendFolders(libraryData.folders || []);
+                                        setFriendWorks(libraryData.works || []);
+                                    } else {
+                                        setAccessDenied('not_shared');
+                                        return;
+                                    }
+                                } else {
+                                    setAccessDenied('not_shared');
+                                    return;
+                                }
+                            }
+                        }
+                    } else {
+                        setFriendWorks([]);
+                        setFriendFolders([]);
+                    }
                 } catch (error) {
                     console.error("Failed to load friend library", error);
                     addToast(t('library.load_error'), 'error');
@@ -60,7 +153,7 @@ export default function Library() {
             };
             loadFriend();
         }
-    }, [isReadOnly, uid, addToast, t]);
+    }, [isReadOnly, uid, addToast, t, currentUser, searchParams]);
 
 
     // UI State
@@ -77,7 +170,7 @@ export default function Library() {
     const [sortOpen, setSortOpen] = useState(false);
     const [showMALImportModal, setShowMALImportModal] = useState(false);
     const [showFolderModal, setShowFolderModal] = useState(false);
-    const [activeFolder, setActiveFolder] = useState<string | null>(null);
+    const [activeFolder, setActiveFolder] = useState<string | null>(searchParams.get('folder'));
     const [folderMenuOpen, setFolderMenuOpen] = useState(false);
 
     const sortOptions = [
@@ -251,38 +344,76 @@ export default function Library() {
                     </div>
 
                     {/* Folders Bar */}
-                    {!isReadOnly && (
-                        <div className={styles.foldersBar}>
-                            <button
-                                className={`${styles.folderPill} ${!activeFolder ? styles.folderPillActive : ''}`}
-                                onClick={() => setActiveFolder(null)}
-                            >
-                                {t('folders.all_works')}
-                                <span className={styles.folderPillCount}>{currentWorks.length}</span>
-                            </button>
-                            {folders.map((folder) => {
-                                const count = currentWorks.filter(w => w.collections?.includes(folder.id)).length;
-                                return (
-                                    <button
-                                        key={folder.id}
-                                        className={`${styles.folderPill} ${activeFolder === folder.id ? styles.folderPillActive : ''}`}
-                                        onClick={() => setActiveFolder(activeFolder === folder.id ? null : folder.id)}
-                                    >
-                                        <span style={{ color: folder.color }}>{folder.emoji}</span>
-                                        {folder.name}
-                                        <span className={styles.folderPillCount}>{count}</span>
-                                    </button>
-                                );
-                            })}
-                            <button
-                                className={styles.addFolderBtn}
-                                onClick={() => setShowFolderModal(true)}
-                                title={t('folders.create')}
-                            >
-                                <FolderPlus size={18} />
-                            </button>
-                        </div>
-                    )}
+                    {(() => {
+                        const displayFolders = isReadOnly ? friendFolders : folders;
+                        if (displayFolders.length === 0 && isReadOnly) return null;
+                        return (
+                            <div className={styles.foldersBar}>
+                                <button
+                                    className={`${styles.folderPill} ${!activeFolder ? styles.folderPillActive : ''}`}
+                                    onClick={() => setActiveFolder(null)}
+                                >
+                                    {t('folders.all_works')}
+                                    <span className={styles.folderPillCount}>{currentWorks.length}</span>
+                                </button>
+                                {displayFolders.map((folder) => {
+                                    const worksSource = isReadOnly ? friendWorks : currentWorks;
+                                    const count = worksSource.filter(w => w.collections?.includes(folder.id)).length;
+                                    return (
+                                        <button
+                                            key={folder.id}
+                                            className={`${styles.folderPill} ${activeFolder === folder.id ? styles.folderPillActive : ''}`}
+                                            onClick={() => setActiveFolder(activeFolder === folder.id ? null : folder.id)}
+                                        >
+                                            <span style={{ color: folder.color }}>{folder.emoji}</span>
+                                            {folder.name}
+                                            <span className={styles.folderPillCount}>{count}</span>
+                                            {!isReadOnly && (
+                                                <span
+                                                    className={styles.folderShareBtn}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setShareModalType('folder');
+                                                        setShareModalFolderId(folder.id);
+                                                        setShareModalFolderName(folder.name);
+                                                        setShareModalCurrentSharing(folder.sharing);
+                                                        setShareModalOpen(true);
+                                                    }}
+                                                    title={t('share.share_folder')}
+                                                >
+                                                    <Share2 size={12} />
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                                {!isReadOnly && (
+                                    <>
+                                        <button
+                                            className={styles.addFolderBtn}
+                                            onClick={() => setShowFolderModal(true)}
+                                            title={t('folders.create')}
+                                        >
+                                            <FolderPlus size={18} />
+                                        </button>
+                                        <button
+                                            className={styles.addFolderBtn}
+                                            onClick={() => {
+                                                setShareModalType('library');
+                                                setShareModalFolderId(null);
+                                                setShareModalFolderName('');
+                                                setShareModalCurrentSharing(undefined);
+                                                setShareModalOpen(true);
+                                            }}
+                                            title={t('share.share_library')}
+                                        >
+                                            <Share2 size={18} />
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        );
+                    })()}
 
                     {/* Controls Bar */}
                     <div className={styles.controlsBar}>
@@ -601,7 +732,19 @@ export default function Library() {
                     </div>
 
                     {/* Content Grid/List */}
-                    {isLoadingFriend ? (
+                    {accessDenied ? (
+                        <div style={{ textAlign: 'center', padding: '4rem' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
+                            <h3 style={{ fontFamily: 'var(--font-heading)', marginBottom: '0.5rem' }}>
+                                {accessDenied === 'login_required' ? t('share.login_required') :
+                                 accessDenied === 'friends_only' ? t('share.access_denied') :
+                                 t('share.not_shared')}
+                            </h3>
+                            <p style={{ opacity: 0.6 }}>
+                                {accessDenied === 'friends_only' ? t('share.access_denied_msg') : ''}
+                            </p>
+                        </div>
+                    ) : isLoadingFriend ? (
                         <div style={{ textAlign: 'center', padding: '4rem' }}>
                             <p>Chargement de la bibliothèque...</p>
                         </div>
@@ -820,6 +963,30 @@ export default function Library() {
                 isOpen={showFolderModal}
                 onClose={() => setShowFolderModal(false)}
                 onSave={(name, color, emoji) => createFolder(name, color, emoji)}
+            />
+            <ShareModal
+                isOpen={shareModalOpen}
+                onClose={() => setShareModalOpen(false)}
+                type={shareModalType}
+                name={shareModalType === 'folder' ? shareModalFolderName : undefined}
+                shareUrl={(() => {
+                    const lang = i18n.language || 'fr';
+                    const userId = currentUser?.uid || '';
+                    if (shareModalType === 'folder' && shareModalFolderId) {
+                        return `${window.location.origin}/${lang}/users/${userId}/library?folder=${shareModalFolderId}`;
+                    }
+                    return `${window.location.origin}/${lang}/users/${userId}/library`;
+                })()}
+                currentSharing={shareModalCurrentSharing}
+                onSave={async (sharing) => {
+                    if (!currentUser) return;
+                    if (shareModalType === 'folder' && shareModalFolderId) {
+                        updateFolder(shareModalFolderId, { sharing: { ...sharing, sharedAt: Date.now() } });
+                        await updateFolderSharing(currentUser.uid, shareModalFolderId, sharing);
+                    } else {
+                        await updateLibrarySharing(currentUser.uid, sharing);
+                    }
+                }}
             />
         </Layout>
     );

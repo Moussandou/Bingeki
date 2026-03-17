@@ -302,6 +302,20 @@
     background: var(--color-surface-hover);
 }
 
+.folderShareBtn {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+    cursor: pointer;
+}
+
+.folderShareBtn:hover {
+    opacity: 1;
+    color: var(--color-primary);
+}
+
 /* Folder Actions Menu */
 .folderMenu {
     position: absolute;
