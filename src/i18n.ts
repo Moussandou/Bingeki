@@ -255,7 +255,8 @@ const resources = {
                 skip: "Passer",
                 prev: "Précédent",
                 mark_all_read: "Tout marquer comme lu",
-                view_details: "Voir détails"
+                view_details: "Voir détails",
+                unknown: "Inconnu"
             },
             tierlist: {
                 characters: "PERSONNAGES",
@@ -1307,7 +1308,14 @@ const resources = {
                     date: "Date",
                     email: "Email",
                     profile: "Profil",
-                    interest: "Intérêt"
+                    interest: "Intérêt",
+                    no_responses: "Aucune réponse trouvée",
+                    labels: {
+                        total: "Total Réponses",
+                        waitlist: "Liste d'attente",
+                        hyped: "Impatients",
+                        premium: "Premium"
+                    }
                 }
             },
             work_details: {
