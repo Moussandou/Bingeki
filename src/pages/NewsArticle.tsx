@@ -49,9 +49,22 @@ export default function NewsArticle() {
                 if (docSnap.exists()) {
                     const data = docSnap.data() as NewsItem;
 
+                    // Clean up content string before DOM parsing (handles escaped HTML artifacts from Firestore)
+                    let cleanedContent = data.content
+                        // Remove fr-mk spans (both as real HTML and as escaped text)
+                        .replace(/<span[^>]*class="fr-mk"[^>]*>[\s\S]*?<\/span>/gi, '')
+                        .replace(/&lt;span[^&]*class="fr-mk"[^&]*&gt;[\s\S]*?&lt;\/span&gt;/gi, '')
+                        // Remove hidden display:none spans
+                        .replace(/<span[^>]*style="display:\s*none;?"[^>]*>[\s\S]*?<\/span>/gi, '')
+                        .replace(/&lt;span[^&]*style="display:\s*none;?"[^&]*&gt;[\s\S]*?&lt;\/span&gt;/gi, '')
+                        // Remove empty spans
+                        .replace(/<span[^>]*>\s*(&nbsp;)?\s*<\/span>/gi, '')
+                        // Remove broken images
+                        .replace(/<img[^>]*src=""[^>]*>/gi, '');
+
                     // Parse content to extract headings for TOC WITHOUT destroying the HTML structure
                     const parser = new DOMParser();
-                    const htmlDoc = parser.parseFromString(data.content, 'text/html');
+                    const htmlDoc = parser.parseFromString(cleanedContent, 'text/html');
                     const headingTags = htmlDoc.querySelectorAll('h2, h3');
                     const extractedHeadings: Heading[] = [];
 
@@ -67,8 +80,19 @@ export default function NewsArticle() {
 
                     setHeadings(extractedHeadings);
                     
-                    // We only update if we actually modified something (added IDs)
-                    // and we use the full body innerHTML from the parsed doc which preserves structure
+                    // Clean up any leftover editor artifacts (fr-mk spans, empty spans, etc.)
+                    htmlDoc.querySelectorAll('span.fr-mk, span[style*="display: none"], span[style*="display:none"]').forEach(el => el.remove());
+                    htmlDoc.querySelectorAll('span').forEach(el => {
+                        if (!el.textContent?.trim() || el.textContent.trim() === '\u00a0') el.remove();
+                    });
+                    // Remove broken images (empty src or tiny tracking pixels)
+                    htmlDoc.querySelectorAll('img').forEach(img => {
+                        const src = img.getAttribute('src');
+                        if (!src || src === '' || (img.getAttribute('width') === '1') || (img.getAttribute('height') === '1')) {
+                            img.remove();
+                        }
+                    });
+
                     setArticle({
                         ...data,
                         content: htmlDoc.body.innerHTML
@@ -86,6 +110,19 @@ export default function NewsArticle() {
         fetchArticle();
         window.scrollTo(0, 0);
     }, [slug]);
+
+    // Hide broken images that fail to load
+    useEffect(() => {
+        if (!article) return;
+        const container = document.querySelector('.article-content');
+        if (!container) return;
+        const images = container.querySelectorAll('img');
+        images.forEach(img => {
+            img.onerror = () => { img.style.display = 'none'; };
+            // If image already failed (cached), hide it
+            if (img.complete && img.naturalWidth === 0) img.style.display = 'none';
+        });
+    }, [article]);
 
     useEffect(() => {
         const handleScroll = () => {

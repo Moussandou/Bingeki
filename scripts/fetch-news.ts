@@ -187,6 +187,14 @@ async function processItem(item: any, feedConfig: any, forceUpdate: boolean) {
     function formatContent(html: string): string {
         // Remove hidden spans used for layout preservation (common in ANN)
         let clean = html.replace(/<span[^>]+style="display:\s*none;?"[^>]*>[\s\S]*?<\/span>/gi, '');
+        // Remove fr-mk spans (Froala editor markers) that leak into content
+        clean = clean.replace(/<span[^>]*class="fr-mk"[^>]*>[\s\S]*?<\/span>/gi, '');
+        // Remove any empty spans
+        clean = clean.replace(/<span[^>]*>\s*(&nbsp;)?\s*<\/span>/gi, '');
+        // Remove images with broken/missing src or tiny tracking pixels
+        clean = clean.replace(/<img[^>]*src=""[^>]*>/gi, '');
+        clean = clean.replace(/<img[^>]*src="data:[^"]*"[^>]*>/gi, '');
+        clean = clean.replace(/<img[^>]*(width="1"|height="1")[^>]*>/gi, '');
         clean = clean.replace(/\r\n/g, '\n');
 
         // If it's already structured with MANY paragraphs, return it
@@ -217,12 +225,11 @@ async function processItem(item: any, feedConfig: any, forceUpdate: boolean) {
 
     const structuredContent = formatContent(fullContent);
     const cleanContent = sanitizeHtml(structuredContent, {
-        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h2', 'h3', 'blockquote', 'div', 'span']),
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h2', 'h3', 'blockquote', 'div']),
         allowedAttributes: {
             ...sanitizeHtml.defaults.allowedAttributes,
             img: ['src', 'alt', 'width', 'height'],
-            div: ['class', 'id'],
-            span: ['class']
+            div: ['class', 'id']
         }
     });
 
