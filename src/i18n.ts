@@ -625,7 +625,8 @@ const resources = {
                     anonymous: "Anonyme",
                     pending: "En attente",
                     show_less: "Voir moins",
-                    show_more: "Voir plus"
+                    show_more: "Voir plus",
+                    your_ranking: "Votre classement"
                 },
                 friends: {
                     add_title: "AJOUTER UN AMI",
@@ -1853,7 +1854,8 @@ const resources = {
                     anonymous: "Anonymous",
                     pending: "Pending",
                     show_less: "Show less",
-                    show_more: "Show more"
+                    show_more: "Show more",
+                    your_ranking: "Your ranking"
                 },
                 friends: {
                     add_title: "ADD A FRIEND",

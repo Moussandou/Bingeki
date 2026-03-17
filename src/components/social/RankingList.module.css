@@ -137,3 +137,32 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
+
+.currentUserSection {
+    margin-top: 2rem;
+}
+
+.separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.separatorLine {
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+    max-width: 6rem;
+}
+
+.separatorLabel {
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-primary);
+    white-space: nowrap;
+}

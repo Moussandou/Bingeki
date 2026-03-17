@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, deleteDoc, addDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, deleteDoc, addDoc, onSnapshot, getAggregateFromServer, count } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './config';
 import type { Work, Folder } from '@/store/libraryStore';
@@ -626,6 +626,54 @@ export async function getFilteredLeaderboard(
     } catch (error) {
         console.error('[Firestore] Error loading filtered leaderboard:', error);
         return [];
+    }
+}
+
+// Get current user's rank for a specific category
+export async function getUserRank(
+    userId: string,
+    category: LeaderboardCategory = 'xp'
+): Promise<{ rank: number; profile: UserProfile } | null> {
+    try {
+        const fieldMap: Record<LeaderboardCategory, string> = {
+            'xp': 'xp',
+            'chapters': 'totalChaptersRead',
+            'streak': 'streak'
+        };
+        const field = fieldMap[category];
+
+        // Get the user's profile first
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (!userDoc.exists()) return null;
+        const userProfile = { uid: userDoc.id, ...userDoc.data() } as UserProfile;
+        const userScore = (userProfile[field as keyof UserProfile] as number) || 0;
+
+        // Count users with a strictly higher score
+        const qHigher = query(
+            collection(db, 'users'),
+            where(field, '>', userScore)
+        );
+        const higherSnapshot = await getAggregateFromServer(qHigher, { count: count() });
+        const higherCount = higherSnapshot.data().count || 0;
+
+        // Count users with the same score to determine position among ties
+        // Firestore orders by doc ID ascending for ties, so count those with same score
+        const qEqual = query(
+            collection(db, 'users'),
+            where(field, '==', userScore)
+        );
+        const equalSnapshot = await getDocs(qEqual);
+        let tiesBefore = 0;
+        equalSnapshot.forEach((docSnap) => {
+            if (docSnap.id < userId) tiesBefore++;
+        });
+
+        const rank = higherCount + tiesBefore + 1;
+
+        return { rank, profile: userProfile };
+    } catch (error) {
+        console.error('[Firestore] Error getting user rank:', error);
+        return null;
     }
 }
 

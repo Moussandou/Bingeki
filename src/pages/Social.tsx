@@ -13,6 +13,7 @@ import {
     rejectFriendRequest,
     getFriendsActivity,
     getFilteredLeaderboard,
+    getUserRank,
     type Friend,
     type UserProfile,
     type LeaderboardCategory,
@@ -48,6 +49,7 @@ export default function Social() {
     // Leaderboard filters
     const [leaderboardCategory, setLeaderboardCategory] = useState<LeaderboardCategory>('xp');
     const [leaderboardPeriod] = useState<LeaderboardPeriod>('all');
+    const [currentUserRank, setCurrentUserRank] = useState<{ rank: number; profile: UserProfile } | null>(null);
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -60,6 +62,16 @@ export default function Social() {
         if (activeTab === 'ranking') {
             const data = await getFilteredLeaderboard(leaderboardCategory, leaderboardPeriod, 20);
             setLeaderboard(data);
+            // Check if current user is in the top 20, if not fetch their rank
+            if (user) {
+                const isInTop20 = data.some(u => u.uid === user.uid);
+                if (!isInTop20) {
+                    const rankData = await getUserRank(user.uid, leaderboardCategory);
+                    setCurrentUserRank(rankData);
+                } else {
+                    setCurrentUserRank(null);
+                }
+            }
         } else if (activeTab === 'activity' && user) {
             const activityData = await getFriendsActivity(user.uid, 30);
             setActivities(activityData);
@@ -337,6 +349,7 @@ export default function Social() {
                                             [curr.uid]: getFriendStatus(curr.uid)
                                         }), {} as Record<string, string>)
                                     }
+                                    currentUserRank={currentUserRank}
                                 />
                             </div>
                         </>

@@ -13,6 +13,7 @@ interface RankingListProps {
     currentUserUid?: string;
     onAddFriend?: (user: UserProfile) => void;
     friendStatuses?: Record<string, string>; // 'none' | 'pending' | 'accepted'
+    currentUserRank?: { rank: number; profile: UserProfile } | null;
 }
 
 export const RankingList: React.FC<RankingListProps> = ({
@@ -20,7 +21,8 @@ export const RankingList: React.FC<RankingListProps> = ({
     category,
     currentUserUid,
     onAddFriend,
-    friendStatuses = {}
+    friendStatuses = {},
+    currentUserRank
 }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -111,6 +113,46 @@ export const RankingList: React.FC<RankingListProps> = ({
                     >
                         {isExpanded ? t('social.ranking.show_less', 'Show Less') : t('social.ranking.show_more', 'Show More')}
                     </Button>
+                </div>
+            )}
+
+            {/* Current user rank when outside the displayed list */}
+            {currentUserRank && (
+                <div className={styles.currentUserSection}>
+                    <div className={styles.separator}>
+                        <div className={styles.separatorLine} />
+                        <span className={styles.separatorLabel}>{t('social.ranking.your_ranking', 'Votre classement')}</span>
+                        <div className={styles.separatorLine} />
+                    </div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className={`${styles.item} ${styles.currentUser}`}
+                        onClick={() => navigate(`/profile/${currentUserRank.profile.uid}`)}
+                    >
+                        <span className={styles.rank}>#{currentUserRank.rank}</span>
+                        <div className={styles.avatarFrame}>
+                            <img
+                                src={currentUserRank.profile.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUserRank.profile.displayName}`}
+                                alt={currentUserRank.profile.displayName || 'User'}
+                                className={styles.avatarImage}
+                            />
+                        </div>
+                        <div className={styles.info}>
+                            <h4 className={styles.nameRow}>
+                                <span className={styles.name}>{currentUserRank.profile.displayName || t('social.ranking.anonymous')}</span>
+                                {currentUserRank.profile.featuredBadge && (
+                                    <span className={styles.badge}>{currentUserRank.profile.featuredBadge}</span>
+                                )}
+                            </h4>
+                            <p className={styles.level}>Lvl {currentUserRank.profile.level || 1}</p>
+                        </div>
+                        <div className={styles.stats}>
+                            <span className={styles.score}>{getScore(currentUserRank.profile)}</span>
+                            <span className={styles.category}>{category}</span>
+                        </div>
+                    </motion.div>
                 </div>
             )}
         </div>
