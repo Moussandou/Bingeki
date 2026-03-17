@@ -1212,7 +1212,9 @@ const resources = {
                     quick_actions: "Actions Rapides",
                     manage_users: "Gérer Utilisateurs",
                     view_feedback: "Voir Feedback",
-                    live_console: "Live Console"
+                    live_console: "Live Console",
+                    survey_label: "Questionnaires",
+                    view_survey_details: "Voir les détails"
                 },
                 users: {
                     title: "Gestion Utilisateurs",
@@ -1545,7 +1547,10 @@ const resources = {
                     stay_in_touch: "Ne manque pas le lancement 🎉",
                     stay_in_touch_desc: "Laisse ton e-mail pour être prévenu de la sortie officielle de l'application (pas de spam, promis).",
                     wants_news: "Oui, je veux être recontacté !",
-                    no_news: "Non merci."
+                    no_news: "Non merci.",
+                    ageRange: "Tranches d'âge",
+                    interestLevel: "Niveau d'intérêt",
+                    mostAttractiveFeatures: "Fonctionnalités"
                 },
                 options: {
                     status: {
@@ -2823,7 +2828,9 @@ const resources = {
                     quick_actions: "Quick Actions",
                     manage_users: "Manage Users",
                     view_feedback: "View Feedback",
-                    live_console: "Live Console"
+                    live_console: "Live Console",
+                    survey_label: "Surveys",
+                    view_survey_details: "View details"
                 },
                 users: {
                     title: "User Management",
@@ -3196,7 +3203,10 @@ const resources = {
                     stay_in_touch: "Don't miss the launch 🎉",
                     stay_in_touch_desc: "Leave your email to be notified of the official release of the app (no spam, promised).",
                     wants_news: "Yes, I want to be contacted!",
-                    no_news: "No thanks."
+                    no_news: "No thanks.",
+                    ageRange: "Age Range",
+                    interestLevel: "Interest Level",
+                    mostAttractiveFeatures: "Attractive Features"
                 },
                 options: {
                     status: {
