@@ -55,6 +55,7 @@ const Contact = lazy(() => import('@/pages/Contact'));
 const About = lazy(() => import('@/pages/About'));
 // MyTickets and TicketDetail are now merged into Feedback.tsx
 
+const Lens = lazy(() => import('@/pages/Lens'));
 const NewsIndex = lazy(() => import('@/pages/NewsIndex'));
 const NewsArticle = lazy(() => import('@/pages/NewsArticle'));
 
@@ -395,6 +396,7 @@ function App() {
               <Route path="credits" element={<Credits />} />
 
               <Route path="donors" element={<Donors />} />
+              <Route path="lens" element={<Lens />} />
               <Route path="news" element={<NewsIndex />} />
               <Route path="news/article/:slug" element={<NewsArticle />} />
 

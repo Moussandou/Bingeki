@@ -29,7 +29,28 @@ const resources = {
                 version: "Version {{version}}",
                 see_changelog: "Voir le changelog",
                 report_bug: "Signaler un bug",
-                notifications: "Notifications"
+                notifications: "Notifications",
+                lens: "ANIME LENS"
+            },
+            lens: {
+                title: "ANIME LENS",
+                subtitle: "Retrouvez n'importe quel anime à partir d'une capture d'écran d'épisode",
+                drop_zone: "Glissez une capture d'écran d'anime ici ou cliquez pour uploader",
+                camera: "Prendre une photo",
+                or: "ou",
+                search: "Identifier",
+                searching: "Recherche en cours...",
+                no_results: "Aucun résultat trouvé. Essayez avec une capture d'écran directe d'un épisode d'anime.",
+                similarity: "{{score}}%",
+                episode: "Épisode {{ep}}",
+                timestamp: "à {{time}}",
+                add_to_library: "Ajouter",
+                view_details: "Voir les détails",
+                search_discover: "Chercher dans Découvrir",
+                error: "Une erreur est survenue. Veuillez réessayer.",
+                file_too_large: "L'image doit faire moins de 10 Mo",
+                result_count: "{{count}} résultat(s) trouvé(s)",
+                match: "correspondance"
             },
             pwa: {
                 install_app: "Installer l'App",
@@ -1684,7 +1705,28 @@ const resources = {
                 version: "Version {{version}}",
                 see_changelog: "View Changelog",
                 report_bug: "Report Bug",
-                notifications: "Notifications"
+                notifications: "Notifications",
+                lens: "ANIME LENS"
+            },
+            lens: {
+                title: "ANIME LENS",
+                subtitle: "Find any anime from an episode screenshot",
+                drop_zone: "Drop an anime screenshot here or click to upload",
+                camera: "Take a photo",
+                or: "or",
+                search: "Identify",
+                searching: "Searching...",
+                no_results: "No matches found. Try with a direct screenshot from an anime episode.",
+                similarity: "{{score}}%",
+                episode: "Episode {{ep}}",
+                timestamp: "at {{time}}",
+                add_to_library: "Add",
+                view_details: "View Details",
+                search_discover: "Search in Discover",
+                error: "An error occurred. Please try again.",
+                file_too_large: "Image must be under 10MB",
+                result_count: "{{count}} result(s) found",
+                match: "match"
             },
             pwa: {
                 install_app: "Install App",

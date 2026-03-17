@@ -12,7 +12,8 @@ import {
     MessageSquare,
     Menu, X,
     MessageCircle, Sun, Moon, Compass,
-    Newspaper
+    Newspaper,
+    ScanSearch
 } from 'lucide-react';
 
 import { GlobalSearch } from '@/components/search/GlobalSearch';
@@ -259,6 +260,9 @@ export function Header() {
                                     </Link>
                                     <Link to="/news" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <Newspaper size={16} /> Anime News
+                                    </Link>
+                                    <Link to="/lens" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
+                                        <ScanSearch size={16} /> {t('header.lens')}
                                     </Link>
                                     <Link to="/feedback" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <MessageCircle size={16} /> {t('header.feedback')}
@@ -519,6 +523,10 @@ export function Header() {
                             <Link to="/news" className={styles.mobileMenuItem} onClick={() => setIsMobileMenuOpen(false)}>
                                 <Newspaper size={20} />
                                 <span>Anime News</span>
+                            </Link>
+                            <Link to="/lens" className={styles.mobileMenuItem} onClick={() => setIsMobileMenuOpen(false)}>
+                                <ScanSearch size={20} />
+                                <span>{t('header.lens')}</span>
                             </Link>
                             <Link to="/feedback" className={styles.mobileMenuItem} onClick={() => setIsMobileMenuOpen(false)}>
                                 <MessageCircle size={20} />
