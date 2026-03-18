@@ -1917,7 +1917,8 @@ const resources = {
                 skip: "Skip",
                 prev: "Previous",
                 mark_all_read: "Mark all as read",
-                view_details: "View Details"
+                view_details: "View Details",
+                unknown: "Unknown"
             },
             tierlist: {
                 characters: "CHARACTERS",
@@ -2955,7 +2956,14 @@ const resources = {
                     date: "Date",
                     email: "Email",
                     profile: "Profile",
-                    interest: "Interest"
+                    interest: "Interest",
+                    no_responses: "No responses found",
+                    labels: {
+                        total: "Total Responses",
+                        waitlist: "Waitlist",
+                        hyped: "Hyped",
+                        premium: "Premium"
+                    }
                 }
             },
             work_details: {
