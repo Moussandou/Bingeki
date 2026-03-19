@@ -1,5 +1,9 @@
 {
     "hosting": {
+        "predeploy": [
+            "cp dist/index.html functions/index.html",
+            "cp dist/index-en.html functions/index-en.html"
+        ],
         "site": "bingeki",
         "public": "dist",
         "ignore": [
@@ -8,6 +12,30 @@
             "**/node_modules/**"
         ],
         "rewrites": [
+            {
+                "source": "/profile/:uid",
+                "function": "seoHandler"
+            },
+            {
+                "source": "/en/profile/:uid",
+                "function": "seoHandler"
+            },
+            {
+                "source": "/fr/profile/:uid",
+                "function": "seoHandler"
+            },
+            {
+                "source": "/news/article/:slug",
+                "function": "seoHandler"
+            },
+            {
+                "source": "/en/news/article/:slug",
+                "function": "seoHandler"
+            },
+            {
+                "source": "/fr/news/article/:slug",
+                "function": "seoHandler"
+            },
             {
                 "source": "/en/**",
                 "destination": "/index-en.html"
@@ -102,5 +130,15 @@
     },
     "storage": {
         "rules": "storage.rules"
+    },
+    "functions": {
+        "source": "functions",
+        "codebase": "default",
+        "ignore": [
+            "node_modules",
+            ".git",
+            "firebase-debug.log",
+            "firebase-hadolint.log"
+        ]
     }
 }
