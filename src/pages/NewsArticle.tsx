@@ -12,6 +12,7 @@ import { ArrowLeft, ExternalLink, Calendar, Link as LinkIcon, List, BookOpen, Ar
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import DOMPurify from 'dompurify';
+import { isBot } from '@/utils/isBot';
 
 interface NewsItem {
     slug: string;
@@ -137,7 +138,8 @@ export default function NewsArticle() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    if (loading) return <LoadingScreen />;
+    // Move useTranslation inside component if not already there (it is there)
+    if (loading && !isBot()) return <LoadingScreen />;
 
     if (error || !article) {
         return (

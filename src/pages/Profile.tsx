@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { isBot } from '@/utils/isBot';
 import { getBadgeIcon, getBadgeColors } from '@/utils/badges';
 import type { Badge } from '@/types/badge';
 import type { FavoriteCharacter } from '@/types/character';
@@ -290,7 +291,7 @@ export default function Profile() {
         }
     };
 
-    if (loadingProfile && !user) return <div style={{ padding: '2rem' }}>{t('profile.loading')}</div>;
+    if (loadingProfile && !user && !isBot()) return <div style={{ padding: '2rem' }}>{t('profile.loading')}</div>;
 
     return (
         <Layout>

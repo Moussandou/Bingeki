@@ -52,7 +52,8 @@ export const isBot = (): boolean => {
     'uptimerobot',
     'pageranger',
     'screener',
-    'screenshot'
+    'screenshot',
+    'microlink'
   ];
 
   return bots.some(bot => ua.includes(bot));

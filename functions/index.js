@@ -69,15 +69,23 @@ app.get('/*', async (req, res) => {
     } else if (articleSlug) { // Changed from isNews to articleSlug
         try {
             console.log(`[SEO] Fetching article: ${articleSlug}`);
-            const newsSnapshot = await admin.firestore().collection('news').doc(articleSlug).get(); // Changed to doc(articleSlug) as per original code
-            if (newsSnapshot.exists) { // Changed from !newsSnapshot.empty to newsSnapshot.exists
-                const newsData = newsSnapshot.data(); // Changed from newsSnapshot.docs[0].data()
-                console.log(`[SEO] Article found: ${newsData.title || 'No Title'}`);
-                title = (lang === 'en' ? newsData.title_en : newsData.title_fr) || newsData.title || title; // Adjusted for lang
-                description = (lang === 'en' ? newsData.excerpt_en : newsData.excerpt_fr) || newsData.excerpt || description; // Adjusted for lang
-                image = newsData.image || image; // Adjusted for image field name
+            const newsSnapshot = await admin.firestore().collection('news').doc(articleSlug).get();
+            if (newsSnapshot.exists) {
+                const newsData = newsSnapshot.data();
+                console.log(`[SEO] Article metadata -> Keys: ${Object.keys(newsData).join(',')}`);
+                
+                // Title
+                title = (lang === 'en' ? newsData.title_en : newsData.title_fr) || newsData.title || title;
+                
+                // Description (try contentSnippet first, then excerpt, then summary, then content)
+                description = newsData.contentSnippet || newsData.excerpt || newsData.summary || newsData.content?.substring(0, 200).replace(/<[^>]*>/g, '') || description;
+                
+                // Image (try imageUrl first, then image, then thumbnail)
+                image = newsData.imageUrl || newsData.image || newsData.thumbnail || image;
+                
+                console.log(`[SEO] Article found: ${title.substring(0, 30)}... | Desc: ${description?.substring(0, 30)}... | Image: ${image?.substring(0, 30)}...`);
             } else {
-                console.log(`[SEO] Article not found: ${articleSlug}`);
+                console.log(`[SEO] Article NOT found in Firestore: ${articleSlug}`);
             }
         } catch (e) {
             console.error('[SEO] Firestore error (News):', e);
@@ -104,11 +112,30 @@ app.get('/*', async (req, res) => {
         }
     }
 
+    // Dynamic Screenshot Support
+    // Use Microlink to capture a real-time screenshot of the page.
+    const siteUrl = `https://bingeki.web.app${url}`;
+    
+    // Only use screenshots for profiles and news articles
+    if (url.includes('/profile/') || url.includes('/news/article/')) {
+        const encodedUrl = encodeURIComponent(siteUrl);
+        // Determine the best selector to wait for based on the route
+        const waitFor = url.includes('/profile/') ? '.hunter-license-card' : 'article';
+        
+        // Use Microlink with optimized parameters:
+        // - wait: fixed delay (3s)
+        // - waitFor: wait for specific content to appear
+        // - timeout: 15s absolute max
+        // - colorScheme: dark (matches the app)
+        image = `https://api.microlink.io/?url=${encodedUrl}&screenshot=true&embed=screenshot.url&wait=3000&waitFor=${waitFor}&colorScheme=dark&viewport.width=1200&viewport.height=630&timeout=15000`;
+        console.log(`[SEO] Dynamic screenshot setup for: ${url} (waitFor: ${waitFor})`);
+    }
+
     // Inject Meta Tags
     const finalTitle = escapeHtml(title);
     const finalDesc = escapeHtml(description);
-    const finalImage = escapeHtml(image);
-    const finalUrl = escapeHtml(`https://bingeki.web.app${url}`);
+    const finalImage = image; // Don't escape the screenshot URL as it's already a clean API URL
+    const finalUrl = escapeHtml(siteUrl);
 
     // Helper to log replacement status
     const countMatches = (regex) => (html.match(regex) || []).length;
