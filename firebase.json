@@ -13,27 +13,27 @@
         ],
         "rewrites": [
             {
-                "source": "/profile/:uid",
+                "source": "/profile/**",
                 "function": "seoHandler"
             },
             {
-                "source": "/en/profile/:uid",
+                "source": "/en/profile/**",
                 "function": "seoHandler"
             },
             {
-                "source": "/fr/profile/:uid",
+                "source": "/fr/profile/**",
                 "function": "seoHandler"
             },
             {
-                "source": "/news/article/:slug",
+                "source": "/news/article/**",
                 "function": "seoHandler"
             },
             {
-                "source": "/en/news/article/:slug",
+                "source": "/en/news/article/**",
                 "function": "seoHandler"
             },
             {
-                "source": "/fr/news/article/:slug",
+                "source": "/fr/news/article/**",
                 "function": "seoHandler"
             },
             {

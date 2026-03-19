@@ -99,21 +99,23 @@ app.get('/*', async (req, res) => {
     }
 
     // Inject Meta Tags
-    // We replace the default values in index.html with the specialized ones
     const finalTitle = escapeHtml(title);
     const finalDesc = escapeHtml(description);
     const finalImage = escapeHtml(image);
+    const finalUrl = escapeHtml(`https://bingeki.web.app${url}`);
 
     html = html
-        .replace(/<title>.*?<\/title>/g, `<title>${finalTitle}</title>`)
-        .replace(/<meta name="title" content=".*?" \/>/g, `<meta name="title" content="${finalTitle}" />`)
-        .replace(/<meta name="description" content=".*?" \/>/g, `<meta name="description" content="${finalDesc}" />`)
-        .replace(/<meta property="og:title" content=".*?" \/>/g, `<meta property="og:title" content="${finalTitle}" />`)
-        .replace(/<meta property="og:description" content=".*?" \/>/g, `<meta property="og:description" content="${finalDesc}" />`)
-        .replace(/<meta property="og:image" content=".*?" \/>/g, `<meta property="og:image" content="${finalImage}" />`)
-        .replace(/<meta name="twitter:title" content=".*?" \/>/g, `<meta name="twitter:title" content="${finalTitle}" />`)
-        .replace(/<meta name="twitter:description" content=".*?" \/>/g, `<meta name="twitter:description" content="${finalDesc}" />`)
-        .replace(/<meta name="twitter:image" content=".*?" \/>/g, `<meta name="twitter:image" content="${finalImage}" />`);
+        .replace(/<title>[^]*?<\/title>/g, `<title>${finalTitle}</title>`)
+        .replace(/<meta name="title" content="[^]*?" \/>/g, `<meta name="title" content="${finalTitle}" />`)
+        .replace(/<meta name="description" content="[^]*?" \/>/g, `<meta name="description" content="${finalDesc}" />`)
+        .replace(/<meta property="og:title" content="[^]*?" \/>/g, `<meta property="og:title" content="${finalTitle}" />`)
+        .replace(/<meta property="og:description" content="[^]*?" \/>/g, `<meta property="og:description" content="${finalDesc}" />`)
+        .replace(/<meta property="og:image" content="[^]*?" \/>/g, `<meta property="og:image" content="${finalImage}" />`)
+        .replace(/<meta property="og:url" content="[^]*?" \/>/g, `<meta property="og:url" content="${finalUrl}" />`)
+        .replace(/<link rel="canonical" href="[^]*?" \/>/g, `<link rel="canonical" href="${finalUrl}" />`)
+        .replace(/<meta name="twitter:title" content="[^]*?" \/>/g, `<meta name="twitter:title" content="${finalTitle}" />`)
+        .replace(/<meta name="twitter:description" content="[^]*?" \/>/g, `<meta name="twitter:description" content="${finalDesc}" />`)
+        .replace(/<meta name="twitter:image" content="[^]*?" \/>/g, `<meta name="twitter:image" content="${finalImage}" />`);
 
     res.send(html);
 });
