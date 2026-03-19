@@ -292,7 +292,8 @@ function App() {
   // Apply theme to document
   const theme = useSettingsStore(s => s.theme);
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    const finalTheme = isBot() ? 'dark' : theme;
+    document.documentElement.setAttribute('data-theme', finalTheme);
   }, [theme]);
 
   // Apply global accent color

@@ -116,19 +116,15 @@ app.get('/*', async (req, res) => {
     // Use Microlink to capture a real-time screenshot of the page.
     const siteUrl = `https://bingeki.web.app${url}`;
     
-    // Only use screenshots for profiles and news articles
+    // Dynamic Screenshot Support via Microlink
     if (url.includes('/profile/') || url.includes('/news/article/')) {
         const encodedUrl = encodeURIComponent(siteUrl);
-        // Determine the best selector to wait for based on the route
         const waitFor = url.includes('/profile/') ? '.hunter-license-card' : 'article';
         
-        // Use Microlink with optimized parameters:
-        // - wait: fixed delay (3s)
-        // - waitFor: wait for specific content to appear
-        // - timeout: 15s absolute max
-        // - colorScheme: dark (matches the app)
-        image = `https://api.microlink.io/?url=${encodedUrl}&screenshot=true&embed=screenshot.url&wait=3000&waitFor=${waitFor}&colorScheme=dark&viewport.width=1200&viewport.height=630&timeout=15000`;
-        console.log(`[SEO] Dynamic screenshot setup for: ${url} (waitFor: ${waitFor})`);
+        // Use i.microlink.io as a proxy to return a direct image binary for social media bots
+        const microlinkParams = `url=${encodedUrl}&screenshot=true&wait=4000&waitFor=${waitFor}&colorScheme=dark&viewport.width=1200&viewport.height=630&timeout=20000`;
+        image = `https://i.microlink.io/${encodeURIComponent(`https://api.microlink.io/?${microlinkParams}`)}`;
+        console.log(`[SEO] Dynamic image proxy set up for: ${url}`);
     }
 
     // Inject Meta Tags
