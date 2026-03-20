@@ -65,7 +65,8 @@ const resources = {
                 }
             },
             roles: {
-                admin: "ADMIN"
+                admin: "ADMIN",
+                creator: "CRÉATEUR"
             },
             landing: {
                 hero: {
@@ -1761,7 +1762,8 @@ const resources = {
                 }
             },
             roles: {
-                admin: "ADMIN"
+                admin: "ADMIN",
+                creator: "CREATOR"
             },
 
             profile: {

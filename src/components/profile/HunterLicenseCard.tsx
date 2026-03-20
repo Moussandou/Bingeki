@@ -1,10 +1,11 @@
-import { LogOut, Star } from 'lucide-react';
+import { LogOut, Star, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { type UserProfile } from '@/firebase/firestore';
 import { BADGE_ICONS } from '@/utils/badges';
 import { NenChart } from './NenChart';
 import styles from './HunterLicenseCard.module.css';
 import { useTranslation } from 'react-i18next';
+import Tilt from 'react-parallax-tilt';
 
 interface HunterLicenseCardProps {
     user: Partial<UserProfile> & { uid: string, photoURL?: string | null, displayName?: string | null };
@@ -45,8 +46,11 @@ export function HunterLicenseCard({ user, stats, isOwnProfile, onLogout, feature
         // else leave as theme text or could default to black for unknown light colors
     }
 
-    return (
+    const cardContent = (
         <div className="manga-panel" style={{ padding: '0', overflow: 'hidden', background: bgColor, color: textColor, position: 'relative', border: `3px solid ${borderColor} ` }}>
+            {user.isSuperAdmin && <div className={styles.scanlineOverlay} />}
+            {user.isSuperAdmin && <div className={styles.holofoilOverlay} />}
+
             {/* Banner */}
             <div style={{
                 height: '120px',
@@ -81,6 +85,13 @@ export function HunterLicenseCard({ user, stats, isOwnProfile, onLogout, feature
                 {/* Name & ID */}
                 <h2 className={styles.name} style={{ color: textColor }}> {user.displayName || 'Chasseur'}</h2>
                 <p className={styles.idText}>{t('hunter_license.id_prefix')}: {user.uid.slice(0, 8).toUpperCase()}</p>
+
+                {user.isSuperAdmin && (
+                    <div className={styles.creatorBadge}>
+                        <Crown size={16} fill="currentColor" />
+                        {t('roles.creator')}
+                    </div>
+                )}
 
                 {/* Bio */}
                 {user.bio && (
@@ -182,4 +193,24 @@ export function HunterLicenseCard({ user, stats, isOwnProfile, onLogout, feature
             </div >
         </div >
     );
+
+    if (user.isSuperAdmin) {
+        return (
+            <div className={styles.cardWrapper}>
+                <Tilt
+                    tiltMaxAngleX={10}
+                    tiltMaxAngleY={10}
+                    perspective={1000}
+                    scale={1.02}
+                    transitionSpeed={500}
+                    gyroscope={true}
+                    glareEnable={false}
+                >
+                    {cardContent}
+                </Tilt>
+            </div>
+        );
+    }
+
+    return cardContent;
 }

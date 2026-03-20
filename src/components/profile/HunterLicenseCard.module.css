@@ -86,3 +86,110 @@
     opacity: 0.7;
     margin-bottom: 1rem;
 }
+
+.creatorBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    color: #000;
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    font-weight: 900;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border: 2px solid #000;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 1);
+    margin-bottom: 1.5rem;
+    transform: rotate(-2deg);
+    font-family: var(--font-heading);
+    position: relative;
+    overflow: hidden;
+}
+
+.creatorBadge::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.6) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    transform: skewX(-25deg);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -150%; }
+    30% { left: 150%; }
+    100% { left: 150%; }
+}
+
+.creatorBadge svg {
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
+}
+
+/* --- New Global Card Effects --- */
+
+.cardWrapper {
+    position: relative;
+    border-radius: 12px;
+}
+
+
+/* 4. Scanline Effect */
+.scanlineOverlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        rgba(18, 16, 16, 0) 50%,
+        rgba(0, 0, 0, 0.05) 50%
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.5;
+}
+
+/* 2. Holofoil Effect */
+.holofoilOverlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        125deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 30%,
+        rgba(255, 0, 255, 0.1) 40%,
+        rgba(0, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.1) 70%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 200%;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.cardWrapper:hover .holofoilOverlay {
+    opacity: 1;
+    animation: holoMove 3s ease infinite;
+}
+
+@keyframes holoMove {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+}
