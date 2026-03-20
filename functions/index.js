@@ -18,109 +18,234 @@ function escapeHtml(unsafe) {
 }
 
 // SVG Template Helper - Hunter License Style
-function generateProfileSVG(userData, stats, lang) {
+// SVG Template Helper - Hunter License Style
+function generateProfileSVG(userData, lang) {
     const displayName = escapeHtml(userData.displayName || 'Chasseur');
-    const level = stats.level || 1;
-    const xp = stats.xp || 0;
-    const xpToNextLevel = stats.xpToNextLevel || 100;
-    const streak = stats.streak || 1;
+    const level = userData.level || 1;
+    const xp = userData.xp || 0;
+    const xpToNextLevel = userData.xpToNextLevel || (level * 100); // Rough approximation
+    const streak = userData.streak || 0;
+    const badgeCount = (userData.badges || []).length;
+    const photoURL = userData.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userData.displayName || 'Bingeki')}`;
+    const banner = userData.banner || '';
+    const bio = escapeHtml(userData.bio || '');
     const uid = userData.uid ? userData.uid.slice(0, 8).toUpperCase() : 'BINGEKI';
-    const accentColor = userData.themeColor || '#FF2E63';
     
-    const labelTitle = lang === 'en' ? 'HUNTER LICENSE' : 'CARTE DE CHASSEUR';
-    const labelLvl = lang === 'en' ? 'LEVEL' : 'NIVEAU';
-    const labelStreak = lang === 'en' ? 'STREAK' : 'SÉRIE';
-    const labelXp = lang === 'en' ? 'XP PROGRESS' : 'PROGRESSION XP';
+    // Theme colors
+    const primaryColor = userData.themeColor || '#FF2E63';
+    const borderColor = userData.borderColor || '#000000';
+    const bgColor = userData.cardBgColor || '#1e1e1e';
+    const textColor = (bgColor === '#000000' || bgColor === '#000' || bgColor === '#121212') ? '#ffffff' : '#e0e0e0';
+
+    // Translations
+    const labels = {
+        title: lang === 'en' ? 'HUNTER LICENSE' : 'CARTE DE CHASSEUR',
+        lvl: 'LVL',
+        id: 'ID',
+        xp: lang === 'en' ? 'XP' : 'XP',
+        streak: lang === 'en' ? 'STREAK' : 'SÉRIE',
+        badges: lang === 'en' ? 'BADGES' : 'BADGES',
+        stats: lang === 'en' ? 'STATS' : 'STATS'
+    };
+
+    // Calculate Radar Chart Points (6 points)
+    const centerX = 850;
+    const centerY = 330;
+    const radius = 120;
+    
+    const stats = [
+        { val: Math.min(level * 2, 100), label: lang === 'en' ? 'Level' : 'Niveau' },
+        { val: Math.min(xp / 100, 100), label: lang === 'en' ? 'Passion' : 'Passion' },
+        { val: Math.min(streak, 100), label: lang === 'en' ? 'Diligence' : 'Assiduité' },
+        { val: Math.min((userData.totalWorksAdded || 0) / 2, 100), label: lang === 'en' ? 'Collection' : 'Collection' },
+        { val: Math.min((userData.totalChaptersRead || 0) / 10, 100), label: lang === 'en' ? 'Reading' : 'Lecture' },
+        { val: Math.min((userData.totalWorksCompleted || 0) * 5, 100), label: lang === 'en' ? 'Completion' : 'Succès' }
+    ];
+
+    const getPoint = (index, value) => {
+        const angle = (index * 60 - 90) * (Math.PI / 180);
+        const r = (value / 100) * radius;
+        return `${centerX + r * Math.cos(angle)},${centerY + r * Math.sin(angle)}`;
+    };
+
+    const polygonPoints = stats.map((s, i) => getPoint(i, s.val)).join(' ');
+    const gridPoints100 = stats.map((s, i) => getPoint(i, 100)).join(' ');
+    const gridPoints50 = stats.map((s, i) => getPoint(i, 50)).join(' ');
 
     return `
-    <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+    <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
         <defs>
-            <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#1a1a1a" />
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@900&amp;family=Inter:wght@400;700&amp;display=swap');
+                .heading { font-family: 'Outfit', sans-serif; font-weight: 900; text-transform: uppercase; }
+                .body { font-family: 'Inter', sans-serif; }
+                .mono { font-family: monospace; }
+            </style>
+            <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:${bgColor}" />
                 <stop offset="100%" style="stop-color:#0a0a0a" />
             </linearGradient>
-            <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="1.5" fill="#ffffff" fill-opacity="0.05" />
+            <pattern id="mangaDots" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="1.5" fill="white" fill-opacity="0.05" />
             </pattern>
+            <clipPath id="avatarClip">
+                <rect x="150" y="220" width="160" height="160" rx="8" />
+            </clipPath>
         </defs>
         
         <!-- Background -->
-        <rect width="1200" height="630" fill="url(#bgGrad)" />
-        <rect width="1200" height="630" fill="url(#dots)" />
+        <rect width="1200" height="630" fill="#121212" />
+        <rect width="1200" height="630" fill="url(#mangaDots)" />
         
-        <!-- Main Panel -->
-        <rect x="100" y="100" width="1000" height="430" rx="10" fill="#1e1e1e" stroke="${accentColor}" stroke-width="6" />
+        <!-- Outer Border -->
+        <rect x="50" y="50" width="1100" height="530" rx="15" fill="none" stroke="${borderColor}" stroke-width="10" />
         
+        <!-- Main Card Panel -->
+        <rect x="50" y="50" width="1100" height="530" rx="15" fill="url(#panelGrad)" />
+
+        <!-- Banner -->
+        <rect x="50" y="50" width="1100" height="140" fill="${primaryColor}" />
+        ${banner ? `<image x="50" y="50" width="1100" height="140" xlink:href="${banner}" preserveAspectRatio="xMidYMid slice" />` : ''}
+        <rect x="50" y="188" width="1100" height="2" fill="${borderColor}" />
+
         <!-- Header Strip -->
-        <rect x="100" y="100" width="1000" height="50" rx="4" fill="${accentColor}" />
-        <text x="130" y="135" font-family="sans-serif" font-weight="900" font-size="24" fill="white">${labelTitle}</text>
-        <text x="1070" y="135" text-anchor="end" font-family="sans-serif" font-weight="900" font-size="24" fill="white">ID: ${uid}</text>
+        <rect x="50" y="190" width="1100" height="40" fill="${borderColor}" />
+        <text x="75" y="217" class="heading" font-size="20" fill="white" letter-spacing="2">${labels.title}</text>
+        <text x="1125" y="217" text-anchor="end" class="heading" font-size="20" fill="white" letter-spacing="1">ID: ${uid}</text>
+
+        <!-- Avatar Section -->
+        <rect x="145" y="215" width="170" height="170" rx="10" fill="${borderColor}" />
+        <image x="150" y="220" width="160" height="160" xlink:href="${photoURL}" clip-path="url(#avatarClip)" preserveAspectRatio="xMidYMid slice" />
         
-        <!-- Level Circle -->
-        <circle cx="240" cy="315" r="90" fill="#2d2d2d" stroke="${accentColor}" stroke-width="4" />
-        <text x="240" y="300" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="20" fill="${accentColor}">${labelLvl}</text>
-        <text x="240" y="350" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="60" fill="white">${level}</text>
+        <!-- Level Badge -->
+        <rect x="260" y="340" width="90" height="45" fill="${primaryColor}" stroke="${borderColor}" stroke-width="3" transform="rotate(-5, 305, 362)" />
+        <text x="305" y="372" text-anchor="middle" class="heading" font-size="22" fill="white" transform="rotate(-5, 305, 362)">${labels.lvl} ${level}</text>
+
+        <!-- Identity Section -->
+        <text x="360" y="290" class="heading" font-size="52" fill="${textColor}">${displayName}</text>
+        <text x="360" y="325" class="mono" font-size="16" fill="${primaryColor}" opacity="0.8">BINGEKI HUNTER LICENSE VERIFIED</text>
         
-        <!-- Name -->
-        <text x="370" y="260" font-family="sans-serif" font-weight="900" font-size="56" fill="white">${displayName}</text>
-        <line x1="370" y1="280" x2="950" y2="280" stroke="${accentColor}" stroke-width="4" opacity="0.5" />
+        <!-- Bio -->
+        ${bio ? `
+        <line x1="360" y1="360" x2="360" y2="440" stroke="${primaryColor}" stroke-width="3" />
+        <text x="375" y="380" class="body" font-size="20" font-style="italic" fill="${textColor}" opacity="0.9">
+            ${bio.length > 50 ? bio.substring(0, 47) + '...' : bio}
+        </text>
+        ` : ''}
+
+        <!-- Radar Chart Side -->
+        <!-- Chart Grid -->
+        <polygon points="${gridPoints100}" fill="none" stroke="${textColor}" stroke-width="1" opacity="0.1" />
+        <polygon points="${gridPoints50}" fill="none" stroke="${textColor}" stroke-width="1" opacity="0.1" />
+        ${stats.map((s, i) => `<line x1="${centerX}" y1="${centerY}" x2="${getPoint(i, 100).split(',')[0]}" y2="${getPoint(i, 100).split(',')[1]}" stroke="${textColor}" stroke-width="1" opacity="0.1" />`).join('')}
         
-        <!-- Stats Grid -->
-        <!-- XP -->
-        <text x="370" y="340" font-family="sans-serif" font-weight="700" font-size="18" fill="#a0a0a0" text-transform="uppercase">${labelXp}</text>
-        <rect x="370" y="355" width="580" height="20" rx="10" fill="#333333" />
-        <rect x="370" y="355" width="${Math.min(((xp || 0) / (xpToNextLevel || 100)) * 580, 580)}" height="20" rx="10" fill="${accentColor}" />
-        <text x="950" y="340" text-anchor="end" font-family="sans-serif" font-weight="700" font-size="18" fill="white">${xp} / ${xpToNextLevel} XP</text>
+        <!-- The Data Polygon -->
+        <polygon points="${polygonPoints}" fill="${primaryColor}" fill-opacity="0.6" stroke="${primaryColor}" stroke-width="3" />
         
-        <!-- Streak & Others -->
-        <text x="370" y="440" font-family="sans-serif" font-weight="700" font-size="18" fill="#a0a0a0" text-transform="uppercase">${labelStreak}</text>
-        <text x="370" y="480" font-family="sans-serif" font-weight="900" font-size="40" fill="white">${streak} 🔥</text>
+        <!-- Chart Labels -->
+        ${stats.map((s, i) => {
+            const p = getPoint(i, 125);
+            const [px, py] = p.split(',');
+            return `<text x="${px}" y="${py}" text-anchor="middle" class="heading" font-size="12" fill="${textColor}" opacity="0.7">${s.label}</text>`;
+        }).join('')}
+
+        <!-- Bottom Stats Bar -->
+        <rect x="145" y="470" width="910" height="80" rx="5" fill="rgba(0,0,0,0.3)" stroke="${borderColor}" stroke-width="2" />
         
-        <text x="600" y="440" font-family="sans-serif" font-weight="700" font-size="18" fill="#a0a0a0" text-transform="uppercase">BINGEKI RANK</text>
-        <text x="600" y="480" font-family="sans-serif" font-weight="900" font-size="40" fill="white">S-CLASS</text>
-        
+        <!-- XP Bar Wrapper -->
+        <text x="165" y="500" class="heading" font-size="14" fill="${textColor}" opacity="0.6">${labels.xp}</text>
+        <rect x="165" y="515" width="400" height="12" rx="6" fill="#333" />
+        <rect x="165" y="515" width="${Math.min((xp / xpToNextLevel) * 400, 400)}" height="12" rx="6" fill="${primaryColor}" />
+        <text x="565" y="530" text-anchor="end" class="heading" font-size="14" fill="${textColor}">${xp} / ${xpToNextLevel}</text>
+
+        <!-- Streak -->
+        <text x="650" y="500" class="heading" font-size="14" fill="${textColor}" opacity="0.6">${labels.streak}</text>
+        <text x="650" y="535" class="heading" font-size="32" fill="white">${streak} <tspan font-size="20">🔥</tspan></text>
+
+        <!-- Badges -->
+        <text x="850" y="500" class="heading" font-size="14" fill="${textColor}" opacity="0.6">${labels.badges}</text>
+        <text x="850" y="535" class="heading" font-size="32" fill="white">${badgeCount} <tspan font-size="20">⭐</tspan></text>
+
         <!-- Footer -->
-        <text x="1100" y="600" text-anchor="end" font-family="sans-serif" font-weight="700" font-size="20" fill="#666666">bingeki.web.app</text>
+        <text x="1150" y="610" text-anchor="end" class="heading" font-size="14" fill="${textColor}" opacity="0.3">BINGEKI.WEB.APP</text>
     </svg>`;
 }
 
+// SVG Template for News
 // SVG Template for News
 function generateNewsSVG(newsData, lang) {
     const title = escapeHtml((lang === 'en' ? newsData.title_en : newsData.title_fr) || newsData.title || 'Bingeki News');
     const source = escapeHtml(newsData.sourceName || 'Actualité Manga');
     const date = newsData.publishedAt ? new Date(newsData.publishedAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+    const image = newsData.image || '';
 
     return `
-    <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+    <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
         <defs>
-            <linearGradient id="newsBg" x1="0%" y1="0%" x2="0%" y2="100%">
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@900&amp;family=Inter:wght@400;700&amp;display=swap');
+                .heading { font-family: 'Outfit', sans-serif; font-weight: 900; text-transform: uppercase; }
+                .body { font-family: 'Inter', sans-serif; }
+            </style>
+            <linearGradient id="newsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" style="stop-color:#FF2E63" />
-                <stop offset="100%" style="stop-color:#1a1a1a" />
+                <stop offset="100%" style="stop-color:#FF0844" />
             </linearGradient>
             <pattern id="mangaDots" width="30" height="30" patternUnits="userSpaceOnUse">
                 <circle cx="3" cy="3" r="2" fill="white" fill-opacity="0.1" />
             </pattern>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="15" />
+                <feOffset dx="0" dy="15" result="offsetblur" />
+                <feComponentTransfer>
+                    <feFuncA type="linear" slope="0.5" />
+                </feComponentTransfer>
+                <feMerge>
+                    <feMergeNode />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
         </defs>
         
-        <rect width="1200" height="630" fill="url(#newsBg)" />
+        <!-- Background -->
+        <rect width="1200" height="630" fill="#121212" />
         <rect width="1200" height="630" fill="url(#mangaDots)" />
         
-        <!-- Header -->
-        <rect x="0" y="0" width="1200" height="100" fill="rgba(0,0,0,0.5)" />
-        <text x="60" y="65" font-family="sans-serif" font-weight="900" font-size="40" fill="#FF2E63">BINGEKI <tspan fill="white">NEWS</tspan></text>
-        
-        <!-- Title Box -->
-        <rect x="60" y="250" width="1080" height="250" rx="10" fill="rgba(0,0,0,0.8)" stroke="#FF2E63" stroke-width="4" />
-        
-        <!-- Multi-line Title Support -->
-        <text x="100" y="330" font-family="sans-serif" font-weight="900" font-size="50" fill="white">
-            ${title.length > 40 ? title.substring(0, 40) + '...' : title}
-        </text>
-        
-        <text x="100" y="420" font-family="sans-serif" font-weight="700" font-size="24" fill="#FF2E63">${source} • ${date}</text>
-        
-        <!-- Footer -->
-        <text x="1100" y="580" text-anchor="end" font-family="sans-serif" font-weight="700" font-size="20" fill="white" opacity="0.3">bingeki.web.app</text>
+        <!-- Main Content Card -->
+        <g filter="url(#shadow)">
+            <rect x="100" y="100" width="1000" height="430" rx="20" fill="#1e1e1e" stroke="#000" stroke-width="5" />
+            
+            <!-- News Image (Left side) -->
+            <clipPath id="newsImgClip">
+                <rect x="100" y="100" width="400" height="430" rx="20 0 0 20" />
+            </clipPath>
+            <rect x="100" y="100" width="400" height="430" rx="20" fill="#333" />
+            ${image ? `<image x="100" y="100" width="400" height="430" xlink:href="${image}" clip-path="url(#newsImgClip)" preserveAspectRatio="xMidYMid slice" />` : ''}
+            
+            <!-- Gradient Overlay for Image -->
+            <rect x="100" y="100" width="400" height="430" fill="rgba(255,46,99,0.1)" clip-path="url(#newsImgClip)" />
+
+            <!-- Content Section (Right side) -->
+            <rect x="500" y="100" width="600" height="80" rx="0 20 0 0" fill="url(#newsGrad)" />
+            <text x="530" y="150" class="heading" font-size="28" fill="white" letter-spacing="2">BINGEKI NEWS</text>
+
+            <!-- Source & Date -->
+            <rect x="530" y="210" width="540" height="2" fill="#FF2E63" opacity="0.3" />
+            <text x="530" y="245" class="heading" font-size="18" fill="#FF2E63">${source} • ${date}</text>
+
+            <!-- Title -->
+            <foreignObject x="530" y="270" width="540" height="200">
+                <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 36px; color: white; line-height: 1.2; text-transform: uppercase;">
+                    ${title}
+                </div>
+            </foreignObject>
+            
+            <!-- Call to action -->
+            <text x="1070" y="500" text-anchor="end" class="heading" font-size="20" fill="#FF2E63">LIRE L'ARTICLE ➔</text>
+        </g>
+
+        <!-- Logo/Footer -->
+        <text x="1100" y="590" text-anchor="end" class="heading" font-size="18" fill="white" opacity="0.2">bingeki.web.app</text>
     </svg>`;
 }
 
@@ -132,13 +257,21 @@ function generateGenericSVG(title, description, lang) {
     return `
     <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
         <defs>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@900&amp;family=Inter:wght@400;700&amp;display=swap');
+                .heading { font-family: 'Outfit', sans-serif; font-weight: 900; text-transform: uppercase; }
+                .body { font-family: 'Inter', sans-serif; }
+            </style>
             <linearGradient id="genBg" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" style="stop-color:#1a1a1a" />
                 <stop offset="100%" style="stop-color:#080808" />
             </linearGradient>
+            <pattern id="mangaDots" width="40" height="40" patternUnits="userSpaceOnUse">
+                <circle cx="4" cy="4" r="2" fill="#FF2E63" fill-opacity="0.05" />
+            </pattern>
             <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="10" />
-                <feOffset dx="0" dy="10" result="offsetblur" />
+                <feGaussianBlur in="SourceAlpha" stdDeviation="15" />
+                <feOffset dx="0" dy="15" result="offsetblur" />
                 <feComponentTransfer>
                     <feFuncA type="linear" slope="0.5" />
                 </feComponentTransfer>
@@ -150,25 +283,34 @@ function generateGenericSVG(title, description, lang) {
         </defs>
         
         <rect width="1200" height="630" fill="url(#genBg)" />
+        <rect width="1200" height="630" fill="url(#mangaDots)" />
         
         <!-- Decorative elements -->
-        <circle cx="1100" cy="100" r="150" fill="white" fill-opacity="0.03" />
-        <circle cx="100" cy="530" r="100" fill="#FF2E63" fill-opacity="0.1" />
+        <circle cx="1100" cy="100" r="200" fill="#FF2E63" fill-opacity="0.03" />
+        <circle cx="100" cy="530" r="150" fill="#FF2E63" fill-opacity="0.05" />
         
         <!-- Branding -->
-        <text x="600" y="100" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="30" fill="white" letter-spacing="10" opacity="0.5">BINGEKI</text>
+        <text x="600" y="100" text-anchor="middle" class="heading" font-size="30" fill="white" letter-spacing="15" opacity="0.4">BINGEKI</text>
         
-        <!-- Content -->
+        <!-- Main Panel -->
         <g filter="url(#shadow)">
-            <text x="600" y="320" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="80" fill="white">${cleanTitle}</text>
-            <text x="600" y="400" text-anchor="middle" font-family="sans-serif" font-weight="400" font-size="24" fill="#FF2E63" opacity="0.9">
-                ${finalDesc.length > 90 ? finalDesc.substring(0, 90) + '...' : finalDesc}
-            </text>
+            <rect x="200" y="200" width="800" height="250" rx="20" fill="#1e1e1e" stroke="#FF2E63" stroke-width="2" />
+            
+            <!-- Title -->
+            <text x="600" y="310" text-anchor="middle" class="heading" font-size="70" fill="white">${cleanTitle}</text>
+            
+            <!-- Description -->
+            <foreignObject x="250" y="340" width="700" height="100">
+                <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Inter', sans-serif; font-size: 20px; color: #FF2E63; text-align: center; line-height: 1.4; opacity: 0.9;">
+                    ${finalDesc.length > 120 ? finalDesc.substring(0, 120) + '...' : finalDesc}
+                </div>
+            </foreignObject>
         </g>
         
-        <!-- Footer -->
-        <rect x="500" y="550" width="200" height="2" fill="#FF2E63" />
-        <text x="600" y="590" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="20" fill="white" opacity="0.4">bingeki.web.app</text>
+        <!-- Footer Decoration -->
+        <rect x="550" y="520" width="100" height="4" rx="2" fill="#FF2E63" />
+        <text x="600" y="580" text-anchor="middle" class="heading" font-size="16" fill="white" opacity="0.3" letter-spacing="5">JOIN THE ADVENTURE</text>
+        <text x="600" y="610" text-anchor="middle" class="heading" font-size="12" fill="white" opacity="0.2">bingeki.web.app</text>
     </svg>`;
 }
 
@@ -184,7 +326,8 @@ app.get('/api/og-image/:type?/:id?', async (req, res) => {
         if (type === 'profile' && id) {
             const userDoc = await admin.firestore().collection('users').doc(id).get();
             if (userDoc.exists) {
-                svg = generateProfileSVG(userDoc.data(), userDoc.data(), lang);
+                // generateProfileSVG now takes (userData, lang)
+                svg = generateProfileSVG(userDoc.data(), lang);
             }
         } else if (type === 'news' && id) {
             const newsDoc = await admin.firestore().collection('news').doc(id).get();
