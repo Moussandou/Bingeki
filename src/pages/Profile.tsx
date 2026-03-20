@@ -939,55 +939,26 @@ export default function Profile() {
                                     </div>
                                 </div>
 
-                                    {/* SECTION: CREATOR PRIVILEGES (Visible for Admins/SuperAdmins to toggle) */}
+                                    {/* SECTION: CREATOR PRIVILEGES */}
                                     {(userProfile?.isSuperAdmin || userProfile?.isAdmin) && (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem', padding: '1.25rem', border: '3px solid var(--color-primary)', background: 'rgba(var(--color-primary-rgb), 0.05)', boxShadow: '6px 6px 0 var(--color-primary)', position: 'relative', overflow: 'hidden' }}>
-                                            <div style={{ position: 'absolute', top: -10, right: -10, opacity: 0.1 }}>
-                                                <Trophy size={60} color="var(--color-primary)" />
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-                                                <div style={{ flex: 1, paddingRight: '1rem' }}>
-                                                    <h3 style={{ fontSize: '1rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '0.3rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                        ✨ Mode Légendaire
-                                                    </h3>
-                                                    <p style={{ fontSize: '0.75rem', opacity: 0.8, fontWeight: 700, lineHeight: 1.4 }}>
-                                                        Active les effets visuels exclusifs (particules, holofoil, scanlines et inclinaison 3D) sur votre carte. Ces effets sont visibles par tous les visiteurs.
-                                                    </p>
-                                                </div>
-                                                <div 
-                                                    onClick={() => setEditForm(prev => ({ ...prev, isSuperAdmin: !prev.isSuperAdmin }))}
-                                                    style={{ 
-                                                        width: '64px', 
-                                                        height: '34px', 
-                                                        background: editForm.isSuperAdmin ? 'var(--color-primary)' : 'var(--color-surface-hover)', 
-                                                        borderRadius: '17px', 
-                                                        position: 'relative', 
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                        border: '3px solid #000',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        boxShadow: editForm.isSuperAdmin ? '0 0 15px rgba(var(--color-primary-rgb), 0.3)' : 'none'
-                                                    }}
-                                                >
-                                                    <div style={{ 
-                                                        width: '24px', 
-                                                        height: '24px', 
-                                                        background: '#fff', 
-                                                        borderRadius: '50%', 
-                                                        position: 'absolute', 
-                                                        left: editForm.isSuperAdmin ? '34px' : '4px',
-                                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                        border: '3px solid #000',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        boxShadow: '1px 1px 0 #000'
-                                                    }}>
-                                                        {editForm.isSuperAdmin && <Trophy size={12} color="var(--color-primary)" />}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <div style={{ padding: '1.25rem', border: '3px solid var(--color-primary)', background: 'rgba(var(--color-primary-rgb), 0.05)', marginTop: '1.5rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative', overflow: 'hidden' }}>
+                                            <h3 style={{ fontSize: '1rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                ✨ Mode Légendaire
+                                            </h3>
+                                            <Button 
+                                                onClick={() => setEditForm(prev => ({ ...prev, isSuperAdmin: !prev.isSuperAdmin }))}
+                                                variant={editForm.isSuperAdmin ? "primary" : "secondary"}
+                                                style={{ width: '100%', height: '54px', fontWeight: 900, textTransform: 'uppercase', position: 'relative', zIndex: 1 }}
+                                                icon={<Trophy size={20} />}
+                                            >
+                                                {editForm.isSuperAdmin ? "Désactiver" : "Activer"}
+                                            </Button>
+                                            <p style={{ fontSize: '0.75rem', fontWeight: 700, textAlign: 'center', opacity: 0.8 }}>
+                                                {editForm.isSuperAdmin ? "Effets Premium : Particules, Tilt 3D, Holofoil." : "Transformez votre carte avec des effets premium."}
+                                            </p>
+                                            {editForm.isSuperAdmin && (
+                                                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)', animation: 'legendary-shimmer 2s infinite', pointerEvents: 'none' }} />
+                                            )}
                                         </div>
                                     )}
 
@@ -1115,6 +1086,10 @@ export default function Profile() {
                         }
                         .manga-scroll::-webkit-scrollbar-thumb:hover {
                             background: var(--color-primary);
+                        }
+                        @keyframes legendary-shimmer {
+                            0% { transform: translateX(-100%) skewX(-15deg); }
+                            100% { transform: translateX(200%) skewX(-15deg); }
                         }
                     `}</style>
                 </Modal>
