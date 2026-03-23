@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Users, AlertCircle, TrendingUp, Activity, ExternalLink, Shield, Clipboard } from 'lucide-react';
+import { Users, AlertCircle, TrendingUp, Activity, ExternalLink, Shield, Clipboard, Clock, Circle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Link } from '@/components/routing/LocalizedLink';
-import { getAdminStats, getAllUsers, getSevenDayActivityStats, type UserProfile } from '@/firebase/firestore';
+import { getAdminStats, getRecentMembers, getSevenDayActivityStats, type UserProfile } from '@/firebase/firestore';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';
 
@@ -32,7 +32,7 @@ export default function AdminDashboard() {
             try {
                 const results = await Promise.allSettled([
                     getAdminStats(),
-                    getAllUsers(),
+                    getRecentMembers(10),
                     getSevenDayActivityStats()
                 ]);
 
@@ -65,6 +65,27 @@ export default function AdminDashboard() {
         };
         load();
     }, []);
+
+    const formatDate = (timestamp: number | undefined) => {
+        if (!timestamp) return null;
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMin = Math.floor(diffMs / 60000);
+        const diffH = Math.floor(diffMs / 3600000);
+        const diffD = Math.floor(diffMs / 86400000);
+
+        if (diffMin < 1) return t('admin.dashboard.just_now', 'A l\'instant');
+        if (diffMin < 60) return t('admin.dashboard.minutes_ago', 'Il y a {{count}} min', { count: diffMin });
+        if (diffH < 24) return t('admin.dashboard.hours_ago', 'Il y a {{count}}h', { count: diffH });
+        if (diffD < 7) return t('admin.dashboard.days_ago', 'Il y a {{count}}j', { count: diffD });
+        return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    const isOnlineRecently = (lastLogin: number | undefined) => {
+        if (!lastLogin) return false;
+        return (Date.now() - lastLogin) < 15 * 60 * 1000; // 15 minutes
+    };
 
     if (loading) {
         return <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'monospace' }}>{t('admin.dashboard.loading')}</div>;
@@ -261,35 +282,60 @@ export default function AdminDashboard() {
                     <h2 style={sectionTitleStyle}>
                         <Users size={24} /> {t('admin.dashboard.recent_members')}
                     </h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {recentUsers.map(user => (
-                            <Card key={user.uid} variant="manga" style={{
-                                padding: '1rem',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                background: 'var(--color-surface)',
-                                border: '2px solid var(--color-border)',
-                                color: 'var(--color-text)'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    {/* Avatar placeholder */}
-                                    <div style={{ width: '40px', height: '40px', background: 'var(--color-surface-hover)', borderRadius: '50%', border: '2px solid var(--color-border)', overflow: 'hidden' }}>
-                                        {user.photoURL && <img src={user.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {recentUsers.map(user => {
+                            const online = isOnlineRecently(user.lastLogin);
+                            return (
+                                <Card key={user.uid} variant="manga" style={{
+                                    padding: '0.75rem 1rem',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    background: 'var(--color-surface)',
+                                    border: '2px solid var(--color-border)',
+                                    color: 'var(--color-text)'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        {/* Avatar with online indicator */}
+                                        <div style={{ position: 'relative' }}>
+                                            <div style={{ width: '40px', height: '40px', background: 'var(--color-surface-hover)', borderRadius: '50%', border: '2px solid var(--color-border)', overflow: 'hidden' }}>
+                                                {user.photoURL && <img src={user.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                            </div>
+                                            {online && (
+                                                <div style={{
+                                                    position: 'absolute', bottom: -1, right: -1,
+                                                    width: '12px', height: '12px',
+                                                    background: '#22c55e', borderRadius: '50%',
+                                                    border: '2px solid var(--color-surface)',
+                                                    boxShadow: '0 0 4px #22c55e'
+                                                }} />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                {user.displayName || t('admin.dashboard.anonymous')}
+                                                {user.isAdmin && (
+                                                    <span style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.1rem 0.4rem', fontSize: '0.55rem', fontWeight: 'bold', textTransform: 'uppercase', borderRadius: '2px' }}>ADMIN</span>
+                                                )}
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)' }}>{user.email}</div>
+                                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-dim)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
+                                                <Clock size={10} />
+                                                {t('admin.dashboard.last_seen', 'Connecte')} {formatDate(user.lastLogin)}
+                                                {online && (
+                                                    <span style={{ color: '#22c55e', fontWeight: 'bold', marginLeft: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                                        <Circle size={6} fill="#22c55e" /> {t('admin.dashboard.online', 'En ligne')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div style={{ fontWeight: 'bold' }}>{user.displayName || t('admin.dashboard.anonymous')}</div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>{user.email}</div>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    {user.isAdmin && <span style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.2rem 0.5rem', fontSize: '0.6rem', fontWeight: 'bold', textTransform: 'uppercase' }}>ADMIN</span>}
                                     <Link to={`/admin/users?highlight=${user.uid}`} style={{ padding: '0.5rem', border: '2px solid var(--color-border)', color: 'var(--color-text)', display: 'flex', alignItems: 'center' }}>
                                         <ExternalLink size={16} />
                                     </Link>
-                                </div>
-                            </Card>
-                        ))}
+                                </Card>
+                            );
+                        })}
                     </div>
                 </div>
 

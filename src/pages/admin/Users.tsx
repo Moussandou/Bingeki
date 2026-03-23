@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Search, Shield, Ban, ExternalLink, Edit, Eye, Trash2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Search, Shield, Ban, ExternalLink, Edit, Eye, Trash2, Clock, Circle, ArrowUpDown } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Switch } from '@/components/ui/Switch';
 import { getAllUsers, toggleUserBan, toggleUserAdmin, adminUpdateUserGamification, deleteUserData, type UserProfile } from '@/firebase/firestore';
@@ -20,6 +20,25 @@ export default function AdminUsers() {
     const [modalType, setModalType] = useState<'level' | 'details' | null>(null);
     const [editLevel, setEditLevel] = useState(1);
     const [editXp, setEditXp] = useState(0);
+    const [sortBy, setSortBy] = useState<'lastLogin' | 'createdAt' | 'xp' | 'level' | 'name'>('lastLogin');
+
+    const formatRelativeDate = (timestamp: number | undefined) => {
+        if (!timestamp) return '-';
+        const diffMs = Date.now() - timestamp;
+        const diffMin = Math.floor(diffMs / 60000);
+        const diffH = Math.floor(diffMs / 3600000);
+        const diffD = Math.floor(diffMs / 86400000);
+        if (diffMin < 1) return "A l'instant";
+        if (diffMin < 60) return `Il y a ${diffMin} min`;
+        if (diffH < 24) return `Il y a ${diffH}h`;
+        if (diffD < 30) return `Il y a ${diffD}j`;
+        return new Date(timestamp).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    const isOnline = (lastLogin: number | undefined) => {
+        if (!lastLogin) return false;
+        return (Date.now() - lastLogin) < 15 * 60 * 1000;
+    };
 
     useEffect(() => {
         const load = async () => {
@@ -36,21 +55,23 @@ export default function AdminUsers() {
         load();
     }, []);
 
-    // Sort users by createdAt descending (newest first). Fallback to lastLogin or uid if createdAt missing.
-    const sortedUsers = [...users].sort((a, b) => {
-        const timeA = a.createdAt || a.lastLogin || 0;
-        const timeB = b.createdAt || b.lastLogin || 0;
-        if (timeA !== timeB) {
-            return timeB - timeA; // Descending
-        }
-        return b.uid.localeCompare(a.uid);
-    });
-
-    const filteredUsers = sortedUsers.filter(user =>
-        user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.uid.includes(searchTerm)
-    );
+    const filteredUsers = useMemo(() => {
+        const filtered = users.filter(user =>
+            user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.uid.includes(searchTerm)
+        );
+        return [...filtered].sort((a, b) => {
+            switch (sortBy) {
+                case 'lastLogin': return (b.lastLogin || 0) - (a.lastLogin || 0);
+                case 'createdAt': return (b.createdAt || b.lastLogin || 0) - (a.createdAt || a.lastLogin || 0);
+                case 'xp': return (b.xp || 0) - (a.xp || 0);
+                case 'level': return (b.level || 0) - (a.level || 0);
+                case 'name': return (a.displayName || '').localeCompare(b.displayName || '');
+                default: return 0;
+            }
+        });
+    }, [users, searchTerm, sortBy]);
 
     const handleBan = async (uid: string, currentStatus?: boolean) => {
         const action = currentStatus ? t('admin.users.action_unban') : t('admin.users.action_ban');
@@ -132,24 +153,55 @@ export default function AdminUsers() {
                     </p>
                 </div>
 
-                <div style={{ position: 'relative' }}>
-                    <input
-                        type="text"
-                        placeholder={t('admin.users.search_placeholder')}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{
-                            padding: '0.75rem 1rem 0.75rem 2.5rem',
-                            border: '2px solid var(--color-border)',
-                            fontFamily: 'monospace',
-                            minWidth: '300px',
-                            width: '100%',
-                            outline: 'none',
-                            background: 'var(--color-surface)',
-                            color: 'var(--color-text)'
-                        }}
-                    />
-                    <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-dim)' }} />
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            type="text"
+                            placeholder={t('admin.users.search_placeholder')}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                padding: '0.75rem 1rem 0.75rem 2.5rem',
+                                border: '2px solid var(--color-border)',
+                                fontFamily: 'monospace',
+                                minWidth: '300px',
+                                width: '100%',
+                                outline: 'none',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text)'
+                            }}
+                        />
+                        <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-dim)' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+                        <ArrowUpDown size={14} style={{ color: 'var(--color-text-dim)', marginRight: '0.25rem' }} />
+                        {([
+                            { key: 'lastLogin', label: 'Connexion' },
+                            { key: 'createdAt', label: 'Inscription' },
+                            { key: 'xp', label: 'XP' },
+                            { key: 'level', label: 'Niveau' },
+                            { key: 'name', label: 'Nom' },
+                        ] as const).map(opt => (
+                            <button
+                                key={opt.key}
+                                onClick={() => setSortBy(opt.key)}
+                                style={{
+                                    padding: '0.4rem 0.7rem',
+                                    border: sortBy === opt.key ? '2px solid var(--color-text)' : '2px solid var(--color-border)',
+                                    background: sortBy === opt.key ? 'var(--color-text)' : 'var(--color-surface)',
+                                    color: sortBy === opt.key ? 'var(--color-surface)' : 'var(--color-text)',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.75rem',
+                                    fontWeight: sortBy === opt.key ? 900 : 500,
+                                    cursor: 'pointer',
+                                    textTransform: 'uppercase',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -181,9 +233,6 @@ export default function AdminUsers() {
                                         {user.displayName || t('admin.users.no_name')}
                                     </h3>
                                     <div style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>{user.email}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)', marginTop: '0.25rem' }}>
-                                        Joined: {new Date(user.createdAt || user.lastLogin || Date.now()).toLocaleDateString()}
-                                    </div>
                                 </div>
                             </div>
                             {user.isAdmin && (
@@ -191,6 +240,27 @@ export default function AdminUsers() {
                                     <Shield size={10} /> {t('admin.users.admin')}
                                 </div>
                             )}
+                        </div>
+
+                        {/* Connection status */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--color-text-dim)', marginBottom: '0.5rem', fontFamily: 'monospace' }}>
+                            {isOnline(user.lastLogin) ? (
+                                <span style={{ color: '#22c55e', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <Circle size={8} fill="#22c55e" /> En ligne
+                                </span>
+                            ) : (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <Clock size={11} /> Connecte {formatRelativeDate(user.lastLogin)}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Registration date */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', color: 'var(--color-text-dim)', marginBottom: '0.5rem', fontFamily: 'monospace' }}>
+                            {user.createdAt
+                                ? `Inscrit le ${new Date(user.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                                : 'Inscription inconnue'
+                            }
                         </div>
 
                         {/* Stats Strip */}

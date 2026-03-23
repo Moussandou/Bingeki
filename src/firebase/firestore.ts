@@ -86,6 +86,7 @@ export async function saveUserProfileToFirestore(user: Partial<UserProfile>, for
             lastLogin: Date.now()
         };
 
+        // Set createdAt only on first registration
         if (!exists) {
             dataToSave.createdAt = Date.now();
         }
@@ -1336,6 +1337,18 @@ export async function getAllUsers(): Promise<UserProfile[]> {
         return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
     } catch (error) {
         console.error('[Firestore] Error getting all users:', error);
+        return [];
+    }
+}
+
+// Get recent members sorted by last login (newest first), includes createdAt for display
+export async function getRecentMembers(count = 10): Promise<UserProfile[]> {
+    try {
+        const q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'), limit(count));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
+    } catch (error) {
+        console.error('[Firestore] Error getting recent members:', error);
         return [];
     }
 }
