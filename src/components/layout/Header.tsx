@@ -10,7 +10,6 @@ import {
     History as HistoryIcon,
     Settings,
     MessageSquare,
-    Menu, X,
     MessageCircle, Sun, Moon, Compass,
     Newspaper,
     ScanSearch
@@ -171,7 +170,6 @@ export function Header() {
     const location = useLocation();
     const navigate = useNavigate();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     // Scroll to top on navigation
@@ -324,24 +322,7 @@ export function Header() {
                             <Search size={18} />
                         </button>
 
-                        {/* Mobile Menu Button - Visible ONLY on Mobile */}
-                        {user && (
-                            <button
-                                className={styles.mobileHeaderAction}
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                style={{
-                                    background: isMobileMenuOpen ? 'var(--color-border-heavy)' : 'transparent',
-                                    color: isMobileMenuOpen ? 'var(--color-text-inverse)' : 'var(--color-text)',
-                                    border: '2px solid var(--color-border-heavy)',
-                                    borderRadius: '4px',
-                                    padding: '4px',
-                                    cursor: 'pointer',
-                                    zIndex: 201 // Above menu overlay
-                                }}
-                            >
-                                {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-                            </button>
-                        )}
+
 
 
                         {/* Theme Switcher */}
@@ -496,49 +477,7 @@ export function Header() {
                             </Link>
                         )}
                     </div >
-                </div >
-
-                {/* Mobile Dropdown Menu (Animated) */}
-                <AnimatePresence>
-                    {isMobileMenuOpen && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
-                            className={styles.mobileMenuDropdown}
-                        >
-                            <Link to="/social" className={styles.mobileMenuItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <MessageSquare size={20} />
-                                <span>{t('header.community')}</span>
-                            </Link>
-                            <Link to="/schedule" className={styles.mobileMenuItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <Calendar size={20} />
-                                <span>{t('header.agenda')}</span>
-                            </Link>
-                            <Link to="/changelog" className={styles.mobileMenuItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <HistoryIcon size={20} />
-                                <span>{t('header.changelog')}</span>
-                            </Link>
-                            <Link to="/news" className={styles.mobileMenuItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <Newspaper size={20} />
-                                <span>Anime News</span>
-                            </Link>
-                            <Link to="/lens" className={styles.mobileMenuItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <ScanSearch size={20} />
-                                <span>{t('header.lens')}</span>
-                            </Link>
-                            <Link to="/feedback" className={styles.mobileMenuItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <MessageCircle size={20} />
-                                <span>{t('header.feedback')}</span>
-                            </Link>
-                            <Link to="/feedback/my-tickets" className={styles.mobileMenuItem} onClick={() => setIsMobileMenuOpen(false)}>
-                                <MessageSquare size={20} />
-                                <span>{t('feedback.my_tickets')}</span>
-                            </Link>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                </div>
             </header >
 
             {/* Mobile Bottom Dock - REDUCED to Core Items */}
@@ -576,16 +515,6 @@ export function Header() {
                         <Link to="/discover">
                             <Button variant={isActive('/discover') ? 'primary' : 'ghost'} size="icon" style={{ borderRadius: '12px' }}>
                                 <Compass size={22} />
-                            </Button>
-                        </Link>
-                        <Link to="/schedule">
-                            <Button variant={isActive('/schedule') ? 'primary' : 'ghost'} size="icon" style={{ borderRadius: '12px' }}>
-                                <Calendar size={22} />
-                            </Button>
-                        </Link>
-                        <Link to="/changelog">
-                            <Button variant={isActive('/changelog') ? 'primary' : 'ghost'} size="icon" style={{ borderRadius: '12px' }}>
-                                <HistoryIcon size={22} />
                             </Button>
                         </Link>
                         <Link to="/auth">

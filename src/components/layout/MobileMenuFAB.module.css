@@ -1,0 +1,148 @@
+.fabContainer {
+    position: fixed;
+    bottom: 5.5rem;
+    right: 1.5rem;
+    z-index: 200;
+}
+
+.fabButton {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 3px solid var(--color-border);
+    box-shadow: 4px 4px 0 var(--color-shadow-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.fabButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.fabButton:active {
+    transform: translateY(2px);
+    box-shadow: 2px 2px 0 var(--color-primary);
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 150;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Align bottom sheet to bottom */
+}
+
+.bottomSheet {
+    background: var(--color-surface);
+    border-top: 3px solid var(--color-border);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    padding: 1.5rem;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.sheetHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.sheetTitle {
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: 1.25rem;
+    text-transform: uppercase;
+    color: var(--color-text);
+}
+
+.closeButton {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+    background-color: var(--color-border-light);
+}
+
+.menuGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.menuItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1rem;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: 16px;
+    text-decoration: none;
+    color: var(--color-text);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-align: center;
+    transition: all 0.2s;
+    box-shadow: 2px 2px 0 var(--color-shadow);
+}
+
+.menuItem:active {
+    transform: translateY(2px);
+    box-shadow: 0 0 0 var(--color-shadow);
+}
+
+.menuItem span {
+    line-height: 1.2;
+}
+
+/* Specific styling for auth actions */
+.authAction {
+    grid-column: 1 / -1; /* Span full width */
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 1rem 1.5rem;
+    background: var(--color-background);
+}
+
+.logoutAction {
+    color: #e74c3c;
+    border-color: rgba(231, 76, 60, 0.3);
+}
+
+@media (min-width: 1025px) {
+    .fabContainer {
+        display: none !important;
+    }
+}

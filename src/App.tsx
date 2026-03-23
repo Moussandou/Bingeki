@@ -62,6 +62,7 @@ const NewsArticle = lazy(() => import('@/pages/NewsArticle'));
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { InstallInstructionsModal } from '@/components/pwa/InstallInstructionsModal';
+import { MobileMenuFAB } from '@/components/layout/MobileMenuFAB';
 
 // Bot aware suspense to avoid blank screen during hydration for screenshot tools
 const BotAwareSuspense = ({ children }: { children: React.ReactNode }) => {
@@ -420,6 +421,7 @@ function App() {
             <Route path="*" element={<RootRedirect />} />
           </Routes>
         </BotAwareSuspense>
+        <MobileMenuFAB />
       </BrowserRouter>
       <InstallInstructionsModal
         isOpen={showInstallModal}
