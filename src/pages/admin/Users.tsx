@@ -36,7 +36,17 @@ export default function AdminUsers() {
         load();
     }, []);
 
-    const filteredUsers = users.filter(user =>
+    // Sort users by createdAt descending (newest first). Fallback to lastLogin or uid if createdAt missing.
+    const sortedUsers = [...users].sort((a, b) => {
+        const timeA = a.createdAt || a.lastLogin || 0;
+        const timeB = b.createdAt || b.lastLogin || 0;
+        if (timeA !== timeB) {
+            return timeB - timeA; // Descending
+        }
+        return b.uid.localeCompare(a.uid);
+    });
+
+    const filteredUsers = sortedUsers.filter(user =>
         user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.uid.includes(searchTerm)
@@ -171,6 +181,9 @@ export default function AdminUsers() {
                                         {user.displayName || t('admin.users.no_name')}
                                     </h3>
                                     <div style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>{user.email}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)', marginTop: '0.25rem' }}>
+                                        Joined: {new Date(user.createdAt || user.lastLogin || Date.now()).toLocaleDateString()}
+                                    </div>
                                 </div>
                             </div>
                             {user.isAdmin && (

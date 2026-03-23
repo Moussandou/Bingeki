@@ -86,6 +86,10 @@ export async function saveUserProfileToFirestore(user: Partial<UserProfile>, for
             lastLogin: Date.now()
         };
 
+        if (!exists) {
+            dataToSave.createdAt = Date.now();
+        }
+
         // List of allowed fields to sync
         const allowedFields: (keyof UserProfile)[] = [
             'uid', 'email', 'displayName', 'photoURL', 'banner', 'bannerPosition', 'bio',

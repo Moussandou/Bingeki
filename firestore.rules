@@ -30,9 +30,9 @@ service cloud.firestore {
       // Write:
       // 1. Owner can update their profile (bio, theme, etc.)
       // 2. Admin can update ANY profile (for Ban/Promote actions)
-      // 3. Prevent Owner from modifying their own 'isAdmin' or 'isBanned' flags
+      // 3. Prevent Owner from modifying their own 'isAdmin', 'isBanned', or 'createdAt' flags
       allow update: if (isOwner(userId) && 
-                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isBanned'])) 
+                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isBanned', 'createdAt'])) 
                     || isAdmin();
 
       // Create & Delete: Allow new users to be created by themselves, and deleted by owner/admin
