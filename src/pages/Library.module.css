@@ -316,6 +316,20 @@
     color: var(--color-primary);
 }
 
+.folderDeleteBtn {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+    cursor: pointer;
+}
+
+.folderDeleteBtn:hover {
+    opacity: 1;
+    color: var(--color-error, #e74c3c);
+}
+
 /* Folder Actions Menu */
 .folderMenu {
     position: absolute;

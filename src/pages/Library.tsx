@@ -28,7 +28,7 @@ export default function Library() {
     const [searchParams] = useSearchParams();
     const { user: currentUser } = useAuthStore();
     const { addToast } = useToast();
-    const { works: localWorks, removeWork, folders, createFolder, addToFolder, updateFolder } = useLibraryStore();
+    const { works: localWorks, removeWork, folders, createFolder, addToFolder, updateFolder, deleteFolder } = useLibraryStore();
 
     // Friend Library State
     const [friendWorks, setFriendWorks] = useState<Work[]>([]);
@@ -44,6 +44,7 @@ export default function Library() {
     const [shareModalFolderId, setShareModalFolderId] = useState<string | null>(null);
     const [shareModalFolderName, setShareModalFolderName] = useState<string>('');
     const [shareModalCurrentSharing, setShareModalCurrentSharing] = useState<FolderSharing | undefined>(undefined);
+    const [deleteFolderConfirm, setDeleteFolderConfirm] = useState<{ id: string; name: string } | null>(null);
 
     const isReadOnly = useMemo(() => {
         return !!uid && uid !== currentUser?.uid;
@@ -369,20 +370,32 @@ export default function Library() {
                                             {folder.name}
                                             <span className={styles.folderPillCount}>{count}</span>
                                             {!isReadOnly && (
-                                                <span
-                                                    className={styles.folderShareBtn}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setShareModalType('folder');
-                                                        setShareModalFolderId(folder.id);
-                                                        setShareModalFolderName(folder.name);
-                                                        setShareModalCurrentSharing(folder.sharing);
-                                                        setShareModalOpen(true);
-                                                    }}
-                                                    title={t('share.share_folder')}
-                                                >
-                                                    <Share2 size={12} />
-                                                </span>
+                                                <>
+                                                    <span
+                                                        className={styles.folderShareBtn}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setShareModalType('folder');
+                                                            setShareModalFolderId(folder.id);
+                                                            setShareModalFolderName(folder.name);
+                                                            setShareModalCurrentSharing(folder.sharing);
+                                                            setShareModalOpen(true);
+                                                        }}
+                                                        title={t('share.share_folder')}
+                                                    >
+                                                        <Share2 size={12} />
+                                                    </span>
+                                                    <span
+                                                        className={styles.folderDeleteBtn}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setDeleteFolderConfirm({ id: folder.id, name: folder.name });
+                                                        }}
+                                                        title={t('folders.delete')}
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </span>
+                                                </>
                                             )}
                                         </button>
                                     );
@@ -988,6 +1001,97 @@ export default function Library() {
                     }
                 }}
             />
+            {deleteFolderConfirm && (
+                <div
+                    style={{
+                        position: 'fixed', inset: 0, zIndex: 9999,
+                        background: 'rgba(0,0,0,0.6)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                    onClick={() => setDeleteFolderConfirm(null)}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: 'var(--color-surface)',
+                            border: '3px solid var(--color-text)',
+                            padding: '32px 40px',
+                            textAlign: 'center',
+                            maxWidth: 360,
+                            width: '90%',
+                        }}
+                    >
+                        <div style={{
+                            width: 52, height: 52,
+                            margin: '0 auto 16px',
+                            border: '3px solid var(--color-primary)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <Trash2 size={24} style={{ color: 'var(--color-primary)' }} />
+                        </div>
+                        <h3 style={{
+                            fontFamily: 'var(--font-heading)',
+                            fontSize: '1.2rem',
+                            fontWeight: 900,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            marginBottom: 10,
+                            color: 'var(--color-text)',
+                        }}>
+                            {t('folders.delete')}
+                        </h3>
+                        <p style={{
+                            color: 'var(--color-text-secondary)',
+                            marginBottom: 24,
+                            fontSize: '0.85rem',
+                            lineHeight: 1.5,
+                        }}>
+                            {t('folders.delete_confirm', { name: deleteFolderConfirm.name })}
+                        </p>
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                            <button
+                                onClick={() => setDeleteFolderConfirm(null)}
+                                style={{
+                                    padding: '10px 24px',
+                                    border: '2px solid var(--color-text)',
+                                    background: 'transparent',
+                                    color: 'var(--color-text)',
+                                    fontFamily: 'var(--font-heading)',
+                                    fontWeight: 700,
+                                    fontSize: '0.75rem',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {t('common.cancel', 'Annuler')}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    deleteFolder(deleteFolderConfirm.id);
+                                    if (activeFolder === deleteFolderConfirm.id) setActiveFolder(null);
+                                    addToast(t('folders.deleted'), 'success');
+                                    setDeleteFolderConfirm(null);
+                                }}
+                                style={{
+                                    padding: '10px 24px',
+                                    border: '2px solid var(--color-primary)',
+                                    background: 'var(--color-primary)',
+                                    color: 'white',
+                                    fontFamily: 'var(--font-heading)',
+                                    fontWeight: 700,
+                                    fontSize: '0.75rem',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {t('folders.delete')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Layout>
     );
 }
