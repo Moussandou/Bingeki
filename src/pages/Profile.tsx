@@ -105,6 +105,8 @@ export default function Profile() {
                         streak: profile.streak || 0,
                         badges: (profile.badges as Badge[]) || [],
                         totalChaptersRead: profile.totalChaptersRead || 0,
+                        totalAnimeEpisodesWatched: profile.totalAnimeEpisodesWatched || 0,
+                        totalMoviesWatched: profile.totalMoviesWatched || 0,
                         totalWorksAdded: profile.totalWorksAdded || 0,
                         totalWorksCompleted: profile.totalWorksCompleted || 0
                     });
@@ -178,6 +180,8 @@ export default function Profile() {
 
     // Extended stats for display
     const displayTotalChapters = isOwnProfile ? totalChaptersRead : (visitedStats?.totalChaptersRead || 0);
+    const displayTotalAnime = isOwnProfile ? totalAnimeEpisodesWatched : (visitedStats?.totalAnimeEpisodesWatched || 0);
+    const displayTotalMovies = isOwnProfile ? totalMoviesWatched : (visitedStats?.totalMoviesWatched || 0);
     const displayTotalWorks = isOwnProfile ? totalWorksAdded : (visitedStats?.totalWorksAdded || 0);
     const displayWorksCompleted = isOwnProfile ? totalWorksCompleted : (visitedStats?.totalWorksCompleted || 0);
 
@@ -512,7 +516,7 @@ export default function Profile() {
                                         <Play size={24} />
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '1.75rem', fontWeight: 900 }}>{totalAnimeEpisodesWatched || 0}</div>
+                                        <div style={{ fontSize: '1.75rem', fontWeight: 900 }}>{displayTotalAnime}</div>
                                         <p style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', opacity: 0.6 }}>{t('profile.episodes_watched')}</p>
                                     </div>
                                 </div>
@@ -523,7 +527,7 @@ export default function Profile() {
                                         <Film size={24} />
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '1.75rem', fontWeight: 900 }}>{totalMoviesWatched || 0}</div>
+                                        <div style={{ fontSize: '1.75rem', fontWeight: 900 }}>{displayTotalMovies}</div>
                                         <p style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', opacity: 0.6 }}>{t('profile.movies_watched')}</p>
                                     </div>
                                 </div>

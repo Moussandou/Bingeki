@@ -427,6 +427,29 @@ export async function searchUserByName(name: string): Promise<UserProfile | null
     }
 }
 
+// Search users by display name prefix (for auto-completion)
+export async function searchUsersByPrefix(prefix: string, limitCount: number = 5): Promise<UserProfile[]> {
+    try {
+        if (!prefix) return [];
+        const q = query(
+            collection(db, 'users'),
+            where('displayName', '>=', prefix),
+            where('displayName', '<=', prefix + '\uf8ff'),
+            orderBy('displayName'),
+            limit(limitCount)
+        );
+        const querySnapshot = await getDocs(q);
+        const users: UserProfile[] = [];
+        querySnapshot.forEach((doc) => {
+            users.push({ uid: doc.id, ...doc.data() } as UserProfile);
+        });
+        return users;
+    } catch (error) {
+        console.error('[Firestore] Error searching users by prefix:', error);
+        return [];
+    }
+}
+
 // Get User Profile by UID
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     try {

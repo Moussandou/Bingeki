@@ -2,18 +2,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
-import { Trophy, Users, Search, UserPlus, Check, User, X, Activity, BookOpen, Flame, Clock, Swords, Tv, Library } from 'lucide-react';
+import { Trophy, Users, Search, UserPlus, Check, X, Activity, BookOpen, Flame, Clock, Swords, Tv, Library } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import {
     getFriends,
-    searchUserByEmail,
-    searchUserByName,
     sendFriendRequest,
     acceptFriendRequest,
     rejectFriendRequest,
     getFriendsActivity,
     getFilteredLeaderboard,
     getUserRank,
+    searchUsersByPrefix,
+    getUserProfile,
     type Friend,
     type UserProfile,
     type LeaderboardCategory,
@@ -39,12 +39,13 @@ export default function Social() {
 
     const [activeTab, setActiveTab] = useState<'ranking' | 'friends' | 'activity' | 'challenges' | 'parties'>('ranking');
     const [leaderboard, setLeaderboard] = useState<UserProfile[]>([]);
-    const [friends, setFriends] = useState<Friend[]>([]);
+    const [friends, setFriends] = useState<(Friend & { banner?: string; xp?: number; level?: number })[]>([]);
     const [activities, setActivities] = useState<ActivityEvent[]>([]);
     const [searchEmail, setSearchEmail] = useState('');
-    const [searchResult, setSearchResult] = useState<UserProfile | null>(null);
+    const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
+    const [hoveredUser, setHoveredUser] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(false);
-    const [requestSent, setRequestSent] = useState(false);
+    const [requestSent, setRequestSent] = useState<Record<string, boolean>>({});
 
     // Leaderboard filters
     const [leaderboardCategory, setLeaderboardCategory] = useState<LeaderboardCategory>('xp');
@@ -56,7 +57,19 @@ export default function Social() {
         // Always load friends to check status even in ranking
         if (user) {
             const friendsData = await getFriends(user.uid);
-            setFriends(friendsData);
+            
+            // Enrich accepted friends with their full profile to get banner and stats
+            const enrichedFriends = await Promise.all(friendsData.map(async (f) => {
+                if (f.status === 'accepted') {
+                    const profile = await getUserProfile(f.uid);
+                    if (profile) {
+                        return { ...f, banner: profile.banner, xp: profile.xp, level: profile.level, photoURL: profile.photoURL || f.photoURL };
+                    }
+                }
+                return f;
+            }));
+            
+            setFriends(enrichedFriends);
         }
 
         if (activeTab === 'ranking') {
@@ -85,23 +98,20 @@ export default function Social() {
     }, [loadData]);
 
 
-    const handleSearch = async () => {
-        if (!searchEmail) return;
-        setLoading(true);
-        setSearchResult(null);
-        setRequestSent(false);
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            if (searchEmail.trim().length >= 2) {
+                setLoading(true);
+                const results = await searchUsersByPrefix(searchEmail.trim(), 5);
+                setSearchResults(results.filter(u => u.uid !== user?.uid)); // Don't show self
+                setLoading(false);
+            } else {
+                setSearchResults([]);
+            }
+        }, 300);
 
-        // Try exact email match first
-        let result = await searchUserByEmail(searchEmail);
-
-        // If not found, try by display name
-        if (!result) {
-            result = await searchUserByName(searchEmail);
-        }
-
-        setSearchResult(result);
-        setLoading(false);
-    };
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchEmail, user]);
 
     const handleQuickAdd = async (targetUser: UserProfile) => {
         if (!user) return;
@@ -128,18 +138,20 @@ export default function Social() {
     };
 
 
-    const handleSendRequest = async () => {
-        if (!user || !searchResult) return;
+    const handleSendRequest = async (targetUser: UserProfile) => {
+        if (!user) return;
         try {
             await sendFriendRequest(
                 user.uid,
                 { displayName: user.displayName || 'Héros', photoURL: user.photoURL || '' },
-                searchResult
+                targetUser
             );
-            setRequestSent(true);
+            setRequestSent(prev => ({ ...prev, [targetUser.uid]: true }));
             loadData(); // Refresh list
+            addToast(t('social.friends.request_sent_toast', { name: targetUser.displayName }), 'success');
         } catch (error) {
             console.error("Failed to send request", error);
+            addToast(t('social.friends.request_error'), 'error');
         }
     };
 
@@ -358,70 +370,142 @@ export default function Social() {
 
                     {/* FRIENDS VIEW */}
                     {activeTab === 'friends' && (
-                        <div>
-                            {/* Add Friend Section */}
-                            <div className="manga-panel" style={{ padding: '1.5rem', marginBottom: '2rem', background: 'var(--color-surface)' }}>
-                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', marginBottom: '1rem' }}>{t('social.friends.add_title')}</h3>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center', border: '2px solid var(--color-border-heavy)', padding: '0.5rem' }}>
-                                        <Search size={20} style={{ marginRight: '0.5rem', opacity: 0.5 }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+                            {/* HERO SEARCH SECTION */}
+                            <div className="manga-panel" style={{ padding: '2.5rem 1rem', background: 'var(--color-surface)', textAlign: 'center', margin: '2rem 0' }}>
+                                <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '2rem', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                                    {t('social.friends.add_title', 'Trouver des Héros')}
+                                </h2>
+                                <p style={{ opacity: 0.7, marginBottom: '2rem', maxWidth: '500px', margin: '0 auto 2rem auto', fontSize: '1.1rem' }}>
+                                    Cherchez le pseudo de votre ami(e) pour l'ajouter à votre guilde !
+                                </p>
+                                
+                                <div style={{ maxWidth: '800px', margin: '0 auto', position: 'relative', textAlign: 'left', zIndex: 10 }}>
+                                    <div style={{ 
+                                        position: 'relative', 
+                                        display: 'flex', 
+                                        alignItems: 'stretch', 
+                                        border: '4px solid var(--color-text)', 
+                                        background: 'var(--color-surface)', 
+                                        borderRadius: '0', 
+                                        boxShadow: '8px 8px 0 var(--color-primary)', 
+                                        height: '64px'
+                                    }}>
+                                        <div style={{ 
+                                            background: 'var(--color-primary)', 
+                                            width: '64px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: 'white',
+                                            borderRight: '4px solid var(--color-text)'
+                                        }}>
+                                            <Search size={28} />
+                                        </div>
                                         <input
-                                            type="email"
-                                            placeholder={t('social.friends.search_placeholder')}
+                                            type="text"
+                                            placeholder={t('social.friends.search_placeholder', 'RECHERCHER...')}
                                             value={searchEmail}
                                             onChange={(e) => setSearchEmail(e.target.value)}
-                                            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '1rem', fontFamily: 'inherit' }}
+                                            style={{ 
+                                                border: 'none', 
+                                                outline: 'none', 
+                                                width: '100%', 
+                                                fontSize: '1.4rem', 
+                                                fontFamily: 'var(--font-heading)', 
+                                                fontWeight: 900,
+                                                background: 'transparent', 
+                                                color: 'var(--color-text)',
+                                                padding: '0 1.5rem'
+                                            }}
+                                            autoComplete="off"
+                                            autoCapitalize="off"
+                                            spellCheck="false"
                                         />
+                                        {loading && <div style={{ display: 'flex', alignItems: 'center', paddingRight: '1.5rem', animation: 'spin 1s linear infinite' }}><Activity size={24} style={{ color: 'var(--color-primary)' }} /></div>}
                                     </div>
-                                    <Button onClick={handleSearch} disabled={loading}>{t('social.friends.search_btn')}</Button>
-                                </div>
-
-                                {/* Search Result */}
-                                {searchResult && (
-                                    <div style={{ marginTop: '1rem', padding: '1rem', border: '2px dashed var(--color-border-heavy)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-border-heavy)' }}>
-                                                <img src={searchResult.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${searchResult.displayName}`} alt="Avatar" style={{ width: '100%', height: '100%' }} />
-                                            </div>
-                                            <div>
-                                                <div style={{ fontWeight: 700 }}>{searchResult.displayName}</div>
-                                            </div>
+                                    
+                                    {/* Dropdown with search results */}
+                                    {searchEmail.trim().length >= 2 && searchResults.length > 0 && !loading && (
+                                        <div style={{
+                                            position: 'absolute', top: 'calc(100% + 12px)', left: 0, right: 0,
+                                            background: 'var(--color-surface)', border: '4px solid var(--color-text)',
+                                            borderRadius: '0', zIndex: 10, padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem',
+                                            boxShadow: '6px 6px 0 var(--color-text)'
+                                        }}>
+                                            {searchResults.map((result) => {
+                                                const isFriend = getFriendStatus(result.uid) !== 'none';
+                                                const isRequestSent = requestSent[result.uid];
+                                                
+                                                return (
+                                                    <div 
+                                                        key={result.uid} 
+                                                        style={{ 
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                                                            padding: '1rem', borderRadius: '8px', position: 'relative',
+                                                            background: hoveredUser?.uid === result.uid ? 'var(--color-surface-hover)' : 'transparent',
+                                                            transition: 'all 0.2s ease', cursor: 'pointer',
+                                                            border: hoveredUser?.uid === result.uid ? `2px solid ${result.themeColor || 'var(--color-primary)'}` : '2px solid transparent'
+                                                        }}
+                                                        onMouseEnter={() => setHoveredUser(result)}
+                                                        onMouseLeave={() => setHoveredUser(null)}
+                                                        onClick={() => navigate(`/profile/${result.uid}`)}
+                                                    >
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                                                            <div style={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${result.themeColor || 'var(--color-border-heavy)'}`, flexShrink: 0 }}>
+                                                                <img src={result.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${result.displayName}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            </div>
+                                                            <div style={{ minWidth: 0, paddingRight: '1rem' }}>
+                                                                <div style={{ fontWeight: 800, fontSize: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{result.displayName}</div>
+                                                                
+                                                                {/* Inline stats instead of floating card to prevent overflow issues */}
+                                                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.25rem', fontSize: '0.85rem', color: 'var(--color-text)', opacity: 0.8 }}>
+                                                                    <span style={{ color: result.themeColor || 'var(--color-primary)', fontWeight: 700 }}>Niveau {result.level || 1}</span>
+                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Trophy size={14} /> {result.xp || 0} XP</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {isFriend ? (
+                                                            <div style={{ opacity: 0.5, fontSize: '0.9rem', fontWeight: 600 }}>Ami</div>
+                                                        ) : isRequestSent ? (
+                                                            <Button variant="ghost" icon={<Check size={18} />} onClick={(e) => { e.stopPropagation(); }}>Envoyé</Button>
+                                                        ) : (
+                                                            <Button variant="manga" onClick={(e) => { e.stopPropagation(); handleSendRequest(result); }} icon={<UserPlus size={18} />}>Ajouter</Button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                        {requestSent ? (
-                                            <Button variant="ghost" icon={<Check size={18} />}>{t('social.friends.request_sent')}</Button>
-                                        ) : (
-                                            <Button variant="manga" onClick={handleSendRequest} icon={<UserPlus size={18} />}>{t('social.friends.add_btn')}</Button>
-                                        )}
-                                    </div>
-                                )}
-                                {searchResult === null && searchEmail && !loading && searchResult !== undefined && ( // Check if strictly null (not found) vs undefined (initial)
-                                    <div style={{ marginTop: '0.5rem', color: 'red', fontWeight: 600 }}>{t('social.friends.not_found')}</div>
-                                )}
+                                    )}
+                                    {searchEmail.trim().length >= 2 && searchResults.length === 0 && !loading && (
+                                        <div style={{ position: 'absolute', top: 'calc(100% + 12px)', left: 0, right: 0, padding: '1.5rem', background: 'var(--color-surface)', border: '4px solid var(--color-text)', borderRadius: '0', color: 'var(--color-text)', fontWeight: 800, textAlign: 'center', boxShadow: '6px 6px 0 var(--color-text)', zIndex: 10 }}>
+                                            {t('social.friends.not_found', 'AUCUN HÉROS TROUVÉ.')}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            {/* Requests List */}
+                            {/* PENDING REQUESTS */}
                             {friends.filter(f => f.status === 'pending' && f.direction === 'incoming').length > 0 && (
-                                <div style={{ marginBottom: '2rem' }}>
-                                    <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', marginBottom: '1rem' }}>{t('social.friends.requests_title')}</h3>
-                                    <div className="manga-panel" style={{ padding: 0 }}>
+                                <div>
+                                    <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Users size={24} color="var(--color-primary)" /> {t('social.friends.requests_title', 'Demandes en attente')}
+                                    </h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
                                         {friends.filter(f => f.status === 'pending' && f.direction === 'incoming').map(friend => (
-                                            <div key={friend.uid} style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                    <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-border-heavy)' }}>
+                                            <div key={friend.uid} className="manga-panel" style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '6px solid var(--color-primary)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', overflow: 'hidden' }}>
+                                                    <div style={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-primary)', flexShrink: 0 }}>
                                                         <img src={friend.photoURL} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     </div>
-                                                    <div style={{ fontWeight: 700 }}>{friend.displayName}</div>
+                                                    <div style={{ fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '1.1rem' }}>{friend.displayName}</div>
                                                 </div>
-                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <Button
-                                                        variant="ghost"
-                                                        onClick={() => handleReject(friend.uid)}
-                                                        style={{ color: '#ef4444' }}
-                                                        title="Refuser"
-                                                    >
+                                                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleReject(friend.uid)} style={{ color: '#ef4444' }} title="Refuser">
                                                         <X size={20} />
                                                     </Button>
-                                                    <Button variant="primary" onClick={() => handleAccept(friend.uid)}>{t('social.friends.accept')}</Button>
+                                                    <Button variant="manga" size="sm" onClick={() => handleAccept(friend.uid)}>{t('social.friends.accept', 'Accepter')}</Button>
                                                 </div>
                                             </div>
                                         ))}
@@ -429,28 +513,79 @@ export default function Social() {
                                 </div>
                             )}
 
-                            {/* Friends List */}
-                            <div className="manga-panel" style={{ padding: 0 }}>
+                            {/* FRIENDS GRID */}
+                            <div>
+                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Users size={24} color="var(--color-primary)" /> Mes Amis <span style={{ opacity: 0.5, fontSize: '1rem' }}>({friends.filter(f => f.status === 'accepted').length})</span>
+                                </h3>
+                                
                                 {friends.filter(f => f.status === 'accepted').length === 0 ? (
-                                    <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.6 }}>
-                                        {t('social.friends.no_friends')}
+                                    <div className="manga-panel" style={{ padding: '4rem 2rem', textAlign: 'center', opacity: 0.6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', borderStyle: 'dashed' }}>
+                                        <Users size={64} style={{ opacity: 0.3 }} />
+                                        <p style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'var(--font-heading)' }}>{t('social.friends.no_friends', 'Votre guilde est vide pour le moment.')}</p>
+                                        <p style={{ fontSize: '1rem' }}>Recherchez des amis dans la barre au-dessus pour commencer votre aventure à plusieurs !</p>
                                     </div>
                                 ) : (
-                                    friends.filter(f => f.status === 'accepted').map(friend => (
-                                        <div key={friend.uid} style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }} onClick={() => navigate(`/profile/${friend.uid}`)}>
-                                            <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-border-heavy)' }}>
-                                                <img src={friend.photoURL} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
+                                        {friends.filter(f => f.status === 'accepted').map(friend => (
+                                            <div 
+                                                key={friend.uid} 
+                                                style={{ 
+                                                    padding: 0, 
+                                                    display: 'flex', 
+                                                    flexDirection: 'column',
+                                                    cursor: 'pointer',
+                                                    transition: 'transform 0.2s ease',
+                                                    overflow: 'hidden',
+                                                    height: '100%',
+                                                    background: 'var(--color-surface)',
+                                                    border: '4px solid var(--color-text)',
+                                                    borderRadius: '0',
+                                                    boxShadow: '6px 6px 0 var(--color-text)'
+                                                }} 
+                                                onClick={() => navigate(`/profile/${friend.uid}`)}
+                                                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '8px 8px 0 var(--color-primary)'; }}
+                                                onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '6px 6px 0 var(--color-text)'; }}
+                                            >
+                                                <div style={{ height: '80px', background: 'var(--color-border-heavy)', position: 'relative', borderBottom: '4px solid var(--color-text)' }}>
+                                                    {friend.banner ? (
+                                                        <img src={friend.banner} alt="Banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        <div style={{ width: '100%', height: '100%', background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)' }} />
+                                                    )}
+                                                </div>
+                                                
+                                                {/* Move Avatar Outside of the Banner Container to avoid any overflow/clipping bugs! */}
+                                                <div style={{ 
+                                                    marginTop: '-32px', marginLeft: '1rem',
+                                                    width: 64, height: 64, borderRadius: '0', overflow: 'hidden', 
+                                                    border: '4px solid var(--color-text)', background: 'var(--color-surface)',
+                                                    position: 'relative', zIndex: 2
+                                                }}>
+                                                    <img src={friend.photoURL} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                </div>
+                                                
+                                                <div style={{ padding: '0.5rem 1.5rem 1.5rem 1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                    <div style={{ fontWeight: 900, fontSize: '1.4rem', marginBottom: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-heading)' }}>
+                                                        {friend.displayName}
+                                                    </div>
+                                                    
+                                                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem', fontWeight: 700, opacity: 0.8, marginBottom: '1rem' }}>
+                                                        <span style={{ color: 'var(--color-primary)' }}>NIV {friend.level || 1}</span>
+                                                        <span>{friend.xp || 0} XP</span>
+                                                    </div>
+                                                    
+                                                    <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', gap: '0.5rem', borderTop: '4px solid var(--color-text)' }}>
+                                                        <Button variant="manga" size="sm" style={{ flex: 1, borderRadius: 0, textTransform: 'uppercase' }} onClick={(e) => { e.stopPropagation(); navigate(`/users/${friend.uid}/library`); }} icon={<Library size={16} />}>
+                                                            {t('profile.view_library', 'Médiathèque')}
+                                                        </Button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div style={{ flex: 1, fontWeight: 700 }}>{friend.displayName}</div>
-                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/users/${friend.uid}/library`); }} title={t('profile.view_library')}>
-                                                <Library size={20} />
-                                            </Button>
-                                            <Button variant="ghost" size="icon"><User size={20} /></Button>
-                                        </div>
-                                    ))
+                                        ))}
+                                    </div>
                                 )}
                             </div>
-
                         </div>
                     )}
                 </div>
