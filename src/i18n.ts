@@ -443,7 +443,6 @@ const resources = {
                 save_pseudo: "CONFIRMER MON PSEUDO",
                 error_pseudo_short: "Le pseudo doit faire au moins 3 caractères",
                 error_pseudo_taken: "Ce pseudo est déjà utilisé",
-                error_pseudo: "Veuillez entrer un pseudo",
             },
             feedback: {
                 success_icon: "💌",
@@ -1256,6 +1255,7 @@ const resources = {
                     wau: "Actifs (7j)",
                     mau: "Actifs (30j)",
                     engagement_rate: "Engagement",
+                    engagement: "Engagement",
                     growth: "Croissance",
                     funnel: "Tunnel",
                     retention: "Rétention",
@@ -2757,7 +2757,12 @@ const resources = {
                 error_pseudo: "Please enter a username",
                 error_generic: "An error occurred",
                 mobile_title: "YOUR ADVENTURE",
-                mobile_subtitle: "Track your manga, earn XP and challenge your friends."
+                mobile_subtitle: "Track your manga, earn XP and challenge your friends.",
+                choose_pseudo_title: "CHOOSE YOUR USERNAME",
+                choose_pseudo_desc: "For a better experience, please choose a unique username that will represent you in the community.",
+                save_pseudo: "CONFIRM MY USERNAME",
+                error_pseudo_short: "Username must be at least 3 characters",
+                error_pseudo_taken: "This username is already taken",
             },
             feedback: {
                 success_icon: "💌",
@@ -2932,6 +2937,7 @@ const resources = {
                     wau: "Active (7d)",
                     mau: "Active (30d)",
                     engagement_rate: "Engagement",
+                    engagement: "Engagement",
                     growth: "Growth",
                     funnel: "Funnel",
                     retention: "Retention",
