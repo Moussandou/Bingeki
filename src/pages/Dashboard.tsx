@@ -24,6 +24,7 @@ import { Card } from '@/components/ui/Card';
 import { SEO } from '@/components/layout/SEO';
 import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 import { useTutorialStore } from '@/store/tutorialStore';
+import { SocialLinksBanner } from '@/components/social/SocialLinksBanner';
 import styles from './Dashboard.module.css';
 
 export default function Dashboard() {
@@ -201,6 +202,8 @@ export default function Dashboard() {
                             <p style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '0.25rem' }}>{t('dashboard.days')}</p>
                         </div>
                     </div>
+
+                    <SocialLinksBanner />
 
                     {/* Two Column Layout */}
                     <div className={styles.dashboardGrid}>

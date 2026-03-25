@@ -359,7 +359,15 @@ const resources = {
                 see_more_suggestions: "VOIR PLUS DE SUGGESTIONS",
                 just_now: "À l'instant",
                 hours_ago: "Il y a {{hours}}h",
-                days_ago: "Il y a {{days}}j"
+                days_ago: "Il y a {{days}}j",
+                community_title: "REJOIGNEZ LA COMMUNAUTÉ",
+                community_subtitle: "Suivez nos aventures et partagez votre passion sur nos réseaux officiels.",
+                community_discord: "REJOINDRE LE DISCORD",
+                community_instagram: "NOUS SUIVRE SUR INSTA",
+                community_tiktok: "VOIR NOS TIKTOKS",
+                community_discord_desc: "Echange avec d'autres fans et l'équipe",
+                community_instagram_desc: "News, concours et coulisses",
+                community_tiktok_desc: "Edits, news et fun"
             },
             activity_labels: {
                 watch: "a regardé",
@@ -2378,7 +2386,15 @@ const resources = {
                 see_more_suggestions: "SEE MORE SUGGESTIONS",
                 just_now: "Just now",
                 hours_ago: "{{hours}}h ago",
-                days_ago: "{{days}}d ago"
+                days_ago: "{{days}}d ago",
+                community_title: "JOIN THE COMMUNITY",
+                community_subtitle: "Follow our adventures and share your passion on our official social networks.",
+                community_discord: "JOIN DISCORD",
+                community_instagram: "FOLLOW US ON INSTA",
+                community_tiktok: "WATCH OUR TIKTOKS",
+                community_discord_desc: "Chat with other fans and the team",
+                community_instagram_desc: "News, giveaways and behind the scenes",
+                community_tiktok_desc: "Edits, news and fun"
             },
             activity_labels: {
                 watch: "watched",

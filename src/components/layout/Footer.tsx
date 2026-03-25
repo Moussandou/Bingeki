@@ -1,4 +1,4 @@
-import { Mail, MapPin, Github, Linkedin, Globe, Briefcase, Coffee, MessageCircle, Instagram, Music } from 'lucide-react';
+import { Mail, MapPin, Github, Linkedin, Globe, Briefcase, Coffee, MessageCircle, Instagram } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { InstallPWA } from '@/components/pwa/InstallPWA';
@@ -41,6 +41,24 @@ export function Footer() {
                 <div className={styles.socialRow}>
                     <InstallPWA variant="footer" />
                     <div style={{ width: 1, height: 24, background: 'var(--color-border)', margin: '0 0.5rem' }} />
+                    
+                    {/* Highlighted Socials */}
+                    <a href="https://discord.gg/gjkBRjsbWx" target="_blank" rel="noopener noreferrer"
+                        title="Discord"
+                        className={`${styles.socialIconActive} ${styles.discord}`}
+                    >
+                        <MessageCircle size={24} />
+                    </a>
+                    <a href="https://www.instagram.com/bingeki.fr" target="_blank" rel="noopener noreferrer"
+                        title="Instagram"
+                        className={`${styles.socialIconActive} ${styles.instagram}`}
+                    >
+                        <Instagram size={24} />
+                    </a>
+
+                    <div style={{ width: 1, height: 24, background: 'var(--color-border)', margin: '0 0.5rem' }} />
+
+                    {/* Other Links */}
                     <a href="https://github.com/Moussandou" target="_blank" rel="noopener noreferrer"
                         className={styles.socialIcon}
                     >
@@ -50,24 +68,6 @@ export function Footer() {
                         className={styles.socialIcon}
                     >
                         <Linkedin size={20} />
-                    </a>
-                    <a href="https://discord.gg/gjkBRjsbWx" target="_blank" rel="noopener noreferrer"
-                        title="Discord"
-                        className={styles.socialIcon}
-                    >
-                        <MessageCircle size={20} />
-                    </a>
-                    <a href="https://www.instagram.com/bingeki.fr" target="_blank" rel="noopener noreferrer"
-                        title="Instagram"
-                        className={styles.socialIcon}
-                    >
-                        <Instagram size={20} />
-                    </a>
-                    <a href="https://www.tiktok.com/@bingeki4?_r=1&_t=ZN-94lPhlGFNeY" target="_blank" rel="noopener noreferrer"
-                        title="TikTok"
-                        className={styles.socialIcon}
-                    >
-                        <Music size={20} />
                     </a>
                     <a href="https://www.malt.fr/profile/moussandoumroivili" target="_blank" rel="noopener noreferrer"
                         title="Malt"
