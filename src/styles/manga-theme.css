@@ -55,10 +55,9 @@
 /* Panels & Cards */
 .manga-panel {
     background: var(--color-surface);
-    border: var(--manga-panel-border);
-    /* High contrast border */
+    border: var(--manga-panel-border) !important;
     border-radius: 0 !important;
-    box-shadow: 6px 6px 0px var(--color-shadow-strong);
+    box-shadow: 6px 6px 0px var(--color-shadow-solid) !important;
     transition: transform 0.2s cubic-bezier(0.19, 1, 0.22, 1), box-shadow 0.2s;
     position: relative;
     z-index: 1;
@@ -66,7 +65,7 @@
 
 .manga-panel[data-hoverable="true"]:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 8px 8px 0px var(--color-primary);
+    box-shadow: 8px 8px 0px var(--color-primary) !important;
 }
 
 .manga-panel-glass {

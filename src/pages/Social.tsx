@@ -381,14 +381,11 @@ export default function Social() {
                                 </p>
                                 
                                 <div style={{ maxWidth: '800px', margin: '0 auto', position: 'relative', textAlign: 'left', zIndex: 10 }}>
-                                    <div style={{ 
+                                    <div className="manga-panel" style={{ 
                                         position: 'relative', 
                                         display: 'flex', 
                                         alignItems: 'stretch', 
-                                        border: '4px solid var(--color-text)', 
-                                        background: 'var(--color-surface)', 
-                                        borderRadius: '0', 
-                                        boxShadow: '8px 8px 0 var(--color-primary)', 
+                                        padding: 0,
                                         height: '64px'
                                     }}>
                                         <div style={{ 
@@ -398,7 +395,7 @@ export default function Social() {
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             color: 'white',
-                                            borderRight: '4px solid var(--color-text)'
+                                            borderRight: 'var(--manga-panel-border)'
                                         }}>
                                             <Search size={28} />
                                         </div>
@@ -427,11 +424,9 @@ export default function Social() {
                                     
                                     {/* Dropdown with search results */}
                                     {searchEmail.trim().length >= 2 && searchResults.length > 0 && !loading && (
-                                        <div style={{
+                                        <div className="manga-panel" style={{
                                             position: 'absolute', top: 'calc(100% + 12px)', left: 0, right: 0,
-                                            background: 'var(--color-surface)', border: '4px solid var(--color-text)',
-                                            borderRadius: '0', zIndex: 10, padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem',
-                                            boxShadow: '6px 6px 0 var(--color-text)'
+                                            zIndex: 10, padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem',
                                         }}>
                                             {searchResults.map((result) => {
                                                 const isFriend = getFriendStatus(result.uid) !== 'none';
@@ -479,7 +474,7 @@ export default function Social() {
                                         </div>
                                     )}
                                     {searchEmail.trim().length >= 2 && searchResults.length === 0 && !loading && (
-                                        <div style={{ position: 'absolute', top: 'calc(100% + 12px)', left: 0, right: 0, padding: '1.5rem', background: 'var(--color-surface)', border: '4px solid var(--color-text)', borderRadius: '0', color: 'var(--color-text)', fontWeight: 800, textAlign: 'center', boxShadow: '6px 6px 0 var(--color-text)', zIndex: 10 }}>
+                                        <div className="manga-panel" style={{ position: 'absolute', top: 'calc(100% + 12px)', left: 0, right: 0, padding: '1.5rem', color: 'var(--color-text)', fontWeight: 800, textAlign: 'center', zIndex: 10 }}>
                                             {t('social.friends.not_found', 'AUCUN HÉROS TROUVÉ.')}
                                         </div>
                                     )}
@@ -530,24 +525,19 @@ export default function Social() {
                                         {friends.filter(f => f.status === 'accepted').map(friend => (
                                             <div 
                                                 key={friend.uid} 
+                                                className="manga-panel"
+                                                data-hoverable="true"
                                                 style={{ 
                                                     padding: 0, 
                                                     display: 'flex', 
                                                     flexDirection: 'column',
                                                     cursor: 'pointer',
-                                                    transition: 'transform 0.2s ease',
                                                     overflow: 'hidden',
-                                                    height: '100%',
-                                                    background: 'var(--color-surface)',
-                                                    border: '4px solid var(--color-text)',
-                                                    borderRadius: '0',
-                                                    boxShadow: '6px 6px 0 var(--color-text)'
+                                                    height: '100%'
                                                 }} 
                                                 onClick={() => navigate(`/profile/${friend.uid}`)}
-                                                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '8px 8px 0 var(--color-primary)'; }}
-                                                onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '6px 6px 0 var(--color-text)'; }}
                                             >
-                                                <div style={{ height: '80px', background: 'var(--color-border-heavy)', position: 'relative', borderBottom: '4px solid var(--color-text)' }}>
+                                                <div style={{ height: '80px', background: 'var(--color-border-heavy)', position: 'relative', borderBottom: 'var(--manga-panel-border)' }}>
                                                     {friend.banner ? (
                                                         <img src={friend.banner} alt="Banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     ) : (
@@ -559,7 +549,7 @@ export default function Social() {
                                                 <div style={{ 
                                                     marginTop: '-32px', marginLeft: '1rem',
                                                     width: 64, height: 64, borderRadius: '0', overflow: 'hidden', 
-                                                    border: '4px solid var(--color-text)', background: 'var(--color-surface)',
+                                                    border: 'var(--manga-panel-border)', background: 'var(--color-surface)',
                                                     position: 'relative', zIndex: 2
                                                 }}>
                                                     <img src={friend.photoURL} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -575,7 +565,7 @@ export default function Social() {
                                                         <span>{friend.xp || 0} XP</span>
                                                     </div>
                                                     
-                                                    <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', gap: '0.5rem', borderTop: '4px solid var(--color-text)' }}>
+                                                    <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', gap: '0.5rem', borderTop: 'var(--manga-panel-border)' }}>
                                                         <Button variant="manga" size="sm" style={{ flex: 1, borderRadius: 0, textTransform: 'uppercase' }} onClick={(e) => { e.stopPropagation(); navigate(`/users/${friend.uid}/library`); }} icon={<Library size={16} />}>
                                                             {t('profile.view_library', 'Médiathèque')}
                                                         </Button>

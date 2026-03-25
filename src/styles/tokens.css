@@ -53,7 +53,7 @@
   --glass-blur: blur(12px);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
 
-  --manga-panel-border: 2px solid var(--color-border-heavy);
+  --manga-panel-border: 4px solid var(--color-border-heavy);
   --manga-halftone-opacity: 0.1;
 }
 
@@ -75,7 +75,7 @@
   --color-dots: #ffffff;
   --color-shadow: rgba(0, 0, 0, 0.3);
   --color-shadow-strong: rgba(0, 0, 0, 0.6);
-  --color-shadow-solid: rgba(0, 0, 0, 0.6);
+  --color-shadow-solid: #000000; /* True black for manga contrast */
   --color-text-contrast: #ffffff;
   --color-text-inverse: #ffffff;
 
@@ -88,7 +88,7 @@
   --glass-blur: blur(12px);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 
-  --manga-panel-border: 2px solid var(--color-border-heavy);
+  --manga-panel-border: 4px solid #000000; /* Dark themes override border to absolute black for the manga style */
   --manga-halftone-opacity: 0.05;
 }
 
@@ -110,7 +110,7 @@
   --color-dots: #333333;
   --color-shadow: rgba(0, 0, 0, 0.5);
   --color-shadow-strong: rgba(0, 0, 0, 0.8);
-  --color-shadow-solid: rgba(0, 0, 0, 0.8);
+  --color-shadow-solid: #000000;
   --color-text-contrast: #ffffff;
   --color-text-inverse: #ffffff;
 
@@ -123,7 +123,7 @@
   --glass-blur: blur(12px);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
 
-  --manga-panel-border: 2px solid var(--color-border-heavy);
+  --manga-panel-border: 4px solid #000000;
   --manga-halftone-opacity: 0.1;
 }
 

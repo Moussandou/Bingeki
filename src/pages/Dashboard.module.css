@@ -26,14 +26,9 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    text-align: center;
-    /* Borders are handled by gap on grid container, but need to reset for stack */
-    border: 3px solid var(--color-border);
-    box-shadow: 6px 6px 0 var(--color-shadow-medium);
-}
-
-.statItem:last-child {
-    border-bottom: none;
+    border: var(--manga-panel-border);
+    border-radius: 0;
+    box-shadow: 6px 6px 0 var(--color-shadow-solid);
 }
 
 .recGrid {
@@ -58,16 +53,6 @@
     .statsHud {
         grid-template-columns: repeat(3, 1fr);
         border: none;
-        /* Reset container border if wanted, or keep it */
-    }
-
-    .statItem {
-        border-bottom: none;
-        border-left: 2px solid var(--color-border);
-    }
-
-    .statItem:first-child {
-        border-left: none;
     }
 
     .progressGrid {

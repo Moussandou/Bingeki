@@ -19,7 +19,8 @@ All colors are defined as CSS variables in `src/styles/theme.css` to support sea
 | `--color-surface` | Card/Modal backgrounds | `#111111` |
 | `--color-primary` | Main accent (Bingeki Red) | `#ff3e3e` |
 | `--color-text` | Primary text | `#ffffff` |
-| `--color-border-heavy` | Thick borders | `#ffffff` |
+| `--color-border-heavy` | Thick borders (4px) | `#444444` |
+| `--color-shadow-solid` | Absolute pure black shadows | `#000000` |
 
 ### Typography
 - **Headings**: `var(--font-heading)` (Impactful, bold sans-serif)
@@ -31,9 +32,11 @@ All colors are defined as CSS variables in `src/styles/theme.css` to support sea
 - **Primary**: Solid background (`--color-primary`), uppercase, sharp corners.
 - **Ghost**: Transparent background, thick border (`--color-border`).
 
-### Cards & Modals
+### Cards & Modals (`.manga-panel`)
+- **Unified Style**: All major components should use the `.manga-panel` class for consistency.
 - **No Glassmorphism**: We avoid blur effects in favor of solid, opaque backgrounds.
-- **Borders**: 2px or 3px solid borders only. No soft drop shadows; use hard shadows (`box-shadow: 4px 4px 0 ...`) for depth.
+- **Borders**: Heavy 4px solid borders (`var(--manga-panel-border)`) with sharp 0px border-radius.
+- **Shadows**: No soft drop shadows. Absolute hard solid black shadows (`box-shadow: 6px 6px 0 var(--color-shadow-solid)`) are required for depth to convey the "Brutalist Manga" aesthetic.
 
 ### Mobile First
 - **Hit Areas**: All interactive elements are at least 44x44px.
