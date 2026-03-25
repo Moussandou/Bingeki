@@ -1251,7 +1251,17 @@ const resources = {
                     hours_ago: "Il y a {{count}}h",
                     days_ago: "Il y a {{count}}j",
                     last_seen: "Connecté",
-                    online: "En ligne"
+                    online: "En ligne",
+                    dau: "Actifs (24h)",
+                    wau: "Actifs (7j)",
+                    mau: "Actifs (30j)",
+                    engagement_rate: "Engagement",
+                    growth: "Croissance",
+                    funnel: "Tunnel",
+                    retention: "Rétention",
+                    engagement_breakdown: "Répartition",
+                    top_content: "Top Contenu",
+                    active_users: "Utilisateurs Actifs"
                 },
                 users: {
                     title: "Gestion Utilisateurs",
@@ -2916,8 +2926,18 @@ const resources = {
                     minutes_ago: "{{count}} min ago",
                     hours_ago: "{{count}}h ago",
                     days_ago: "{{count}}d ago",
-                    last_seen: "Seen",
-                    online: "Online"
+                    last_seen: "Last Seen",
+                    online: "Online",
+                    dau: "Active (24h)",
+                    wau: "Active (7d)",
+                    mau: "Active (30d)",
+                    engagement_rate: "Engagement",
+                    growth: "Growth",
+                    funnel: "Funnel",
+                    retention: "Retention",
+                    engagement_breakdown: "Breakdown",
+                    top_content: "Top Content",
+                    active_users: "Active Users"
                 },
                 users: {
                     title: "User Management",

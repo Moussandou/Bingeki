@@ -1,10 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Users, AlertCircle, TrendingUp, Activity, ExternalLink, Shield, Clipboard, Clock, Circle } from 'lucide-react';
+import { 
+    Users, TrendingUp, Activity, ExternalLink, Clipboard 
+} from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Link } from '@/components/routing/LocalizedLink';
-import { getAdminStats, getRecentMembers, getSevenDayActivityStats, type UserProfile } from '@/firebase/firestore';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+    getAdminStats, getRecentMembers, getSevenDayActivityStats, 
+    getEngagementBreakdown, getTopContentStats, getFunnelStats,
+    type UserProfile 
+} from '@/firebase/firestore';
+import { 
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    BarChart, Bar, PieChart, Pie, Cell
+} from 'recharts';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 interface ChartData {
     name: string;
@@ -13,49 +23,47 @@ interface ChartData {
     activities: number;
     index: number;
 }
-
 export default function AdminDashboard() {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [stats, setStats] = useState({
         totalUsers: 0,
         totalFeedback: 0,
         newUsersToday: 0,
         pendingFeedback: 0,
-        totalSurveyResponses: 0
+        totalSurveyResponses: 0,
+        dau: 0,
+        wau: 0,
+        mau: 0,
+        engagementRate: 0
     });
     const [recentUsers, setRecentUsers] = useState<UserProfile[]>([]);
     const [chartData, setChartData] = useState<ChartData[]>([]);
+    const [engagementData, setEngagementData] = useState<any>(null);
+    const [topContent, setTopContent] = useState<any[]>([]);
+    const [funnelData, setFunnelData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const load = async () => {
             try {
-                const results = await Promise.allSettled([
+                const [basicStats, members, weeklyStats, engagement, top, funnel] = await Promise.all([
                     getAdminStats(),
                     getRecentMembers(10),
-                    getSevenDayActivityStats()
+                    getSevenDayActivityStats(),
+                    getEngagementBreakdown(),
+                    getTopContentStats(5),
+                    getFunnelStats()
                 ]);
 
-                if (results[0].status === 'fulfilled') {
-                    setStats(results[0].value);
-                } else {
-                    console.error("Failed to load stats:", results[0].reason);
+                setStats(basicStats);
+                setRecentUsers(members.slice(0, 5));
+                if (Array.isArray(weeklyStats)) {
+                    setChartData(weeklyStats.filter((item): item is ChartData => item !== undefined));
                 }
-
-                if (results[1].status === 'fulfilled') {
-                    setRecentUsers(results[1].value.slice(0, 5));
-                } else {
-                    console.error("Failed to load users:", results[1].reason);
-                }
-
-                if (results[2].status === 'fulfilled') {
-                    const data = results[2].value;
-                    if (Array.isArray(data)) {
-                        setChartData(data.filter((item): item is ChartData => item !== undefined));
-                    }
-                } else {
-                    console.error("Failed to load chart data:", results[2].reason);
-                }
+                setEngagementData(engagement);
+                setTopContent(top);
+                setFunnelData(funnel);
 
             } catch (e) {
                 console.error("Dashboard load failed", e);
@@ -82,21 +90,18 @@ export default function AdminDashboard() {
         return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
-    const isOnlineRecently = (lastLogin: number | undefined) => {
-        if (!lastLogin) return false;
-        return (Date.now() - lastLogin) < 15 * 60 * 1000; // 15 minutes
-    };
-
     if (loading) {
         return <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'monospace' }}>{t('admin.dashboard.loading')}</div>;
     }
+
+    const COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
 
     const containerStyle = {
         display: 'flex',
         flexDirection: 'column' as const,
         gap: '2rem',
         animation: 'fadeIn 0.5s ease',
-        paddingBottom: '2rem'
+        paddingBottom: '3rem'
     };
 
     const headerStyle = {
@@ -106,9 +111,27 @@ export default function AdminDashboard() {
         marginBottom: '0.5rem'
     };
 
-    const gridStyle = {
+    const gridRow1 = {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '1.5rem'
+    };
+
+    const gridRow2 = {
+        display: 'grid',
+        gridTemplateColumns: '3fr 2fr',
+        gap: '1.5rem'
+    };
+
+    const gridRow3 = {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '1.5rem'
+    };
+
+    const gridRow4 = {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
         gap: '1.5rem'
     };
 
@@ -120,7 +143,20 @@ export default function AdminDashboard() {
         height: '100%',
         background: 'var(--color-surface)',
         border: '2px solid var(--color-border)',
-        color: 'var(--color-text)'
+        color: 'var(--color-text)',
+        cursor: 'pointer',
+        transition: 'transform 0.2s ease',
+        ':hover': { transform: 'translateY(-4px)' }
+    } as any;
+
+    const chartCardStyle = {
+        padding: '1.5rem',
+        background: 'var(--color-surface)',
+        border: '2px solid var(--color-border)',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        gap: '1rem',
+        cursor: 'pointer'
     };
 
     const sectionTitleStyle = {
@@ -140,254 +176,201 @@ export default function AdminDashboard() {
             {/* Header */}
             <div>
                 <h1 style={headerStyle}>{t('admin.dashboard.title')}</h1>
-                <p style={{
-                    borderLeft: '4px solid var(--color-border)',
-                    paddingLeft: '1rem',
-                    fontFamily: 'monospace',
-                    color: 'var(--color-text-dim)'
-                }}>
+                <p style={{ borderLeft: '4px solid var(--color-border)', paddingLeft: '1rem', fontFamily: 'monospace', color: 'var(--color-text-dim)' }}>
                     {t('admin.dashboard.subtitle')}
                 </p>
             </div>
 
-            {/* Stats Grid */}
-            <div style={gridStyle}>
-                <Card variant="manga" style={statCardStyle}>
+            {/* Row 1: Key Metrics (KPIs) */}
+            <div style={gridRow1}>
+                <Card variant="manga" style={statCardStyle} onClick={() => navigate('/admin/users')}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                            <p style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--color-text-dim)' }}>{t('admin.dashboard.users_label')}</p>
+                            <p style={{ textTransform: 'uppercase', fontWeight: 900, fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>{t('admin.dashboard.users_label')}</p>
                             <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.5rem', lineHeight: 1 }}>{stats.totalUsers}</h3>
                         </div>
-                        <div style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.5rem', borderRadius: '4px' }}>
-                            <Users size={20} />
-                        </div>
+                        <Users size={24} />
                     </div>
-                    <div style={{ marginTop: '1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#10b981', fontWeight: 'bold' }}>
-                        <TrendingUp size={14} /> +{stats.newUsersToday} {t('admin.dashboard.today')}
+                    <div style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: '#10b981', fontWeight: 900 }}>
+                        <TrendingUp size={14} style={{ marginRight: '0.25rem' }} /> +{stats.newUsersToday} {t('admin.dashboard.today')}
                     </div>
                 </Card>
 
-                <Card variant="manga" style={statCardStyle}>
+                <Card variant="manga" style={statCardStyle} onClick={() => navigate('/admin/analytics/retention')}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                            <p style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--color-text-dim)' }}>{t('admin.dashboard.feedback_label')}</p>
-                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.5rem', lineHeight: 1 }}>{stats.totalFeedback}</h3>
+                            <p style={{ textTransform: 'uppercase', fontWeight: 900, fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>{t('admin.dashboard.dau')}</p>
+                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.5rem', lineHeight: 1 }}>{stats.dau}</h3>
                         </div>
-                        <div style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.5rem', borderRadius: '4px' }}>
-                            <AlertCircle size={20} />
-                        </div>
+                        <Activity size={24} />
                     </div>
-                    <div style={{ marginTop: '1rem', fontSize: '0.9rem', fontWeight: 'bold', color: stats.pendingFeedback > 0 ? '#ef4444' : '#10b981' }}>
-                        {stats.pendingFeedback} {t('admin.dashboard.tickets_pending')}
+                    <div style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--color-text-dim)', fontFamily: 'monospace' }}>
+                        WAU: {stats.wau} | MAU: {stats.mau}
                     </div>
                 </Card>
 
-                <Card variant="manga" style={statCardStyle}>
+                <Card variant="manga" style={statCardStyle} onClick={() => navigate('/admin/analytics/growth')}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                            <p style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--color-text-dim)' }}>{t('admin.dashboard.system_label')}</p>
-                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.5rem', lineHeight: 1 }}>OK</h3>
+                            <p style={{ textTransform: 'uppercase', fontWeight: 900, fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>{t('admin.dashboard.growth')}</p>
+                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.5rem', lineHeight: 1 }}>+{Math.round((stats.newUsersToday / (stats.totalUsers || 1)) * 100)}%</h3>
                         </div>
-                        <div style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.5rem', borderRadius: '4px' }}>
-                            <Activity size={20} />
-                        </div>
+                        <TrendingUp size={24} />
                     </div>
-                    <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
-                        Version 3.0.1
+                    <div style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: '#3b82f6', fontWeight: 900 }}>
+                         NOUVEAUX CHASSEURS
                     </div>
                 </Card>
 
-                <Card variant="manga" style={statCardStyle}>
+                <Card variant="manga" style={statCardStyle} onClick={() => navigate('/admin/analytics/engagement')}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                            <p style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--color-text-dim)' }}>{t('admin.dashboard.survey_label', 'Questionnaires')}</p>
-                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.5rem', lineHeight: 1 }}>{stats.totalSurveyResponses}</h3>
+                            <p style={{ textTransform: 'uppercase', fontWeight: 900, fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>{t('admin.dashboard.engagement_rate')}</p>
+                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.5rem', lineHeight: 1 }}>{Math.round(stats.engagementRate)}%</h3>
                         </div>
-                        <div style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.5rem', borderRadius: '4px' }}>
-                            <Clipboard size={20} />
-                        </div>
+                        <Clipboard size={24} />
                     </div>
-                    <Link to="/admin/survey" style={{ marginTop: '1rem', fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--color-text)', textDecoration: 'underline' }}>
-                        {t('admin.dashboard.view_survey_details', 'Voir les détails')}
-                    </Link>
+                    <div style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--color-text-dim)' }}>
+                        Score de Vitalité platforme
+                    </div>
                 </Card>
             </div>
 
-            {/* Charts Section */}
-            <Card variant="manga" style={{ padding: '1.5rem', background: 'var(--color-surface)', border: '2px solid var(--color-border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Activity className="text-red-500" size={24} />
-                        <h3 style={{ fontFamily: 'var(--font-heading)', textTransform: 'uppercase', fontSize: '1.25rem' }}>{t('admin.dashboard.activity_volume')}</h3>
+            {/* Row 2: Main Growth & Activity Curves */}
+            <div style={gridRow2}>
+                <Card variant="manga" style={chartCardStyle} onClick={() => navigate('/admin/analytics/growth')}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <h3 style={sectionTitleStyle}><TrendingUp size={20} /> {t('admin.dashboard.activity_volume')}</h3>
+                        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem' }}>HEBDOMADAIRE</div>
                     </div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-dim)', fontFamily: 'monospace' }}>{t('admin.dashboard.last_7_days')}</div>
-                </div>
-                <div style={{ height: '300px', width: '100%', position: 'relative' }}>
-                    {chartData.length > 0 && (
+                    <div style={{ height: '300px' }}>
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorActivity" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="colorNew" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
+                            <AreaChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 12, fontWeight: 'bold' }}
-                                    dy={10}
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 12 }}
-                                />
-                                <Tooltip
-                                    contentStyle={{ background: 'black', border: '2px solid white', color: 'white', fontFamily: 'var(--font-heading)' }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="activities"
-                                    name="Activité"
-                                    stroke="#ef4444"
-                                    strokeWidth={3}
-                                    fillOpacity={1}
-                                    fill="url(#colorActivity)"
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="new"
-                                    name="Inscriptions"
-                                    stroke="#3b82f6"
-                                    strokeWidth={3}
-                                    fillOpacity={1}
-                                    fill="url(#colorNew)"
-                                />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} style={{ fontSize: '10px' }} />
+                                <YAxis axisLine={false} tickLine={false} style={{ fontSize: '10px' }} />
+                                <Tooltip contentStyle={{ background: 'black', border: '2px solid white', color: 'white', fontFamily: 'var(--font-heading)' }} />
+                                <Area type="monotone" dataKey="activities" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={3} />
+                                <Area type="monotone" dataKey="new" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={3} />
                             </AreaChart>
                         </ResponsiveContainer>
-                    )}
-                </div>
-            </Card>
+                    </div>
+                </Card>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-                {/* Recent Users */}
+                <Card variant="manga" style={chartCardStyle} onClick={() => navigate('/admin/analytics/retention')}>
+                    <h3 style={sectionTitleStyle}><Activity size={20} /> {t('admin.dashboard.active_users')}</h3>
+                    <div style={{ height: '300px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} style={{ fontSize: '10px' }} />
+                                <YAxis axisLine={false} tickLine={false} style={{ fontSize: '10px' }} />
+                                <Tooltip cursor={{ fill: '#f5f5f5' }} />
+                                <Bar dataKey="active" fill="var(--color-text)" barSize={20} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+            </div>
+
+            {/* Row 3: Engagement Breakdown & Funnel */}
+            <div style={gridRow3}>
+                <Card variant="manga" style={chartCardStyle} onClick={() => navigate('/admin/analytics/engagement')}>
+                    <h3 style={sectionTitleStyle}><Clipboard size={20} /> {t('admin.dashboard.engagement_breakdown')}</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', height: '250px' }}>
+                        <ResponsiveContainer width="60%" height="100%">
+                            <PieChart>
+                                <Pie 
+                                    data={engagementData ? Object.entries(engagementData).map(([name, value]) => ({ name, value })) : []} 
+                                    innerRadius={60} 
+                                    outerRadius={80} 
+                                    paddingAngle={5} 
+                                    dataKey="value"
+                                >
+                                    {Object.keys(engagementData || {}).map((_entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                        </ResponsiveContainer>
+                        <div style={{ width: '40%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {engagementData && Object.entries(engagementData).map(([key, value], idx) => (
+                                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{ width: '10px', height: '10px', background: COLORS[idx % COLORS.length] }} />
+                                    <span style={{ textTransform: 'capitalize' }}>{key}: <strong>{value as number}</strong></span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </Card>
+
+                <Card variant="manga" style={chartCardStyle}>
+                    <h3 style={sectionTitleStyle}><TrendingUp size={20} /> {t('admin.dashboard.funnel')}</h3>
+                    <div style={{ height: '250px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart layout="vertical" data={funnelData} margin={{ left: 40, right: 40 }}>
+                                <XAxis type="number" hide />
+                                <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={120} style={{ fontSize: '10px', fontWeight: 900 }} />
+                                <Tooltip cursor={{ fill: 'transparent' }} />
+                                <Bar dataKey="value" fill="#ef4444" radius={[0, 4, 4, 0]}>
+                                    {funnelData.map((_entry, index) => (
+                                        <Cell key={`cell-${index}`} fillOpacity={1 - index * 0.2} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+            </div>
+
+            {/* Row 4: Top Content & Utility */}
+            <div style={gridRow4}>
                 <div>
-                    <h2 style={sectionTitleStyle}>
-                        <Users size={24} /> {t('admin.dashboard.recent_members')}
-                    </h2>
+                    <h3 style={sectionTitleStyle}><Clipboard size={20} /> {t('admin.dashboard.top_content')}</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {recentUsers.map(user => {
-                            const online = isOnlineRecently(user.lastLogin);
-                            return (
-                                <Card key={user.uid} variant="manga" style={{
-                                    padding: '0.75rem 1rem',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    background: 'var(--color-surface)',
-                                    border: '2px solid var(--color-border)',
-                                    color: 'var(--color-text)'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        {/* Avatar with online indicator */}
-                                        <div style={{ position: 'relative' }}>
-                                            <div style={{ width: '40px', height: '40px', background: 'var(--color-surface-hover)', borderRadius: '50%', border: '2px solid var(--color-border)', overflow: 'hidden' }}>
-                                                {user.photoURL && <img src={user.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                                            </div>
-                                            {online && (
-                                                <div style={{
-                                                    position: 'absolute', bottom: -1, right: -1,
-                                                    width: '12px', height: '12px',
-                                                    background: '#22c55e', borderRadius: '50%',
-                                                    border: '2px solid var(--color-surface)',
-                                                    boxShadow: '0 0 4px #22c55e'
-                                                }} />
-                                            )}
-                                        </div>
-                                        <div>
-                                            <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                {user.displayName || t('admin.dashboard.anonymous')}
-                                                {user.isAdmin && (
-                                                    <span style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.1rem 0.4rem', fontSize: '0.55rem', fontWeight: 'bold', textTransform: 'uppercase', borderRadius: '2px' }}>ADMIN</span>
-                                                )}
-                                            </div>
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)' }}>{user.email}</div>
-                                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-dim)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
-                                                <Clock size={10} />
-                                                {t('admin.dashboard.last_seen', 'Connecte')} {formatDate(user.lastLogin)}
-                                                {online && (
-                                                    <span style={{ color: '#22c55e', fontWeight: 'bold', marginLeft: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                                        <Circle size={6} fill="#22c55e" /> {t('admin.dashboard.online', 'En ligne')}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <Link to={`/admin/users?highlight=${user.uid}`} style={{ padding: '0.5rem', border: '2px solid var(--color-border)', color: 'var(--color-text)', display: 'flex', alignItems: 'center' }}>
-                                        <ExternalLink size={16} />
-                                    </Link>
-                                </Card>
-                            );
-                        })}
+                        {topContent.map((item, idx) => (
+                            <Card key={idx} variant="manga" style={{ padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--color-surface)', border: '2px solid var(--color-border)' }}>
+                                <div style={{ width: '40px', height: '56px', background: '#e5e5e5', border: '1px solid var(--color-border)' }}>
+                                    {item.image && <img src={item.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 900, fontSize: '0.9rem' }}>{item.title}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dim)' }}>{item.count} interactions</div>
+                                </div>
+                                <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.5rem', color: 'var(--color-border)' }}>#{idx + 1}</div>
+                            </Card>
+                        ))}
                     </div>
                 </div>
 
-                {/* Quick Actions */}
                 <div>
-                    <h2 style={sectionTitleStyle}>
-                        <Shield size={24} /> {t('admin.dashboard.quick_actions')}
-                    </h2>
+                    <h3 style={sectionTitleStyle}><Users size={20} /> {t('admin.dashboard.recent_members')}</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                        {recentUsers.map(user => (
+                            <div key={user.uid} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', borderBottom: '1px solid var(--color-border)' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#eee', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+                                    {user.photoURL && <img src={user.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>{user.displayName || 'Anonyme'}</div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-dim)' }}>{formatDate(user.lastLogin)}</div>
+                                </div>
+                                <Link to={`/admin/users?highlight=${user.uid}`}><ExternalLink size={14} /></Link>
+                            </div>
+                        ))}
+                    </div>
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <Link to="/admin/users" style={{ textDecoration: 'none' }}>
-                            <Card variant="manga" style={{
-                                padding: '2rem',
-                                textAlign: 'center',
-                                cursor: 'pointer',
-                                background: 'var(--color-surface)',
-                                border: '2px solid var(--color-border)',
-                                color: 'var(--color-text)',
-                                height: '100%',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem'
-                            }}>
-                                <Users size={32} />
-                                <span style={{ fontFamily: 'var(--font-heading)', textTransform: 'uppercase', fontWeight: 900 }}>{t('admin.dashboard.manage_users')}</span>
-                            </Card>
-                        </Link>
                         <Link to="/admin/feedback" style={{ textDecoration: 'none' }}>
-                            <Card variant="manga" style={{
-                                padding: '2rem',
-                                textAlign: 'center',
-                                cursor: 'pointer',
-                                background: 'var(--color-surface)',
-                                border: '2px solid var(--color-border)',
-                                color: 'var(--color-text)',
-                                height: '100%',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem'
-                            }}>
-                                <AlertCircle size={32} />
-                                <span style={{ fontFamily: 'var(--font-heading)', textTransform: 'uppercase', fontWeight: 900 }}>{t('admin.dashboard.view_feedback')}</span>
-                            </Card>
+                            <button style={{ width: '100%', padding: '1rem', background: 'var(--color-text)', color: 'var(--color-surface)', border: 'none', fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer' }}>
+                                Feedback ({stats.pendingFeedback})
+                            </button>
                         </Link>
-                        <Link to="/admin/system" style={{ textDecoration: 'none', gridColumn: 'span 2' }}>
-                            <Card variant="manga" style={{
-                                padding: '1.5rem',
-                                textAlign: 'center',
-                                cursor: 'pointer',
-                                background: 'black',
-                                color: 'white',
-                                height: '100%',
-                                display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '1rem'
-                            }}>
-                                <Activity size={24} color="#ef4444" />
-                                <span style={{ fontFamily: 'var(--font-heading)', textTransform: 'uppercase', fontWeight: 900 }}>{t('admin.dashboard.live_console')}</span>
-                            </Card>
+                        <Link to="/admin/system" style={{ textDecoration: 'none' }}>
+                            <button style={{ width: '100%', padding: '1rem', background: 'black', color: 'white', border: 'none', fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer' }}>
+                                {t('admin.dashboard.live_console')}
+                            </button>
                         </Link>
                     </div>
                 </div>
