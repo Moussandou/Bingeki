@@ -56,23 +56,13 @@
     transform: skewX(-10deg);
 }
 
-.adminNavLink {
-    background: var(--color-primary);
-    color: white !important;
-    border: 3px solid var(--color-text);
-    padding: 0.5rem 1rem;
-    box-shadow: 4px 4px 0 var(--color-text);
-    transform: skewX(-5deg);
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 900;
+.adminOption {
+    color: var(--color-primary) !important;
+    font-weight: 800;
 }
 
-.adminNavLink:hover {
-    transform: skewX(-5deg) translate(-2px, -2px);
-    box-shadow: 6px 6px 0 var(--color-text);
+.adminOption:hover {
+    background: rgba(var(--color-primary-rgb), 0.1);
 }
 
 .statusPill {

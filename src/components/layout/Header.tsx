@@ -12,7 +12,8 @@ import {
     MessageSquare,
     MessageCircle, Sun, Moon, Compass,
     Newspaper,
-    ScanSearch
+    ScanSearch,
+    ShieldCheck
 } from 'lucide-react';
 
 import { GlobalSearch } from '@/components/search/GlobalSearch';
@@ -255,6 +256,11 @@ export function Header() {
                                     <Link to="/feedback?tab=tickets" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <MessageSquare size={16} /> {t('feedback.my_tickets')}
                                     </Link>
+                                    {userProfile?.isAdmin && (
+                                        <Link to="/admin" className={`${styles.dropdownItem} ${styles.adminOption}`} style={{ textDecoration: 'none', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
+                                            <ShieldCheck size={16} /> Admin Panel
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
                         </nav>
