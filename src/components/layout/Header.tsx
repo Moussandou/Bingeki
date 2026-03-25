@@ -37,19 +37,6 @@ function NotificationDropdown() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={styles.iconButton}
-                style={{
-                    padding: '6px',
-                    cursor: 'pointer',
-                    border: '2px solid var(--color-border)',
-                    background: 'transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '32px',
-                    width: '32px',
-                    color: 'var(--color-text)',
-                    position: 'relative'
-                }}
                 title={t('header.notifications') || 'Notifications'}
             >
                 <Bell size={18} />
@@ -304,19 +291,6 @@ export function Header() {
                         <button
                             onClick={() => setIsSearchOpen(true)}
                             className={styles.iconButton}
-                            style={{
-                                padding: '6px',
-                                cursor: 'pointer',
-                                border: '2px solid var(--color-border)',
-                                background: 'transparent',
-                                marginRight: '0.5rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                height: '32px',
-                                width: '32px',
-                                color: 'var(--color-text)'
-                            }}
                             title={t('header.search_placeholder') || "Search"}
                         >
                             <Search size={18} />
@@ -329,19 +303,6 @@ export function Header() {
                         <button
                             onClick={toggleTheme}
                             className={styles.iconButton}
-                            style={{
-                                padding: '6px',
-                                cursor: 'pointer',
-                                border: '2px solid var(--color-border)',
-                                background: 'transparent',
-                                marginRight: '0.5rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                height: '32px',
-                                width: '32px',
-                                color: 'var(--color-text)'
-                            }}
                             title={`Theme: ${theme}`}
                         >
                             {theme === 'light' && <Sun size={18} />}
@@ -352,22 +313,7 @@ export function Header() {
                         <button
                             onClick={toggleLanguage}
                             className={styles.iconButton}
-                            style={{
-                                fontFamily: 'monospace',
-                                fontWeight: 900,
-                                fontSize: '0.9rem',
-                                padding: '4px 8px',
-                                cursor: 'pointer',
-                                border: '2px solid var(--color-border)',
-                                background: 'transparent',
-                                marginRight: '0.5rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                height: '32px',
-                                width: '32px',
-                                color: 'var(--color-text)'
-                            }}
+                            style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '0.9rem' }}
                             title={i18n.language === 'fr' ? 'Switch to English' : 'Passer en Français'}
                         >
                             {i18n.language === 'en' ? 'EN' : 'FR'}
@@ -405,9 +351,8 @@ export function Header() {
                                     <button
                                         className={styles.profileDropdown}
                                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '4px', border: '2px solid var(--color-border)', background: 'var(--color-surface)' }}
                                     >
-                                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#333', overflow: 'hidden', border: '2px solid var(--color-border)' }}>
+                                        <div style={{ width: 30, height: 30, borderRadius: '0', background: '#333', overflow: 'hidden', border: '2px solid var(--color-border)' }}>
                                             <img src={userProfile?.photoURL || user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile?.displayName || user?.displayName || 'Bingeki'}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         </div >
                                         <ChevronDown size={16} style={{ opacity: 0.7, color: 'var(--color-text)', transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />

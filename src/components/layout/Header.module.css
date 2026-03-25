@@ -56,6 +56,25 @@
     transform: skewX(-10deg);
 }
 
+.adminNavLink {
+    background: var(--color-primary);
+    color: white !important;
+    border: 3px solid var(--color-text);
+    padding: 0.5rem 1rem;
+    box-shadow: 4px 4px 0 var(--color-text);
+    transform: skewX(-5deg);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 900;
+}
+
+.adminNavLink:hover {
+    transform: skewX(-5deg) translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--color-text);
+}
+
 .statusPill {
     display: flex;
     align-items: center;
@@ -67,7 +86,7 @@
     font-size: 0.85rem;
     font-weight: 900;
     color: var(--color-text);
-    box-shadow: 2px 2px 0 var(--color-shadow-solid);
+    box-shadow: 2px 2px 0 var(--color-shadow);
 }
 
 .levelValue {
@@ -121,7 +140,7 @@
     padding: 0 0.75rem;
     background: var(--color-surface);
     border: 2px solid var(--color-border);
-    box-shadow: 2px 2px 0 var(--color-shadow-solid);
+    box-shadow: 2px 2px 0 var(--color-shadow);
 }
 
 .actionButton {
@@ -203,7 +222,7 @@
     height: 40px; /* Standardize height */
     border: 2px solid var(--color-border);
     background: var(--color-surface);
-    box-shadow: 2px 2px 0 var(--color-shadow-solid);
+    box-shadow: 2px 2px 0 var(--color-shadow);
     transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
@@ -321,8 +340,9 @@
     justify-content: center;
     height: 40px; /* Standardize height */
     width: 40px; /* Square by default */
+    position: relative;
     color: var(--color-text);
-    box-shadow: 2px 2px 0 var(--color-shadow-solid);
+    box-shadow: 2px 2px 0 var(--color-shadow);
     transition: all 0.2s ease;
 }
 
