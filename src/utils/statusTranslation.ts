@@ -6,6 +6,8 @@ export const statusToFrench = (status: string): string => {
         'plan_to_read': 'À lire',
         'on_hold': 'En pause',
         'dropped': 'Abandonné',
+        'finished_airing': 'Terminé',
+        'currently_airing': 'En cours',
     };
     return translations[status] || status;
 };

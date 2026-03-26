@@ -1432,7 +1432,9 @@ const resources = {
                     on_hold: "En pause",
                     dropped: "Abandonné",
                     plan_to_watch: "À voir",
-                    plan_to_read: "À lire"
+                    plan_to_read: "À lire",
+                    finished_airing: "Terminé",
+                    currently_airing: "En cours"
                 },
                 rating: {
                     title: "MA NOTE"
@@ -3127,7 +3129,9 @@ const resources = {
                     on_hold: "On Hold",
                     dropped: "Dropped",
                     plan_to_watch: "Plan to Watch",
-                    plan_to_read: "Plan to Read"
+                    plan_to_read: "Plan to Read",
+                    finished_airing: "Finished Airing",
+                    currently_airing: "Currently Airing"
                 },
                 rating: {
                     title: "MY RATING"
