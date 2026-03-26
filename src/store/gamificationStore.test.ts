@@ -16,6 +16,7 @@ describe('Gamification Store', () => {
         const state = useGamificationStore.getState();
         expect(state.level).toBe(1);
         expect(state.xp).toBe(0);
+        expect(state.totalXp).toBe(0);
         expect(state.streak).toBe(0);
         expect(state.bonusXp).toBe(0);
         expect(state.xpToNextLevel).toBe(100);
@@ -30,6 +31,7 @@ describe('Gamification Store', () => {
         const state1 = useGamificationStore.getState();
         expect(state1.level).toBe(2);
         expect(state1.xp).toBe(0);
+        expect(state1.totalXp).toBe(100); // 100 from level 1
         expect(state1.xpToNextLevel).toBe(114); 
 
         // Check if levelUpData is set
@@ -40,12 +42,14 @@ describe('Gamification Store', () => {
         const state2 = useGamificationStore.getState();
         expect(state2.level).toBe(2);
         expect(state2.xp).toBe(50);
+        expect(state2.totalXp).toBe(150); // 100 + 50
 
         // Level up again
         addXp(114); 
         const state3 = useGamificationStore.getState();
         expect(state3.level).toBe(3);
         expect(state3.xp).toBe(50); 
+        expect(state3.totalXp).toBe(100 + 114 + 50); // Lvl 1 req + Lvl 2 req + current XP
         expect(state3.xpToNextLevel).toBe(131); 
         expect(state3.lastLevel).toBe(2);
     });
@@ -101,6 +105,7 @@ describe('Gamification Store', () => {
         
         expect(state.level).toBe(3);
         expect(state.xp).toBe(16);
+        expect(state.totalXp).toBe(100 + 114 + 16); // 230
         expect(state.totalWorksAdded).toBe(2);
         expect(state.totalWorksCompleted).toBe(1);
     });

@@ -35,7 +35,7 @@ export const RankingList: React.FC<RankingListProps> = ({
     const hasMore = users.length > INITIAL_COUNT;
 
     const getScore = (user: UserProfile) => {
-        if (category === 'xp') return `${(user.xp || 0).toLocaleString()} XP`;
+        if (category === 'xp') return `${(user.totalXp || user.xp || 0).toLocaleString()} XP`;
         if (category === 'chapters') return `${user.totalChaptersRead || 0}`;
         if (category === 'streak') return `${user.streak || 0}j`;
         return '';

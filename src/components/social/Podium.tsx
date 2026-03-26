@@ -23,7 +23,7 @@ const PodiumStep = ({ user, rank, delay, category }: { user: UserProfile | null,
 
     // Helper to format score
     const getScore = (user: UserProfile) => {
-        if (category === 'xp') return `${(user.xp || 0).toLocaleString()} XP`;
+        if (category === 'xp') return `${(user.totalXp || user.xp || 0).toLocaleString()} XP`;
         if (category === 'chapters') return `${user.totalChaptersRead || 0} Ch.`;
         if (category === 'streak') return `${user.streak || 0} Days`;
         return '';

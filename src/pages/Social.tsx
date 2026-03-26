@@ -40,7 +40,7 @@ export default function Social() {
 
     const [activeTab, setActiveTab] = useState<'ranking' | 'friends' | 'activity' | 'challenges' | 'parties'>('ranking');
     const [leaderboard, setLeaderboard] = useState<UserProfile[]>([]);
-    const [friends, setFriends] = useState<(Friend & { banner?: string; xp?: number; level?: number })[]>([]);
+    const [friends, setFriends] = useState<(Friend & { banner?: string; xp?: number; totalXp?: number; level?: number })[]>([]);
     const [activities, setActivities] = useState<ActivityEvent[]>([]);
     const [searchEmail, setSearchEmail] = useState('');
     const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
@@ -64,7 +64,7 @@ export default function Social() {
                 if (f.status === 'accepted') {
                     const profile = await getUserProfile(f.uid);
                     if (profile) {
-                        return { ...f, banner: profile.banner, xp: profile.xp, level: profile.level, photoURL: profile.photoURL || f.photoURL };
+                        return { ...f, banner: profile.banner, xp: profile.xp, totalXp: profile.totalXp, level: profile.level, photoURL: profile.photoURL || f.photoURL };
                     }
                 }
                 return f;
@@ -464,7 +464,7 @@ export default function Social() {
                                                                 {/* Inline stats instead of floating card to prevent overflow issues */}
                                                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '0.25rem', fontSize: '0.85rem', color: 'var(--color-text)', opacity: 0.8 }}>
                                                                     <span style={{ color: result.themeColor || 'var(--color-primary)', fontWeight: 700 }}>Niveau {result.level || 1}</span>
-                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Trophy size={14} /> {result.xp || 0} XP</span>
+                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Trophy size={14} /> {(result.totalXp || result.xp || 0).toLocaleString()} XP</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -570,7 +570,7 @@ export default function Social() {
                                                     
                                                     <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem', fontWeight: 700, opacity: 0.8, marginBottom: '1rem' }}>
                                                         <span style={{ color: 'var(--color-primary)' }}>NIV {friend.level || 1}</span>
-                                                        <span>{friend.xp || 0} XP</span>
+                                                        <span>{(friend.totalXp || friend.xp || 0).toLocaleString()} XP</span>
                                                     </div>
                                                     
                                                     <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', gap: '0.5rem', borderTop: 'var(--manga-panel-border)' }}>
