@@ -92,7 +92,8 @@
     box-shadow: 6px 6px 0 var(--color-shadow-solid);
 }
 
-.controlButton {
+.controlButton,
+.uploadWrapper {
     padding: 0.75rem;
     cursor: pointer;
     border: none;
@@ -103,15 +104,28 @@
     background: var(--color-surface);
     color: var(--color-text);
     transition: all 0.2s;
+    flex: 1;
 }
 
-.controlButton:last-child {
+.controlButton:last-child,
+.uploadWrapper:last-child {
     border-right: none;
 }
 
 .controlButtonActive {
     background: var(--color-text);
     color: var(--color-surface);
+}
+
+.malButton {
+    background: #2E51A2 !important;
+    color: #fff !important;
+}
+
+.malButton img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
 }
 
 /* Content Grid & List */
@@ -220,12 +234,14 @@
         display: flex;
     }
 
-    .controlButton {
+    .controlButton,
+    .uploadWrapper {
         flex: 1;
-        padding: 0.75rem 0.5rem;
+        padding: 0.75rem 0.25rem;
     }
 
-    .controlButton svg {
+    .controlButton svg,
+    .uploadWrapper svg {
         width: 18px;
         height: 18px;
     }

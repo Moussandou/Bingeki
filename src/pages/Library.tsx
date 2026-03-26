@@ -638,7 +638,7 @@ export default function Library() {
                                         >
                                             <Download size={20} />
                                         </button>
-                                        <div style={{ position: 'relative', display: 'flex' }}>
+                                        <div className={styles.uploadWrapper}>
                                             <input
                                                 type="file"
                                                 accept=".json"
@@ -652,20 +652,14 @@ export default function Library() {
                                                 }}
                                                 style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 10 }}
                                             />
-                                            <button
-                                                className={styles.controlButton}
-                                                title={t('library.import')}
-                                            >
-                                                <Upload size={20} />
-                                            </button>
+                                            <Upload size={20} />
                                         </div>
                                         <button
                                             onClick={() => setShowMALImportModal(true)}
-                                            className={styles.controlButton}
+                                            className={`${styles.controlButton} ${styles.malButton}`}
                                             title={t('mal_import.import_mal')}
-                                            style={{ background: '#2E51A2', color: '#fff', padding: '0.4rem' }}
                                         >
-                                            <img src="/mal-logo.png" alt="MAL" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+                                            <img src="/mal-logo.png" alt="MAL" />
                                         </button>
                                     </>
                                 )}
