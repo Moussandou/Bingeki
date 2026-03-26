@@ -47,8 +47,8 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     const finalSrc = imageSrc || fallback;
 
     return (
-        <div className={`${styles.wrapper} ${containerClassName} ${loaded ? styles.loaded : ''}`}>
-            {showSkeleton && !loaded && <div className={styles.skeleton} />}
+        <div className={`${styles.wrapper} ${containerClassName}`}>
+            {showSkeleton && !loaded && !error && <div className={styles.skeleton} />}
             <img
                 src={finalSrc}
                 alt={alt}
@@ -57,7 +57,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
                 loading="lazy"
                 decoding="async"
                 referrerPolicy={finalSrc?.includes('myanimelist.net') ? 'no-referrer' : undefined}
-                className={`${styles.image} ${loaded ? styles.visible : ''} ${className}`}
+                className={`${styles.image} ${!loaded && !error ? styles.loading : styles.loaded} ${className}`}
                 style={{ ...style, objectFit }}
                 {...props}
             />

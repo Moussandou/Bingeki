@@ -23,11 +23,15 @@
     width: 100%;
     height: 100%;
     display: block;
-    opacity: 0;
-    transition: opacity 0.4s var(--ease-expo);
+    opacity: 1; /* Always visible to allow progressive rendering */
+    transition: opacity 0.3s ease-in-out;
 }
 
-.visible {
+.loading {
+    opacity: 0.6; /* Slight dimming while loading */
+}
+
+.loaded {
     opacity: 1;
 }
 
