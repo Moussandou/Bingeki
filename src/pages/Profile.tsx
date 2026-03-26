@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal'; // Assuming Modal exists, verified in previous steps
 
-import { useGamificationStore } from '@/store/gamificationStore';
+import { useGamificationStore, XP_REWARDS } from '@/store/gamificationStore';
 import { useLibraryStore, type Work } from '@/store/libraryStore';
 import { type GamificationData } from '@/utils/dataProtection';
 import { useAuthStore } from '@/store/authStore';
@@ -1123,10 +1123,10 @@ export default function Profile() {
                                     {t('profile.guide_modal.xp_desc')}
                                 </p>
                                 <ul style={{ fontSize: '0.85rem', marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-                                    <li>{t('profile.guide_modal.xp_read')} <strong>+10 XP</strong></li>
-                                    <li>{t('profile.guide_modal.xp_add')} <strong>+15 XP</strong></li>
-                                    <li>{t('profile.guide_modal.xp_complete')} <strong>+50 XP</strong></li>
-                                    <li>{t('profile.guide_modal.xp_daily')} <strong>+5 XP</strong></li>
+                                    <li>{t('profile.guide_modal.xp_read')} <strong>+{XP_REWARDS.UPDATE_PROGRESS} XP</strong></li>
+                                    <li>{t('profile.guide_modal.xp_add')} <strong>+{XP_REWARDS.ADD_WORK} XP</strong></li>
+                                    <li>{t('profile.guide_modal.xp_complete')} <strong>+{XP_REWARDS.COMPLETE_WORK} XP</strong></li>
+                                    <li>{t('profile.guide_modal.xp_daily')} <strong>+{XP_REWARDS.DAILY_LOGIN} XP (+ bonus de série)</strong></li>
                                 </ul>
                             </div>
                             <div style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '2px solid var(--color-border-heavy)', padding: '1rem', borderRadius: '4px', flex: 1 }}>

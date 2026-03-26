@@ -44,7 +44,7 @@ export const XP_REWARDS = {
     ADD_WORK: 15,
     UPDATE_PROGRESS: 10,
     COMPLETE_WORK: 50,
-    DAILY_LOGIN: 5,
+    DAILY_LOGIN: 25,
 };
 
 export const useGamificationStore = create<GamificationState>()(
@@ -106,9 +106,6 @@ export const useGamificationStore = create<GamificationState>()(
                 const now = new Date();
                 const localTodayStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
                 
-                // Track if we should add daily login XP
-                let isNewLoginDay = false;
-
                 if (lastActivityDate) {
                     const lastDate = new Date(lastActivityDate);
                     const lastLocalStr = `${lastDate.getFullYear()}-${lastDate.getMonth()+1}-${lastDate.getDate()}`;
@@ -129,11 +126,10 @@ export const useGamificationStore = create<GamificationState>()(
                 }
 
                 set({ streak: newStreak, lastActivityDate: now.toISOString() });
-                isNewLoginDay = true;
-
-                if (isNewLoginDay && newStreak > 1) {
-                    addXp(XP_REWARDS.DAILY_LOGIN, true); // Mark as bonus XP
-                }
+                
+                // Add daily login XP + streak bonus (+5 XP per day of streak, max 100 bonus)
+                const streakBonus = Math.min((newStreak - 1) * 5, 100);
+                addXp(XP_REWARDS.DAILY_LOGIN + streakBonus, true); // Mark as bonus XP
             },
 
             unlockBadge: (badgeId) => {

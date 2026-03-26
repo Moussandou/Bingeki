@@ -54,36 +54,50 @@ describe('Gamification Store', () => {
         expect(state3.lastLevel).toBe(2);
     });
 
-    it('should handle recordActivity for streaks with <= 48 hour window', () => {
+    it('should handle recordActivity for streaks and rewards', () => {
         const { recordActivity } = useGamificationStore.getState();
 
-        // 1st login
+        // 1st login (Day 1)
         const date1 = new Date('2024-03-20T10:00:00Z');
         vi.setSystemTime(date1);
         recordActivity();
         
         expect(useGamificationStore.getState().streak).toBe(1);
+        // Expect daily login XP reward (25) even on Day 1
+        expect(useGamificationStore.getState().xp).toBe(XP_REWARDS.DAILY_LOGIN);
 
         // Same day login (should ignore)
         const date2 = new Date('2024-03-20T15:00:00Z');
         vi.setSystemTime(date2);
         recordActivity();
         expect(useGamificationStore.getState().streak).toBe(1);
+        expect(useGamificationStore.getState().xp).toBe(XP_REWARDS.DAILY_LOGIN);
 
-        // Next calendar day, 30 hours later (within 48 hours)
+        // Next calendar day, 30 hours later (Day 2)
         const date3 = new Date('2024-03-21T16:00:00Z');
         vi.setSystemTime(date3);
         recordActivity();
         expect(useGamificationStore.getState().streak).toBe(2);
-        // Expect daily login XP reward since streak > 1. Daily login is bonus XP.
-        expect(useGamificationStore.getState().xp).toBe(XP_REWARDS.DAILY_LOGIN);
-        expect(useGamificationStore.getState().bonusXp).toBe(XP_REWARDS.DAILY_LOGIN);
+        // Expect daily login XP (25) + streak bonus (1 * 5 = 5) = 30 bonus total
+        const expectedXp = XP_REWARDS.DAILY_LOGIN + (XP_REWARDS.DAILY_LOGIN + 5);
+        expect(useGamificationStore.getState().xp).toBe(expectedXp);
+        expect(useGamificationStore.getState().bonusXp).toBe(XP_REWARDS.DAILY_LOGIN + (XP_REWARDS.DAILY_LOGIN + 5));
 
-        // Next calendar day, 49 hours later (streak broken)
-        const date4 = new Date('2024-03-23T17:00:01Z');
+        // Day 3
+        const date4 = new Date('2024-03-22T10:00:00Z');
         vi.setSystemTime(date4);
         recordActivity();
+        expect(useGamificationStore.getState().streak).toBe(3);
+        // Bonus for Day 3 = 25 + (2 * 5) = 35. Total bonus = 25 (D1) + 30 (D2) + 35 (D3) = 90
+        expect(useGamificationStore.getState().bonusXp).toBe(90);
+
+        // Next calendar day, 49 hours later (streak broken)
+        const date5 = new Date('2024-03-24T12:00:01Z');
+        vi.setSystemTime(date5);
+        recordActivity();
         expect(useGamificationStore.getState().streak).toBe(1);
+        // New Day 1 after reset: adds another 25 XP. 90 + 25 = 115
+        expect(useGamificationStore.getState().bonusXp).toBe(115);
     });
 
     it('should calculate XP deterministically via recalculateStats', () => {
