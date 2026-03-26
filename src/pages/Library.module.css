@@ -210,13 +210,24 @@
         gap: 0.75rem;
     }
 
-    .filterButton {
+    .viewControlsCard {
+        grid-column: span 2;
         width: 100%;
+    }
+
+    .selectionModeToggleContainer {
+        grid-column: span 2;
+        display: flex;
     }
 
     .controlButton {
         flex: 1;
-        padding: 0.6rem;
+        padding: 0.75rem 0.5rem;
+    }
+
+    .controlButton svg {
+        width: 18px;
+        height: 18px;
     }
 
     /* Mobile Grid Overrides */

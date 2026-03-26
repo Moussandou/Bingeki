@@ -673,7 +673,7 @@ export default function Library() {
 
                             {/* Selection Mode Toggle */}
                             {!isReadOnly && (
-                                <div style={{ flex: '1 0 100%', display: 'flex' }}>
+                                <div className={styles.selectionModeToggleContainer}>
                                     <Button
                                         variant={isSelectionMode ? 'primary' : 'manga'}
                                         onClick={() => {
