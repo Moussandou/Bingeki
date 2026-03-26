@@ -110,6 +110,7 @@ export const logout = async (): Promise<void> => {
             await saveGamificationToFirestore(currentUser.uid, {
                 level: gamificationState.level,
                 xp: gamificationState.xp,
+                totalXp: gamificationState.totalXp,
                 xpToNextLevel: gamificationState.xpToNextLevel,
                 streak: gamificationState.streak,
                 lastActivityDate: gamificationState.lastActivityDate,
