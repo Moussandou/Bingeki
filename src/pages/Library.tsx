@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { cn } from '@/utils/cn';
 import { Modal } from '@/components/ui/Modal';
 import { AddWorkModal } from '@/components/library/AddWorkModal';
 import { useLibraryStore, type Work } from '@/store/libraryStore';
@@ -444,7 +445,7 @@ export default function Library() {
 
                         {/* Search */}
                         <div className={styles.searchCard}>
-                            <Search size={20} style={{ opacity: 0.4 }} />
+                            <Search size={20} style={{ opacity: 0.6, color: 'var(--color-text)' }} />
                             <input
                                 placeholder={t('library.search')}
                                 value={searchQuery}
@@ -674,13 +675,10 @@ export default function Library() {
                                             setIsSelectionMode(!isSelectionMode);
                                             setSelectedWorks(new Set());
                                         }}
-                                        style={{
-                                            width: '100%',
-                                            justifyContent: 'center',
-                                            background: isSelectionMode ? 'var(--color-primary)' : 'var(--color-surface)',
-                                            color: isSelectionMode ? '#fff' : 'var(--color-text)',
-                                            borderColor: isSelectionMode ? 'var(--color-primary)' : 'var(--color-border-heavy)'
-                                        }}
+                                        className={cn(
+                                            styles.selectionToggle,
+                                            isSelectionMode && styles.selectionToggleActive
+                                        )}
                                     >
                                         {isSelectionMode ? t('library.cancel') : t('library.select')}
                                     </Button>

@@ -17,9 +17,9 @@ class ApiQueue {
     private queue: QueuedRequest[] = [];
     private processing = false;
     private lastRequestTime = 0;
-    private readonly minInterval = 350; // ~3 requests/sec
-    private readonly maxRetries = 2;
-    private readonly retryDelay = 1500; // Wait 1.5s on 429
+    private readonly minInterval = 500; // 2 requests/sec to stay safe under 60/min
+    private readonly maxRetries = 3;
+    private readonly retryDelay = 2000; // Wait 2s on 429
 
     /**
      * Add a request to the queue

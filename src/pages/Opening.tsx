@@ -125,7 +125,7 @@ export default function Opening() {
             try {
                 const topManga = await getTopWorks('manga', 'bypopularity', 6);
                 if (topManga.length > 0) {
-                    setQgMangaList(topManga.map(m => ({
+                    setQgMangaList(topManga.map((m: any) => ({
                         id: m.mal_id,
                         title: m.title,
                         type: 'Manga',

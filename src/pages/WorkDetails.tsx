@@ -23,8 +23,8 @@ import logoCrunchyroll from '@/assets/logo_crunchyroll.png';
 import logoADN from '@/assets/logo_adn.png';
 
 import {
-    getWorkDetails, getWorkCharacters, getWorkRelations, getWorkRecommendations, getWorkPictures, getWorkThemes, getWorkStatistics, type JikanCharacter, type JikanRelation, type JikanRecommendation, type JikanPicture, type JikanTheme, type JikanStatistics, getAnimeStreaming, type JikanStreaming,
-    getAnimeStaff, type JikanStaff, getWorkReviews, type JikanReview
+    getWorkCharacters, getWorkRecommendations, getWorkPictures, getWorkStatistics, type JikanCharacter, type JikanRelation, type JikanRecommendation, type JikanPicture, type JikanTheme, type JikanStatistics, type JikanStreaming,
+    getAnimeStaff, type JikanStaff, getWorkReviews, type JikanReview, getWorkFull
 } from '../services/animeApi';
 import { handleProgressUpdateWithXP } from '@/utils/progressUtils';
 import { useGamificationStore } from '@/store/gamificationStore';
@@ -382,7 +382,7 @@ export default function WorkDetails() {
             }
             // Fallback: default to anime
 
-            getWorkDetails(Number(id), typeToFetch).then(res => {
+            getWorkFull(Number(id), typeToFetch).then(res => {
                 const workTypeNormalized = res.type ? res.type.toLowerCase() : typeToFetch;
                 // Determine our internal type (anime/manga) based on API type
                 const internalType = (workTypeNormalized === 'manga' || workTypeNormalized === 'manhwa' || workTypeNormalized === 'manhua' || workTypeNormalized === 'novel') ? 'manga' : 'anime';
@@ -413,9 +413,16 @@ export default function WorkDetails() {
                     ratingString: res.rating,
                     source: res.source
                 };
+
+                // Sync extra data from /full immediately
+                if (res.relations) setRelations(res.relations);
+                if (res.theme) setThemes(res.theme);
+                if (res.streaming) setStreaming(res.streaming);
+
                 setFetchedWork(mapped);
                 setIsFetchingDetails(false);
-            }).catch(err => {
+            })
+.catch(err => {
                 console.error("Failed to fetch work details", err);
                 setIsFetchingDetails(false);
             });
@@ -438,43 +445,34 @@ export default function WorkDetails() {
 
 
             try {
-                // Sequential fetching to respect Rate Limiting (3 req/sec)
+                // Fetch Characters (not in /full)
                 const chars = await getWorkCharacters(Number(id), type);
                 setCharacters(chars);
                 await delay(300);
 
-                const rels = await getWorkRelations(Number(id), type);
-                setRelations(rels);
-                await delay(300);
-
+                // Fetch Recommendations (not in /full)
                 const recs = await getWorkRecommendations(Number(id), type);
                 setRecommendations(recs);
                 await delay(300);
 
+                // Fetch Pictures (not in /full)
                 const pics = await getWorkPictures(Number(id), type);
                 setPictures(pics);
                 await delay(300);
 
+                // Fetch Statistics (not in /full)
                 const stats = await getWorkStatistics(Number(id), type);
                 setStatistics(stats);
+                await delay(300);
 
+                // Staff is usually not in /full either
                 if (type === 'anime') {
-                    await delay(300);
-                    const themes = await getWorkThemes(Number(id));
-                    setThemes(themes);
-
-                    await delay(300);
-                    await delay(300);
-                    const stream = await getAnimeStreaming(Number(id));
-                    setStreaming(stream);
-
-                    await delay(300);
                     const stf = await getAnimeStaff(Number(id));
                     setStaff(stf);
+                    await delay(300);
                 }
 
                 // Fetch reviews for both anime and manga
-                await delay(300);
                 const revs = await getWorkReviews(Number(id), type);
                 setReviews(revs);
 
