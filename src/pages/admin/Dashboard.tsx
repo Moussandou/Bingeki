@@ -122,8 +122,27 @@ export default function AdminDashboard() {
         return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
+    // Final hydration gate to prevent mismatch with SEO handler's empty DOM
+    if (!isMounted) {
+        return <div style={{ minHeight: '100vh', background: 'var(--color-background)' }} />;
+    }
+
     if (loading) {
-        return <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'monospace' }}>{t('admin.dashboard.loading')}</div>;
+        return (
+            <div style={{ 
+                padding: '4rem 2rem', 
+                textAlign: 'center', 
+                fontFamily: 'monospace', 
+                color: 'var(--color-text-dim)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                alignItems: 'center'
+            }}>
+                <RefreshCw size={24} style={{ animation: 'spin 2s linear infinite' }} />
+                <span>{t('admin.dashboard.loading')}...</span>
+            </div>
+        );
     }
 
     const COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -312,9 +331,9 @@ export default function AdminDashboard() {
                         <h3 style={sectionTitleStyle}><TrendingUp size={20} /> {t('admin.dashboard.activity_volume')}</h3>
                         <div style={{ fontFamily: 'monospace', fontSize: '0.7rem' }}>HEBDOMADAIRE</div>
                     </div>
-                    <div style={{ height: '300px', minWidth: 0 }}>
+                    <div style={{ height: '300px', minWidth: 0, position: 'relative', overflow: 'hidden' }}>
                         {isMounted ? (
-                            <ResponsiveContainer width="100%" height="100%">
+                             <ResponsiveContainer width="100%" height="100%" debounce={50}>
                                 <AreaChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} style={{ fontSize: '10px' }} />
@@ -325,16 +344,16 @@ export default function AdminDashboard() {
                                 </AreaChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div style={{ height: '100%', border: '1px dashed var(--color-border)', opacity: 0.5 }} />
+                            <div style={{ height: '100%', width: '100%', border: '1px dashed var(--color-border)', opacity: 0.2 }} />
                         )}
                     </div>
                 </Card>
 
                 <Card variant="manga" style={chartCardStyle} onClick={() => navigate('/admin/analytics/retention')}>
                     <h3 style={sectionTitleStyle}><Activity size={20} /> {t('admin.dashboard.active_users')}</h3>
-                    <div style={{ height: '300px', minWidth: 0 }}>
+                    <div style={{ height: '300px', minWidth: 0, position: 'relative', overflow: 'hidden' }}>
                         {isMounted ? (
-                            <ResponsiveContainer width="100%" height="100%">
+                             <ResponsiveContainer width="100%" height="100%" debounce={50}>
                                 <BarChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} style={{ fontSize: '10px' }} />
@@ -344,7 +363,7 @@ export default function AdminDashboard() {
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div style={{ height: '100%', border: '1px dashed var(--color-border)', opacity: 0.5 }} />
+                            <div style={{ height: '100%', width: '100%', border: '1px dashed var(--color-border)', opacity: 0.2 }} />
                         )}
                     </div>
                 </Card>
@@ -355,10 +374,10 @@ export default function AdminDashboard() {
                 <Card variant="manga" style={chartCardStyle} onClick={() => navigate('/admin/analytics/engagement')}>
                     <h3 style={sectionTitleStyle}><Clipboard size={20} /> {t('admin.dashboard.engagement_breakdown')}</h3>
                     {engagementData && Object.values(engagementData).some(v => (v as number) > 0) ? (
-                        <div style={{ display: 'flex', alignItems: 'center', height: '250px', minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '250px', minWidth: 0, position: 'relative', overflow: 'hidden' }}>
                             {isMounted ? (
                                 <>
-                                    <ResponsiveContainer width="60%" height="100%">
+                                    <ResponsiveContainer width="60%" height="100%" debounce={50}>
                                         <PieChart>
                                             <Pie 
                                                 data={Object.entries(engagementData).map(([name, value]) => ({ name, value }))} 
@@ -396,7 +415,7 @@ export default function AdminDashboard() {
 
                 <Card variant="manga" style={chartCardStyle}>
                     <h3 style={sectionTitleStyle}><TrendingUp size={20} /> {t('admin.dashboard.funnel')}</h3>
-                    <div style={{ height: '250px', minWidth: 0 }}>
+                    <div style={{ height: '250px', minWidth: 0, position: 'relative', overflow: 'hidden' }}>
                         {isMounted ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart layout="vertical" data={funnelData} margin={{ left: 40, right: 40 }}>
