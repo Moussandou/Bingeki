@@ -9,6 +9,7 @@ import { Search, Check, Users, MessageCircle, Heart, TrendingUp, ChevronUp, Hist
 import { InstallPWA } from '@/components/pwa/InstallPWA';
 import { useAuthStore } from '@/store/authStore';
 import { useTranslation } from 'react-i18next';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 
 // Counter Component for Animated Numbers
@@ -295,8 +296,8 @@ export default function Opening() {
                                     style={{ transform: i % 2 === 0 ? 'translateY(20px)' : 'translateY(-20px)' }}
                                 >
                                     <Card variant="manga" hoverable style={{ padding: 0, boxShadow: '6px 6px 0 var(--color-shadow-solid)' }}>
-                                        <div style={{ aspectRatio: '2/3', background: '#333' }}>
-                                            <img src={manga.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <div style={{ aspectRatio: '2/3', background: '#333', position: 'relative' }}>
+                                            <OptimizedImage src={manga.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
                                         </div>
                                     </Card>
                                 </motion.div>
@@ -415,7 +416,9 @@ export default function Opening() {
                                         transition={{ delay: 0.1 * index, type: "spring", stiffness: 100 }}
                                     >
                                         <Card variant="manga" hoverable style={{ display: 'flex', padding: 0, overflow: 'hidden', alignItems: 'center' }}>
-                                            <img src={res.image} alt="" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                                            <div style={{ width: '80px', height: '80px', position: 'relative' }}>
+                                                <OptimizedImage src={res.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+                                            </div>
                                             <div style={{ padding: '0 1rem', flex: 1 }}>
                                                 <div style={{ fontWeight: 900 }}>{res.title}</div>
                                                 <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>{res.type} • ★ {res.score}</div>
@@ -517,17 +520,17 @@ export default function Opening() {
                                     }}>
                                         {/* Fake WorkDetails Header/Cover */}
                                         <div style={{ height: '160px', position: 'relative', overflow: 'hidden', background: '#333' }}>
-                                            <img
+                                            <OptimizedImage
                                                 src="https://cdn.myanimelist.net/images/manga/3/210341l.jpg"
                                                 alt="JJK Banner"
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8, objectPosition: 'center 25%' }}
+                                                style={{ opacity: 0.8, objectPosition: 'center 25%' }}
                                             />
                                             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)' }} />
 
                                             <div style={{ position: 'absolute', bottom: '1rem', left: '1rem', display: 'flex', alignItems: 'flex-end', gap: '1rem' }}>
                                                 {/* Mini Poster */}
-                                                <div style={{ width: '80px', height: '120px', border: '3px solid var(--color-surface)', boxShadow: '0 4px 6px var(--color-shadow-solid)', marginBottom: '-3rem', zIndex: 10, background: '#000' }}>
-                                                    <img src="https://cdn.myanimelist.net/images/manga/3/210341l.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <div style={{ width: '80px', height: '120px', border: '3px solid var(--color-surface)', boxShadow: '0 4px 6px var(--color-shadow-solid)', marginBottom: '-3rem', zIndex: 10, background: '#000', position: 'relative' }}>
+                                                    <OptimizedImage src="https://cdn.myanimelist.net/images/manga/3/210341l.jpg" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
                                                 </div>
 
                                                 <div style={{ paddingBottom: '0.5rem' }}>
@@ -681,11 +684,11 @@ export default function Opening() {
                             <div className={styles.appPromoActions}>
                                 <InstallPWA variant="landing" />
                                 <div className={styles.qrContainer}>
-                                    <img 
+                                    <OptimizedImage
                                         src={"https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://bingeki.web.app/?install=1&color=000000&bgcolor=ffffff"}
-                                        alt="QR Code" 
-                                        width="100" 
-                                        height="100" 
+                                        alt="QR Code"
+                                        width="100"
+                                        height="100"
                                     />
                                     <span style={{ fontSize: '0.8rem', fontWeight: 800, marginTop: '0.5rem', textAlign: 'center' }}>
                                         {t('landing.features.mobile.scan_qr') || "Scannez pour installer"}
@@ -793,12 +796,14 @@ export default function Opening() {
                                 className={styles.kofiButton}
                                 whileTap={{ scale: 0.98 }}
                             >
-                                <img
+                                <OptimizedImage
                                     src="/Ko-fi logo.gif"
                                     alt="Support me on Ko-fi"
+                                    objectFit="contain"
+                                    showSkeleton={false}
                                     style={{
                                         height: '40px',
-                                        display: 'block',
+                                        width: '120px',
                                         margin: '0 auto'
                                     }}
                                 />

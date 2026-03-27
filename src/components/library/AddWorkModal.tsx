@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -288,14 +289,15 @@ export function AddWorkModal({ isOpen, onClose, initialWork }: AddWorkModalProps
                                         whileHover={{ borderColor: 'var(--color-primary)', x: 4 }}
                                     >
                                         <div style={{ width: '50px', height: '70px', border: '2px solid var(--color-border-heavy)', flexShrink: 0 }}>
-                                            <img
+                                            <OptimizedImage
                                                 src={work.images.jpg.image_url}
                                                 alt={work.title}
                                                 style={{
                                                     width: '100%',
-                                                    height: '100%',
-                                                    objectFit: 'cover'
+                                                    height: '100%'
                                                 }}
+                                                objectFit="cover"
+                                                showSkeleton={false}
                                             />
                                         </div>
                                         <div style={{ flex: 1 }}>
@@ -429,10 +431,12 @@ export function AddWorkModal({ isOpen, onClose, initialWork }: AddWorkModalProps
                             </div>
                         ) : (
                             <div style={{ position: 'relative', width: '100px', height: '140px', border: '3px solid var(--color-border-heavy)' }}>
-                                <img
+                                <OptimizedImage
                                     src={isValidImageSrc(manualImage) ? manualImage : ""}
                                     alt="Preview"
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    style={{ width: '100%', height: '100%' }}
+                                    objectFit="cover"
+                                    showSkeleton={false}
                                 />
                                 <button
                                     onClick={() => setManualImage('')}

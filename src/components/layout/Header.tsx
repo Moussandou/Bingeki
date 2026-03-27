@@ -1,4 +1,5 @@
 import { Link } from '@/components/routing/LocalizedLink';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -189,7 +190,7 @@ export function Header() {
 
                     {/* Left: Logo */}
                     <Link to="/" className={`${styles.logo} text-gradient`}>
-                        <img src="/logo.png" alt="Bingeki Logo" style={{ width: 50, height: 50, objectFit: 'contain' }} />
+                        <OptimizedImage src="/logo.png" alt="Bingeki Logo" style={{ width: 50, height: 50 }} objectFit="contain" showSkeleton={false} priority />
                         <div className={styles.logoText}>
                             <span style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)', letterSpacing: '-1px' }}>BINGEKI</span>
                         </div>
@@ -359,7 +360,7 @@ export function Header() {
                                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                     >
                                         <div style={{ width: 30, height: 30, borderRadius: '0', background: '#333', overflow: 'hidden', border: '2px solid var(--color-border)' }}>
-                                            <img src={userProfile?.photoURL || user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile?.displayName || user?.displayName || 'Bingeki'}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <OptimizedImage src={userProfile?.photoURL || user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile?.displayName || user?.displayName || 'Bingeki'}`} alt="Avatar" style={{ width: '100%', height: '100%' }} objectFit="cover" showSkeleton={false} />
                                         </div >
                                         <ChevronDown size={16} style={{ opacity: 0.7, color: 'var(--color-text)', transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                                     </button >

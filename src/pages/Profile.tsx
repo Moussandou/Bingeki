@@ -1,4 +1,5 @@
 
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { Layout } from '@/components/layout/Layout';
 import { useTranslation } from 'react-i18next';
 
@@ -399,10 +400,11 @@ export default function Profile() {
                                         >
                                             {/* Mini profile preview */}
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <img
+                                                <OptimizedImage
                                                     src={extendedProfile.photoURL || (isOwnProfile ? user?.photoURL : '') || `https://api.dicebear.com/7.x/avataaars/svg?seed=${extendedProfile.displayName}`}
                                                     alt=""
-                                                    style={{ width: '36px', height: '36px', borderRadius: '0', objectFit: 'cover', border: `2px solid ${extendedProfile.themeColor || 'var(--color-primary)'}`, boxShadow: `2px 2px 0 ${extendedProfile.themeColor || 'var(--color-primary)'}` }}
+                                                    style={{ width: '36px', height: '36px', border: `2px solid ${extendedProfile.themeColor || 'var(--color-primary)'}`, boxShadow: `2px 2px 0 ${extendedProfile.themeColor || 'var(--color-primary)'}` }}
+                                                    objectFit="cover"
                                                 />
                                                 <div>
                                                     <p style={{ fontWeight: 800, fontSize: '0.9rem', margin: 0 }}>{extendedProfile.displayName || (isOwnProfile ? user?.displayName : 'User')}</p>
@@ -608,10 +610,10 @@ export default function Profile() {
                                                     border: '2px solid var(--color-border-heavy)',
                                                     marginBottom: '0.25rem'
                                                 }}>
-                                                    <img
+                                                    <OptimizedImage
                                                         src={work.image || `https://via.placeholder.com/80x110?text=${work.type}`}
                                                         alt={work.title}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        objectFit="cover"
                                                     />
                                                 </div>
                                                 <p style={{
@@ -720,10 +722,10 @@ export default function Profile() {
                                                         boxShadow: '4px 4px 0 var(--color-shadow-solid)',
                                                         cursor: 'pointer'
                                                     }}>
-                                                    <img
+                                                    <OptimizedImage
                                                         src={char.image}
                                                         alt={char.name}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        objectFit="cover"
                                                     />
                                                 </div>
                                                 <p style={{
@@ -862,10 +864,10 @@ export default function Profile() {
                                     <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
                                         <div style={{ position: 'relative', width: '100px', height: '100px', flexShrink: 0 }}>
                                             <div style={{ width: '100%', height: '100%', borderRadius: '0', overflow: 'hidden', border: '4px solid var(--color-primary)', boxShadow: '6px 6px 0 var(--color-primary)' }}>
-                                                <img
+                                                <OptimizedImage
                                                     src={editForm.avatar || 'https://via.placeholder.com/150'}
                                                     alt="Avatar"
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    objectFit="cover"
                                                 />
                                             </div>
                                             <label htmlFor="avatar-upload" style={{ position: 'absolute', bottom: -10, right: -10, background: 'var(--color-text)', color: 'var(--color-surface)', borderRadius: '0', padding: '8px', cursor: 'pointer', border: '3px solid var(--color-primary)', display: 'flex', boxShadow: '4px 4px 0 var(--color-primary)' }}>
@@ -911,11 +913,11 @@ export default function Profile() {
                                     {editForm.banner && (
                                         <div style={{ marginTop: '0.5rem' }}>
                                             <div style={{ width: '100%', height: '150px', border: '4px solid var(--color-text)', overflow: 'hidden', position: 'relative', background: '#000', boxShadow: '6px 6px 0 var(--color-shadow-solid)' }}>
-                                                <img
+                                                <OptimizedImage
                                                     src={editForm.banner}
                                                     alt="Aperçu"
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${editForm.bannerPosition || '50%'}` }}
-                                                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                                                    objectFit="cover"
+                                                    style={{ objectPosition: `center ${editForm.bannerPosition || '50%'}` }}
                                                 />
                                                 <button onClick={() => setEditForm(prev => ({ ...prev, banner: '' }))}
                                                     style={{ position: 'absolute', top: 10, right: 10, background: '#ff4444', color: 'white', border: '3px solid #000', borderRadius: '50%', width: 30, height: 30, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}

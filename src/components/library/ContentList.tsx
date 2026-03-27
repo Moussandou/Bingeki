@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Eye, Loader2, Tv, FileText } from 'lucide-react';
@@ -166,7 +167,7 @@ export function ContentList({
                                                     title={t('content_list.watch_on_crunchyroll')}
                                                     style={{ padding: '0', height: '36px', width: '36px', overflow: 'hidden' }}
                                                 >
-                                                    <img src={logoCrunchyroll} alt="CR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                    <OptimizedImage src={logoCrunchyroll} alt="CR" style={{ width: '100%', height: '100%' }} objectFit="contain" showSkeleton={false} />
                                                 </Button>
                                             )}
 
@@ -179,7 +180,7 @@ export function ContentList({
                                                     title={t('content_list.watch_on_adn')}
                                                     style={{ padding: '0', height: '36px', width: '36px', overflow: 'hidden' }}
                                                 >
-                                                    <img src={logoADN} alt="ADN" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                    <OptimizedImage src={logoADN} alt="ADN" style={{ width: '100%', height: '100%' }} objectFit="contain" showSkeleton={false} />
                                                 </Button>
                                             )}
 

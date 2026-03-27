@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -251,10 +252,12 @@ export function ChallengesSection({ onNavigateToProfile }: ChallengesSectionProp
                                                 #{index + 1}
                                             </span>
                                             <div style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-border-heavy)' }}>
-                                                <img
+                                                <OptimizedImage
                                                     src={p.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`}
                                                     alt=""
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    style={{ width: '100%', height: '100%' }}
+                                                    objectFit="cover"
+                                                    showSkeleton={false}
                                                 />
                                             </div>
                                             <div style={{ flex: 1 }}>
@@ -385,7 +388,7 @@ export function ChallengesSection({ onNavigateToProfile }: ChallengesSectionProp
                                         }}
                                     >
                                         <div style={{ width: '100%', aspectRatio: '2/3', borderRadius: '4px', overflow: 'hidden' }}>
-                                            <img src={work.image} alt={work.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <OptimizedImage src={work.image} alt={work.title} style={{ width: '100%', height: '100%' }} objectFit="cover" />
                                         </div>
                                         <p style={{ fontSize: '0.65rem', textAlign: 'center', marginTop: '0.25rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{work.title}</p>
                                     </div>
@@ -419,10 +422,12 @@ export function ChallengesSection({ onNavigateToProfile }: ChallengesSectionProp
                                         }}
                                     >
                                         <div style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-border-heavy)' }}>
-                                            <img
+                                            <OptimizedImage
                                                 src={friend.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.displayName}`}
                                                 alt=""
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                style={{ width: '100%', height: '100%' }}
+                                                objectFit="cover"
+                                                showSkeleton={false}
                                             />
                                         </div>
                                         <span style={{ fontWeight: 600 }}>{friend.displayName}</span>

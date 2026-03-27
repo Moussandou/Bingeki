@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { getAnimeSchedule, type JikanResult } from '@/services/animeApi';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Calendar } from 'lucide-react';
@@ -79,11 +80,11 @@ export default function Schedule() {
                                     onClick={() => navigate(`/work/${anime.mal_id}?type=anime`)}
                                 >
                                     <div className={styles.imageContainer}>
-                                        <img
+                                        <OptimizedImage
                                             src={anime.images.jpg.image_url}
                                             alt={anime.title}
                                             className={styles.image}
-                                            loading="lazy"
+                                            objectFit="cover"
                                         />
                                         <div style={{
                                             position: 'absolute',

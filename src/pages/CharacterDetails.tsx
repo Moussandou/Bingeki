@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Heart, User, Loader2, Mic } from 'lucide-react';
 import { getCharacterFull, type JikanCharacterFull, type JikanCharacterAnime, type JikanCharacterVoice, type JikanCharacterManga } from '@/services/animeApi'; // Ensure JikanCharacterManga is imported
 import { SEO } from '@/components/layout/SEO';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useLibraryStore } from '@/store/libraryStore';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/context/ToastContext';
@@ -91,10 +92,11 @@ export default function CharacterDetails() {
                 {/* Header */}
                 <div className={styles.header}>
                     <div className={styles.imageWrapper}>
-                        <img
+                        <OptimizedImage
                             src={character.images?.jpg?.image_url || character.images?.webp?.image_url}
                             alt={character.name}
                             className={styles.image}
+                            objectFit="cover"
                         />
                     </div>
                     <div className={styles.infoSection}>
@@ -265,10 +267,11 @@ export default function CharacterDetails() {
                             className={styles.voiceActorCard}
                             onClick={() => navigate(`/person/${jpVoice.person.mal_id}`)}
                         >
-                            <img
+                            <OptimizedImage
                                 src={jpVoice.person.images?.jpg?.image_url}
                                 alt={jpVoice.person.name}
                                 className={styles.voiceActorImage}
+                                objectFit="cover"
                             />
                             <div className={styles.voiceActorInfo}>
                                 <div className={styles.voiceActorName}>{jpVoice.person.name}</div>
@@ -290,10 +293,11 @@ export default function CharacterDetails() {
                                     className={styles.card}
                                     onClick={() => navigate(`/work/${a.anime.mal_id}?type=anime`)}
                                 >
-                                    <img
+                                    <OptimizedImage
                                         src={a.anime.images?.jpg?.image_url}
                                         alt={a.anime.title}
                                         className={styles.cardImage}
+                                        objectFit="cover"
                                     />
                                     <div className={styles.cardTitle}>{a.anime.title}</div>
                                     <div className={styles.cardRole}>{a.role}</div>
@@ -314,10 +318,11 @@ export default function CharacterDetails() {
                                     className={styles.card}
                                     onClick={() => navigate(`/work/${m.manga?.mal_id}?type=manga`)}
                                 >
-                                    <img
+                                    <OptimizedImage
                                         src={m.manga?.images?.jpg?.image_url}
                                         alt={m.manga?.title || 'Manga'}
                                         className={styles.cardImage}
+                                        objectFit="cover"
                                     />
                                     <div className={styles.cardTitle}>{m.manga?.title || 'Unknown'}</div>
                                     <div className={styles.cardRole}>{m.role}</div>

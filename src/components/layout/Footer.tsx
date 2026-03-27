@@ -1,4 +1,5 @@
 import { Mail, MapPin, Github, Linkedin, Globe, Briefcase, Coffee, MessageCircle, Instagram } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { InstallPWA } from '@/components/pwa/InstallPWA';
@@ -110,7 +111,7 @@ export function Footer() {
                                 rel="noopener noreferrer"
                                 className={styles.kofiButton}
                             >
-                                <img
+                                <OptimizedImage
                                     src="/Ko-fi logo.gif"
                                     alt={t('landing.features.support.kofi_alt')}
                                     style={{
@@ -118,6 +119,8 @@ export function Footer() {
                                         display: 'block',
                                         margin: '0 auto'
                                     }}
+                                    objectFit="contain"
+                                    showSkeleton={false}
                                 />
                             </a>
                             <p style={{ fontSize: '0.75rem', marginTop: '1rem', color: '#000', opacity: 0.7, fontWeight: 600 }}>

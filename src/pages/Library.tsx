@@ -660,7 +660,13 @@ export default function Library() {
                                             className={`${styles.controlButton} ${styles.malButton}`}
                                             title={t('mal_import.import_mal')}
                                         >
-                                            <img src="/mal-logo.png" alt="MAL" />
+                                            <OptimizedImage
+                                                src="/mal-logo.png"
+                                                alt="MAL"
+                                                objectFit="contain"
+                                                containerClassName={styles.malLogoWrapper}
+                                                showSkeleton={false}
+                                            />
                                         </button>
                                     </>
                                 )}

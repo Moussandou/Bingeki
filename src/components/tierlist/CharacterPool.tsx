@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { useDraggable } from '@dnd-kit/core';
 import { Search, Info } from 'lucide-react';
@@ -220,7 +221,7 @@ export function CharacterPool() {
                                         }}
                                         className="hover:border-black transition-colors"
                                     >
-                                        <img src={work.images?.jpg?.image_url} alt={work.title} style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover' }} />
+                                        <OptimizedImage src={work.images?.jpg?.image_url} alt={work.title} style={{ width: '100%', aspectRatio: '2/3' }} objectFit="cover" />
                                         <div style={{
                                             position: 'absolute', bottom: 0, left: 0, right: 0,
                                             background: 'rgba(0,0,0,0.8)', color: 'white',

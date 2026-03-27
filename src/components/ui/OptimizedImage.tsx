@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getProxiedImageUrl } from '@/utils/imageProxy';
 import styles from './OptimizedImage.module.css';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -26,10 +27,10 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 }) => {
     const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState(false);
-    const [imageSrc, setImageSrc] = useState<string | undefined | null>(src);
+    const [imageSrc, setImageSrc] = useState<string | undefined | null>(getProxiedImageUrl(src));
 
     useEffect(() => {
-        setImageSrc(src);
+        setImageSrc(getProxiedImageUrl(src));
         setLoaded(false);
         setError(false);
     }, [src]);
@@ -53,7 +54,6 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
                     }
                 }}
                 loading={priority ? 'eager' : 'lazy'}
-                referrerPolicy="no-referrer"
                 {...props}
             />
         </div>

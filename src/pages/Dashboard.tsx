@@ -236,13 +236,12 @@ export default function Dashboard() {
                                             cursor: 'pointer',
                                             backgroundColor: '#0a0a0b'
                                         }}>
-                                            {/* Background Image - Using img tag with no-referrer to bypass MAL block */}
+                                            {/* Background Image - OptimizedImage handles proxy and referrer */}
                                             <div style={{ position: 'absolute', inset: 0 }}>
-                                                <img 
+                                                <OptimizedImage 
                                                     src={lastUpdatedWork.image} 
                                                     alt="" 
-                                                    referrerPolicy="no-referrer"
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.6)' }}
+                                                    style={{ width: '100%', height: '100%', filter: 'brightness(0.6)' }}
                                                 />
                                             </div>
 

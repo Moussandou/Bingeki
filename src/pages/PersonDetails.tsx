@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Heart, Calendar, Loader2, Mic } from 'lucide-react';
 import { getPersonFull, type JikanPersonFull, type JikanPersonVoice } from '@/services/animeApi';
 import { SEO } from '@/components/layout/SEO';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import styles from './PersonDetails.module.css';
 
 type PersonFullData = JikanPersonFull & {
@@ -101,10 +102,11 @@ export default function PersonDetails() {
                 {/* Header */}
                 <div className={styles.header}>
                     <div className={styles.imageWrapper}>
-                        <img
+                        <OptimizedImage
                             src={person.images?.jpg?.image_url}
                             alt={person.name}
                             className={styles.image}
+                            objectFit="cover"
                         />
                     </div>
                     <div className={styles.infoSection}>
@@ -230,15 +232,17 @@ export default function PersonDetails() {
                                     className={styles.roleCard}
                                     onClick={() => navigate(`/character/${v.character.mal_id}`)}
                                 >
-                                    <img
+                                    <OptimizedImage
                                         src={v.character.images?.jpg?.image_url}
                                         alt={v.character.name}
                                         className={styles.characterImage}
+                                        objectFit="cover"
                                     />
-                                    <img
+                                    <OptimizedImage
                                         src={v.anime.images?.jpg?.image_url}
                                         alt={v.anime.title}
                                         className={styles.animeImage}
+                                        objectFit="cover"
                                     />
                                     <div className={styles.roleInfo}>
                                         <div className={styles.characterName}>{v.character.name}</div>

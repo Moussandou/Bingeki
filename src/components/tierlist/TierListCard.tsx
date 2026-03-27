@@ -1,4 +1,5 @@
 import type { TierList } from '@/firebase/firestore';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { Heart, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -54,17 +55,18 @@ export function TierListCard({ tierList }: TierListCardProps) {
                     {previewTier?.label || 'RANK'}
                 </div>
                 {previewItems.map(item => (
-                    <img
+                    <OptimizedImage
                         key={item.id}
                         src={item.image}
                         alt={item.name}
                         style={{
                             width: '60px',
                             height: '80px',
-                            objectFit: 'cover',
                             borderRadius: '4px',
                             border: '2px solid black'
                         }}
+                        objectFit="cover"
+                        showSkeleton={false}
                     />
                 ))}
             </div>
@@ -83,7 +85,7 @@ export function TierListCard({ tierList }: TierListCardProps) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#888', fontSize: '0.9rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {tierList.authorPhoto ? (
-                            <img src={tierList.authorPhoto} style={{ width: 24, height: 24, borderRadius: '50%' }} alt="Author" />
+                            <OptimizedImage src={tierList.authorPhoto} style={{ width: 24, height: 24, borderRadius: '50%' }} alt="Author" objectFit="cover" showSkeleton={false} />
                         ) : (
                             <User size={16} />
                         )}

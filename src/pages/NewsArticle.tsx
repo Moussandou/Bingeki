@@ -12,6 +12,7 @@ import { ArrowLeft, ExternalLink, Calendar, Link as LinkIcon, List, BookOpen, Ar
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import DOMPurify from 'dompurify';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { isBot } from '@/utils/isBot';
 
 interface NewsItem {
@@ -187,10 +188,10 @@ export default function NewsArticle() {
                         {/* Header Image */}
                         {article.imageUrl && (
                             <div className="news-article-header-image" style={{ width: '100%', borderBottom: '3px solid var(--color-border-heavy)', position: 'relative' }}>
-                                <img
+                                <OptimizedImage
                                     src={article.imageUrl}
                                     alt={article.title}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    objectFit="cover"
                                 />
                                 <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '50%', background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }} />
 

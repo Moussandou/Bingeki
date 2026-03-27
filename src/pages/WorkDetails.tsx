@@ -1,4 +1,5 @@
 import { useParams, useSearchParams } from 'react-router-dom';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocalizedNavigate } from '@/components/routing/LocalizedLink';
 import { Layout } from '@/components/layout/Layout';
@@ -8,8 +9,6 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal'; // Import Modal
 import { ArrowLeft, Star, BookOpen, Check, Trash2, Tv, FileText, Trophy, AlertTriangle, MessageCircle, Heart, Send, EyeOff, Reply, Video, Calendar, BarChart, Music, Disc, X, ArrowUp } from 'lucide-react';
 import { useState, useEffect, memo } from 'react';
-import { OptimizedImage } from '@/components/ui/OptimizedImage';
-
 
 
 import { useToast } from '@/context/ToastContext';
@@ -957,7 +956,13 @@ export default function WorkDetails() {
                                                         title={`${t('work_details.streaming.watch_on')} ${s.name}`}
                                                     >
                                                         {service.logo ? (
-                                                            <img src={service.logo} alt={service.short} style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                                                            <OptimizedImage 
+                                                                src={service.logo} 
+                                                                alt={service.short} 
+                                                                containerClassName={styles.serviceLogoContainer}
+                                                                style={{ width: '22px', height: '22px' }} 
+                                                                objectFit="contain" 
+                                                            />
                                                         ) : (
                                                             <span>{service.short}</span>
                                                         )}
@@ -1286,10 +1291,10 @@ export default function WorkDetails() {
                                                                     onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                                                                     onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                                                 >
-                                                                    <img
+                                                                    <OptimizedImage
                                                                         src={c.character.images.jpg.image_url}
                                                                         alt={c.character.name}
-                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                        objectFit="cover"
                                                                     />
                                                                 </div>
                                                                 <div
@@ -1321,7 +1326,11 @@ export default function WorkDetails() {
                                                                             border: '2px solid var(--color-border-heavy)',
                                                                             marginBottom: '2px'
                                                                         }}>
-                                                                            <img src={jpVa.person.images.jpg.image_url} alt={jpVa.person.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                            <OptimizedImage
+                                                                                src={jpVa.person.images.jpg.image_url}
+                                                                                alt={jpVa.person.name}
+                                                                                objectFit="cover"
+                                                                            />
                                                                         </div>
                                                                         <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-dim)', textAlign: 'center', lineHeight: 1.1 }}>
                                                                             {jpVa.person.name}
@@ -1698,8 +1707,11 @@ export default function WorkDetails() {
                                                                 border: '2px solid var(--color-surface)',
                                                                 marginLeft: '-8px'
                                                             }}>
-                                                                <img src={f.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.displayName}`}
-                                                                    alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                <OptimizedImage
+                                                                    src={f.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.displayName}`}
+                                                                    alt={f.displayName || ''}
+                                                                    objectFit="cover"
+                                                                />
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1862,7 +1874,11 @@ export default function WorkDetails() {
                                                             <div key={s.person.mal_id} style={{ minWidth: '120px', maxWidth: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                                                                 <div style={{ width: '90px', height: '90px', borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--color-border-heavy)', marginBottom: '0.5rem', boxShadow: '3px 3px 0 0px var(--color-shadow-solid)' }}>
                                                                     {s.person.images.jpg.image_url ? (
-                                                                        <img src={s.person.images.jpg.image_url} alt={s.person.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                        <OptimizedImage
+                                                                            src={s.person.images.jpg.image_url}
+                                                                            alt={s.person.name}
+                                                                            objectFit="cover"
+                                                                        />
                                                                     ) : (
                                                                         <div style={{ width: '100%', height: '100%', background: 'var(--color-surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 900 }}>?</div>
                                                                     )}
@@ -1980,8 +1996,10 @@ export default function WorkDetails() {
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid var(--color-border)', paddingBottom: '1rem' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                         <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-border-heavy)' }}>
-                                                            <img src={review.user.images.jpg.image_url} alt={review.user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                                onError={(e) => { (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${review.user.username}`; }}
+                                                            <OptimizedImage
+                                                                src={review.user.images.jpg.image_url}
+                                                                alt={review.user.username}
+                                                                objectFit="cover"
                                                             />
                                                         </div>
                                                         <div>
@@ -2078,10 +2096,10 @@ export default function WorkDetails() {
                                                 onMouseLeave={(e) => e.currentTarget.style.transform = 'translate(0, 0)'}
                                                 onClick={() => setSelectedImageIndex(idx)}
                                             >
-                                                <img
+                                                <OptimizedImage
                                                     src={pic.jpg.large_image_url}
-                                                    alt={`Gallery ${idx}`}
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    alt={`Gallery ${idx + 1}`}
+                                                    objectFit="cover"
                                                 />
                                             </div>
                                         ))}
@@ -2264,10 +2282,11 @@ export default function WorkDetails() {
                                             onMouseEnter={(e) => e.currentTarget.style.transform = 'translate(-4px, -4px)'}
                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'translate(0, 0)'}
                                         >
-                                            <img
+                                            <OptimizedImage
                                                 src={rec.entry.images.jpg.large_image_url}
                                                 alt={rec.entry.title}
-                                                style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', display: 'block' }}
+                                                objectFit="cover"
+                                                style={{ width: '100%', aspectRatio: '2/3', display: 'block' }}
                                             />
                                             <div style={{
                                                 position: 'absolute',
@@ -2395,13 +2414,13 @@ export default function WorkDetails() {
                                 <ArrowLeft size={30} color="#000" />
                             </button>
 
-                            <img
+                            <OptimizedImage
                                 src={pictures[selectedImageIndex].jpg.large_image_url}
-                                alt="Gallery Fullscreen"
+                                alt="Lightbox"
+                                objectFit="contain"
                                 style={{
                                     maxWidth: '100%',
                                     maxHeight: '100%',
-                                    objectFit: 'contain',
                                     boxShadow: '0 0 20px rgba(0,0,0,0.5)'
                                 }}
                                 onClick={(e) => e.stopPropagation()}

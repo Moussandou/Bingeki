@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '@/components/ui/Modal';
@@ -148,7 +149,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                     flexShrink: 0,
                     background: 'var(--color-surface-hover)'
                 }}>
-                    <img src={image} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <OptimizedImage src={image} alt={title} style={{ width: '100%', height: '100%' }} objectFit="cover" showSkeleton={false} />
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>

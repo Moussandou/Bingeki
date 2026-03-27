@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { Link } from '@/components/routing/LocalizedLink';
 import { Flame } from 'lucide-react';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface NewsCardProps {
     title: string;
@@ -47,11 +48,10 @@ export function NewsCard({ title, slug, imageUrl, sourceName, publishedAt, tags 
                 {/* Thumbnail */}
                 <div className="news-thumbnail">
                     {imageUrl ? (
-                        <img
+                        <OptimizedImage
                             src={imageUrl}
                             alt={title}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            loading="lazy"
+                            objectFit="cover"
                         />
                     ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--color-text-dim)', fontFamily: 'var(--font-heading)', background: 'repeating-linear-gradient(45deg, var(--color-surface-hover), var(--color-surface-hover) 10px, var(--color-border) 10px, var(--color-border) 20px)' }}>
