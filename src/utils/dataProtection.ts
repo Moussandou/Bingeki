@@ -215,18 +215,19 @@ export function validateGamificationWrite(
     }
 
     // 2. SECURITY CHECK: Prevent massive jumps (Anti-Cheat)
+    // Relaxed for legitimate syncs/backlogs
     if (newData.level && existing.level) {
-        // Max 1 level increase per save
-        if (newData.level > existing.level + 1) {
-            console.error(`[DataProtection] SECURITY: Prevented suspicious level jump (${existing.level} -> ${newData.level})`);
+        // Max 10 level increase per save
+        if (newData.level > existing.level + 10) {
+            console.warn(`[DataProtection] SECURITY: Prevented suspicious level jump (${existing.level} -> ${newData.level})`);
             return false;
         }
     }
 
     if (newData.xp && existing.xp) {
-        // Max 10000 XP increase per save (covers most generous rewards + backlog imports)
-        if (newData.xp > existing.xp + 10000) {
-            console.error(`[DataProtection] SECURITY: Prevented suspicious XP jump (+${newData.xp - existing.xp})`);
+        // Max 25000 XP increase per save
+        if (newData.xp > existing.xp + 25000) {
+            console.warn(`[DataProtection] SECURITY: Prevented suspicious XP jump (+${newData.xp - existing.xp})`);
             return false;
         }
     }

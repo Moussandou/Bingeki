@@ -67,9 +67,13 @@ import { UsernameSelectionModal } from '@/components/auth/UsernameSelectionModal
 import { XPGainToast } from '@/components/gamification/XPGainToast';
 import { LevelUpModal } from '@/components/gamification/LevelUpModal';
 
+// Global hook for hydration safety
+import { useMounted } from '@/hooks/useMounted';
+
 // Bot aware suspense to avoid blank screen during hydration for screenshot tools
 const BotAwareSuspense = ({ children }: { children: React.ReactNode }) => {
-  const fallback = isBot() ? null : <LoadingScreen />;
+  const isMounted = useMounted();
+  const fallback = !isMounted || isBot() ? null : <LoadingScreen />;
   return <Suspense fallback={fallback}>{children}</Suspense>;
 };
 
@@ -89,6 +93,7 @@ const LanguageManager = () => {
   const { lang } = useParams();
   const { i18n } = useTranslation();
   const location = useLocation();
+  const isMounted = useMounted();
 
   useEffect(() => {
     if (lang && (lang === 'fr' || lang === 'en')) {
@@ -97,6 +102,9 @@ const LanguageManager = () => {
       }
     }
   }, [lang, i18n]);
+
+  // Prevent hydration mismatch: render nothing until mounted
+  if (!isMounted) return null;
 
   // If language is invalid or missing, redirect to detection
   if (!lang || !['fr', 'en'].includes(lang)) {
@@ -122,6 +130,10 @@ const LanguageManager = () => {
 const RootRedirect = () => {
   const { i18n } = useTranslation();
   const location = useLocation();
+  const isMounted = useMounted();
+
+  // Prevent hydration mismatch
+  if (!isMounted) return null;
 
   // Prevent redirect loops for static files that fell through
   if (/\.(xml|txt|json|png|jpg|jpeg|svg|ico)$/i.test(location.pathname)) {
@@ -239,13 +251,25 @@ function App() {
     };
   }, [setUser, setLoading, setUserProfile]);
 
-  // Real-time synchronization: Bridge authStore.userProfile to gamificationStore
+  // Save gamification changes to Firestore ONLY if the change wasn't from a sync
+  const [shouldSaveGamification, setShouldSaveGamification] = useState(false);
+  
   useEffect(() => {
+    if (!user || userProfile === undefined) return;
+    
     const syncProfile = useGamificationStore.getState().syncFromProfile;
     if (userProfile) {
+      // Syncing from profile should NOT trigger a save back to Firestore
       syncProfile(userProfile);
+      setShouldSaveGamification(false);
     }
   }, [userProfile]);
+
+  // Set flag to allow saving when gamification state changes, but ONLY after initial sync
+  useEffect(() => {
+    if (!user) return;
+    setShouldSaveGamification(true);
+  }, [gamificationState, user]);
 
   // Auto-save to Firestore when data changes (debounced)
   useEffect(() => {
@@ -260,7 +284,7 @@ function App() {
   }, [libraryWorks, libraryFolders, user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !shouldSaveGamification) return;
 
     // Save gamification changes to Firestore
     const timeout = setTimeout(() => {

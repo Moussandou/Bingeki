@@ -234,14 +234,17 @@ export default function Dashboard() {
                                             height: '220px',
                                             overflow: 'hidden',
                                             cursor: 'pointer',
+                                            backgroundColor: '#0a0a0b'
                                         }}>
-                                            {/* Background Image */}
-                                            <div style={{
-                                                position: 'absolute',
-                                                inset: 0,
-                                                background: `url(${lastUpdatedWork.image}) center/cover`,
-                                                filter: 'brightness(0.8)'
-                                            }} />
+                                            {/* Background Image - Using img tag with no-referrer to bypass MAL block */}
+                                            <div style={{ position: 'absolute', inset: 0 }}>
+                                                <img 
+                                                    src={lastUpdatedWork.image} 
+                                                    alt="" 
+                                                    referrerPolicy="no-referrer"
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.6)' }}
+                                                />
+                                            </div>
 
                                             {/* Gradient Overlay */}
                                             <div style={{
