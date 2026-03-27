@@ -56,7 +56,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
             <img
                 src={finalSrc}
                 alt={alt}
-                className={`${styles.image} ${!loaded && !error ? styles.loading : styles.loaded} ${className}`}
+                className={`${styles.image} ${className}`}
                 style={{ width: '100%', height: '100%', objectFit, ...style }}
                 onLoad={() => setLoaded(true)}
                 onError={() => {

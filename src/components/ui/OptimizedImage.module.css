@@ -27,15 +27,6 @@
     transition: opacity 0.3s ease-in-out;
 }
 
-.loading {
-    opacity: 0; /* Keep it invisible until loaded to avoid flickering or 'white filter' look */
-}
+/* Removed .loading and .loaded classes */
 
-.loaded {
-    opacity: 1;
-}
-
-@keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
+/* Removed @keyframes loading as it's no longer used by .skeleton */
