@@ -332,7 +332,9 @@ const resources = {
                 library_title: "Votre Bibliothèque",
                 library_desc: "Toutes vos œuvres suivies sont ici. Mettez-les à jour au fur et à mesure.",
                 import_title: "Importation facile",
-                import_desc: "Déjà une liste sur MyAnimeList ? Importez-la en un clic et récupérez tout votre historique."
+                import_desc: "Déjà une liste sur MyAnimeList ? Importez-la en un clic et récupérez tout votre historique.",
+                gamification_title: "Gamification & Récompenses",
+                gamification_desc: "Gagnez de l'XP en mettant à jour votre liste. Débloquez des badges exclusifs et grimpez les rangs de la Hunter Society."
             },
             dashboard: {
                 title: "TABLEAU DE BORD",
@@ -2370,7 +2372,9 @@ const resources = {
                 library_title: "Your Library",
                 library_desc: "All your tracked works are here. Update them as you read.",
                 import_title: "Easy Import",
-                import_desc: "Already have a list on MyAnimeList? Import it in one click and recover your history."
+                import_desc: "Already have a list on MyAnimeList? Import it in one click and recover your history.",
+                gamification_title: "Gamification & Rewards",
+                gamification_desc: "Earn XP by updating your list. Unlock exclusive badges and climb the ranks of the Hunter Society."
             },
             dashboard: {
                 title: "DASHBOARD",
