@@ -384,13 +384,20 @@ export default function WorkDetails() {
         if (id && !fetchedWork && !isFetchingDetails) {
             setIsFetchingDetails(true);
             let typeToFetch: 'anime' | 'manga' = 'anime';
-            if (typeParam) {
+            // 1. Priority: check library
+            if (libraryWork && libraryWork.type) {
+                const libType = (libraryWork.type as string).toLowerCase();
+                if (['manga', 'novel', 'manhwa', 'manhua', 'doujinshi', 'oneshot', 'oel'].includes(libType)) {
+                    typeToFetch = 'manga';
+                }
+            } 
+            // 2. Secondary: check URL parameter
+            else if (typeParam) {
                 const normalized = typeParam.toLowerCase();
                 if (['manga', 'novel', 'manhwa', 'manhua', 'doujinshi', 'oneshot', 'oel'].includes(normalized)) {
                     typeToFetch = 'manga';
                 }
             }
-            // Fallback: default to anime
 
             getWorkFull(Number(id), typeToFetch).then(res => {
                 const workTypeNormalized = res.type ? res.type.toLowerCase() : typeToFetch;

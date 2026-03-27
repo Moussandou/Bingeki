@@ -81,7 +81,7 @@ app.listen(PORT, async () => {
         // Save the HTML to dist
         // e.g. /fr/news -> dist/fr/news/index.html
         let outPath = route;
-        if (outPath === '/') outPath = '/index.html';
+        if (outPath === '/') outPath = '/fr/home/index.html';
         else if (!outPath.endsWith('.html')) outPath = `${route}/index.html`;
         
         const fullPath = path.join(distPath, outPath);

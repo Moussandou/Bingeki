@@ -39,7 +39,7 @@ export default function Discover() {
     const [popularManga, setPopularManga] = useState<JikanResult[]>([]);
     const [topManga, setTopManga] = useState<JikanResult[]>([]);
 
-
+    const [isLoadingSections, setIsLoadingSections] = useState(true);
     const [selectedWork, setSelectedWork] = useState<JikanResult | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { works } = useLibraryStore();
@@ -79,26 +79,27 @@ export default function Discover() {
         dataFetched.current = true;
 
         const fetchHomeData = async () => {
-            // No global loading - progressive loading handles UI
+            setIsLoadingSections(true);
             try {
                 // Stagger requests to avoid 429 Rate Limit (Jikan is strict)
                 const season = await getSeasonalAnime(15);
-                if (season.length > 0) setSeasonalAnime(season);
+                setSeasonalAnime(season);
                 await new Promise(r => setTimeout(r, 600));
 
                 const topA = await getTopWorks('anime', 'favorite', 15);
-                if (topA.length > 0) setTopAnime(topA);
+                setTopAnime(topA);
                 await new Promise(r => setTimeout(r, 600));
 
                 const popM = await getTopWorks('manga', 'bypopularity', 15);
-                if (popM.length > 0) setPopularManga(popM);
+                setPopularManga(popM);
                 await new Promise(r => setTimeout(r, 600));
 
                 const topM = await getTopWorks('manga', 'favorite', 15);
-                if (topM.length > 0) setTopManga(topM);
-
+                setTopManga(topM);
             } catch (error) {
                 console.error("Failed to load discovery data", error);
+            } finally {
+                setIsLoadingSections(false);
             }
         };
         fetchHomeData();
@@ -237,10 +238,11 @@ export default function Discover() {
                                 transition={{ duration: 0.5 }}
                                 className={styles.heroImageContainer}
                             >
-                                <img
+                                <OptimizedImage
                                     src={heroWork.images.jpg.large_image_url}
                                     alt={heroWork.title}
                                     className={styles.heroImage}
+                                    priority={true}
                                 />
                             </motion.div>
 
@@ -690,7 +692,7 @@ export default function Discover() {
                                 onItemClick={handleWorkClick}
                                 libraryIds={libraryIds}
                                 onAdd={handleQuickAdd}
-                                loading={seasonalAnime.length === 0}
+                                loading={isLoadingSections}
                             />
 
                             <Carousel
@@ -699,7 +701,7 @@ export default function Discover() {
                                 onItemClick={handleWorkClick}
                                 libraryIds={libraryIds}
                                 onAdd={handleQuickAdd}
-                                loading={topAnime.length === 0}
+                                loading={isLoadingSections}
                                 showRank
                             />
 
@@ -709,7 +711,7 @@ export default function Discover() {
                                 onItemClick={handleWorkClick}
                                 libraryIds={libraryIds}
                                 onAdd={handleQuickAdd}
-                                loading={popularManga.length === 0}
+                                loading={isLoadingSections}
                             />
 
                             <Carousel
@@ -718,7 +720,7 @@ export default function Discover() {
                                 onItemClick={handleWorkClick}
                                 libraryIds={libraryIds}
                                 onAdd={handleQuickAdd}
-                                loading={topManga.length === 0}
+                                loading={isLoadingSections}
                                 showRank
                             />
 

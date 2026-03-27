@@ -9,6 +9,7 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
     containerClassName?: string;
     showSkeleton?: boolean;
     objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
+    priority?: boolean;
 }
 
 export const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -19,6 +20,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     containerClassName = '',
     showSkeleton = true,
     objectFit = 'cover',
+    priority = false,
     style,
     ...props
 }) => {
@@ -32,17 +34,6 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         setError(false);
     }, [src]);
 
-    const handleLoad = () => {
-        setLoaded(true);
-    };
-
-    const handleError = () => {
-        if (!error && fallback) {
-            setImageSrc(fallback);
-            setError(true);
-        }
-    };
-
     // If no src is provided at all, use fallback immediately
     const finalSrc = imageSrc || fallback;
 
@@ -52,13 +43,17 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
             <img
                 src={finalSrc}
                 alt={alt}
-                onLoad={handleLoad}
-                onError={handleError}
-                loading="lazy"
-                decoding="async"
-                referrerPolicy={finalSrc?.includes('myanimelist.net') ? 'no-referrer' : undefined}
                 className={`${styles.image} ${!loaded && !error ? styles.loading : styles.loaded} ${className}`}
                 style={{ ...style, objectFit }}
+                onLoad={() => setLoaded(true)}
+                onError={() => {
+                    setError(true);
+                    if (imageSrc !== fallback) {
+                        setImageSrc(fallback);
+                    }
+                }}
+                loading={priority ? 'eager' : 'lazy'}
+                referrerPolicy="no-referrer"
                 {...props}
             />
         </div>

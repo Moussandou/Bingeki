@@ -442,9 +442,10 @@ export default function Dashboard() {
                                                 <Card variant="manga" hoverable style={{ padding: 0, overflow: 'hidden', height: '100%' }}>
                                                     <div style={{ position: 'relative', paddingTop: '150%' }}>
                                                         <OptimizedImage
-                                                            src={manga.images.jpg.image_url}
+                                                            src={manga.images.jpg.large_image_url || manga.images.jpg.image_url}
                                                             alt={manga.title}
                                                             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                                                            priority={true}
                                                         />
                                                         <div style={{
                                                             position: 'absolute',
