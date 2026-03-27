@@ -63,7 +63,7 @@ export function SocialLinksBanner() {
                         }}
                     >
                         <div style={{
-                            background: social.name === 'TikTok' ? 'var(--color-surface)' : '#fff',
+                            background: 'var(--color-surface)',
                             border: '3px solid var(--color-border-heavy)',
                             padding: '1.5rem',
                             display: 'flex',
@@ -94,8 +94,8 @@ export function SocialLinksBanner() {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexShrink: 0,
-                                border: '2px solid #000',
-                                boxShadow: '4px 4px 0 #000'
+                                border: '2px solid var(--color-text)',
+                                boxShadow: '4px 4px 0 var(--color-text)'
                             }}>
                                 {social.icon}
                             </div>
@@ -107,7 +107,7 @@ export function SocialLinksBanner() {
                                     fontWeight: 900,
                                     fontFamily: 'var(--font-heading)',
                                     textTransform: 'uppercase',
-                                    color: social.name === 'TikTok' ? 'var(--color-text)' : '#000'
+                                    color: 'var(--color-text-contrast)'
                                 }}>
                                     {social.title}
                                 </h3>
@@ -115,8 +115,8 @@ export function SocialLinksBanner() {
                                     margin: '0.25rem 0 0',
                                     fontSize: '0.75rem',
                                     fontWeight: 700,
-                                    opacity: 0.6,
-                                    color: social.name === 'TikTok' ? 'var(--color-text)' : '#444'
+                                    opacity: 0.8,
+                                    color: 'var(--color-text-muted)'
                                 }}>
                                     {social.desc}
                                 </p>
