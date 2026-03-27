@@ -241,7 +241,9 @@ export default function Dashboard() {
                                                 <OptimizedImage 
                                                     src={lastUpdatedWork.image} 
                                                     alt="" 
-                                                    style={{ width: '100%', height: '100%', filter: 'brightness(0.6)' }}
+                                                    fill
+                                                    priority={true}
+                                                    style={{ filter: 'brightness(0.6)' }}
                                                 />
                                             </div>
 
@@ -331,7 +333,7 @@ export default function Dashboard() {
                                                     }}
                                                 >
                                                     <div style={{ paddingTop: '140%', position: 'relative' }}>
-                                                        <OptimizedImage src={work.image} alt="" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <OptimizedImage src={work.image} alt="" fill priority={true} />
                                                     </div>
                                                     <div style={{
                                                         position: 'absolute',
@@ -443,7 +445,7 @@ export default function Dashboard() {
                                                         <OptimizedImage
                                                             src={manga.images.jpg.large_image_url || manga.images.jpg.image_url}
                                                             alt={manga.title}
-                                                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                                                            fill
                                                             priority={true}
                                                         />
                                                         <div style={{

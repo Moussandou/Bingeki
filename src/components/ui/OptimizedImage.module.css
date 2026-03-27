@@ -11,9 +11,9 @@
     inset: 0;
     background: linear-gradient(
         90deg, 
-        transparent 25%, 
-        rgba(255, 46, 99, 0.05) 50%, 
-        transparent 75%
+        rgba(0, 0, 0, 0.05) 25%, 
+        rgba(255, 40, 90, 0.1) 50%, 
+        rgba(0, 0, 0, 0.05) 75%
     );
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
@@ -28,7 +28,7 @@
 }
 
 .loading {
-    opacity: 0.6; /* Slight dimming while loading */
+    opacity: 0; /* Keep it invisible until loaded to avoid flickering or 'white filter' look */
 }
 
 .loaded {

@@ -8,9 +8,11 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
     fallback?: string;
     className?: string;
     containerClassName?: string;
+    containerStyle?: React.CSSProperties;
     showSkeleton?: boolean;
     objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
     priority?: boolean;
+    fill?: boolean;
 }
 
 export const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -19,9 +21,11 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     fallback = 'https://api.dicebear.com/7.x/shapes/svg?seed=fallback',
     className = '',
     containerClassName = '',
+    containerStyle = {},
     showSkeleton = true,
     objectFit = 'cover',
     priority = false,
+    fill = false,
     style,
     ...props
 }) => {
@@ -38,14 +42,22 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     // If no src is provided at all, use fallback immediately
     const finalSrc = imageSrc || fallback;
 
+    const wrapperStyles: React.CSSProperties = {
+        ...(fill ? { position: 'absolute', inset: 0 } : {}),
+        ...containerStyle
+    };
+
     return (
-        <div className={`${styles.wrapper} ${containerClassName}`}>
+        <div 
+            className={`${styles.wrapper} ${containerClassName}`}
+            style={wrapperStyles}
+        >
             {showSkeleton && !loaded && !error && <div className={styles.skeleton} />}
             <img
                 src={finalSrc}
                 alt={alt}
                 className={`${styles.image} ${!loaded && !error ? styles.loading : styles.loaded} ${className}`}
-                style={{ ...style, objectFit }}
+                style={{ width: '100%', height: '100%', objectFit, ...style }}
                 onLoad={() => setLoaded(true)}
                 onError={() => {
                     setError(true);
