@@ -50,13 +50,15 @@ export default function SurveyDashboard() {
         const processCounts = (field: string) => {
             const counts: Record<string, number> = {};
             responses.forEach(r => {
-                const val = r.answers?.[field] || 'Unknown';
-                if (Array.isArray(val)) {
-                    val.forEach(v => {
-                        counts[v] = (counts[v] || 0) + 1;
+                const rawVal = r.answers?.[field];
+                if (Array.isArray(rawVal)) {
+                    rawVal.forEach(v => {
+                        const s = String(v);
+                        counts[s] = (counts[s] || 0) + 1;
                     });
                 } else {
-                    counts[val] = (counts[val] || 0) + 1;
+                    const s = String(rawVal || 'Unknown');
+                    counts[s] = (counts[s] || 0) + 1;
                 }
             });
             return Object.entries(counts)
@@ -64,9 +66,9 @@ export default function SurveyDashboard() {
                 .sort((a, b) => b.value - a.value);
         };
 
-        const waitlistCount = responses.filter(r => r.answers?.email && r.answers?.wantsLaunchNews === 'Oui').length;
-        const highInterestCount = responses.filter(r => r.answers?.interestLevel === 'Extrêmement intéressé' || r.answers?.interestLevel === 'Very Interested').length;
-        const premiumInterestCount = responses.filter(r => r.answers?.premiumInterest === 'Oui' || r.answers?.premiumInterest === 'Yes').length;
+        const waitlistCount = responses.filter(r => (r.answers?.email as string) && (r.answers?.wantsLaunchNews as string) === 'Oui').length;
+        const highInterestCount = responses.filter(r => (r.answers?.interestLevel as string) === 'Extrêmement intéressé' || (r.answers?.interestLevel as string) === 'Very Interested').length;
+        const premiumInterestCount = responses.filter(r => (r.answers?.premiumInterest as string) === 'Oui' || (r.answers?.premiumInterest as string) === 'Yes').length;
 
         return {
             total: responses.length,
@@ -276,15 +278,15 @@ export default function SurveyDashboard() {
                                             <td>
                                                 <div className={styles.emailCell}>
                                                     <Mail size={14} />
-                                                    {response.answers?.email || 'Anonymous'}
+                                                    {String(response.answers?.email || 'Anonymous')}
                                                 </div>
                                             </td>
                                             <td>
-                                                {response.answers?.ageRange || '?'}, {response.answers?.status || '?'}
+                                                {String(response.answers?.ageRange || '?')}, {String(response.answers?.status || '?')}
                                             </td>
                                             <td>
-                                                <span className={`${styles.tag} ${styles[`interest_${response.answers?.interestLevel?.replace(/[^a-zA-Z0-9]/g, '_')}`] || styles.interest_Unknown}`}>
-                                                    {response.answers?.interestLevel || t('common.unknown', 'Inconnu')}
+                                                <span className={`${styles.tag} ${styles[`interest_${String(response.answers?.interestLevel || '').replace(/[^a-zA-Z0-9]/g, '_')}`] || styles.interest_Unknown}`}>
+                                                    {String(response.answers?.interestLevel || t('common.unknown', 'Inconnu'))}
                                                 </span>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
