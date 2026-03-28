@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { PartyPopper, MessageCircle, Home, UserPlus, Instagram, Music } from 'lucide-react';
+import { PartyPopper, Home, UserPlus, Instagram } from 'lucide-react';
+import { DiscordIcon, TikTokIcon } from '@/components/ui/BrandIcons';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Layout } from '@/components/layout/Layout';
@@ -53,7 +54,7 @@ export default function FormSurveyThankYou() {
                 size="lg"
                 onClick={() => window.open("https://discord.gg/gjkBRjsbWx", "_blank")}
               >
-                <MessageCircle size={20} /> {t('survey.thank_you.discord')}
+                <DiscordIcon size={20} /> {t('survey.thank_you.discord')}
               </Button>
 
               <Button 
@@ -67,9 +68,9 @@ export default function FormSurveyThankYou() {
               <Button 
                 variant="outline" 
                 size="lg"
-                onClick={() => window.open("https://www.tiktok.com/@bingeki4?_r=1&_t=ZN-94lPhlGFNeY", "_blank")}
+                onClick={() => window.open("https://www.tiktok.com/@bingeki", "_blank")}
               >
-                <Music size={20} /> {t('survey.thank_you.tiktok')}
+                <TikTokIcon size={20} /> {t('survey.thank_you.tiktok')}
               </Button>
               
               <Button 

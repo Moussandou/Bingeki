@@ -1,4 +1,5 @@
-import { Instagram, MessageCircle } from 'lucide-react';
+import { Instagram } from 'lucide-react';
+import { DiscordIcon, TikTokIcon } from '@/components/ui/BrandIcons';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 
@@ -8,12 +9,21 @@ export function SocialLinksBanner() {
     const socials = [
         {
             name: 'Discord',
-            icon: <MessageCircle size={24} />,
+            icon: <DiscordIcon size={24} />,
             url: 'https://discord.gg/gjkBRjsbWx',
             color: '#5865F2',
             title: t('dashboard.community_discord'),
             desc: t('dashboard.community_discord_desc'),
             shadow: '8px 8px 0 rgba(88, 101, 242, 0.3)'
+        },
+        {
+            name: 'TikTok',
+            icon: <TikTokIcon size={24} />,
+            url: 'https://www.tiktok.com/@bingeki',
+            color: '#000000',
+            title: t('dashboard.community_tiktok'),
+            desc: t('dashboard.community_tiktok_desc'),
+            shadow: '8px 8px 0 rgba(0, 0, 0, 0.3)'
         },
         {
             name: 'Instagram',

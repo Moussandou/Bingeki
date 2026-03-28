@@ -1,4 +1,5 @@
-import { Mail, MapPin, Github, Linkedin, Globe, Briefcase, Coffee, MessageCircle, Instagram } from 'lucide-react';
+import { Mail, MapPin, Github, Linkedin, Globe, Briefcase, Coffee, Instagram } from 'lucide-react';
+import { DiscordIcon, TikTokIcon } from '@/components/ui/BrandIcons';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
@@ -48,7 +49,13 @@ export function Footer() {
                         title="Discord"
                         className={`${styles.socialIconActive} ${styles.discord}`}
                     >
-                        <MessageCircle size={24} />
+                        <DiscordIcon size={24} />
+                    </a>
+                    <a href="https://www.tiktok.com/@bingeki" target="_blank" rel="noopener noreferrer"
+                        title="TikTok"
+                        className={`${styles.socialIconActive} ${styles.tiktok}`}
+                    >
+                        <TikTokIcon size={24} />
                     </a>
                     <a href="https://www.instagram.com/bingeki.fr" target="_blank" rel="noopener noreferrer"
                         title="Instagram"
