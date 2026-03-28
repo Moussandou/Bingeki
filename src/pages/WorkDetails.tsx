@@ -696,7 +696,6 @@ export default function WorkDetails() {
     const handleLikeComment = async (commentId: string) => {
         if (!user) return;
         await toggleCommentLike(commentId, user.uid);
-        // Reload comments to reflect like change
         if (work) {
             const updated = await getCommentsWithReplies(Number(work.id));
             setComments(updated);

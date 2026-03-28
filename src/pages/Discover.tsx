@@ -81,20 +81,16 @@ export default function Discover() {
         const fetchHomeData = async () => {
             setIsLoadingSections(true);
             try {
-                // Stagger requests to avoid 429 Rate Limit (Jikan is strict)
-                const season = await getSeasonalAnime(15);
+                // Fetch all sections in parallel — apiQueue handles rate limiting
+                const [season, topA, popM, topM] = await Promise.all([
+                    getSeasonalAnime(15),
+                    getTopWorks('anime', 'favorite', 15),
+                    getTopWorks('manga', 'bypopularity', 15),
+                    getTopWorks('manga', 'favorite', 15)
+                ]);
                 setSeasonalAnime(season);
-                await new Promise(r => setTimeout(r, 600));
-
-                const topA = await getTopWorks('anime', 'favorite', 15);
                 setTopAnime(topA);
-                await new Promise(r => setTimeout(r, 600));
-
-                const popM = await getTopWorks('manga', 'bypopularity', 15);
                 setPopularManga(popM);
-                await new Promise(r => setTimeout(r, 600));
-
-                const topM = await getTopWorks('manga', 'favorite', 15);
                 setTopManga(topM);
             } catch (error) {
                 console.error("Failed to load discovery data", error);

@@ -80,19 +80,19 @@ export default function Social() {
                 { category: string; limit: number },
                 { leaderboard: (UserProfile & { rank: number })[] }
             >(functions, 'getLeaderboard');
-            const result = await getLeaderboardFn({ category: leaderboardCategory, limit: 20 });
+
+            // Fetch leaderboard and user rank in parallel
+            const [result, rankData] = await Promise.all([
+                getLeaderboardFn({ category: leaderboardCategory, limit: 20 }),
+                user ? getUserRank(user.uid, leaderboardCategory) : Promise.resolve(null)
+            ]);
+
             const data = result.data.leaderboard as UserProfile[];
             setLeaderboard(data);
-            // Always fetch user rank so we can show it if they're not in the visible top 8
-            // (top 3 podium + 5 initially displayed in list)
+
             if (user) {
                 const isInTop3 = data.slice(0, 3).some(u => u.uid === user.uid);
-                if (isInTop3) {
-                    setCurrentUserRank(null);
-                } else {
-                    const rankData = await getUserRank(user.uid, leaderboardCategory);
-                    setCurrentUserRank(rankData);
-                }
+                setCurrentUserRank(isInTop3 ? null : rankData);
             }
         } else if (activeTab === 'activity' && user) {
             const activityData = await getFriendsActivity(user.uid, 30);
@@ -130,7 +130,6 @@ export default function Social() {
                 targetUser
             );
             // Refresh to update UI
-            loadData();
             loadData();
             addToast(t('social.friends.request_sent_toast', { name: targetUser.displayName }), 'success');
         } catch (error) {

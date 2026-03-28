@@ -18,7 +18,8 @@ export class ApiQueue {
     private queue: QueuedRequest[] = [];
     private processing = false;
     private lastRequestTime = 0;
-    private readonly minInterval = 800; // Increase from 500ms to 800ms (safely under 60-75/min)
+    private inflight = new Map<string, Promise<Response>>();
+    private readonly minInterval = 400; // 2.5 req/sec — safe under Jikan's 3/sec limit
     private readonly maxRetries = 3;
     private readonly retryDelay = 3000; // Wait 3s on 429
 
@@ -26,10 +27,23 @@ export class ApiQueue {
      * Add a request to the queue
      */
     async fetch(url: string, options?: RequestInit): Promise<Response> {
-        return new Promise((resolve, reject) => {
+        // Deduplicate identical in-flight GET requests
+        if (!options?.method || options.method === 'GET') {
+            const existing = this.inflight.get(url);
+            if (existing) return existing.then(r => r.clone());
+        }
+
+        const promise = new Promise<Response>((resolve, reject) => {
             this.queue.push({ url, options, resolve, reject, retries: 0 });
             this.processQueue();
         });
+
+        if (!options?.method || options.method === 'GET') {
+            this.inflight.set(url, promise);
+            promise.finally(() => this.inflight.delete(url));
+        }
+
+        return promise;
     }
 
     /**

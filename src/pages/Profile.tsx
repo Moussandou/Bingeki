@@ -94,12 +94,28 @@ export default function Profile() {
 
         setLoadingProfile(true);
 
-        // Load User Profile (Banner, Bio, XP, Level, etc.) - main document has all data
-        getUserProfile(targetUid).then(profile => {
+        // Load profile + friendship/compare in parallel
+        const loadProfile = async () => {
+            const profile = await getUserProfile(targetUid);
             if (profile) {
                 setExtendedProfile(profile);
-                // For visited profiles, set stats from the profile data
-                if (!isOwnProfile) {
+                if (isOwnProfile) {
+                    setEditForm({
+                        displayName: profile.displayName || user?.displayName || '',
+                        avatar: profile.photoURL || user?.photoURL || '',
+                        banner: profile.banner || '',
+                        bannerPosition: profile.bannerPosition || 'center',
+                        bio: profile.bio || '',
+                        themeColor: profile.themeColor || '#000000',
+                        cardBgColor: profile.cardBgColor || '#ffffff',
+                        borderColor: profile.borderColor || '#000000',
+                        favoriteManga: profile.favoriteManga || '',
+                        top3Favorites: profile.top3Favorites || [],
+                        featuredBadge: profile.featuredBadge || '',
+                        favoriteCharacters: profile.favoriteCharacters || [],
+                        isSuperAdmin: profile.isSuperAdmin || false
+                    });
+                } else {
                     setVisitedStats({
                         level: profile.level || 1,
                         xp: profile.xp || 0,
@@ -116,42 +132,18 @@ export default function Profile() {
                 }
             }
             setLoadingProfile(false);
-        });
+        };
 
-        // If own profile, sync form with loaded profile
-        if (isOwnProfile && user?.uid) {
-            getUserProfile(user.uid).then(p => {
-                if (p) {
-                    setExtendedProfile(p);
-                    setEditForm({
-                        displayName: p.displayName || user?.displayName || '',
-                        avatar: p.photoURL || user?.photoURL || '',
-                        banner: p.banner || '',
-                        bannerPosition: p.bannerPosition || 'center',
-                        bio: p.bio || '',
-                        themeColor: p.themeColor || '#000000',
-                        cardBgColor: p.cardBgColor || '#ffffff',
-                        borderColor: p.borderColor || '#000000',
-                        favoriteManga: p.favoriteManga || '',
-                        top3Favorites: p.top3Favorites || [],
-                        featuredBadge: p.featuredBadge || '',
-                        favoriteCharacters: p.favoriteCharacters || [],
-                        isSuperAdmin: p.isSuperAdmin || false
-                    });
-                }
-            });
-        }
-
-        // Load friendship status and common works if visiting another profile
+        // Load friendship + compare in parallel with profile
         if (!isOwnProfile && user?.uid && uid) {
-            checkFriendship(user.uid, uid).then(status => {
-                setFriendshipStatus(status);
-            });
-            compareLibraries(user.uid, uid).then(common => {
-                setCommonWorks(common);
-            });
+            Promise.all([
+                loadProfile(),
+                checkFriendship(user.uid, uid).then(setFriendshipStatus),
+                compareLibraries(user.uid, uid).then(setCommonWorks)
+            ]);
         } else {
             setFriendshipStatus('none');
+            loadProfile();
         }
 
     }, [uid, user?.uid, isOwnProfile, user?.displayName, user?.photoURL]);

@@ -27,13 +27,18 @@ interface CacheEntry<T> {
 }
 
 const API_CACHE = new Map<string, CacheEntry<unknown>>();
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes cache
 
-const getCached = <T>(key: string): T | null => {
+// Different TTLs for different content stability
+const CACHE_TTL_SHORT = 10 * 60 * 1000;   // 10 min — search results, trending
+const CACHE_TTL_MEDIUM = 60 * 60 * 1000;  // 1 hour — reviews, stats, staff
+const CACHE_TTL_LONG = 4 * 60 * 60 * 1000; // 4 hours — anime details, characters, episodes
+
+const getCached = <T>(key: string, ttl: number = CACHE_TTL_SHORT): T | null => {
     const cached = API_CACHE.get(key) as CacheEntry<T> | undefined;
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    if (cached && Date.now() - cached.timestamp < ttl) {
         return cached.data;
     }
+    if (cached) API_CACHE.delete(key);
     return null;
 };
 
@@ -224,14 +229,16 @@ export interface JikanEpisode {
 }
 
 export const getAnimeEpisodes = async (id: number, page: number = 1) => {
+    const cacheKey = `anime_${id}_episodes_p${page}`;
+    const cached = getCached<{ data: JikanEpisode[]; pagination: { has_next_page: boolean } }>(cacheKey, CACHE_TTL_LONG);
+    if (cached) return cached;
     try {
         const response = await queuedFetch(`${BASE_URL}/anime/${id}/episodes?page=${page}`);
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
-        return {
-            data: data.data as JikanEpisode[],
-            pagination: data.pagination
-        };
+        const result = { data: data.data as JikanEpisode[], pagination: data.pagination };
+        setCache(cacheKey, result);
+        return result;
     } catch (error) {
         console.error('API Error:', error);
         return { data: [], pagination: { has_next_page: false } };
@@ -239,11 +246,16 @@ export const getAnimeEpisodes = async (id: number, page: number = 1) => {
 };
 
 export const getAnimeEpisodeDetails = async (id: number, episodeId: number) => {
+    const cacheKey = `anime_${id}_episode_${episodeId}`;
+    const cached = getCached<{ synopsis: string; duration: number }>(cacheKey, CACHE_TTL_LONG);
+    if (cached) return cached;
     try {
         const response = await queuedFetch(`${BASE_URL}/anime/${id}/episodes/${episodeId}`);
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
-        return data.data as { synopsis: string; duration: number; };
+        const result = data.data as { synopsis: string; duration: number; };
+        setCache(cacheKey, result);
+        return result;
     } catch (error) {
         console.error('API Error:', error);
         return null;
@@ -252,7 +264,7 @@ export const getAnimeEpisodeDetails = async (id: number, episodeId: number) => {
 
 export const getWorkDetails = async (id: number, type: 'anime' | 'manga'): Promise<JikanResult> => {
     const cacheKey = `${type}_${id}_details`;
-    const cached = getCached<JikanResult>(cacheKey);
+    const cached = getCached<JikanResult>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;
 
     try {
@@ -290,7 +302,7 @@ export interface JikanResultFull extends JikanResult {
 
 export const getWorkFull = async (id: number, type: 'anime' | 'manga'): Promise<JikanResultFull> => {
     const cacheKey = `${type}_${id}_full`;
-    const cached = getCached<JikanResultFull>(cacheKey);
+    const cached = getCached<JikanResultFull>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;
 
     try {
@@ -347,7 +359,7 @@ export interface JikanCharacter {
 
 export const getWorkCharacters = async (id: number, type: 'anime' | 'manga') => {
     const cacheKey = `${type}_${id}_characters`;
-    const cached = getCached<JikanCharacter[]>(cacheKey);
+    const cached = getCached<JikanCharacter[]>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;
 
     try {
@@ -375,7 +387,7 @@ export interface JikanRelation {
 
 export const getWorkRelations = async (id: number, type: 'anime' | 'manga') => {
     const cacheKey = `${type}_${id}_relations`;
-    const cached = getCached<JikanRelation[]>(cacheKey);
+    const cached = getCached<JikanRelation[]>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;
 
     try {
@@ -407,7 +419,7 @@ export interface JikanRecommendation {
 
 export const getWorkRecommendations = async (id: number, type: 'anime' | 'manga') => {
     const cacheKey = `${type}_${id}_recommendations`;
-    const cached = getCached<JikanRecommendation[]>(cacheKey);
+    const cached = getCached<JikanRecommendation[]>(cacheKey, CACHE_TTL_MEDIUM);
     if (cached) return cached;
 
     try {
@@ -432,7 +444,7 @@ export interface JikanPicture {
 
 export const getWorkPictures = async (id: number, type: 'anime' | 'manga') => {
     const cacheKey = `${type}_${id}_pictures`;
-    const cached = getCached<JikanPicture[]>(cacheKey);
+    const cached = getCached<JikanPicture[]>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;
 
     try {
@@ -454,7 +466,7 @@ export interface JikanTheme {
 
 export const getWorkThemes = async (id: number): Promise<JikanTheme> => {
     const cacheKey = `anime_${id}_themes`;
-    const cached = getCached<JikanTheme>(cacheKey);
+    const cached = getCached<JikanTheme>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;
 
     try {
@@ -485,7 +497,7 @@ export interface JikanStatistics {
 
 export const getWorkStatistics = async (id: number, type: 'anime' | 'manga') => {
     const cacheKey = `${type}_${id}_statistics`;
-    const cached = getCached<JikanStatistics>(cacheKey);
+    const cached = getCached<JikanStatistics>(cacheKey, CACHE_TTL_MEDIUM);
     if (cached) return cached;
 
     try {
@@ -507,7 +519,7 @@ export interface JikanStreaming {
 
 export const getAnimeStreaming = async (id: number) => {
     const cacheKey = `anime_${id}_streaming`;
-    const cached = getCached<JikanStreaming[]>(cacheKey);
+    const cached = getCached<JikanStreaming[]>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;
 
     try {
@@ -538,10 +550,14 @@ export interface JikanStaff {
 
 
 export const getAnimeStaff = async (id: number) => {
+    const cacheKey = `anime_${id}_staff`;
+    const cached = getCached<JikanStaff[]>(cacheKey, CACHE_TTL_LONG);
+    if (cached) return cached;
     try {
         const response = await queuedFetch(`${BASE_URL}/anime/${id}/staff`);
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
+        setCache(cacheKey, data.data as JikanStaff[]);
         return data.data as JikanStaff[];
     } catch (error) {
         console.error('API Error:', error);
@@ -611,11 +627,14 @@ export interface JikanReview {
 }
 
 export const getWorkReviews = async (id: number, type: 'anime' | 'manga') => {
+    const cacheKey = `${type}_${id}_reviews`;
+    const cached = getCached<JikanReview[]>(cacheKey, CACHE_TTL_MEDIUM);
+    if (cached) return cached;
     try {
-        // Fetch top rated reviews first
         const response = await queuedFetch(`${BASE_URL}/${type}/${id}/reviews?spoilers=false&preliminary=false`);
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
+        setCache(cacheKey, data.data as JikanReview[]);
         return data.data as JikanReview[];
     } catch (error) {
         console.error('API Error:', error);

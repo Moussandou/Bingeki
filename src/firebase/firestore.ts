@@ -732,27 +732,22 @@ export async function getUserRank(
         };
         const field = fieldMap[category];
 
-        // Get the user's profile first
-        const userDoc = await getDoc(doc(db, 'users', userId));
-        if (!userDoc.exists()) return null;
-        const userProfile = { uid: userDoc.id, ...userDoc.data() } as UserProfile;
+        // Get user profile
+        const userDocSnap = await getDoc(doc(db, 'users', userId));
+        if (!userDocSnap.exists()) return null;
+        const userProfile = { uid: userDocSnap.id, ...userDocSnap.data() } as UserProfile;
         const userScore = (userProfile[field as keyof UserProfile] as number) || 0;
 
-        // Count users with a strictly higher score
-        const qHigher = query(
-            collection(db, 'users'),
-            where(field, '>', userScore)
-        );
-        const higherSnapshot = await getAggregateFromServer(qHigher, { count: count() });
-        const higherCount = higherSnapshot.data().count || 0;
+        // Run both rank queries in parallel
+        const qHigher = query(collection(db, 'users'), where(field, '>', userScore));
+        const qEqual = query(collection(db, 'users'), where(field, '==', userScore));
 
-        // Count users with the same score to determine position among ties
-        // Firestore orders by doc ID ascending for ties, so count those with same score
-        const qEqual = query(
-            collection(db, 'users'),
-            where(field, '==', userScore)
-        );
-        const equalSnapshot = await getDocs(qEqual);
+        const [higherSnapshot, equalSnapshot] = await Promise.all([
+            getAggregateFromServer(qHigher, { count: count() }),
+            getDocs(qEqual)
+        ]);
+
+        const higherCount = higherSnapshot.data().count || 0;
         let tiesBefore = 0;
         equalSnapshot.forEach((docSnap) => {
             if (docSnap.id < userId) tiesBefore++;
@@ -810,7 +805,7 @@ export async function getComments(workId: number, limitCount: number = 50): Prom
 // Get comments organized with replies
 // Get comments organized with replies (Recursive)
 export async function getCommentsWithReplies(workId: number): Promise<CommentWithReplies[]> {
-    const allComments = await getComments(workId, 200);
+    const allComments = await getComments(workId, 50);
 
     // Helper to build tree
     const buildTree = (comments: Comment[], parentId: string | undefined): CommentWithReplies[] => {
@@ -915,15 +910,17 @@ export async function getFriendsReadingWork(userId: string, workId: number): Pro
         const friends = await getFriends(userId);
         const acceptedFriends = friends.filter(f => f.status === 'accepted');
 
-        const friendsReading: UserProfile[] = [];
+        const friendSlice = acceptedFriends.slice(0, 10);
 
-        for (const friend of acceptedFriends.slice(0, 10)) {
-            const library = await getUserLibrary(friend.uid);
-            if (library.some(w => w.id === workId)) {
-                const profile = await getUserProfile(friend.uid);
-                if (profile) friendsReading.push(profile);
-            }
-        }
+        // Batch fetch all libraries and profiles in parallel
+        const [libraries, profiles] = await Promise.all([
+            Promise.all(friendSlice.map(f => getUserLibrary(f.uid))),
+            Promise.all(friendSlice.map(f => getUserProfile(f.uid)))
+        ]);
+
+        const friendsReading = friendSlice
+            .filter((_, i) => libraries[i]?.some(w => w.id === workId) && profiles[i])
+            .map((_, i) => profiles[i]!);
 
         return { count: friendsReading.length, friends: friendsReading };
     } catch (error) {
