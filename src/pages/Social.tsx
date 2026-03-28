@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
-import { Trophy, Users, Search, UserPlus, Check, X, Activity, BookOpen, Flame, Clock, Swords, Tv, Library } from 'lucide-react';
+import { Trophy, Users, Search, UserPlus, Check, X, Activity, BookOpen, Flame, Clock, Swords, Tv, Library, Newspaper } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/firebase/config';
@@ -26,6 +26,7 @@ import { ChallengesSection } from '@/components/gamification/ChallengesSection';
 import { WatchPartiesSection } from '@/components/social/WatchPartiesSection';
 import { Podium } from '@/components/social/Podium';
 import { RankingList } from '@/components/social/RankingList';
+import { SocialFeed } from '@/components/social/SocialFeed';
 
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/context/ToastContext';
@@ -39,7 +40,7 @@ export default function Social() {
     const navigate = useNavigate();
     const { addToast } = useToast();
 
-    const [activeTab, setActiveTab] = useState<'ranking' | 'friends' | 'activity' | 'challenges' | 'parties'>('ranking');
+    const [activeTab, setActiveTab] = useState<'feed' | 'ranking' | 'friends' | 'activity' | 'challenges' | 'parties'>('feed');
     const [leaderboard, setLeaderboard] = useState<UserProfile[]>([]);
     const [friends, setFriends] = useState<(Friend & { banner?: string; xp?: number; totalXp?: number; level?: number })[]>([]);
     const [activities, setActivities] = useState<ActivityEvent[]>([]);
@@ -201,6 +202,14 @@ export default function Social() {
                     {/* Tabs */}
                     <div className={styles.tabContainer}>
                         <Button
+                            variant={activeTab === 'feed' ? 'primary' : 'ghost'}
+                            onClick={() => setActiveTab('feed')}
+                            icon={<Newspaper size={20} />}
+                            style={{ flexShrink: 0 }}
+                        >
+                            {t('social.tabs.feed')}
+                        </Button>
+                        <Button
                             variant={activeTab === 'ranking' ? 'primary' : 'ghost'}
                             onClick={() => setActiveTab('ranking')}
                             icon={<Trophy size={20} />}
@@ -241,6 +250,11 @@ export default function Social() {
                             {t('social.tabs.friends')}
                         </Button>
                     </div>
+
+                    {/* FEED TAB */}
+                    {activeTab === 'feed' && (
+                        <SocialFeed />
+                    )}
 
                     {/* PARTIES TAB */}
                     {activeTab === 'parties' && (

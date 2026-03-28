@@ -639,6 +639,7 @@ const resources = {
             social: {
                 title: "SOCIAL",
                 tabs: {
+                    feed: "COMMUNAUTÉ",
                     ranking: "CLASSEMENT",
                     activity: "ACTIVITÉ",
                     challenges: "DÉFIS",
@@ -2159,6 +2160,7 @@ const resources = {
             social: {
                 title: "SOCIAL",
                 tabs: {
+                    feed: "FEED",
                     ranking: "RANKING",
                     activity: "ACTIVITY",
                     challenges: "CHALLENGES",
