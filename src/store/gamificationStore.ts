@@ -310,11 +310,21 @@ export const useGamificationStore = create<GamificationState>()(
                 const level = profile.level || 1;
                 const xp = profile.xp || 0;
                 const streak = profile.streak || 0;
+                const totalChaptersRead = profile.totalChaptersRead ?? state.totalChaptersRead;
+                const totalAnimeEpisodesWatched = profile.totalAnimeEpisodesWatched ?? state.totalAnimeEpisodesWatched;
+                const totalMoviesWatched = profile.totalMoviesWatched ?? state.totalMoviesWatched;
+                const totalWorksAdded = profile.totalWorksAdded ?? state.totalWorksAdded;
+                const totalWorksCompleted = profile.totalWorksCompleted ?? state.totalWorksCompleted;
+
                 const totalXp = profile.totalXp || calculateCumulativeXp(level, xp);
 
                 // Anti-regression guard: Only sync if incoming XP is higher or equal to current
                 // This prevents stale cloud data from overwriting recent local progress
                 if (state.totalXp > totalXp) {
+                    // Only skip if totalXp is strictly greater (allow sync if equal to refresh other stats)
+                    // Wait, if it's equal, the equality check below would catch it if EVERYTHING is same.
+                    // If totalXp is same but totalChaptersRead is different, we SHOULD sync.
+                    // So let's only return if state.totalXp > totalXp.
                     console.log('[GamificationStore] Skip profile sync - local XP is ahead:', { local: state.totalXp, remote: totalXp });
                     return;
                 }
@@ -325,6 +335,11 @@ export const useGamificationStore = create<GamificationState>()(
                     state.xp === xp && 
                     state.streak === streak &&
                     state.totalXp === totalXp &&
+                    state.totalChaptersRead === totalChaptersRead &&
+                    state.totalAnimeEpisodesWatched === totalAnimeEpisodesWatched &&
+                    state.totalMoviesWatched === totalMoviesWatched &&
+                    state.totalWorksAdded === totalWorksAdded &&
+                    state.totalWorksCompleted === totalWorksCompleted &&
                     JSON.stringify(state.badges) === JSON.stringify(profile.badges || [])
                 ) {
                     return;
@@ -343,11 +358,11 @@ export const useGamificationStore = create<GamificationState>()(
                     xpToNextLevel: xpToNext,
                     streak: streak,
                     badges: profile.badges || [],
-                    totalChaptersRead: profile.totalChaptersRead || state.totalChaptersRead,
-                    totalAnimeEpisodesWatched: profile.totalAnimeEpisodesWatched || state.totalAnimeEpisodesWatched,
-                    totalMoviesWatched: profile.totalMoviesWatched || state.totalMoviesWatched,
-                    totalWorksAdded: profile.totalWorksAdded || state.totalWorksAdded,
-                    totalWorksCompleted: profile.totalWorksCompleted || state.totalWorksCompleted,
+                    totalChaptersRead,
+                    totalAnimeEpisodesWatched,
+                    totalMoviesWatched,
+                    totalWorksAdded,
+                    totalWorksCompleted,
                 });
                 
                 console.log('[GamificationStore] Synced from profile:', { level, xp, totalXp: totalXp });

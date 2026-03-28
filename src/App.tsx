@@ -155,6 +155,7 @@ function App() {
   const { setUser, setUserProfile, setLoading, user, userProfile, loading } = useAuthStore();
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
+  const isInitialSync = React.useRef(false);
 
   const libraryWorks = useLibraryStore((s) => s.works);
   const libraryFolders = useLibraryStore((s) => s.folders);
@@ -215,6 +216,7 @@ function App() {
         );
 
         // Update stores with merged data
+        isInitialSync.current = true; // Mark as initial sync to prevent immediate re-save
         useLibraryStore.setState({ works: mergedLibrary });
         useGamificationStore.setState(mergedGamification);
 
@@ -268,6 +270,14 @@ function App() {
   // Set flag to allow saving when gamification state changes, but ONLY after initial sync
   useEffect(() => {
     if (!user) return;
+    
+    // If this was an initial sync from login/profile, don't trigger an immediate save
+    if (isInitialSync.current) {
+      isInitialSync.current = false;
+      setShouldSaveGamification(false);
+      return;
+    }
+
     setShouldSaveGamification(true);
   }, [gamificationState, user]);
 
