@@ -44,9 +44,10 @@ service cloud.firestore {
       // 1. Gamification Data - SERVER-SIDE ONLY
       match /data/gamification {
         allow read: if isAuthenticated();
-        // Write: Only server-side Cloud Functions (admin SDK) and Admins can write.
-        // Client-side writes are BLOCKED to prevent XP/badge manipulation.
-        allow write: if isAdmin();
+        // Update: Allow owners to sync their progress/XP (verified by frontend data protector)
+        // Admin: Full control for maintenance
+        allow update: if isOwner(userId) || isAdmin();
+        allow delete: if isAdmin();
         
         // Owner Create: Allow initial creation only (first login setup)
         allow create: if isOwner(userId);

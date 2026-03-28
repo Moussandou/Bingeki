@@ -1427,6 +1427,18 @@ const resources = {
                     mark_complete_confirm: "Avez-vous terminé cette œuvre ? Votre progression sera mise au maximum.",
                     ok: "OK"
                 },
+                edit_modal: {
+                    title: "MODIFIER LES DÉTAILS",
+                    label_title: "TITRE",
+                    label_synopsis: "SYNOPSIS",
+                    label_type: "TYPE",
+                    label_chapters: "CHAPITRES",
+                    label_episodes: "ÉPISODES",
+                    label_image: "URL DE L'IMAGE",
+                    save: "SAUVEGARDER",
+                    cancel: "ANNULER",
+                    success_toast: "Détails mis à jour !"
+                },
                 status: {
                     title: "STATUT",
                     watching: "En cours",
@@ -3126,6 +3138,18 @@ const resources = {
                     saved_toast: "Progress saved!",
                     mark_complete_confirm: "Have you finished this work? Your progress will be set to maximum.",
                     ok: "OK"
+                },
+                edit_modal: {
+                    title: "EDIT DETAILS",
+                    label_title: "TITLE",
+                    label_synopsis: "SYNOPSIS",
+                    label_type: "TYPE",
+                    label_chapters: "CHAPTERS",
+                    label_episodes: "EPISODES",
+                    label_image: "IMAGE URL",
+                    save: "SAVE",
+                    cancel: "CANCEL",
+                    success_toast: "Details updated!"
                 },
                 status: {
                     title: "STATUS",

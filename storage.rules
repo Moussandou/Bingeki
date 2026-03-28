@@ -2,9 +2,14 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
+    // Helper: Is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
     // Helper: Is admin
     function isAdmin() {
-      return request.auth != null && 
+      return isAuthenticated() && 
         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
