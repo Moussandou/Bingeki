@@ -70,9 +70,16 @@ export function mergeGamificationData(
 
     // For cumulative stats, always take the HIGHER value
     const MAX_LEVEL = 100;
-    const mergedLevel = Math.min(MAX_LEVEL, Math.max(local.level || 1, cloud.level || 1));
-    const mergedXp = Math.max(local.xp || 0, cloud.xp || 0);
-    const mergedTotalXp = Math.max(local.totalXp || 0, cloud.totalXp || 0);
+    
+    // Determine which source is "ahead" based on totalXp
+    const localTotalXp = local.totalXp || 0;
+    const cloudTotalXp = cloud.totalXp || 0;
+    const isLocalAhead = localTotalXp >= cloudTotalXp;
+
+    const mergedTotalXp = Math.max(localTotalXp, cloudTotalXp);
+    const mergedLevel = Math.min(MAX_LEVEL, isLocalAhead ? (local.level || 1) : (cloud.level || 1));
+    const mergedXp = isLocalAhead ? (local.xp || 0) : (cloud.xp || 0);
+
     const mergedTotalChapters = Math.max(local.totalChaptersRead || 0, cloud.totalChaptersRead || 0);
     const mergedTotalEpisodes = Math.max(local.totalAnimeEpisodesWatched || 0, cloud.totalAnimeEpisodesWatched || 0);
     const mergedTotalMovies = Math.max(local.totalMoviesWatched || 0, cloud.totalMoviesWatched || 0);

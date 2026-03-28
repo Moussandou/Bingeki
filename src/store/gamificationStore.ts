@@ -33,6 +33,7 @@ interface GamificationState {
     resetStore: () => void;
     recalculateStats: (works: Work[]) => void;
     clearLevelUpData: () => void;
+    clearXpGained: () => void;
     syncFromProfile: (profile: any) => void;
 }
 
@@ -148,6 +149,7 @@ export const useGamificationStore = create<GamificationState>()(
 
             clearRecentUnlock: () => set({ recentUnlock: null }),
             clearLevelUpData: () => set({ levelUpData: null }),
+            clearXpGained: () => set({ xpGained: null }),
 
             incrementStat: (stat) => {
                 const { totalChaptersRead, totalAnimeEpisodesWatched, totalMoviesWatched, totalWorksAdded, totalWorksCompleted, checkBadges } = get();
@@ -253,15 +255,28 @@ export const useGamificationStore = create<GamificationState>()(
                 }
 
                 const prevLevel = get().level;
-                const prevXp = get().xp;
+                const prevTotalXp = get().totalXp;
                 
-                // Hack to show toast if XP increased (roughly)
-                // If they level up, we can't easily rely on simXp > prevXp, so just use logic:
-                const didIncreaseXP = (simLevel > prevLevel) || (simLevel === prevLevel && simXp > prevXp);
-                const xpGainGuesstimate = didIncreaseXP ? Math.max(10, Math.floor(simXp - prevXp)) : 0;
-
                 // Calculate Total XP
                 const newTotalXp = calculateCumulativeXp(simLevel, simXp);
+
+                // GUARD: If new calculates are significantly lower than current, 
+                // and works list is small or empty, it's likely a loading state. 
+                // Don't overwrite state with zeroed values.
+                if (works.length === 0 && prevLevel > 1 && prevTotalXp > 100) {
+                    console.log('[GamificationStore] recalculateStats ignored - empty works with high level (likely loading)');
+                    return;
+                }
+
+                if (newTotalXp < prevTotalXp && works.length < 5 && prevTotalXp > 500) {
+                    console.log('[GamificationStore] recalculateStats ignored - suspiciously low XP result (likely loading or incomplete list)');
+                    return;
+                }
+
+                // Hack to show toast if XP increased (roughly)
+                // If they level up, we can't easily rely on simXp > prevXp, so just use logic:
+                const didIncreaseXP = newTotalXp > prevTotalXp;
+                const xpGainGuesstimate = didIncreaseXP ? Math.min(100, Math.floor(newTotalXp - prevTotalXp)) : 0;
 
                 set({
                     totalChaptersRead: chapters,
@@ -275,18 +290,19 @@ export const useGamificationStore = create<GamificationState>()(
                     totalXp: newTotalXp,
                     xpToNextLevel: simXpToNext,
                     lastLevel: prevLevel,
-                    // Optionally show toast for recalculation gains
-                    ...(didIncreaseXP ? { 
+                    // Only show toast if it's a minor gain (manual action) 
+                    // or if explicitly requested. Large jumps from recalculation are muted.
+                    ...(didIncreaseXP && xpGainGuesstimate <= 100 ? { 
                             xpGained: { amount: xpGainGuesstimate, timestamp: Date.now() }, 
                             levelUpData: simLevel > prevLevel ? { newLevel: simLevel, timestamp: Date.now() } : get().levelUpData 
                          } 
-                       : {})
+                       : (simLevel > prevLevel ? { levelUpData: { newLevel: simLevel, timestamp: Date.now() } } : {}))
                 });
             },
 
             syncFromProfile: (profile: any) => {
                 if (!profile) return;
-
+                
                 // Only update if we actually have gamification data in the profile
                 if (profile.level === undefined && profile.xp === undefined) return;
 
@@ -295,6 +311,13 @@ export const useGamificationStore = create<GamificationState>()(
                 const xp = profile.xp || 0;
                 const streak = profile.streak || 0;
                 const totalXp = profile.totalXp || calculateCumulativeXp(level, xp);
+
+                // Anti-regression guard: Only sync if incoming XP is higher or equal to current
+                // This prevents stale cloud data from overwriting recent local progress
+                if (state.totalXp > totalXp) {
+                    console.log('[GamificationStore] Skip profile sync - local XP is ahead:', { local: state.totalXp, remote: totalXp });
+                    return;
+                }
 
                 // Quick equality check to prevent loops
                 if (
@@ -332,6 +355,11 @@ export const useGamificationStore = create<GamificationState>()(
         }),
         {
             name: 'bingeki-gamification-storage',
+            // Exclude notification and transient states from persistence
+            partialize: (state: GamificationState) => {
+                const { xpGained, levelUpData, recentUnlock, ...rest } = state;
+                return rest;
+            },
         }
     )
 );

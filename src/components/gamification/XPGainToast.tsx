@@ -6,16 +6,21 @@ export function XPGainToast() {
     const xpGained = useGamificationStore(s => s.xpGained);
     const [xpList, setXpList] = useState<{ id: string, amount: number }[]>([]);
 
+    const clearXpGained = useGamificationStore(s => s.clearXpGained);
+
     useEffect(() => {
         if (!xpGained) return;
 
         const id = Math.random().toString(36).substr(2, 9);
         setXpList(prev => [...prev, { id, amount: xpGained.amount }]);
 
+        // Clear it immediately from the store so it doesn't re-trigger
+        clearXpGained();
+
         setTimeout(() => {
             setXpList(prev => prev.filter(item => item.id !== id));
         }, 3000);
-    }, [xpGained]);
+    }, [xpGained, clearXpGained]);
 
     return (
         <div style={{
