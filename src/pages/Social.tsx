@@ -40,7 +40,7 @@ export default function Social() {
     const navigate = useNavigate();
     const { addToast } = useToast();
 
-    const [activeTab, setActiveTab] = useState<'feed' | 'ranking' | 'friends' | 'activity' | 'challenges' | 'parties'>('feed');
+    const [activeTab, setActiveTab] = useState<'feed' | 'ranking' | 'friends' | 'activity' | 'challenges' | 'parties'>('ranking');
     const [leaderboard, setLeaderboard] = useState<UserProfile[]>([]);
     const [friends, setFriends] = useState<(Friend & { banner?: string; xp?: number; totalXp?: number; level?: number })[]>([]);
     const [activities, setActivities] = useState<ActivityEvent[]>([]);
@@ -202,20 +202,20 @@ export default function Social() {
                     {/* Tabs */}
                     <div className={styles.tabContainer}>
                         <Button
-                            variant={activeTab === 'feed' ? 'primary' : 'ghost'}
-                            onClick={() => setActiveTab('feed')}
-                            icon={<Newspaper size={20} />}
-                            style={{ flexShrink: 0 }}
-                        >
-                            {t('social.tabs.feed')}
-                        </Button>
-                        <Button
                             variant={activeTab === 'ranking' ? 'primary' : 'ghost'}
                             onClick={() => setActiveTab('ranking')}
                             icon={<Trophy size={20} />}
                             style={{ flexShrink: 0 }}
                         >
                             {t('social.tabs.ranking')}
+                        </Button>
+                        <Button
+                            variant={activeTab === 'feed' ? 'primary' : 'ghost'}
+                            onClick={() => setActiveTab('feed')}
+                            icon={<Newspaper size={20} />}
+                            style={{ flexShrink: 0 }}
+                        >
+                            {t('social.tabs.feed')}
                         </Button>
                         <Button
                             variant={activeTab === 'activity' ? 'primary' : 'ghost'}

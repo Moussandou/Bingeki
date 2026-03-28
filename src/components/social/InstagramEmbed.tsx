@@ -4,25 +4,49 @@ interface InstagramEmbedProps {
   url: string;
 }
 
+declare global {
+  interface Window {
+    instgrm?: {
+      Embeds: {
+        process: () => void;
+      };
+    };
+  }
+}
+
 export const InstagramEmbed: React.FC<InstagramEmbedProps> = ({ url }) => {
   useEffect(() => {
-    // Check if the Instagram embed script is already there
-    if (!document.getElementById('instagram-embed-script')) {
-      const script = document.createElement('script');
-      script.id = 'instagram-embed-script';
-      script.src = 'https://www.instagram.com/embed.js';
-      script.async = true;
-      document.body.appendChild(script);
-    } else {
-      // If the script is already loaded, we might need to tell Instagram to process the new embed
-      if ((window as any).instgrm) {
-        (window as any).instgrm.Embeds.process();
+    // Function to load the Instagram script if it's not already there
+    const loadScript = () => {
+      const existingScript = document.getElementById('instagram-embed-script');
+      
+      if (!existingScript) {
+        const script = document.createElement('script');
+        script.id = 'instagram-embed-script';
+        script.src = 'https://www.instagram.com/embed.js';
+        script.async = true;
+        script.onload = () => {
+          if (window.instgrm) {
+            window.instgrm.Embeds.process();
+          }
+        };
+        document.body.appendChild(script);
+      } else {
+        // If the script is already loaded, we need to wait for a tick 
+        // to ensure the new blockquote is in the DOM before processing
+        setTimeout(() => {
+          if (window.instgrm) {
+            window.instgrm.Embeds.process();
+          }
+        }, 100);
       }
-    }
+    };
+
+    loadScript();
   }, [url]);
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '400px' }}>
       <blockquote
         className="instagram-media"
         data-instgrm-captioned
@@ -54,7 +78,6 @@ export const InstagramEmbed: React.FC<InstagramEmbedProps> = ({ url }) => {
             target="_blank"
             rel="noopener noreferrer"
           >
-            {/* Fallback space for the reel */}
             <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
               <div
                 style={{
@@ -66,7 +89,7 @@ export const InstagramEmbed: React.FC<InstagramEmbedProps> = ({ url }) => {
                   width: '40px',
                 }}
               ></div>
-              <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifySelf: 'center' }}>
                 <div
                   style={{
                     backgroundColor: '#F4F4F4',
@@ -96,9 +119,11 @@ export const InstagramEmbed: React.FC<InstagramEmbedProps> = ({ url }) => {
                 viewBox="0 0 60 60"
                 version="1.1"
                 xmlns="http://www.w3.org/2000/svg"
-                xmlnsXlink="http://www.w3.org/1999/xlink"
               >
-                {/* SVG simplified for loading */}
+                <path
+                  fill="#c9cccd"
+                  d="M30 0C13.431 0 0 13.431 0 30s13.431 30 30 30 30-13.431 30-30S46.569 0 30 0z"
+                />
               </svg>
             </div>
             <div style={{ paddingTop: '8px' }}>
@@ -112,7 +137,7 @@ export const InstagramEmbed: React.FC<InstagramEmbedProps> = ({ url }) => {
                   lineHeight: '18px',
                 }}
               >
-                Voir cette publication sur Instagram
+                Chargement de la publication Instagram...
               </div>
             </div>
           </a>
