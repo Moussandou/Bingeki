@@ -93,7 +93,7 @@ service cloud.firestore {
     // WATCH PARTIES
     match /watchparties/{partyId} {
       allow read: if true;
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
       allow update: if isAuthenticated() && (
         resource.data.creatorId == request.auth.uid || 
         isAdmin() ||
@@ -113,8 +113,10 @@ service cloud.firestore {
 
     // COMMENTS
     match /comments/{commentId} {
-      allow create: if isAuthenticated();
       allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Allow author or Admin to update/delete
+      allow update, delete: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
     }
 
     // CHALLENGES
