@@ -7,6 +7,7 @@ import { Search, Info } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { searchCharacters, getWorkCharacters, searchWorks } from '@/services/animeApi';
 import type { JikanCharacter, JikanResult } from '@/services/animeApi';
+import { useToast } from '@/context/ToastContext';
 
 // Define a unified Character type for the pool that covers both search results and work characters
 interface PoolCharacter {
@@ -56,6 +57,7 @@ function DraggablePoolItem({ character }: { character: PoolCharacter }) {
 
 export function CharacterPool() {
     const { t } = useTranslation();
+    const { addToast } = useToast();
     const [query, setQuery] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [characters, setCharacters] = useState<PoolCharacter[]>([]);
@@ -108,7 +110,6 @@ export function CharacterPool() {
             if (mode === 'character') {
                 const results = await searchCharacters(query);
                 // Deduplicate
-                // JikanCharacterFull is compatible with PoolCharacter
                 const unique = Array.from(new Map(results.map((item) => [item.mal_id, item])).values());
                 setCharacters(unique);
             } else {
@@ -119,7 +120,7 @@ export function CharacterPool() {
             console.error(error);
             if (error instanceof Error && error.message.includes('504')) {
                 // Jikan often times out on popular queries
-                alert("Jikan API is busy. Please try again in a moment.");
+                addToast(t('tierlist.jikan_busy'), 'error');
             }
         } finally {
             setIsLoading(false);
@@ -151,7 +152,7 @@ export function CharacterPool() {
     return (
         <div style={{ background: 'white', border: '2px solid black', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '1rem', borderBottom: '2px solid black', background: '#f5f5f5' }}>
-                <h3 style={{ fontFamily: 'var(--font-heading)', margin: 0, marginBottom: '0.5rem' }}>CHARACTERS</h3>
+                <h3 style={{ fontFamily: 'var(--font-heading)', margin: 0, marginBottom: '0.5rem' }}>{t('tierlist.characters')}</h3>
 
                 <div style={{ display: 'flex', marginBottom: '1rem', gap: '1rem' }}>
                     <Button
@@ -160,7 +161,7 @@ export function CharacterPool() {
                         onClick={() => setMode('character')}
                         style={{ flex: 1, fontSize: '0.75rem', height: '32px' }}
                     >
-                        By Name
+                        {t('tierlist.by_name')}
                     </Button>
                     <Button
                         size="sm"
@@ -168,7 +169,7 @@ export function CharacterPool() {
                         onClick={() => setMode('work')}
                         style={{ flex: 1, fontSize: '0.75rem', height: '32px' }}
                     >
-                        By Anime
+                        {t('tierlist.by_anime')}
                     </Button>
                 </div>
 
@@ -176,7 +177,7 @@ export function CharacterPool() {
                     <input
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder={mode === 'character' ? "Search Name..." : "Search Anime..."}
+                        placeholder={mode === 'character' ? t('tierlist.search_name') : t('tierlist.search_anime')}
                         style={{ flex: 1, padding: '0.5rem', border: '2px solid black' }}
                     />
                     <Button type="submit" size="sm" icon={<Search size={16} />}></Button>

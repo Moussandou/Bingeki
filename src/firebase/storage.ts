@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import { ref, uploadBytes, getDownloadURL, deleteObject, listAll } from 'firebase/storage';
 import { storage } from './config';
 
@@ -16,7 +17,7 @@ export async function uploadFeedbackImage(feedbackId: string, file: File): Promi
         const downloadURL = await getDownloadURL(snapshot.ref);
         return downloadURL;
     } catch (error) {
-        console.error('[Storage] Error uploading feedback image:', error);
+        logger.error('[Storage] Error uploading feedback image:', error);
         throw error;
     }
 }
@@ -32,9 +33,9 @@ export async function deleteFeedbackImages(feedbackId: string): Promise<void> {
         const res = await listAll(folderRef);
         const deletePromises = res.items.map((itemRef) => deleteObject(itemRef));
         await Promise.all(deletePromises);
-        console.log(`[Storage] Cleaned up attachments for feedback: ${feedbackId}`);
+        logger.log(`[Storage] Cleaned up attachments for feedback: ${feedbackId}`);
     } catch (error) {
-        console.error('[Storage] Error deleting feedback images:', error);
+        logger.error('[Storage] Error deleting feedback images:', error);
         throw error;
     }
 }

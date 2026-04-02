@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+import { logger } from '@/utils/logger';
 
-interface BeforeInstallPromptEvent extends Event {
+export interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>;
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
@@ -35,7 +36,7 @@ export const usePWAStore = create<PWAState>((set, get) => ({
                     set({ deferredPrompt: null });
                 }
             } catch (err) {
-                console.error('Error triggering PWA prompt:', err);
+                logger.error('Error triggering PWA prompt:', err);
                 set({ showInstallModal: true });
             }
         } else {

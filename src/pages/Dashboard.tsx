@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import { Layout } from '@/components/layout/Layout';
 // Card component removed as part of redesign
 import { Button } from '@/components/ui/Button';
@@ -82,7 +83,7 @@ export default function Dashboard() {
 
             // Force recalculation if totalXp is missing but works exist (Migration & Validation)
             if (works.length > 0 && totalXp === 0) {
-                console.log('[Dashboard] Forcing stat recalculation (Missing totalXp)');
+                logger.log('[Dashboard] Forcing stat recalculation (Missing totalXp)');
                 recalculateStats(works);
             }
         }

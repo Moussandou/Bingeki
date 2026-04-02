@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { type Badge, MOCK_BADGES } from '@/types/badge';
@@ -264,12 +265,12 @@ export const useGamificationStore = create<GamificationState>()(
                 // and works list is small or empty, it's likely a loading state. 
                 // Don't overwrite state with zeroed values.
                 if (works.length === 0 && prevLevel > 1 && prevTotalXp > 100) {
-                    console.log('[GamificationStore] recalculateStats ignored - empty works with high level (likely loading)');
+                    logger.log('[GamificationStore] recalculateStats ignored - empty works with high level (likely loading)');
                     return;
                 }
 
                 if (newTotalXp < prevTotalXp && works.length < 5 && prevTotalXp > 500) {
-                    console.log('[GamificationStore] recalculateStats ignored - suspiciously low XP result (likely loading or incomplete list)');
+                    logger.log('[GamificationStore] recalculateStats ignored - suspiciously low XP result (likely loading or incomplete list)');
                     return;
                 }
 
@@ -325,7 +326,7 @@ export const useGamificationStore = create<GamificationState>()(
                     // Wait, if it's equal, the equality check below would catch it if EVERYTHING is same.
                     // If totalXp is same but totalChaptersRead is different, we SHOULD sync.
                     // So let's only return if state.totalXp > totalXp.
-                    console.log('[GamificationStore] Skip profile sync - local XP is ahead:', { local: state.totalXp, remote: totalXp });
+                    logger.log('[GamificationStore] Skip profile sync - local XP is ahead:', { local: state.totalXp, remote: totalXp });
                     return;
                 }
 
@@ -365,7 +366,7 @@ export const useGamificationStore = create<GamificationState>()(
                     totalWorksCompleted,
                 });
 
-                console.log('[GamificationStore] Synced from profile:', { level, xp, totalXp: totalXp });
+                logger.log('[GamificationStore] Synced from profile:', { level, xp, totalXp: totalXp });
             }
         }),
         {

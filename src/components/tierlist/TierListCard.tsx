@@ -2,7 +2,7 @@ import type { TierList } from '@/firebase/firestore';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { Heart, User } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 interface TierListCardProps {
     tierList: TierList;
@@ -10,6 +10,7 @@ interface TierListCardProps {
 
 export function TierListCard({ tierList }: TierListCardProps) {
     const navigate = useNavigate();
+    const { lang } = useParams();
 
     // Find the first tier with items to show as preview
     const previewTier = tierList.tiers.find(t => t.items.length > 0) || tierList.tiers[0];
@@ -20,13 +21,14 @@ export function TierListCard({ tierList }: TierListCardProps) {
             layout
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            whileHover={{ y: -5, boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
-            onClick={() => navigate(`/tierlist/${tierList.id}`)}
+            whileHover={{ x: -2, y: -2, boxShadow: '8px 8px 0 var(--color-primary)' }}
+            onClick={() => navigate(`/${lang}/tier-list/${tierList.id}`)}
             className="tier-list-card"
             style={{
                 background: '#1a1a1a',
-                border: '2px solid #333',
-                borderRadius: '12px',
+                border: '3px solid var(--color-border-heavy)',
+                borderRadius: 0,
+                boxShadow: '4px 4px 0 var(--color-shadow-solid)',
                 overflow: 'hidden',
                 cursor: 'pointer',
                 display: 'flex',
@@ -62,7 +64,7 @@ export function TierListCard({ tierList }: TierListCardProps) {
                         style={{
                             width: '60px',
                             height: '80px',
-                            borderRadius: '4px',
+                            borderRadius: 0,
                             border: '2px solid black'
                         }}
                         objectFit="cover"

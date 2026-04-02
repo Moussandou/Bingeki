@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { useAuthStore } from '@/store/authStore';
+import { logger } from '@/utils/logger';
 import { useTranslation } from 'react-i18next';
 import {
     DndContext,
@@ -23,7 +24,7 @@ import { Save, Download, Trash2 } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { Button } from '@/components/ui/Button';
 import { createTierList, type TierList } from '@/firebase/firestore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 
 import { TierRow } from '@/components/tierlist/TierRow';
@@ -34,6 +35,9 @@ import styles from './CreateTierList.module.css';
 // Types derived from TierList to ensure consistency
 type Tier = TierList['tiers'][number];
 type TierItem = Tier['items'][number];
+
+const TITLE_MAX_LENGTH = 100;
+const MAX_ITEMS_PER_TIER = 20;
 
 // Pool Item Type (matches what comes from CharacterPool)
 interface PoolDragItem {
@@ -47,6 +51,7 @@ interface PoolDragItem {
 }
 
 function TrashZone() {
+    const { t } = useTranslation();
     const { setNodeRef, isOver } = useDroppable({
         id: 'trash',
     });
@@ -58,7 +63,7 @@ function TrashZone() {
         >
             <Trash2 size={24} />
             <span className={styles.trashText}>
-                {isOver ? 'RELEASE TO DELETE' : 'DRAG HERE TO DELETE'}
+                {isOver ? t('tierlist.release_to_delete') : t('tierlist.drag_to_delete')}
             </span>
         </div>
     );
@@ -66,13 +71,14 @@ function TrashZone() {
 
 export default function CreateTierList() {
     const { t } = useTranslation();
+    const { lang } = useParams();
     const { user } = useAuthStore();
     const navigate = useNavigate();
     const { addToast } = useToast();
     const tiersRef = useRef<HTMLDivElement>(null);
 
     // State
-    const [title, setTitle] = useState('My Tier List');
+    const [title, setTitle] = useState(t('tierlist.default_title'));
     const [tiers, setTiers] = useState<Tier[]>([
         { id: 'S', label: 'S', color: '#ff7f7f', items: [] },
         { id: 'A', label: 'A', color: '#ffbf7f', items: [] },
@@ -166,25 +172,30 @@ export default function CreateTierList() {
         if (activeContainer === 'pool') {
             const character = active.data.current?.character;
             if (character) {
-                setTiers(prev => prev.map(tier => {
-                    if (tier.id === overContainer) {
-                        // Check if already exists to prevent duplicates (Global check)
-                        // Coerce IDs to strings to ensure matching works regardless of API return type (number vs string)
-                        const isDuplicate = prev.some(t => t.items.some(i => String(i.id) === String(character.mal_id)));
-                        if (isDuplicate) {
-                            addToast(t('tierlist.duplicate_character'), 'error');
-                            return tier;
-                        }
-                        return {
-                            ...tier, items: [...tier.items, {
-                                id: character.mal_id,
-                                name: character.name,
-                                image: character.images?.jpg?.image_url
-                            }]
-                        };
+                setTiers(prev => {
+                    const targetTier = prev.find(t => t.id === overContainer);
+                    if (targetTier && targetTier.items.length >= MAX_ITEMS_PER_TIER) {
+                        addToast(t('tierlist.tier_full', { max: MAX_ITEMS_PER_TIER }), 'error');
+                        return prev;
                     }
-                    return tier;
-                }));
+                    const isDuplicate = prev.some(t => t.items.some(i => String(i.id) === String(character.mal_id)));
+                    if (isDuplicate) {
+                        addToast(t('tierlist.duplicate_character'), 'error');
+                        return prev;
+                    }
+                    return prev.map(tier => {
+                        if (tier.id === overContainer) {
+                            return {
+                                ...tier, items: [...tier.items, {
+                                    id: character.mal_id,
+                                    name: character.name,
+                                    image: character.images?.jpg?.image_url
+                                }]
+                            };
+                        }
+                        return tier;
+                    });
+                });
             }
         }
         // Case 2: Moving between Tiers or Reordering
@@ -249,7 +260,7 @@ export default function CreateTierList() {
             link.click();
             addToast(t('tierlist.export_success'), 'success');
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             addToast(t('tierlist.export_error'), 'error');
         }
     };
@@ -260,12 +271,22 @@ export default function CreateTierList() {
             return;
         }
 
+        const trimmedTitle = title.trim();
+        if (!trimmedTitle) {
+            addToast(t('tierlist.title_required'), 'error');
+            return;
+        }
+        if (trimmedTitle.length > TITLE_MAX_LENGTH) {
+            addToast(t('tierlist.title_too_long'), 'error');
+            return;
+        }
+
         try {
             await createTierList({
                 userId: user.uid,
                 authorName: user.displayName || 'Anonymous',
                 authorPhoto: user.photoURL || '',
-                title,
+                title: trimmedTitle,
                 category: 'characters',
                 likes: [],
                 isPublic: true,
@@ -273,9 +294,9 @@ export default function CreateTierList() {
                 tiers: tiers
             });
             addToast(t('tierlist.save_success'), 'success');
-            navigate('/profile');
+            navigate(`/${lang}/profile`);
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             addToast(t('tierlist.save_error'), 'error');
         }
     };
@@ -302,8 +323,8 @@ export default function CreateTierList() {
                         />
                     </div>
                     <div className={styles.actions}>
-                        <Button onClick={handleExportImage} variant="ghost" icon={<Download size={20} />}>Export</Button>
-                        <Button onClick={handleSave} variant="primary" icon={<Save size={20} />}>Save</Button>
+                        <Button onClick={handleExportImage} variant="ghost" icon={<Download size={20} />}>{t('tierlist.export_button')}</Button>
+                        <Button onClick={handleSave} variant="primary" icon={<Save size={20} />}>{t('tierlist.save_button')}</Button>
                     </div>
                 </div>
 

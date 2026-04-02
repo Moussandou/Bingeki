@@ -135,17 +135,24 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // TIER LISTS (NEW)
+    // TIER LISTS
     match /tierLists/{tierListId} {
-      // Public lists can be read by anyone (or just auth users, depending on requirement)
-      // Query requiring isPublic==true must match this rule if we use resource.data check
-      allow read: if true; // We filter by isPublic in query, but open read allows fetching specific public lists
-      
-      // Create: Authenticated users can create
+      // Public lists readable by anyone; private lists only by their author or an admin
+      allow read: if resource.data.isPublic == true
+                  || (isAuthenticated() && resource.data.userId == request.auth.uid)
+                  || isAdmin();
+
+      // Create: Authenticated users can create their own lists
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      
-      // Update/Delete: Only author can modify
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Update: Author (full edit) or Admin, or any auth user for likes-only toggle
+      allow update: if isAdmin()
+                    || (isAuthenticated() && resource.data.userId == request.auth.uid)
+                    || (isAuthenticated() &&
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
+
+      // Delete: Author or Admin only
+      allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
     }
     
     // NEWS

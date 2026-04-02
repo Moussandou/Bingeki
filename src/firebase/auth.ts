@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import { auth } from './config';
 import {
     GoogleAuthProvider,
@@ -27,9 +28,9 @@ export const loginWithDiscord = async (): Promise<User | null> => {
 
         return result.user;
     } catch (error) {
-        console.error("Error logging in with Discord:", error);
+        logger.error("Error logging in with Discord:", error);
         if (error && typeof error === 'object' && 'code' in error) {
-            console.error("Discord Auth Error Code:", (error as any).code);
+            logger.error("Discord Auth Error Code:", (error as { code: string }).code);
         }
         return null;
     }
@@ -42,11 +43,11 @@ export const loginWithGoogle = async (): Promise<User | null> => {
         const result = await signInWithPopup(auth, googleProvider);
         return result.user;
     } catch (error) {
-        console.error("Error logging in with Google:", error);
+        logger.error("Error logging in with Google:", error);
         if (error && typeof error === 'object' && 'code' in error) {
             const err = error as { code: string; message: string };
-            console.error("Google Auth Error Code:", err.code);
-            console.error("Google Auth Error Message:", err.message);
+            logger.error("Google Auth Error Code:", err.code);
+            logger.error("Google Auth Error Message:", err.message);
         }
         return null;
     }
@@ -57,7 +58,7 @@ export const loginWithEmail = async (email: string, password: string): Promise<{
         const result = await signInWithEmailAndPassword(auth, email, password);
         return { user: result.user, error: null };
     } catch (error) {
-        console.error("Error logging in with email", error);
+        logger.error("Error logging in with email", error);
         const err = error as { code?: string; message: string };
         let errorMessage = "Une erreur est survenue";
         if (err.code === 'auth/user-not-found') errorMessage = "Aucun compte trouvé avec cet email";
@@ -87,7 +88,7 @@ export const registerWithEmail = async (email: string, password: string, display
         }
         return { user: result.user, error: null };
     } catch (error) {
-        console.error("Error registering with email", error);
+        logger.error("Error registering with email", error);
         const err = error as { code?: string; message: string };
         let errorMessage = "Une erreur est survenue";
         if (err.code === 'auth/email-already-in-use') errorMessage = "Cet email est déjà utilisé";
@@ -122,11 +123,11 @@ export const logout = async (): Promise<void> => {
                 totalWorksCompleted: gamificationState.totalWorksCompleted
             });
 
-            console.log("Data synced before logout");
+            logger.log("Data synced before logout");
         }
 
         await signOut(auth);
     } catch (error) {
-        console.error("Error logging out", error);
+        logger.error("Error logging out", error);
     }
 };

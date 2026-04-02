@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { Layout } from '@/components/layout/Layout';
@@ -151,7 +152,7 @@ export default function Profile() {
     // Force recalculation if totalXp is missing but works exist (Migration & Validation)
     useEffect(() => {
         if (isOwnProfile && works.length > 0 && totalXp === 0) {
-            console.log('[Profile] Forcing stat recalculation (Missing totalXp)');
+            logger.log('[Profile] Forcing stat recalculation (Missing totalXp)');
             recalculateStats(works);
         }
     }, [isOwnProfile, works, totalXp, recalculateStats]);
@@ -271,7 +272,7 @@ export default function Profile() {
             addToast(t('profile.toast.profile_updated'), 'success');
             setIsEditModalOpen(false);
         } catch (error) {
-            console.error("Error saving profile:", error);
+            logger.error("Error saving profile:", error);
             addToast(t('profile.toast.save_error') + (error instanceof Error ? error.message : 'Inconnue'), 'error');
         } finally {
             setIsSaving(false);
@@ -306,7 +307,7 @@ export default function Profile() {
             setFriendshipStatus('pending');
             addToast(t('profile.toast.friend_request_sent'), 'success');
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             addToast(t('profile.toast.friend_request_error'), 'error');
         }
     };

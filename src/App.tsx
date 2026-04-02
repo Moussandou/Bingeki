@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +9,7 @@ import { useLibraryStore } from '@/store/libraryStore';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { usePWAStore } from '@/store/pwaStore';
+import type { BeforeInstallPromptEvent } from '@/store/pwaStore';
 import { useShallow } from 'zustand/react/shallow';
 import { auth } from '@/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -45,6 +47,9 @@ const Credits = lazy(() => import('@/pages/Credits'));
 const Assets = lazy(() => import('@/pages/AssetsPage'));
 const Donors = lazy(() => import('@/pages/Donors'));
 const Notifications = lazy(() => import('@/pages/Notifications')); // Added
+const TierListFeed = lazy(() => import('@/pages/tierlist/TierListFeed'));
+const CreateTierList = lazy(() => import('@/pages/tierlist/CreateTierList'));
+const ViewTierList = lazy(() => import('@/pages/tierlist/ViewTierList'));
 
 const FormSurvey = lazy(() => import('@/pages/FormSurvey'));
 const FormSurveyThankYou = lazy(() => import('@/pages/FormSurveyThankYou'));
@@ -220,7 +225,7 @@ function App() {
         useLibraryStore.setState({ works: mergedLibrary });
         useGamificationStore.setState(mergedGamification);
 
-        console.log('[App] Data merged successfully:', {
+        logger.log('[App] Data merged successfully:', {
           libraryCount: mergedLibrary.length,
           level: mergedGamification.level,
           totalXp: mergedGamification.totalXp
@@ -228,7 +233,7 @@ function App() {
 
         // Migration: If totalXp is 0 but user has content/level, force recalculate
         if (mergedGamification.totalXp === 0 && (mergedGamification.level > 1 || mergedLibrary.length > 0)) {
-          console.log('[App] Migrating totalXp for existing user...');
+          logger.log('[App] Migrating totalXp for existing user...');
           useGamificationStore.getState().recalculateStats(mergedLibrary);
         }
       } else {
@@ -265,7 +270,7 @@ function App() {
       syncProfile(userProfile);
       setShouldSaveGamification(false);
     }
-  }, [userProfile]);
+  }, [userProfile, user]);
 
   // Set flag to allow saving when gamification state changes, but ONLY after initial sync
   useEffect(() => {
@@ -302,7 +307,7 @@ function App() {
     }, 3000); // Increased to 3s to reduce save conflicts
 
     return () => clearTimeout(timeout);
-  }, [gamificationState, user]);
+  }, [gamificationState, user, shouldSaveGamification]);
 
   // PWA Global Listeners
   const { setDeferredPrompt, setIsInstalled, clearPrompt } = usePWAStore();
@@ -311,15 +316,15 @@ function App() {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later.
-      setDeferredPrompt(e as any);
-      console.log('👋 PWA Install Prompt captured!');
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      logger.log('👋 PWA Install Prompt captured!');
     };
 
     const handleAppInstalled = () => {
       // Hide the app-provided install promotion
       clearPrompt();
       setIsInstalled(true);
-      console.log('✅ PWA Installed successfully!');
+      logger.log('✅ PWA Installed successfully!');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -388,7 +393,7 @@ function App() {
   useEffect(() => {
     if (loading || !configLoaded) {
       const timer = setTimeout(() => {
-        console.warn('[App] Loading timeout reached - forcing render');
+        logger.warn('[App] Loading timeout reached - forcing render');
         if (loading) setLoading(false);
         if (!configLoaded) setConfigLoaded(true);
       }, 5000);
@@ -460,6 +465,10 @@ function App() {
               <Route path="lens" element={<Lens />} />
               <Route path="news" element={<NewsIndex />} />
               <Route path="news/article/:slug" element={<NewsArticle />} />
+
+              <Route path="tier-list" element={<TierListFeed />} />
+              <Route path="tier-list/create" element={<CreateTierList />} />
+              <Route path="tier-list/:id" element={<ViewTierList />} />
 
               <Route path="admin" element={
                 <RequireAdmin>

@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Layout } from '@/components/layout/Layout';
@@ -133,7 +134,7 @@ export default function Social() {
             loadData();
             addToast(t('social.friends.request_sent_toast', { name: targetUser.displayName }), 'success');
         } catch (error) {
-            console.error("Failed to add friend", error);
+            logger.error("Failed to add friend", error);
             addToast(t('social.friends.request_error'), 'error');
         }
     };
@@ -157,7 +158,7 @@ export default function Social() {
             loadData(); // Refresh list
             addToast(t('social.friends.request_sent_toast', { name: targetUser.displayName }), 'success');
         } catch (error) {
-            console.error("Failed to send request", error);
+            logger.error("Failed to send request", error);
             addToast(t('social.friends.request_error'), 'error');
         }
     };
@@ -168,7 +169,7 @@ export default function Social() {
             await acceptFriendRequest(user.uid, friendUid);
             loadData(); // Refresh to show accepted status
         } catch (error) {
-            console.error("Failed to accept", error);
+            logger.error("Failed to accept", error);
         }
     };
 
@@ -180,10 +181,10 @@ export default function Social() {
 
         try {
             await rejectFriendRequest(user.uid, friendUid);
-            console.log("Friend request rejected successfully");
+            logger.log("Friend request rejected successfully");
             addToast(t('social.friends.reject_success'), 'info');
         } catch (error) {
-            console.error("Failed to reject", error);
+            logger.error("Failed to reject", error);
             addToast(t('social.friends.reject_error'), 'error');
             loadData(); // Revert state on error handling
         }

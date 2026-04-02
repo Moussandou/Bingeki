@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import { useState, useEffect, useCallback } from 'react';
 import { Users } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -81,10 +82,10 @@ export function FriendRecommendations() {
 
             setRecommendations(sortedWorks);
         } catch (error) {
-            console.error('Error loading recommendations:', error);
+            logger.error('Error loading recommendations:', error);
             // If it's a permission error, effectively just hide the section
             if ((error as { code?: string }).code === 'permission-denied') {
-                console.warn('Social features require updated Firestore rules. Check firestore.rules deployment.');
+                logger.warn('Social features require updated Firestore rules. Check firestore.rules deployment.');
             }
         }
 

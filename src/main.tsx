@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import { StrictMode } from 'react'
 import { hydrateRoot, createRoot } from 'react-dom/client'
 import { HelmetProvider } from 'react-helmet-async'
@@ -8,7 +9,7 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 
 // Handle asset loading errors (common after new deployments)
 window.addEventListener('vite:preloadError', (event) => {
-  console.log('Vite preload error detected, reloading page...', event);
+  logger.log('Vite preload error detected, reloading page...', event);
   window.location.reload();
 });
 

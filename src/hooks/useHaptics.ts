@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import { useCallback } from 'react';
 
 type HapticPattern = 'light' | 'medium' | 'heavy' | 'selection' | 'success' | 'warning' | 'error';
@@ -35,7 +36,7 @@ export const useHaptics = () => {
                     window.navigator.vibrate(10);
             }
         } catch (e) {
-            console.warn('Haptic feedback failed', e);
+            logger.warn('Haptic feedback failed', e);
         }
     }, []);
 

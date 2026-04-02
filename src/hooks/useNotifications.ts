@@ -10,7 +10,7 @@ export interface AppNotification {
     body: string;
     link?: string;
     read: boolean;
-    createdAt: any; // Timestamp
+    createdAt: import('firebase/firestore').Timestamp | number;
 }
 
 export function useNotifications(limitCount = 20) {

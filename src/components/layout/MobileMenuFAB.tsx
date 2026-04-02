@@ -67,7 +67,6 @@ export function MobileMenuFAB() {
                             exit={{ y: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                             onClick={(e) => {
-                                // @ts-ignore
                                 e.stopPropagation();
                             }} // Prevent clicks inside from closing
                             drag="y"

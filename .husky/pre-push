@@ -1,1 +1,2 @@
 npm run validate:i18n
+npm run test:run

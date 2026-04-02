@@ -14,7 +14,8 @@ import {
     MessageCircle, Sun, Moon, Compass,
     Newspaper,
     ScanSearch,
-    ShieldCheck
+    ShieldCheck,
+    LayoutList
 } from 'lucide-react';
 
 import { GlobalSearch } from '@/components/search/GlobalSearch';
@@ -129,7 +130,14 @@ function NotificationDropdown() {
                                                     <p style={{ fontWeight: n.read ? 600 : 800, fontSize: '0.9rem', marginBottom: '0.1rem' }}>{n.title}</p>
                                                     <p style={{ fontSize: '0.8rem', opacity: 0.7, lineHeight: 1.3 }}>{n.body}</p>
                                                     <p style={{ fontSize: '0.7rem', opacity: 0.4, marginTop: '0.3rem' }}>
-                                                        {n.createdAt?.seconds ? new Date(n.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}
+                                                        {(() => {
+                                                            if (!n.createdAt) return 'Just now';
+                                                            if (typeof n.createdAt === 'number') return new Date(n.createdAt).toLocaleDateString();
+                                                            // Handle Firestore Timestamp
+                                                            const seconds = (n.createdAt as any).seconds;
+                                                            if (seconds) return new Date(seconds * 1000).toLocaleDateString();
+                                                            return 'Just now';
+                                                        })()}
                                                     </p>
                                                 </div>
                                             </div>
@@ -247,6 +255,9 @@ export function Header() {
                                     </Link>
                                     <Link to="/news" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <Newspaper size={16} /> Anime News
+                                    </Link>
+                                    <Link to="/tierlist" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
+                                        <LayoutList size={16} /> {t('header.tierlist')}
                                     </Link>
                                     <Link to="/lens" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <ScanSearch size={16} /> {t('header.lens')}
@@ -451,6 +462,11 @@ export function Header() {
                                 <Book size={22} />
                             </Button>
                         </Link>
+                        <Link to="/tierlist">
+                            <Button variant={isActive('/tierlist') ? 'primary' : 'ghost'} size="icon" style={{ borderRadius: '12px' }}>
+                                <LayoutList size={22} />
+                            </Button>
+                        </Link>
                     </nav>
                 )
             }
@@ -467,6 +483,11 @@ export function Header() {
                         <Link to="/discover">
                             <Button variant={isActive('/discover') ? 'primary' : 'ghost'} size="icon" style={{ borderRadius: '12px' }}>
                                 <Compass size={22} />
+                            </Button>
+                        </Link>
+                        <Link to="/tierlist">
+                            <Button variant={isActive('/tierlist') ? 'primary' : 'ghost'} size="icon" style={{ borderRadius: '12px' }}>
+                                <LayoutList size={22} />
                             </Button>
                         </Link>
                         <Link to="/auth">

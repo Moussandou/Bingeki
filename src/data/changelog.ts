@@ -8,6 +8,23 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: 'v3.8',
+        date: '02 Avril 2026',
+        title: 'Image & SEO Optimization',
+        description: 'Migration massive vers OptimizedImage, refonte du handler SEO et amélioration du flux social.',
+        changes: [
+            'Tech : Migration complète de toutes les balises <img> vers le composant custom OptimizedImage.',
+            'Tech : Intégration de wsrv.nl comme proxy d\'image par défaut pour une meilleure fiabilité.',
+            'OptimizedImage : Support des props priority (chargement impatient) et fill (gestion du ratio).',
+            'SEO : Sécurisation du handler Cloud Function pour bloquer l\'accès aux fichiers statiques.',
+            'SEO : Mise à jour de la Permissions-Policy pour inclure browsing-topics.',
+            'Social : Nouveau design "Manga Grid" pour le flux d\'activité des amis.',
+            'Social : Intégration d\'icônes personnalisées pour Discord et TikTok dans toute l\'app.',
+            'Gamification : Refonte de la synchronisation de l\'XP pour garantir l\'intégrité des données au chargement.',
+            'UI : Suppression définitive des skeletons de chargement d\'images au profit d\'un fade-in natif.'
+        ]
+    },
+    {
         version: 'v3.7',
         date: '17 Mars 2026',
         title: 'Survey & Dashboard Revolution',

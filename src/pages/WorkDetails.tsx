@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
@@ -437,7 +438,7 @@ export default function WorkDetails() {
                 setIsFetchingDetails(false);
             })
             .catch(err => {
-                console.error("Failed to fetch work details", err);
+                logger.error("Failed to fetch work details", err);
                 if (err instanceof ApiError) {
                     setFetchError({ status: err.status, message: err.message });
                 } else {
@@ -485,7 +486,7 @@ export default function WorkDetails() {
                 getWorkReviews(Number(id), type).then(setReviews);
 
             } catch (error) {
-                console.error('Error fetching details:', error);
+                logger.error('Error fetching details:', error);
             }
         };
 
@@ -587,7 +588,7 @@ export default function WorkDetails() {
                     setIsLoadingComments(false);
                 })
                 .catch(err => {
-                    console.error("Error loading comments:", err);
+                    logger.error("Error loading comments:", err);
                     setIsLoadingComments(false);
                     if (err.code === 'permission-denied' || err.message?.includes('Missing or insufficient permissions')) {
                         setCommentError(t('work_details.comments.permission_error'));
@@ -656,7 +657,7 @@ export default function WorkDetails() {
 
     const handleSubmitComment = async () => {
         if (!newComment.trim() || !user || !work) {
-            console.log('[Comments] Submit blocked - missing data:', { hasComment: !!newComment.trim(), hasUser: !!user, hasWork: !!work });
+            logger.log('[Comments] Submit blocked - missing data:', { hasComment: !!newComment.trim(), hasUser: !!user, hasWork: !!work });
             return;
         }
 
@@ -670,9 +671,9 @@ export default function WorkDetails() {
                 spoiler: isSpoiler
             };
 
-            console.log('[Comments] Submitting comment:', commentData);
+            logger.log('[Comments] Submitting comment:', commentData);
             const result = await addComment(commentData);
-            console.log('[Comments] Add result:', result);
+            logger.log('[Comments] Add result:', result);
 
             if (result) {
                 setNewComment('');
@@ -682,13 +683,13 @@ export default function WorkDetails() {
 
                 // Reload comments
                 const updated = await getCommentsWithReplies(Number(work.id));
-                console.log('[Comments] Reloaded comments:', updated.length);
+                logger.log('[Comments] Reloaded comments:', updated.length);
                 setComments(updated);
             } else {
                 addToast(t('work_details.comments.error_toast'), 'error');
             }
         } catch (error) {
-            console.error('[Comments] Submit error:', error);
+            logger.error('[Comments] Submit error:', error);
             addToast(t('work_details.comments.error_toast'), 'error');
         }
     };
@@ -725,7 +726,7 @@ export default function WorkDetails() {
                 setComments(updated);
             }
         } catch (error) {
-            console.error('[Comments] Reply error:', error);
+            logger.error('[Comments] Reply error:', error);
             addToast(t('work_details.comments.reply_error_toast'), 'error');
         }
     };
@@ -743,19 +744,19 @@ export default function WorkDetails() {
     const handleExpandEpisode = async (episodeNumber: number) => {
         if (work.type !== 'anime') return;
 
-        console.log(`Fetching details for anime ${work.id} episode ${episodeNumber}`);
+        logger.log(`Fetching details for anime ${work.id} episode ${episodeNumber}`);
         try {
             const details = await getAnimeEpisodeDetails(Number(work.id), episodeNumber);
-            console.log("Details received:", details);
+            logger.log("Details received:", details);
             if (details) {
                 setEpisodes(prev => prev.map(ep =>
                     ep.number === episodeNumber ? { ...ep, synopsis: details.synopsis } : ep
                 ));
             } else {
-                console.warn("No details returned from API");
+                logger.warn("No details returned from API");
             }
         } catch (error) {
-            console.error("Failed to fetch episode details", error);
+            logger.error("Failed to fetch episode details", error);
         }
     };
 

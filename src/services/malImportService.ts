@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 /**
  * MyAnimeList Import Service
  * Handles parsing MAL XML exports and converting them to Bingeki Work format
@@ -216,7 +217,7 @@ export async function enrichWithJikan(
         };
     } catch (error) {
         // Fallback to partial data if Jikan fails
-        console.warn(`Failed to fetch details for ${entry.title}:`, error);
+        logger.warn(`Failed to fetch details for ${entry.title}:`, error);
         return {
             id: entry.malId,
             title: entry.title,

@@ -109,46 +109,60 @@
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
     .container {
-        padding: 1rem;
-        gap: 1rem;
+        padding: 1.5rem 1rem;
+        gap: 1.5rem;
         min-height: auto;
     }
 
     .header {
         flex-direction: column;
         align-items: stretch;
-        gap: 1rem;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
     }
 
     .titleInput {
         width: 100%;
         max-width: none;
-        font-size: 1.5rem;
+        font-size: 1.8rem;
+        text-align: center;
+        border-bottom-width: 3px;
     }
 
     .actions {
-        /* gap: 1rem; */
-        justify-content: stretch;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
     }
 
     .actions button {
-        flex: 1;
+        width: 100%;
+        justify-content: center;
     }
 
     .workspace {
         flex-direction: column;
         height: auto;
+        gap: 2rem;
     }
 
     .board {
-        min-height: 50vh;
+        min-height: 400px;
         flex: none;
+        padding: 1rem;
+        border-width: 2px;
     }
 
     .poolContainer {
         min-width: 0;
         flex: none;
-        height: 40vh;
-        /* Give fixed height for scroll on mobile */
+        height: 50vh; /* Better scroll space for dragging */
+        border-width: 2px;
+    }
+
+    .trashZone {
+        height: 80px;
+        margin-top: 1.5rem;
+        border-width: 2px;
     }
 }

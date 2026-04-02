@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import type { Work } from '@/store/libraryStore';
 import type { Badge } from '@/types/badge';
 
@@ -113,7 +114,7 @@ export function mergeGamificationData(
         xpToNext = Math.floor(xpToNext * LEVEL_MULTIPLIER);
     }
 
-    console.log('[DataProtection] Merged gamification:', {
+    logger.log('[DataProtection] Merged gamification:', {
         localLevel: local.level,
         cloudLevel: cloud.level,
         mergedLevel,
@@ -182,7 +183,7 @@ export function mergeLibraryData(
     });
 
     const merged = Array.from(workMap.values());
-    console.log('[DataProtection] Merged library:', {
+    logger.log('[DataProtection] Merged library:', {
         localCount: local.length,
         cloudCount: cloud.length,
         mergedCount: merged.length
@@ -215,7 +216,7 @@ export function validateGamificationWrite(
     for (const check of checks) {
         if (check.newVal !== undefined && check.oldVal !== undefined) {
             if (check.newVal < check.oldVal) {
-                console.warn(`[DataProtection] Validation failed: ${check.name} would decrease from ${check.oldVal} to ${check.newVal}`);
+                logger.warn(`[DataProtection] Validation failed: ${check.name} would decrease from ${check.oldVal} to ${check.newVal}`);
                 return false;
             }
         }
@@ -226,7 +227,7 @@ export function validateGamificationWrite(
     if (newData.level && existing.level) {
         // Max 10 level increase per save
         if (newData.level > existing.level + 10) {
-            console.warn(`[DataProtection] SECURITY: Prevented suspicious level jump (${existing.level} -> ${newData.level})`);
+            logger.warn(`[DataProtection] SECURITY: Prevented suspicious level jump (${existing.level} -> ${newData.level})`);
             return false;
         }
     }
@@ -234,7 +235,7 @@ export function validateGamificationWrite(
     if (newData.xp && existing.xp) {
         // Max 25000 XP increase per save
         if (newData.xp > existing.xp + 25000) {
-            console.warn(`[DataProtection] SECURITY: Prevented suspicious XP jump (+${newData.xp - existing.xp})`);
+            logger.warn(`[DataProtection] SECURITY: Prevented suspicious XP jump (+${newData.xp - existing.xp})`);
             return false;
         }
     }
@@ -258,7 +259,7 @@ export function logDataBackup(
         data: JSON.stringify(data)
     };
 
-    console.log('[DataProtection] Backup created:', {
+    logger.log('[DataProtection] Backup created:', {
         type: dataType,
         timestamp: new Date(backup.timestamp).toISOString()
     });
@@ -268,6 +269,6 @@ export function logDataBackup(
         const key = `bingeki_backup_${dataType}_${userId}`;
         sessionStorage.setItem(key, JSON.stringify(backup));
     } catch (e) {
-        console.warn('[DataProtection] Could not store backup in sessionStorage:', e);
+        logger.warn('[DataProtection] Could not store backup in sessionStorage:', e);
     }
 }

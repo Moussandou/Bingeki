@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import { useState, useEffect } from 'react';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
@@ -41,14 +42,14 @@ export function usePushNotifications() {
                         await updateDoc(userRef, {
                             fcmTokens: arrayUnion(currentToken)
                         });
-                        console.log('FCM Token saved to profile.');
+                        logger.log('FCM Token saved to profile.');
                     }
                 } else {
-                    console.log('No registration token available. Request permission to generate one.');
+                    logger.log('No registration token available. Request permission to generate one.');
                 }
             }
         } catch (error) {
-            console.error('An error occurred while retrieving token. ', error);
+            logger.error('An error occurred while retrieving token. ', error);
         }
     };
 
@@ -57,7 +58,7 @@ export function usePushNotifications() {
         if (permission === 'granted') {
             const messaging = getMessaging();
             const unsubscribe = onMessage(messaging, (payload) => {
-                console.log('Message received. ', payload);
+                logger.log('Message received. ', payload);
                 // We will hook this into our persistent notification store later
                 // For now, simple alert or let component handle it
                 new Notification(payload.notification?.title || 'New Message', {

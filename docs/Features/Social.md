@@ -10,6 +10,8 @@ Bingeki V2 introduces social features to turn solitary reading into a shared exp
 ## Activity Feed
 A unified feed showing actions from all friends.
 - **Implementation**: Listens to the `activities` collection where `userId` is in the current user's friend list.
+- **Design (Manga Grid)**: The feed uses a dynamic grid layout inspired by manga panels. Highlights (e.g., leveling up) use larger cards with hard shadows.
+- **Icons**: Custom Discord and TikTok icons are integrated for a cohesive Bingeki visual identity.
 - **Events**: "User X started reading One Piece", "User Y reached Level 10".
 
 ## Watch Parties

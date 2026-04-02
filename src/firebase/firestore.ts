@@ -2,6 +2,7 @@ import { doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit,
 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './config';
+import { logger } from '@/utils/logger';
 import type { Work, Folder } from '@/store/libraryStore';
 // import type { Badge } from '@/types/badge'; // Removed unused import, already in GamificationData
 import type { FavoriteCharacter } from '@/types/character';
@@ -136,9 +137,9 @@ export async function saveUserProfileToFirestore(user: Partial<UserProfile>, for
 
 
         await setDoc(docRef, dataToSave, { merge: true });
-        console.log('[Firestore] User profile saved:', dataToSave);
+        logger.log('[Firestore] User profile saved:', dataToSave);
     } catch (error) {
-        console.error('[Firestore] Error saving user profile:', error);
+        logger.error('[Firestore] Error saving user profile:', error);
         throw error; // Re-throw to let UI know
     }
 }
@@ -148,9 +149,9 @@ export async function updateUserProfile(uid: string, data: Partial<Pick<UserProf
     try {
         const docRef = doc(db, 'users', uid);
         await updateDoc(docRef, { ...data, lastUpdated: Date.now() });
-        console.log('[Firestore] User profile updated:', data);
+        logger.log('[Firestore] User profile updated:', data);
     } catch (error) {
-        console.error('[Firestore] Error updating user profile:', error);
+        logger.error('[Firestore] Error updating user profile:', error);
         throw error;
     }
 }
@@ -168,7 +169,7 @@ export async function uploadProfilePicture(uid: string, file: File): Promise<str
 
         return downloadURL;
     } catch (error) {
-        console.error('[Storage] Error uploading profile picture:', error);
+        logger.error('[Storage] Error uploading profile picture:', error);
         throw error;
     }
 }
@@ -196,11 +197,11 @@ export async function saveLibraryToFirestore(userId: string, works: Work[], fold
             lastUpdated: Date.now(),
             version: (existing?.version || 0) + 1
         } as LibraryData);
-        console.log('[Firestore] Library saved safely');
+        logger.log('[Firestore] Library saved safely');
     } catch (error) {
-        console.error('[Firestore] Error saving library:', error);
+        logger.error('[Firestore] Error saving library:', error);
         if ((error as { code?: string }).code === 'permission-denied') {
-            console.error('[Firestore] PERMISSION DENIED: Check your Firestore Security Rules in Firebase Console.');
+            logger.error('[Firestore] PERMISSION DENIED: Check your Firestore Security Rules in Firebase Console.');
         }
         throw error;
     }
@@ -214,12 +215,12 @@ export async function loadLibraryFromFirestore(userId: string): Promise<Work[] |
 
         if (docSnap.exists()) {
             const data = docSnap.data() as LibraryData;
-            console.log('[Firestore] Library loaded');
+            logger.log('[Firestore] Library loaded');
             return data.works;
         }
         return null; // No data in Firestore
     } catch (error) {
-        console.error('[Firestore] Error loading library:', error);
+        logger.error('[Firestore] Error loading library:', error);
         return null;
     }
 }
@@ -232,12 +233,12 @@ export async function loadFullLibraryData(userId: string): Promise<LibraryData |
 
         if (docSnap.exists()) {
             const data = docSnap.data() as LibraryData;
-            console.log('[Firestore] Full library data loaded');
+            logger.log('[Firestore] Full library data loaded');
             return data;
         }
         return null;
     } catch (error) {
-        console.error('[Firestore] Error loading full library data:', error);
+        logger.error('[Firestore] Error loading full library data:', error);
         return null;
     }
 }
@@ -261,9 +262,9 @@ export async function updateFolderSharing(
                 : f
         );
         await updateDoc(docRef, { folders: updatedFolders });
-        console.log('[Firestore] Folder sharing updated');
+        logger.log('[Firestore] Folder sharing updated');
     } catch (error) {
-        console.error('[Firestore] Error updating folder sharing:', error);
+        logger.error('[Firestore] Error updating folder sharing:', error);
     }
 }
 
@@ -275,9 +276,9 @@ export async function updateLibrarySharing(
     try {
         const docRef = doc(db, 'users', userId, 'data', 'library');
         await updateDoc(docRef, { sharing: { ...sharing, sharedAt: Date.now() } });
-        console.log('[Firestore] Library sharing updated');
+        logger.log('[Firestore] Library sharing updated');
     } catch (error) {
-        console.error('[Firestore] Error updating library sharing:', error);
+        logger.error('[Firestore] Error updating library sharing:', error);
     }
 }
 
@@ -295,7 +296,7 @@ export async function saveGamificationToFirestore(
 
         // 2. Validate write (prevent downgrades)
         if (!validateGamificationWrite(data, existing)) {
-            console.warn('[Firestore] Gamification write blocked - would cause data downgrade');
+            logger.warn('[Firestore] Gamification write blocked - would cause data downgrade');
             // Use safe merge instead
             const safeData = mergeGamificationData(data, existing);
             data = safeData;
@@ -330,11 +331,11 @@ export async function saveGamificationToFirestore(
             totalWorksCompleted: mergedData.totalWorksCompleted
         }, { merge: true });
 
-        console.log('[Firestore] Gamification saved safely');
+        logger.log('[Firestore] Gamification saved safely');
     } catch (error) {
-        console.error('[Firestore] Error saving gamification:', error);
+        logger.error('[Firestore] Error saving gamification:', error);
         if ((error as { code?: string }).code === 'permission-denied') {
-            console.error('[Firestore] PERMISSION DENIED: Check your Firestore Security Rules in Firebase Console.');
+            logger.error('[Firestore] PERMISSION DENIED: Check your Firestore Security Rules in Firebase Console.');
         }
         throw error;
     }
@@ -349,12 +350,12 @@ export async function loadGamificationFromFirestore(userId: string): Promise<Omi
         if (docSnap.exists()) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { lastUpdated: _ignored, ...data } = docSnap.data() as GamificationData;
-            console.log('[Firestore] Gamification loaded');
+            logger.log('[Firestore] Gamification loaded');
             return data;
         }
         return null; // No data in Firestore
     } catch (error) {
-        console.error('[Firestore] Error loading gamification:', error);
+        logger.error('[Firestore] Error loading gamification:', error);
         return null;
     }
 }
@@ -380,9 +381,9 @@ export async function adminUpdateUserGamification(uid: string, level: number, xp
             lastUpdated: Date.now()
         }, { merge: true });
 
-        console.log(`[Firestore] Admin updated gamification for ${uid}: Level ${level}, XP ${xp}`);
+        logger.log(`[Firestore] Admin updated gamification for ${uid}: Level ${level}, XP ${xp}`);
     } catch (error) {
-        console.error('[Firestore] Error updating user gamification:', error);
+        logger.error('[Firestore] Error updating user gamification:', error);
         throw error;
     }
 }
@@ -400,12 +401,12 @@ export async function syncLocalDataToFirestore(
     // If no Firestore data but local data exists, upload local data
     if (!existingLibrary && library.length > 0) {
         await saveLibraryToFirestore(userId, library);
-        console.log('[Firestore] Uploaded local library to cloud');
+        logger.log('[Firestore] Uploaded local library to cloud');
     }
 
     if (!existingGamification && (gamification.level > 1 || gamification.totalWorksAdded > 0)) {
         await saveGamificationToFirestore(userId, gamification);
-        console.log('[Firestore] Uploaded local gamification to cloud');
+        logger.log('[Firestore] Uploaded local gamification to cloud');
     }
 }
 
@@ -430,7 +431,7 @@ export async function searchUserByEmail(email: string): Promise<UserProfile | nu
         }
         return null;
     } catch (error) {
-        console.error('[Firestore] Error searching user:', error);
+        logger.error('[Firestore] Error searching user:', error);
         return null;
     }
 }
@@ -446,7 +447,7 @@ export async function searchUserByName(name: string): Promise<UserProfile | null
         }
         return null;
     } catch (error) {
-        console.error('[Firestore] Error searching user by name:', error);
+        logger.error('[Firestore] Error searching user by name:', error);
         return null;
     }
 }
@@ -469,7 +470,7 @@ export async function searchUsersByPrefix(prefix: string, limitCount: number = 5
         });
         return users;
     } catch (error) {
-        console.error('[Firestore] Error searching users by prefix:', error);
+        logger.error('[Firestore] Error searching users by prefix:', error);
         return [];
     }
 }
@@ -484,7 +485,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
         }
         return null;
     } catch (error) {
-        console.error('[Firestore] Error getting user profile:', error);
+        logger.error('[Firestore] Error getting user profile:', error);
         return null;
     }
 }
@@ -499,7 +500,7 @@ export function subscribeToUserProfile(uid: string, callback: (profile: UserProf
             callback(null);
         }
     }, (error) => {
-        console.error('[Firestore] Error subscribing to user profile:', error);
+        logger.error('[Firestore] Error subscribing to user profile:', error);
         callback(null);
     });
 }
@@ -511,9 +512,9 @@ export async function sendFriendRequest(_currentUserId: string, _currentUserData
         const { functions } = await import('./config');
         const sendFn = httpsCallable(functions, 'sendFriendRequestFn');
         await sendFn({ targetUserId: targetUser.uid });
-        console.log('[Firestore] Friend request sent via Cloud Function');
+        logger.log('[Firestore] Friend request sent via Cloud Function');
     } catch (error) {
-        console.error('[Firestore] Error sending friend request:', error);
+        logger.error('[Firestore] Error sending friend request:', error);
         throw error;
     }
 }
@@ -525,9 +526,9 @@ export async function acceptFriendRequest(_currentUserId: string, friendUid: str
         const { functions } = await import('./config');
         const acceptFn = httpsCallable(functions, 'acceptFriendRequestFn');
         await acceptFn({ friendUid });
-        console.log('[Firestore] Friend request accepted via Cloud Function');
+        logger.log('[Firestore] Friend request accepted via Cloud Function');
     } catch (error) {
-        console.error('[Firestore] Error accepting friend request:', error);
+        logger.error('[Firestore] Error accepting friend request:', error);
         throw error;
     }
 }
@@ -539,9 +540,9 @@ export async function rejectFriendRequest(_currentUserId: string, friendUid: str
         const { functions } = await import('./config');
         const rejectFn = httpsCallable(functions, 'rejectFriendRequestFn');
         await rejectFn({ friendUid });
-        console.log('[Firestore] Friend request rejected/removed via Cloud Function');
+        logger.log('[Firestore] Friend request rejected/removed via Cloud Function');
     } catch (error) {
-        console.error('[Firestore] Error rejecting friend request:', error);
+        logger.error('[Firestore] Error rejecting friend request:', error);
         throw error;
     }
 }
@@ -556,7 +557,7 @@ export async function checkFriendship(userId1: string, userId2: string): Promise
         }
         return 'none';
     } catch (error) {
-        console.error('[Firestore] Error checking friendship:', error);
+        logger.error('[Firestore] Error checking friendship:', error);
         return 'none';
     }
 }
@@ -572,7 +573,7 @@ export async function getFriends(userId: string): Promise<Friend[]> {
         });
         return friends;
     } catch (error) {
-        console.error('[Firestore] Error loading friends:', error);
+        logger.error('[Firestore] Error loading friends:', error);
         return [];
     }
 }
@@ -593,7 +594,7 @@ export const getLeaderboard = async (limitCount = 10, _period: 'week' | 'month' 
         });
         return users;
     } catch (error) {
-        console.error('[Firestore] Error loading leaderboard:', error);
+        logger.error('[Firestore] Error loading leaderboard:', error);
         return [];
     }
 }
@@ -604,7 +605,7 @@ export const getLeaderboard = async (limitCount = 10, _period: 'week' | 'month' 
 // DEPRECATED: Activity logging is now handled server-side by onLibraryUpdate trigger.
 // Firestore rules block client writes to /activities. This function is kept for reference.
 export async function logActivity(_userId: string, _event: Omit<ActivityEvent, 'id' | 'timestamp'>): Promise<void> {
-    console.warn('[Firestore] logActivity is deprecated. Activities are now logged server-side.');
+    logger.warn('[Firestore] logActivity is deprecated. Activities are now logged server-side.');
 }
 
 // Get activities from friends
@@ -639,7 +640,7 @@ export async function getFriendsActivity(userId: string, limitCount: number = 20
         });
         return activities;
     } catch (error) {
-        console.error('[Firestore] Error loading friends activity:', error);
+        logger.error('[Firestore] Error loading friends activity:', error);
         return [];
     }
 }
@@ -656,7 +657,7 @@ export async function getUserLibrary(userId: string): Promise<Work[]> {
         }
         return [];
     } catch (error) {
-        console.error('[Firestore] Error loading user library:', error);
+        logger.error('[Firestore] Error loading user library:', error);
         return [];
     }
 }
@@ -674,7 +675,7 @@ export async function compareLibraries(userId1: string, userId2: string): Promis
 
         return { common, count: common.length };
     } catch (error) {
-        console.error('[Firestore] Error comparing libraries:', error);
+        logger.error('[Firestore] Error comparing libraries:', error);
         return { common: [], count: 0 };
     }
 }
@@ -714,7 +715,7 @@ export async function getFilteredLeaderboard(
         });
         return users;
     } catch (error) {
-        console.error('[Firestore] Error loading filtered leaderboard:', error);
+        logger.error('[Firestore] Error loading filtered leaderboard:', error);
         return [];
     }
 }
@@ -757,7 +758,7 @@ export async function getUserRank(
 
         return { rank, profile: userProfile };
     } catch (error) {
-        console.error('[Firestore] Error getting user rank:', error);
+        logger.error('[Firestore] Error getting user rank:', error);
         return null;
     }
 }
@@ -772,10 +773,10 @@ export async function addComment(comment: Omit<Comment, 'id' | 'timestamp' | 'li
             timestamp: Date.now(),
             likes: []
         });
-        console.log('[Firestore] Comment added:', commentRef.id);
+        logger.log('[Firestore] Comment added:', commentRef.id);
         return commentRef.id;
     } catch (error) {
-        console.error('[Firestore] Error adding comment:', error);
+        logger.error('[Firestore] Error adding comment:', error);
         return null;
     }
 }
@@ -797,7 +798,7 @@ export async function getComments(workId: number, limitCount: number = 50): Prom
         });
         return comments;
     } catch (error) {
-        console.error('[Firestore] Error loading comments:', error);
+        logger.error('[Firestore] Error loading comments:', error);
         return [];
     }
 }
@@ -846,7 +847,7 @@ export async function toggleCommentLike(commentId: string, userId: string): Prom
             }
         }
     } catch (error) {
-        console.error('[Firestore] Error toggling comment like:', error);
+        logger.error('[Firestore] Error toggling comment like:', error);
     }
 }
 
@@ -856,10 +857,10 @@ export async function toggleCommentLike(commentId: string, userId: string): Prom
 export async function createChallenge(challenge: Omit<Challenge, 'id'>): Promise<string | null> {
     try {
         const challengeRef = await addDoc(collection(db, 'challenges'), challenge);
-        console.log('[Firestore] Challenge created:', challengeRef.id);
+        logger.log('[Firestore] Challenge created:', challengeRef.id);
         return challengeRef.id;
     } catch (error) {
-        console.error('[Firestore] Error creating challenge:', error);
+        logger.error('[Firestore] Error creating challenge:', error);
         return null;
     }
 }
@@ -879,7 +880,7 @@ export async function getUserChallenges(userId: string): Promise<Challenge[]> {
         });
         return challenges;
     } catch (error) {
-        console.error('[Firestore] Error loading challenges:', error);
+        logger.error('[Firestore] Error loading challenges:', error);
         return [];
     }
 }
@@ -898,7 +899,7 @@ export async function updateChallengeProgress(challengeId: string, participantId
             await updateDoc(challengeRef, { participants });
         }
     } catch (error) {
-        console.error('[Firestore] Error updating challenge progress:', error);
+        logger.error('[Firestore] Error updating challenge progress:', error);
     }
 }
 
@@ -924,7 +925,7 @@ export async function getFriendsReadingWork(userId: string, workId: number): Pro
 
         return { count: friendsReading.length, friends: friendsReading };
     } catch (error) {
-        console.error('[Firestore] Error getting friends reading work:', error);
+        logger.error('[Firestore] Error getting friends reading work:', error);
         return { count: 0, friends: [] };
     }
 }
@@ -942,10 +943,10 @@ export async function createWatchParty(party: Omit<WatchParty, 'id'>): Promise<s
             id: partyRef.id
         };
         await setDoc(partyRef, partyData);
-        console.log('[Firestore] Watch party created:', partyData.id);
+        logger.log('[Firestore] Watch party created:', partyData.id);
         return partyRef.id;
     } catch (error) {
-        console.error('[Firestore] Error creating watch party:', error);
+        logger.error('[Firestore] Error creating watch party:', error);
         throw error;
     }
 }
@@ -981,7 +982,7 @@ export async function getUserWatchParties(userId: string): Promise<WatchParty[]>
 
         return parties.sort((a, b) => b.lastActivity - a.lastActivity);
     } catch (error) {
-        console.error('[Firestore] Error getting user watch parties:', error);
+        logger.error('[Firestore] Error getting user watch parties:', error);
         return [];
     }
 }
@@ -1001,9 +1002,9 @@ export async function joinWatchParty(partyId: string, participant: PartyParticip
                 lastActivity: Date.now()
             });
         }
-        console.log('[Firestore] Joined watch party:', partyId);
+        logger.log('[Firestore] Joined watch party:', partyId);
     } catch (error) {
-        console.error('[Firestore] Error joining watch party:', error);
+        logger.error('[Firestore] Error joining watch party:', error);
         throw error;
     }
 }
@@ -1016,7 +1017,7 @@ export async function updateWatchPartyProgress(partyId: string, newEpisode: numb
             lastActivity: Date.now()
         });
     } catch (error) {
-        console.error('[Firestore] Error updating party progress:', error);
+        logger.error('[Firestore] Error updating party progress:', error);
     }
 }
 
@@ -1041,10 +1042,10 @@ export async function acceptChallengeInvitation(challengeId: string, participant
                 participants,
                 status: allAccepted ? 'active' : 'pending'
             });
-            console.log('[Firestore] Challenge invitation accepted');
+            logger.log('[Firestore] Challenge invitation accepted');
         }
     } catch (error) {
-        console.error('[Firestore] Error accepting challenge:', error);
+        logger.error('[Firestore] Error accepting challenge:', error);
         throw error;
     }
 }
@@ -1063,10 +1064,10 @@ export async function declineChallengeInvitation(challengeId: string, participan
             const participantIds = challenge.participantIds.filter(id => id !== participantId);
 
             await updateDoc(challengeRef, { participants, participantIds });
-            console.log('[Firestore] Challenge invitation declined');
+            logger.log('[Firestore] Challenge invitation declined');
         }
     } catch (error) {
-        console.error('[Firestore] Error declining challenge:', error);
+        logger.error('[Firestore] Error declining challenge:', error);
         throw error;
     }
 }
@@ -1078,9 +1079,9 @@ export async function cancelChallenge(challengeId: string): Promise<void> {
             status: 'cancelled',
             endDate: Date.now()
         });
-        console.log('[Firestore] Challenge cancelled');
+        logger.log('[Firestore] Challenge cancelled');
     } catch (error) {
-        console.error('[Firestore] Error cancelling challenge:', error);
+        logger.error('[Firestore] Error cancelling challenge:', error);
         throw error;
     }
 }
@@ -1093,9 +1094,9 @@ export async function completeChallenge(challengeId: string, winnerId?: string):
             endDate: Date.now(),
             winnerId: winnerId || null
         });
-        console.log('[Firestore] Challenge completed');
+        logger.log('[Firestore] Challenge completed');
     } catch (error) {
-        console.error('[Firestore] Error completing challenge:', error);
+        logger.error('[Firestore] Error completing challenge:', error);
         throw error;
     }
 }
@@ -1109,9 +1110,9 @@ export async function endWatchParty(partyId: string): Promise<void> {
             status: 'completed',
             lastActivity: Date.now()
         });
-        console.log('[Firestore] Watch party ended');
+        logger.log('[Firestore] Watch party ended');
     } catch (error) {
-        console.error('[Firestore] Error ending watch party:', error);
+        logger.error('[Firestore] Error ending watch party:', error);
         throw error;
     }
 }
@@ -1130,10 +1131,10 @@ export async function leaveWatchParty(partyId: string, participantId: string): P
                 participants,
                 lastActivity: Date.now()
             });
-            console.log('[Firestore] Left watch party');
+            logger.log('[Firestore] Left watch party');
         }
     } catch (error) {
-        console.error('[Firestore] Error leaving watch party:', error);
+        logger.error('[Firestore] Error leaving watch party:', error);
         throw error;
     }
 }
@@ -1176,10 +1177,10 @@ export async function submitFeedback(feedback: Omit<FeedbackData, 'id' | 'timest
             attachments: feedback.attachments || [],
             adminResponses: []
         });
-        console.log('[Firestore] Feedback submitted:', feedbackRef.id);
+        logger.log('[Firestore] Feedback submitted:', feedbackRef.id);
         return feedbackRef.id;
     } catch (error) {
-        console.error('[Firestore] Error submitting feedback:', error);
+        logger.error('[Firestore] Error submitting feedback:', error);
         return null;
     }
 }
@@ -1190,7 +1191,7 @@ export async function getAllFeedback(): Promise<FeedbackData[]> {
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as unknown as FeedbackData));
     } catch (error) {
-        console.error('[Firestore] Error getting feedback:', error);
+        logger.error('[Firestore] Error getting feedback:', error);
         return [];
     }
 }
@@ -1206,7 +1207,7 @@ export async function getUserFeedback(userId: string): Promise<FeedbackData[]> {
         const feedback = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as unknown as FeedbackData));
         return feedback.sort((a, b) => b.timestamp - a.timestamp);
     } catch (error) {
-        console.error('[Firestore] Error getting user feedback:', error);
+        logger.error('[Firestore] Error getting user feedback:', error);
         return [];
     }
 }
@@ -1221,7 +1222,7 @@ export async function getFeedbackById(feedbackId: string): Promise<FeedbackData 
         }
         return null;
     } catch (error) {
-        console.error('[Firestore] Error getting feedback by ID:', error);
+        logger.error('[Firestore] Error getting feedback by ID:', error);
         return null;
     }
 }
@@ -1246,10 +1247,10 @@ export async function addAdminResponse(feedbackId: string, response: Omit<AdminR
             status: 'in_progress' // Auto-update status when admin responds
         });
 
-        console.log('[Firestore] Admin response added to feedback:', feedbackId);
+        logger.log('[Firestore] Admin response added to feedback:', feedbackId);
         return true;
     } catch (error) {
-        console.error('[Firestore] Error adding admin response:', error);
+        logger.error('[Firestore] Error adding admin response:', error);
         return false;
     }
 }
@@ -1264,10 +1265,10 @@ export async function updateFeedbackDetails(
             ...updates,
             lastUpdated: Date.now()
         });
-        console.log('[Firestore] Feedback updated:', feedbackId, updates);
+        logger.log('[Firestore] Feedback updated:', feedbackId, updates);
         return true;
     } catch (error) {
-        console.error('[Firestore] Error updating feedback:', error);
+        logger.error('[Firestore] Error updating feedback:', error);
         return false;
     }
 }
@@ -1297,9 +1298,9 @@ export async function deleteUserData(userId: string): Promise<void> {
         // Delete user profile (Delete this last to ensure we can still find the user if needed during process)
         await deleteDoc(doc(db, 'users', userId));
 
-        console.log('[Firestore] All user data deleted for:', userId);
+        logger.log('[Firestore] All user data deleted for:', userId);
     } catch (error) {
-        console.error('[Firestore] Error deleting user data:', error);
+        logger.error('[Firestore] Error deleting user data:', error);
         throw error;
     }
 }
@@ -1352,7 +1353,7 @@ export async function getAdminStats() {
             engagementRate
         };
     } catch (error) {
-        console.error('[Firestore] Error getting admin stats:', error);
+        logger.error('[Firestore] Error getting admin stats:', error);
         return {
             totalUsers: 0, totalFeedback: 0, totalSurveyResponses: 0,
             newUsersToday: 0, pendingFeedback: 0,
@@ -1368,7 +1369,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
     } catch (error) {
-        console.error('[Firestore] Error getting all users:', error);
+        logger.error('[Firestore] Error getting all users:', error);
         return [];
     }
 }
@@ -1385,7 +1386,7 @@ export async function getRecentMembers(count = 10): Promise<UserProfile[]> {
         // We'll filter but realistically most should have it.
         return users;
     } catch (error) {
-        console.error('[Firestore] Error getting recent members by createdAt:', error);
+        logger.error('[Firestore] Error getting recent members by createdAt:', error);
         // Fallback to lastLogin for older users
         const q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'), limit(count));
         const snapshot = await getDocs(q);
@@ -1397,9 +1398,9 @@ export async function getRecentMembers(count = 10): Promise<UserProfile[]> {
 export async function toggleUserBan(uid: string, isBanned: boolean): Promise<void> {
     try {
         await updateDoc(doc(db, 'users', uid), { isBanned });
-        console.log(`[Firestore] User ${uid} ban status set to ${isBanned}`);
+        logger.log(`[Firestore] User ${uid} ban status set to ${isBanned}`);
     } catch (error) {
-        console.error('[Firestore] Error toggling user ban:', error);
+        logger.error('[Firestore] Error toggling user ban:', error);
         throw error;
     }
 }
@@ -1408,9 +1409,9 @@ export async function toggleUserBan(uid: string, isBanned: boolean): Promise<voi
 export async function toggleUserAdmin(uid: string, isAdmin: boolean): Promise<void> {
     try {
         await updateDoc(doc(db, 'users', uid), { isAdmin });
-        console.log(`[Firestore] User ${uid} admin status set to ${isAdmin}`);
+        logger.log(`[Firestore] User ${uid} admin status set to ${isAdmin}`);
     } catch (error) {
-        console.error('[Firestore] Error toggling user admin:', error);
+        logger.error('[Firestore] Error toggling user admin:', error);
         throw error;
     }
 }
@@ -1430,7 +1431,7 @@ export async function deleteFeedback(id: string): Promise<void> {
         // Then delete doc
         await deleteDoc(doc(db, 'feedback', id));
     } catch (error) {
-        console.error('[Firestore] Error deleting feedback:', error);
+        logger.error('[Firestore] Error deleting feedback:', error);
         throw error;
     }
 }
@@ -1508,7 +1509,7 @@ export async function getSevenDayActivityStats() {
         return result;
 
     } catch (error) {
-        console.error('Error fetching chart stats:', error);
+        logger.error('Error fetching chart stats:', error);
         return [];
     }
 }
@@ -1536,7 +1537,7 @@ export async function getEngagementBreakdown(daysCount = 7): Promise<EngagementB
 
         return breakdown;
     } catch (error) {
-        console.error('[Firestore] Error getting engagement breakdown:', error);
+        logger.error('[Firestore] Error getting engagement breakdown:', error);
         return { watch: 0, read: 0, add_work: 0, level_up: 0, badge: 0, complete: 0 };
     }
 }
@@ -1576,7 +1577,7 @@ export async function getTopContentStats(limitCount = 5, daysCount = 30): Promis
             .sort((a, b) => b.count - a.count)
             .slice(0, limitCount);
     } catch (error) {
-        console.error('[Firestore] Error getting top content stats:', error);
+        logger.error('[Firestore] Error getting top content stats:', error);
         return [];
     }
 }
@@ -1608,7 +1609,7 @@ export async function getFunnelStats(): Promise<FunnelStep[]> {
             { name: 'Engagement Actif', value: userIdsWithActivity.size }
         ];
     } catch (error) {
-        console.error('[Firestore] Error getting funnel stats:', error);
+        logger.error('[Firestore] Error getting funnel stats:', error);
         return [];
     }
 }
@@ -1673,7 +1674,7 @@ export async function getHistoricalTrends(daysCount = 30): Promise<HistoricalTre
             activeUsers: day.uniqueUsers.size
         }));
     } catch (error) {
-        console.error('[Firestore] Error getting historical trends:', error);
+        logger.error('[Firestore] Error getting historical trends:', error);
         return [];
     }
 }
@@ -1691,7 +1692,7 @@ export async function getAllActivities(limitCount: number = 50): Promise<Activit
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => doc.data() as ActivityEvent);
     } catch (error) {
-        console.error('[Firestore] Error getting all activities:', error);
+        logger.error('[Firestore] Error getting all activities:', error);
         return [];
     }
 }
@@ -1715,7 +1716,7 @@ export async function getGlobalConfig(): Promise<GlobalConfig | null> {
         const docSnap = await getDoc(docRef);
         return docSnap.exists() ? docSnap.data() as GlobalConfig : null;
     } catch (error) {
-        console.error('[Firestore] Error getting global config:', error);
+        logger.error('[Firestore] Error getting global config:', error);
         return null;
     }
 }
@@ -1730,9 +1731,9 @@ export async function setGlobalAnnouncement(message: string, type: 'info' | 'war
                 lastUpdated: Date.now()
             }
         }, { merge: true });
-        console.log('[Firestore] Announcement updated');
+        logger.log('[Firestore] Announcement updated');
     } catch (error) {
-        console.error('[Firestore] Error setting announcement:', error);
+        logger.error('[Firestore] Error setting announcement:', error);
         throw error;
     }
 }
@@ -1740,9 +1741,9 @@ export async function setGlobalAnnouncement(message: string, type: 'info' | 'war
 export async function setGlobalConfig(config: Partial<Omit<GlobalConfig, 'announcement'>>): Promise<void> {
     try {
         await setDoc(doc(db, 'config', 'global'), config, { merge: true });
-        console.log('[Firestore] Global config updated');
+        logger.log('[Firestore] Global config updated');
     } catch (error) {
-        console.error('[Firestore] Error setting config:', error);
+        logger.error('[Firestore] Error setting config:', error);
         throw error;
     }
 }
@@ -1756,7 +1757,7 @@ export function subscribeToGlobalConfig(callback: (config: GlobalConfig | null) 
             callback(null);
         }
     }, (error) => {
-        console.error('[Firestore] Error subscribing to global config:', error);
+        logger.error('[Firestore] Error subscribing to global config:', error);
         callback(null);
     });
 }
@@ -1793,10 +1794,10 @@ export async function createTierList(tierList: Omit<TierList, 'id'>): Promise<st
             ...tierList,
             createdAt: Date.now()
         });
-        console.log('[Firestore] Tier list created:', docRef.id);
+        logger.log('[Firestore] Tier list created:', docRef.id);
         return docRef.id;
     } catch (error) {
-        console.error('[Firestore] Error creating tier list:', error);
+        logger.error('[Firestore] Error creating tier list:', error);
         throw error;
     }
 }
@@ -1811,7 +1812,7 @@ export async function getTierListById(id: string): Promise<TierList | null> {
         }
         return null;
     } catch (error) {
-        console.error('[Firestore] Error getting tier list:', error);
+        logger.error('[Firestore] Error getting tier list:', error);
         return null;
     }
 }
@@ -1832,7 +1833,7 @@ export async function getPublicTierLists(limitCount: number = 20): Promise<TierL
         });
         return lists;
     } catch (error) {
-        console.error('[Firestore] Error getting public tier lists:', error);
+        logger.error('[Firestore] Error getting public tier lists:', error);
         return [];
     }
 }
@@ -1852,8 +1853,19 @@ export async function getUserTierLists(userId: string): Promise<TierList[]> {
         });
         return lists;
     } catch (error) {
-        console.error('[Firestore] Error getting user tier lists:', error);
+        logger.error('[Firestore] Error getting user tier lists:', error);
         return [];
+    }
+}
+
+// Delete a tier list
+export async function deleteTierList(listId: string): Promise<void> {
+    try {
+        await deleteDoc(doc(db, 'tierLists', listId));
+        logger.log('[Firestore] Tier list deleted:', listId);
+    } catch (error) {
+        logger.error('[Firestore] Error deleting tier list:', error);
+        throw error;
     }
 }
 
@@ -1874,7 +1886,7 @@ export async function toggleTierListLike(listId: string, userId: string): Promis
             }
         }
     } catch (error) {
-        console.error('[Firestore] Error toggling tier list like:', error);
+        logger.error('[Firestore] Error toggling tier list like:', error);
     }
 }
 
@@ -1904,7 +1916,7 @@ export async function getDeployments(limitCount = 10): Promise<DeploymentEvent[]
             ...doc.data()
         } as DeploymentEvent));
     } catch (error) {
-        console.error('[Firestore] Error fetching deployments:', error);
+        logger.error('[Firestore] Error fetching deployments:', error);
         return [];
     }
 }
@@ -1930,7 +1942,7 @@ export async function getSurveyResponses(): Promise<SurveyResponse[]> {
             ...doc.data()
         } as SurveyResponse));
     } catch (error) {
-        console.error('[Firestore] Error getting survey responses:', error);
+        logger.error('[Firestore] Error getting survey responses:', error);
         return [];
     }
 }

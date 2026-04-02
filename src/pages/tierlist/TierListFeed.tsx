@@ -4,10 +4,14 @@ import { getPublicTierLists } from '@/firebase/firestore';
 import type { TierList } from '@/firebase/firestore';
 import { TierListCard } from '@/components/tierlist/TierListCard';
 import { Button } from '@/components/ui/Button';
-import { Plus, Flame, Clock } from 'lucide-react'; // Removed unused imports
-import { useNavigate } from 'react-router-dom';
+import { Plus, Flame, Clock } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import styles from './TierListFeed.module.css';
 
 export default function TierListFeed() {
+    const { t } = useTranslation();
+    const { lang } = useParams();
     const [lists, setLists] = useState<TierList[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'recent' | 'popular'>('recent');
@@ -35,49 +39,34 @@ export default function TierListFeed() {
 
     return (
         <Layout>
-            <div className="container" style={{ padding: '2rem', minHeight: '80vh', background: '#09090b', borderRadius: '1rem', marginTop: '1rem' }}>
+            <div className={`container ${styles.container}`}>
 
                 {/* Header */}
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '2rem'
-                }}>
-                    <div>
-                        <h1 style={{
-                            fontSize: '3rem',
-                            fontWeight: 900,
-                            fontFamily: 'var(--font-heading)',
-                            color: 'white',
-                            lineHeight: 1,
-                            margin: 0
-                        }}>
-                            TIER LISTS
-                        </h1>
-                        <p style={{ color: '#888', marginTop: '0.5rem' }}>
-                            Discover community rankings
-                        </p>
+                <div className={styles.header}>
+                    <div className={styles.headerInfo}>
+                        <h1>{t('tierlist.feed_title')}</h1>
+                        <p>{t('tierlist.feed_subtitle')}</p>
                     </div>
                     <Button
                         size="lg"
                         variant="primary"
                         icon={<Plus size={20} />}
-                        onClick={() => navigate('/tierlist/create')}
+                        onClick={() => navigate(`/${lang}/tier-list/create`)}
+                        className={styles.createButton}
                     >
-                        Create Your Own
+                        {t('tierlist.create_button')}
                     </Button>
                 </div>
 
                 {/* Filters */}
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                <div className={styles.filters}>
                     <Button
                         variant={filter === 'recent' ? 'primary' : 'outline'}
                         onClick={() => setFilter('recent')}
                         icon={<Clock size={16} />}
                         size="sm"
                     >
-                        Most Recent
+                        {t('tierlist.filter_recent')}
                     </Button>
                     <Button
                         variant={filter === 'popular' ? 'primary' : 'outline'}
@@ -85,41 +74,31 @@ export default function TierListFeed() {
                         icon={<Flame size={16} />}
                         size="sm"
                     >
-                        Top Rated
+                        {t('tierlist.filter_top')}
                     </Button>
                 </div>
 
                 {/* Grid */}
                 {loading ? (
                     <div style={{ color: 'white', textAlign: 'center', padding: '4rem' }}>
-                        Loading...
+                        {t('common.loading')}
                     </div>
                 ) : lists.length > 0 ? (
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                        gap: '2rem'
-                    }}>
+                    <div className={styles.grid}>
                         {lists.map(list => (
                             <TierListCard key={list.id} tierList={list} />
                         ))}
                     </div>
                 ) : (
-                    <div style={{
-                        textAlign: 'center',
-                        padding: '4rem',
-                        border: '2px dashed #333',
-                        borderRadius: '1rem',
-                        color: '#666'
-                    }}>
-                        <h2 style={{ color: 'white', marginBottom: '1rem' }}>No Tier Lists Found</h2>
-                        <p>Be the first to create one!</p>
+                    <div className={styles.emptyState}>
+                        <h2>{t('tierlist.empty_state')}</h2>
+                        <p>{t('tierlist.empty_cta')}</p>
                         <Button
                             className="mt-4"
-                            onClick={() => navigate('/tierlist/create')}
+                            onClick={() => navigate(`/${lang}/tier-list/create`)}
                             variant="primary"
                         >
-                            Create Now
+                            {t('tierlist.create_now')}
                         </Button>
                     </div>
                 )}

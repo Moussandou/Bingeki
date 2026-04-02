@@ -19,11 +19,12 @@ For even better visual fidelity, we integrate with **Microlink**. On specific ro
 -   **Color Scheme**: Forced to `dark` for consistency.
 
 ## SEO Handler (Cloud Function)
-
 Traditional React apps often struggle with SEO because crawlers see an empty root div. Bingeki solves this with a specialized function:
+-   **Security**: The handler is hardened to prevent serving binary or static assets (`/assets/`, `/public/`, etc.). This ensures that the function only handles localized HTML requests and meta-tag injection.
 -   **URL Parsing**: Detects the language (`/fr/`, `/en/`) and the target resource (profile, news article).
 -   **Data Prefetching**: Fetches the relevant document from Firestore before the HTML is even sent to the user.
 -   **Meta-Tag Injection**: Replaces placeholders in `index.html` with real data using Regex.
+-   **Permissions-Policy**: Injects Headers for modern browser features like `browsing-topics` to comply with privacy regulations.
 -   **Caching**: Responses are cached at the CDN level (`Cache-Control`) for 5-10 minutes to balance performance and freshness.
 
 ## Bot Optimization

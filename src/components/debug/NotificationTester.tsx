@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -35,10 +36,10 @@ export function NotificationTester() {
                     read: false,
                     createdAt: serverTimestamp()
                 });
-                console.log('Notification saved to history!');
+                logger.log('Notification saved to history!');
             }
         } catch (error) {
-            console.error(error);
+            logger.error(error);
         } finally {
             setSending(false);
         }

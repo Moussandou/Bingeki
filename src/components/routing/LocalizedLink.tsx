@@ -1,5 +1,5 @@
 import { Link as RouterLink, NavLink as RouterNavLink, useNavigate } from 'react-router-dom';
-import type { LinkProps, NavLinkProps } from 'react-router-dom';
+import type { LinkProps, NavLinkProps, NavigateOptions } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -8,17 +8,18 @@ export const useLocalizedNavigate = () => {
     const { i18n } = useTranslation();
     const lang = i18n.language === 'en' ? 'en' : 'fr';
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (to: string | number, options?: any) => {
+    return (to: string | number, options?: NavigateOptions) => {
         if (typeof to === 'string' && to.startsWith('/')) {
             const isAlreadyPrefixed = to.startsWith('/fr/') || to.startsWith('/en/') || to === '/fr' || to === '/en';
             if (!isAlreadyPrefixed) {
                 navigate(`/${lang}${to}`, options);
                 return;
             }
+            navigate(to, options);
+            return;
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        navigate(to as any, options);
+        // number = history delta (e.g. navigate(-1))
+        navigate(to as number);
     };
 };
 

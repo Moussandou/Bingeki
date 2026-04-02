@@ -1,4 +1,5 @@
 
+import { useTranslation } from 'react-i18next';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableItem, TierItemDisplay } from './SortableItem';
@@ -24,6 +25,7 @@ interface TierRowProps {
 }
 
 export function TierRow({ tier, onLabelChange, onColorChange, onDelete, readOnly = false }: TierRowProps) {
+    const { t } = useTranslation();
     const { setNodeRef } = useDroppable({
         id: tier.id,
         disabled: readOnly
@@ -40,7 +42,7 @@ export function TierRow({ tier, onLabelChange, onColorChange, onDelete, readOnly
                 justifyContent: 'center',
                 flexDirection: 'column',
                 padding: '0.5rem',
-                border: '2px solid black',
+                border: '3px solid var(--color-border-heavy)',
                 borderRight: 'none',
                 position: 'relative'
             }}>
@@ -94,7 +96,7 @@ export function TierRow({ tier, onLabelChange, onColorChange, onDelete, readOnly
                 <div style={{
                     flex: 1,
                     background: '#262626',
-                    border: '2px solid black',
+                    border: '3px solid var(--color-border-heavy)',
                     display: 'flex',
                     flexWrap: 'wrap',
                     gap: '0.5rem',
@@ -116,7 +118,7 @@ export function TierRow({ tier, onLabelChange, onColorChange, onDelete, readOnly
                         style={{
                             flex: 1,
                             background: '#262626',
-                            border: '2px solid black',
+                            border: '3px solid var(--color-border-heavy)',
                             display: 'flex',
                             flexWrap: 'wrap',
                             gap: '0.5rem',
@@ -133,7 +135,7 @@ export function TierRow({ tier, onLabelChange, onColorChange, onDelete, readOnly
                         ))}
                         {tier.items.length === 0 && (
                             <div style={{ opacity: 0.2, color: 'white', width: '100%', textAlign: 'center' }}>
-                                Drop items here
+                                {t('tierlist.drop_items_here')}
                             </div>
                         )}
                     </div>
@@ -148,7 +150,7 @@ export function TierRow({ tier, onLabelChange, onColorChange, onDelete, readOnly
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid black',
+                    border: '3px solid var(--color-border-heavy)',
                     borderLeft: 'none'
                 }}>
                     {onDelete && (

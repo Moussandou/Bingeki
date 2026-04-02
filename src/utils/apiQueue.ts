@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger';
 /**
  * API Request Queue
  * 
@@ -83,7 +84,7 @@ export class ApiQueue {
                 if (response.status === 429) {
                     const retryAfterHeader = response.headers.get('Retry-After');
                     const retryAfter = retryAfterHeader ? parseInt(retryAfterHeader) * 1000 : this.retryDelay;
-                    console.warn(`[ApiQueue] Rate limit hit for ${request.url}, retrying in ${retryAfter}ms...`);
+                    logger.warn(`[ApiQueue] Rate limit hit for ${request.url}, retrying in ${retryAfter}ms...`);
                     
                     // Add the request back to the front of the queue
                     this.queue.unshift(request);
@@ -95,19 +96,19 @@ export class ApiQueue {
 
                 request.resolve(response);
             } catch (error) {
-                const isTimeout = (error as any)?.name === 'AbortError';
+                const isTimeout = error instanceof Error && error.name === 'AbortError';
 
                 const errorMsg = isTimeout ? 'Request timed out' : String(error);
                 
                 if (request.retries < this.maxRetries) {
                     request.retries++;
-                    console.warn(`[ApiQueue] Error fetching ${request.url} (Attempt ${request.retries}/${this.maxRetries}): ${errorMsg}`);
+                    logger.warn(`[ApiQueue] Error fetching ${request.url} (Attempt ${request.retries}/${this.maxRetries}): ${errorMsg}`);
                     this.queue.unshift(request);
                     await this.delay(500); 
                     continue;
                 }
                 
-                console.error(`[ApiQueue] Failed to fetch ${request.url} after ${this.maxRetries} attempts: ${errorMsg}`);
+                logger.error(`[ApiQueue] Failed to fetch ${request.url} after ${this.maxRetries} attempts: ${errorMsg}`);
                 const finalError = isTimeout ? new Error('Request timed out') : (error instanceof Error ? error : new Error(String(error)));
                 request.reject(finalError);
             }
