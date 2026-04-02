@@ -29,3 +29,6 @@ dist-ssr
 # Generated Service Worker
 public/firebase-messaging-sw.js
 
+
+# Coverage
+coverage/
