@@ -685,6 +685,8 @@ const resources = {
                     loading: "Chargement...",
                     no_activity: "Aucune activité récente de tes amis.",
                     add_friends_hint: "Ajoute des amis pour voir leur activité !",
+                    empty: "Aucune activité récente",
+                    more: "+{{count}} autres actus",
                     time: {
                         less_than_hour: "Il y a moins d'une heure",
                         hours_ago: "Il y a {{hours}}h",
@@ -2409,6 +2411,8 @@ const resources = {
                     loading: "Loading...",
                     no_activity: "No recent activity from your friends.",
                     add_friends_hint: "Add friends to see their activity!",
+                    empty: "No recent activity",
+                    more: "+{{count}} more updates",
                     time: {
                         less_than_hour: "Less than an hour ago",
                         hours_ago: "{{hours}}h ago",
