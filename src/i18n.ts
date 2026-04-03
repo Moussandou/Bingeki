@@ -1370,7 +1370,7 @@ const resources = {
                     live: "LIVE"
                 },
                 survey: {
-                    title: "Analyses du Questionnaire",
+                    title: "Statistiques du Questionnaire",
                     loading: "Chargement des réponses...",
                     total_responses: "réponses",
                     raw_data: "Données brutes",
@@ -1759,7 +1759,7 @@ const resources = {
                 footer: {
                     start: "Commencer",
                     next: "Suivant",
-                    back: "Retour",
+                    back: "$t(common.back)",
                     finish: "Terminer",
                     submitting: "Envoi...",
                     join_title: "PRÊT À REJOINDRE L'AVENTURE ?",
@@ -3110,10 +3110,10 @@ const resources = {
                     live: "LIVE"
                 },
                 survey: {
-                    title: "Survey Analytics",
+                    title: "Survey Statistics",
                     loading: "Loading responses...",
                     total_responses: "responses",
-                    raw_data: "Raw Data",
+                    raw_data: "Raw data",
                     date: "Date",
                     email: "Email",
                     profile: "Profile",
@@ -3539,7 +3539,7 @@ const resources = {
                 footer: {
                     start: "Start",
                     next: "Next",
-                    back: "Back",
+                    back: "$t(common.back)",
                     finish: "Finish",
                     submitting: "Sending...",
                     join_title: "READY TO JOIN THE ADVENTURE?",

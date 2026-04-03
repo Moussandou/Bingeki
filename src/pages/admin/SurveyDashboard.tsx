@@ -90,7 +90,7 @@ export default function SurveyDashboard() {
         return (
             <div className={styles.loading}>
                 <div className={styles.spinner}></div>
-                <p>{t('admin.survey.loading', 'Chargement des réponses...')}</p>
+                <p>{t('admin.survey.loading')}</p>
             </div>
         );
     }
@@ -100,14 +100,14 @@ export default function SurveyDashboard() {
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
                     <Link to="/admin" className={styles.backLink}>
-                        <ArrowLeft size={16} /> {t('common.back', 'Retour')}
+                        <ArrowLeft size={16} /> {t('common.back')}
                     </Link>
                     <h1 className={styles.title}>
-                        <Clipboard size={32} /> {t('admin.survey.title', 'Analyses')}
+                        <Clipboard size={32} /> {t('admin.survey.title')}
                     </h1>
                 </div>
                 <div className={styles.statsBadge}>
-                    <strong>{responses.length}</strong> {t('admin.survey.total_responses', 'réponses')}
+                    <strong>{responses.length}</strong> {t('admin.survey.total_responses')}
                 </div>
             </div>
 
@@ -115,28 +115,28 @@ export default function SurveyDashboard() {
             {responses.length === 0 ? (
                 <Card variant="manga" className={styles.emptyState}>
                     <Clipboard size={48} />
-                    <p>{t('admin.survey.no_responses', 'Aucune réponse pour le moment.')}</p>
+                    <p>{t('admin.survey.no_responses')}</p>
                 </Card>
             ) : (
                 <>
                 <div className={styles.summaryGrid}>
                     <Card variant="manga" className={styles.summaryCard}>
-                        <div className={styles.summaryLabel}>{t('admin.survey.labels.total', 'Total Réponses')}</div>
+                        <div className={styles.summaryLabel}>{t('admin.survey.labels.total')}</div>
                         <div className={styles.summaryValue}>{stats?.total}</div>
                         <Users className={styles.summaryIcon} size={80} />
                     </Card>
                     <Card variant="manga" className={styles.summaryCard}>
-                        <div className={styles.summaryLabel}>{t('admin.survey.labels.waitlist', 'Waitlist Additions')}</div>
+                        <div className={styles.summaryLabel}>{t('admin.survey.labels.waitlist')}</div>
                         <div className={styles.summaryValue}>{stats?.waitlist}</div>
                         <Mail className={styles.summaryIcon} size={80} />
                     </Card>
                     <Card variant="manga" className={styles.summaryCard}>
-                        <div className={styles.summaryLabel}>{t('admin.survey.labels.hyped', 'Niveau d\'intérêt élevé')}</div>
+                        <div className={styles.summaryLabel}>{t('admin.survey.labels.hyped')}</div>
                         <div className={styles.summaryValue}>{stats?.highInterest}</div>
                         <TrendingUp className={styles.summaryIcon} size={80} />
                     </Card>
                     <Card variant="manga" className={styles.summaryCard}>
-                        <div className={styles.summaryLabel}>{t('admin.survey.labels.premium', 'Intérêt Premium')}</div>
+                        <div className={styles.summaryLabel}>{t('admin.survey.labels.premium')}</div>
                         <div className={styles.summaryValue}>{stats?.premiumInterestPercent}%</div>
                         <Star className={styles.summaryIcon} size={80} />
                     </Card>
@@ -266,17 +266,17 @@ export default function SurveyDashboard() {
                 {/* Individual Responses List */}
                 <div className={styles.responsesSection}>
                     <h2 className={styles.sectionTitle}>
-                        <Users size={24} /> {t('admin.survey.raw_data', 'Données brutes')}
+                        <Users size={24} /> {t('admin.survey.raw_data')}
                     </h2>
                     
                     <div className={styles.tableContainer}>
                         <table className={styles.responsesTable}>
                             <thead>
                                 <tr>
-                                    <th>{t('admin.survey.date', 'Date')}</th>
-                                    <th>{t('admin.survey.email', 'Email')}</th>
-                                    <th>{t('admin.survey.profile', 'Profil')}</th>
-                                    <th>{t('admin.survey.interest', 'Intérêt')}</th>
+                                    <th>{t('admin.survey.date')}</th>
+                                    <th>{t('admin.survey.email')}</th>
+                                    <th>{t('admin.survey.profile')}</th>
+                                    <th>{t('admin.survey.interest')}</th>
                                     <th style={{ textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
@@ -308,7 +308,7 @@ export default function SurveyDashboard() {
                                             </td>
                                             <td>
                                                 <span className={`${styles.tag} ${styles[`interest_${String(response.answers?.interestLevel || '').replace(/[^a-zA-Z0-9]/g, '_')}`] || styles.interest_Unknown}`}>
-                                                    {String(response.answers?.interestLevel || t('common.unknown', 'Inconnu'))}
+                                                    {String(response.answers?.interestLevel || t('common.unknown'))}
                                                 </span>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
