@@ -1,8 +1,9 @@
 import { db, auth, storage } from '@/firebase/config';
-import { collection, getDocs, doc, getDoc, limit, query } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, limit, query, orderBy, where, addDoc, serverTimestamp, type QuerySnapshot, type DocumentData, updateDoc } from 'firebase/firestore';
 import { ref, list } from 'firebase/storage';
 import { checkJikanStatus, type JikanStatusResponse } from '@/services/animeApi';
 import { getGlobalConfig } from '@/firebase/firestore';
+import { jikanQueue } from '@/utils/apiQueue';
 import { logger } from '@/utils/logger';
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -41,12 +42,52 @@ export interface SecurityOverview {
     checkedAt: number;
 }
 
+export interface CommunityContentStats {
+    totalComments: number;
+    totalTierLists: number;
+    publicTierLists: number;
+    activeWatchParties: number;
+    totalWatchParties: number;
+    checkedAt: number;
+}
+
+export interface ApiQueueStats {
+    pending: number;
+    processing: boolean;
+    checkedAt: number;
+}
+
+export interface EditorialStats {
+    totalNews: number;
+    lastPublished: string | null; // ISO date
+    lastTitle: string | null;
+    checkedAt: number;
+}
+
+export interface ChallengeStats {
+    totalChallenges: number;
+    activeChallenges: number;
+    completedChallenges: number;
+    checkedAt: number;
+}
+
+export interface SurveyStats {
+    totalResponses: number;
+    totalWaitlist: number;
+    checkedAt: number;
+}
+
 export interface FullHealthReport {
     infrastructure: ServiceHealthResult[];
     jikan: JikanStatusResponse | null;
     dataIntegrity: DataIntegrityReport;
     gamification: GamificationHealthStats;
     security: SecurityOverview;
+    community: CommunityContentStats;
+    apiQueue: ApiQueueStats;
+    editorial: EditorialStats;
+    challenges: ChallengeStats;
+    survey: SurveyStats;
     overallScore: number; // 0-100
     checkedAt: number;
 }
@@ -57,7 +98,6 @@ export interface FullHealthReport {
 export async function checkFirebaseAuth(): Promise<ServiceHealthResult> {
     const start = performance.now();
     try {
-        // Lightweight check: just see if currentUser is accessible
         const _user = auth.currentUser;
         const elapsed = Math.round(performance.now() - start);
         return {
@@ -84,7 +124,6 @@ export async function checkFirebaseAuth(): Promise<ServiceHealthResult> {
 export async function checkFirestore(): Promise<ServiceHealthResult> {
     const start = performance.now();
     try {
-        // Read current user's own profile doc (always permitted by rules)
         const uid = auth.currentUser?.uid;
         if (!uid) {
             return {
@@ -121,14 +160,10 @@ export async function checkFirestore(): Promise<ServiceHealthResult> {
 export async function checkStorage(): Promise<ServiceHealthResult> {
     const start = performance.now();
     try {
-        // List root with maxResults=1 — works if Storage Security Rules
-        // allow reads or if the user is admin. If it throws "permission-denied"
-        // we still know Storage is reachable (just locked).
         const rootRef = ref(storage);
         try {
             await list(rootRef, { maxResults: 1 });
         } catch (innerError: unknown) {
-            // 403/permission-denied still means the service is reachable
             const msg = innerError instanceof Error ? innerError.message : '';
             if (msg.includes('unauthorized') || msg.includes('403') || msg.includes('permission')) {
                 const elapsed = Math.round(performance.now() - start);
@@ -140,7 +175,7 @@ export async function checkStorage(): Promise<ServiceHealthResult> {
                     checkedAt: Date.now()
                 };
             }
-            throw innerError; // genuine connectivity failure
+            throw innerError;
         }
         const elapsed = Math.round(performance.now() - start);
         return {
@@ -191,21 +226,21 @@ export async function checkJikan(): Promise<ServiceHealthResult> {
 
 // ─── Data Integrity ─────────────────────────────────────────────────
 
-export async function getDataIntegrityReport(): Promise<DataIntegrityReport> {
+export async function getDataIntegrityReport(usersSnapshot?: QuerySnapshot<DocumentData>): Promise<DataIntegrityReport> {
     try {
-        const usersSnap = await getDocs(query(collection(db, 'users'), limit(500)));
+        const snap = usersSnapshot || await getDocs(query(collection(db, 'users'), limit(500)));
         let missingDisplayName = 0;
         let missingPhotoURL = 0;
 
-        usersSnap.docs.forEach(d => {
+        snap.docs.forEach(d => {
             const data = d.data();
             if (!data.displayName || data.displayName.trim() === '') missingDisplayName++;
             if (!data.photoURL || data.photoURL.trim() === '') missingPhotoURL++;
         });
 
-        const total = usersSnap.size;
+        const total = snap.size;
         const issuesCount = missingDisplayName + missingPhotoURL;
-        const maxIssues = total * 2; // 2 fields checked per user
+        const maxIssues = total * 2;
         const score = maxIssues > 0 ? Math.round(((maxIssues - issuesCount) / maxIssues) * 100) : 100;
 
         return {
@@ -229,15 +264,15 @@ export async function getDataIntegrityReport(): Promise<DataIntegrityReport> {
 
 // ─── Gamification Health ────────────────────────────────────────────
 
-export async function getGamificationHealthStats(): Promise<GamificationHealthStats> {
+export async function getGamificationHealthStats(usersSnapshot?: QuerySnapshot<DocumentData>): Promise<GamificationHealthStats> {
     try {
-        const usersSnap = await getDocs(query(collection(db, 'users'), limit(500)));
+        const snap = usersSnapshot || await getDocs(query(collection(db, 'users'), limit(500)));
         let totalLevel = 0;
         let totalXP = 0;
         let maxLevelUsers = 0;
         let usersWithBadges = 0;
 
-        usersSnap.docs.forEach(d => {
+        snap.docs.forEach(d => {
             const data = d.data();
             const level = data.level || 1;
             const xp = data.xp || 0;
@@ -249,7 +284,7 @@ export async function getGamificationHealthStats(): Promise<GamificationHealthSt
             if (badges.length > 0) usersWithBadges++;
         });
 
-        const total = usersSnap.size;
+        const total = snap.size;
 
         return {
             totalUsers: total,
@@ -276,14 +311,17 @@ export async function getGamificationHealthStats(): Promise<GamificationHealthSt
 
 // ─── Security Overview ──────────────────────────────────────────────
 
-export async function getSecurityOverview(): Promise<SecurityOverview> {
+export async function getSecurityOverview(usersSnapshot?: QuerySnapshot<DocumentData>): Promise<SecurityOverview> {
     try {
-        const [usersSnap, config] = await Promise.all([
-            getDocs(query(collection(db, 'users'), limit(500))),
+        const [snap, config] = await Promise.all([
+            usersSnapshot ? Promise.resolve(usersSnapshot) : getDocs(query(collection(db, 'users'), where('isBanned', '==', true), limit(500))),
             getGlobalConfig()
         ]);
 
-        const bannedCount = usersSnap.docs.filter(d => d.data().isBanned === true).length;
+        // If shared snapshot is provided, we filter manually. Otherwise, the query above already does it.
+        const bannedCount = usersSnapshot 
+            ? snap.docs.filter(d => d.data().isBanned === true).length
+            : snap.size;
 
         return {
             bannedUsersCount: bannedCount,
@@ -302,20 +340,284 @@ export async function getSecurityOverview(): Promise<SecurityOverview> {
     }
 }
 
+// ─── Community Content ──────────────────────────────────────────────
+
+export async function getCommunityContentStats(): Promise<CommunityContentStats> {
+    try {
+        const [commentsSnap, tierListsSnap, watchPartiesSnap] = await Promise.all([
+            getDocs(query(collection(db, 'comments'), limit(500))),
+            getDocs(query(collection(db, 'tierLists'), limit(500))),
+            getDocs(query(collection(db, 'watchparties'), limit(500)))
+        ]);
+
+        const publicTierLists = tierListsSnap.docs.filter(d => d.data().isPublic === true).length;
+        const now = Date.now();
+        const activeWatchParties = watchPartiesSnap.docs.filter(d => {
+            const data = d.data();
+            // Consider a party active if it was created/updated in the last 7 days
+            const lastAction = data.lastAction?.toMillis?.() || data.createdAt?.toMillis?.() || 0;
+            return now - lastAction < 7 * 24 * 60 * 60 * 1000;
+        }).length;
+
+        return {
+            totalComments: commentsSnap.size,
+            totalTierLists: tierListsSnap.size,
+            publicTierLists,
+            activeWatchParties,
+            totalWatchParties: watchPartiesSnap.size,
+            checkedAt: Date.now()
+        };
+    } catch (error) {
+        logger.error('[HealthCheck] Community stats failed:', error);
+        return {
+            totalComments: 0,
+            totalTierLists: 0,
+            publicTierLists: 0,
+            activeWatchParties: 0,
+            totalWatchParties: 0,
+            checkedAt: Date.now()
+        };
+    }
+}
+
+// ─── API Queue Stats ────────────────────────────────────────────────
+
+export function getApiQueueStats(): ApiQueueStats {
+    const status = jikanQueue.status;
+    return {
+        pending: status.pending,
+        processing: status.processing,
+        checkedAt: Date.now()
+    };
+}
+
+// ─── Editorial Stats ────────────────────────────────────────────────
+
+export async function getEditorialStats(): Promise<EditorialStats> {
+    try {
+        const newsSnap = await getDocs(
+            query(collection(db, 'news'), orderBy('publishedAt', 'desc'), limit(1))
+        );
+
+        const totalSnap = await getDocs(query(collection(db, 'news'), limit(500)));
+
+        const lastDoc = newsSnap.docs[0];
+        let lastPublished: string | null = null;
+        let lastTitle: string | null = null;
+
+        if (lastDoc) {
+            const data = lastDoc.data();
+            lastPublished = data.publishedAt?.toDate?.()?.toISOString?.()
+                || (typeof data.publishedAt === 'string' ? data.publishedAt : null);
+            lastTitle = data.title || null;
+        }
+
+        return {
+            totalNews: totalSnap.size,
+            lastPublished,
+            lastTitle,
+            checkedAt: Date.now()
+        };
+    } catch (error) {
+        logger.error('[HealthCheck] Editorial stats failed:', error);
+        return {
+            totalNews: 0,
+            lastPublished: null,
+            lastTitle: null,
+            checkedAt: Date.now()
+        };
+    }
+}
+
+// ─── Challenge Stats ────────────────────────────────────────────────
+
+export async function getChallengeStats(): Promise<ChallengeStats> {
+    try {
+        const challengesSnap = await getDocs(query(collection(db, 'challenges'), limit(500)));
+        let active = 0;
+        let completed = 0;
+        const now = Date.now();
+
+        challengesSnap.docs.forEach(d => {
+            const data = d.data();
+            const endDate = data.endDate?.toMillis?.() || data.endDate || 0;
+            const startDate = data.startDate?.toMillis?.() || data.startDate || 0;
+
+            if (endDate && endDate < now) {
+                completed++;
+            } else if (startDate && startDate <= now) {
+                active++;
+            }
+        });
+
+        return {
+            totalChallenges: challengesSnap.size,
+            activeChallenges: active,
+            completedChallenges: completed,
+            checkedAt: Date.now()
+        };
+    } catch (error) {
+        logger.error('[HealthCheck] Challenge stats failed:', error);
+        return {
+            totalChallenges: 0,
+            activeChallenges: 0,
+            completedChallenges: 0,
+            checkedAt: Date.now()
+        };
+    }
+}
+
+// ─── Survey Stats ───────────────────────────────────────────────────
+
+export async function getSurveyStats(): Promise<SurveyStats> {
+    try {
+        const [responsesSnap, waitlistSnap] = await Promise.all([
+            getDocs(query(collection(db, 'survey_responses'), limit(500))),
+            getDocs(query(collection(db, 'survey_waitlist'), limit(500)))
+        ]);
+
+        return {
+            totalResponses: responsesSnap.size,
+            totalWaitlist: waitlistSnap.size,
+            checkedAt: Date.now()
+        };
+    } catch (error) {
+        logger.error('[HealthCheck] Survey stats failed:', error);
+        return {
+            totalResponses: 0,
+            totalWaitlist: 0,
+            checkedAt: Date.now()
+        };
+    }
+}
+
+// ─── Self-Healing ───────────────────────────────────────────────────
+
+/** Scan and repair common data issues */
+export async function runSelfHealing(): Promise<{ repaired: number; errors: number }> {
+    let repaired = 0;
+    let errors = 0;
+    try {
+        const snap = await getDocs(query(collection(db, 'users'), limit(100))); // Batch size for safety
+        
+        const repairs = snap.docs.map(async (d) => {
+            const data = d.data();
+            const updates: DocumentData = {};
+            
+            // Fix 1: Missing DisplayName (use email prefix if available)
+            if (!data.displayName || data.displayName.trim() === "") {
+                if (data.email) {
+                    updates.displayName = data.email.split('@')[0];
+                } else {
+                    updates.displayName = `User_${d.id.substring(0, 5)}`;
+                }
+            }
+
+            // Fix 2: Corrupted numeric fields
+            if (typeof data.level !== 'number') updates.level = 1;
+            if (typeof data.xp !== 'number') updates.xp = 0;
+            if (typeof data.totalXp !== 'number') updates.totalXp = data.xp || 0;
+
+            if (Object.keys(updates).length > 0) {
+                try {
+                    await updateDoc(d.ref, updates);
+                    repaired++;
+                } catch (e) {
+                    errors++;
+                    logger.error(`[SelfHealing] Failed to repair user ${d.id}:`, e);
+                }
+            }
+        });
+
+        await Promise.all(repairs);
+        return { repaired, errors };
+    } catch (error) {
+        logger.error('[SelfHealing] Fatal error during scan:', error);
+        return { repaired, errors: errors + 1 };
+    }
+}
+
+// ─── Discord Integration ────────────────────────────────────────────
+
+export async function sendDiscordHealthAlert(webhookUrl: string, report: FullHealthReport, isTest = false): Promise<boolean> {
+    try {
+        const hasDown = report.infrastructure.some(s => s.status === 'down');
+        const statusEmoji = hasDown ? '🚨' : (report.overallScore >= 80 ? '✅' : report.overallScore >= 50 ? '⚠️' : '🚨');
+        const statusLabel = hasDown ? "CRITICAL FAILURE" : (report.overallScore < 50 ? "CRITICAL HEALTH" : "Health Report");
+        
+        const payload = {
+            username: "Bingeki System Monitor",
+            embeds: [{
+                title: `${statusEmoji} Bingeki ${statusLabel} ${isTest ? "(TEST)" : ""}`,
+                color: hasDown || report.overallScore < 50 ? 0xe74c3c : report.overallScore >= 80 ? 0x27ae60 : 0xf1c40f,
+                fields: [
+                    { name: "Overall Score", value: `**${report.overallScore}/100**`, inline: true },
+                    { name: "Users Scan", value: `${report.dataIntegrity.totalUsers} registered`, inline: true },
+                    { name: "Infrastructure", value: report.infrastructure.map(s => `${s.status === 'operational' ? '🟢' : '🔴'} ${s.service}`).join('\n'), inline: false },
+                    { name: "Data Integrity", value: `Missing Names: ${report.dataIntegrity.missingDisplayName}\nMissing Photos: ${report.dataIntegrity.missingPhotoURL}`, inline: true },
+                    { name: "Gamification", value: `Avg Level: ${report.gamification.avgLevel}\nBadges: ${report.gamification.badgeUnlockRate}%`, inline: true }
+                ],
+                timestamp: new Date().toISOString(),
+                footer: { text: "Bingeki V2 Admin Dashboard" }
+            }]
+        };
+
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        return response.ok;
+    } catch (error) {
+        logger.error('[DiscordAlert] Send failed:', error);
+        return false;
+    }
+}
+
+// ─── Score History (PERSISTENT Firestore) ───────────────────────────
+
+export async function saveHealthReportToHistory(report: FullHealthReport): Promise<void> {
+    try {
+        await addDoc(collection(db, 'admin_health_history'), {
+            score: report.overallScore,
+            timestamp: serverTimestamp(),
+            summary: {
+                infraStatus: report.infrastructure.every(s => s.status === 'operational') ? 'operational' : 'degraded',
+                users: report.dataIntegrity.totalUsers,
+                issues: report.dataIntegrity.missingDisplayName + report.dataIntegrity.missingPhotoURL
+            }
+        });
+    } catch (error) {
+        logger.error('[HealthCheck] Failed to save history to Firestore:', error);
+    }
+}
+
 // ─── Full Health Report ─────────────────────────────────────────────
 
 export async function getFullHealthReport(): Promise<FullHealthReport> {
-    const [authResult, firestoreResult, storageResult, jikanResult, dataIntegrity, gamification, security] =
-        await Promise.all([
-            checkFirebaseAuth(),
-            checkFirestore(),
-            checkStorage(),
-            checkJikan(),
-            getDataIntegrityReport(),
-            getGamificationHealthStats(),
-            getSecurityOverview()
-        ]);
+    // 1. Fetch users once to share across multiple checks (Performance Optimization)
+    const usersSnap = await getDocs(query(collection(db, 'users'), limit(500)));
 
+    const [
+        authResult, firestoreResult, storageResult, jikanResult,
+        dataIntegrity, gamification, security,
+        community, editorial, challenges, surveyData
+    ] = await Promise.all([
+        checkFirebaseAuth(),
+        checkFirestore(),
+        checkStorage(),
+        checkJikan(),
+        getDataIntegrityReport(usersSnap),
+        getGamificationHealthStats(usersSnap),
+        getSecurityOverview(usersSnap),
+        getCommunityContentStats(),
+        getEditorialStats(),
+        getChallengeStats(),
+        getSurveyStats()
+    ]);
+
+    const apiQueue = getApiQueueStats();
     const infrastructure = [authResult, firestoreResult, storageResult, jikanResult];
 
     // Compute overall score
@@ -327,12 +629,25 @@ export async function getFullHealthReport(): Promise<FullHealthReport> {
 
     const overallScore = Math.round((infraScore + dataIntegrity.dataHealthScore) / 2);
 
+    // Persist score for history
+    saveHealthReportToHistory({ 
+        overallScore, infrastructure, dataIntegrity, 
+        gamification, security, community, apiQueue, 
+        editorial, challenges, survey: surveyData, 
+        jikan: null, checkedAt: Date.now() 
+    });
+
     return {
         infrastructure,
-        jikan: null, // already included in infrastructure array
+        jikan: null,
         dataIntegrity,
         gamification,
         security,
+        community,
+        apiQueue,
+        editorial,
+        challenges,
+        survey: surveyData,
         overallScore,
         checkedAt: Date.now()
     };

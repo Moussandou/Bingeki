@@ -1307,7 +1307,7 @@ export async function deleteUserData(userId: string): Promise<void> {
 
 // ==================== ADMIN DASHBOARD FUNCTIONS ====================
 
-// Get system stats for dashboard (Enhanced)
+// Get system stats for dashboard (High Performance with Aggregates)
 export async function getAdminStats() {
     try {
         const now = Date.now();
@@ -1316,49 +1316,65 @@ export async function getAdminStats() {
         const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
         const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
 
-        // Basic counts
-        const usersSnap = await getDocs(collection(db, 'users'));
-        const feedbackSnap = await getDocs(collection(db, 'feedback'));
-        const surveySnap = await getDocs(collection(db, 'survey_responses'));
+        // Optimized counts using Firestore Aggregates (1 read per count instead of 1 read per doc)
+        const [
+            totalUsersSnap, totalFeedbackSnap, totalSurveySnap,
+            dauSnap, wauSnap, mauSnap, newUsersTodaySnap,
+            pendingFeedbackSnap
+        ] = await Promise.all([
+            getAggregateFromServer(collection(db, 'users'), { count: count() }),
+            getAggregateFromServer(collection(db, 'feedback'), { count: count() }),
+            getAggregateFromServer(collection(db, 'survey_responses'), { count: count() }),
+            getAggregateFromServer(query(collection(db, 'users'), where('lastLogin', '>=', twentyFourHoursAgo)), { count: count() }),
+            getAggregateFromServer(query(collection(db, 'users'), where('lastLogin', '>=', sevenDaysAgo)), { count: count() }),
+            getAggregateFromServer(query(collection(db, 'users'), where('lastLogin', '>=', thirtyDaysAgo)), { count: count() }),
+            getAggregateFromServer(query(collection(db, 'users'), where('createdAt', '>=', startOfDay)), { count: count() }),
+            getAggregateFromServer(query(collection(db, 'feedback'), where('status', 'in', ['open', 'in_progress'])), { count: count() })
+        ]);
 
-        // DAU / WAU / MAU
-        const dau = usersSnap.docs.filter(d => (d.data().lastLogin || 0) >= twentyFourHoursAgo).length;
-        const wau = usersSnap.docs.filter(d => (d.data().lastLogin || 0) >= sevenDaysAgo).length;
-        const mau = usersSnap.docs.filter(d => (d.data().lastLogin || 0) >= thirtyDaysAgo).length;
-
-        const newUsersToday = usersSnap.docs.filter(doc => {
-            const data = doc.data() as UserProfile;
-            const joinDate = data.createdAt || data.lastLogin || 0;
-            return joinDate > startOfDay;
-        }).length;
-
-        const pendingFeedback = feedbackSnap.docs.filter(doc => {
-            const data = doc.data() as FeedbackData;
-            return data.status === 'open' || data.status === 'in_progress';
-        }).length;
-
-        // Simple Engagement: % of users with at least one activity in last 7 days
-        // We'll approximate this with WAU / Total
-        const engagementRate = usersSnap.size > 0 ? (wau / usersSnap.size) * 100 : 0;
+        const totalUsers = totalUsersSnap.data().count;
+        const wau = wauSnap.data().count;
+        const engagementRate = totalUsers > 0 ? (wau / totalUsers) * 100 : 0;
 
         return {
-            totalUsers: usersSnap.size,
-            totalFeedback: feedbackSnap.size,
-            totalSurveyResponses: surveySnap.size,
-            newUsersToday,
-            pendingFeedback,
-            dau,
+            totalUsers,
+            totalFeedback: totalFeedbackSnap.data().count,
+            totalSurveyResponses: totalSurveySnap.data().count,
+            newUsersToday: newUsersTodaySnap.data().count,
+            pendingFeedback: pendingFeedbackSnap.data().count,
+            dau: dauSnap.data().count,
             wau,
-            mau,
+            mau: mauSnap.data().count,
             engagementRate
         };
     } catch (error) {
-        logger.error('[Firestore] Error getting admin stats:', error);
+        logger.error('[Firestore] Error getting optimized admin stats:', error);
         return {
             totalUsers: 0, totalFeedback: 0, totalSurveyResponses: 0,
             newUsersToday: 0, pendingFeedback: 0,
             dau: 0, wau: 0, mau: 0, engagementRate: 0
         };
+    }
+}
+
+// Get recent health history for sparklines
+export async function getHealthHistory(maxEntries = 20) {
+    try {
+        const q = query(
+            collection(db, 'admin_health_history'), 
+            orderBy('timestamp', 'desc'), 
+            limit(maxEntries)
+        );
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({
+            id: d.id,
+            ...d.data(),
+            // Convert Firestore Timestamp to JS number for compatibility
+            timestamp: d.data().timestamp?.toMillis?.() || Date.now()
+        })).reverse(); // Order chronically for the chart
+    } catch (error) {
+        logger.error('[Firestore] Error getting health history:', error);
+        return [];
     }
 }
 

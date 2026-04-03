@@ -51,6 +51,41 @@
     letter-spacing: 0.1em;
 }
 
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.exportBtn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface);
+    border: 3px solid var(--color-border-heavy);
+    box-shadow: 3px 3px 0 var(--color-shadow-solid);
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    color: var(--color-text-dim);
+    transition: transform var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.exportBtn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--color-shadow-solid);
+    color: var(--color-text);
+}
+
+.exportBtn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 var(--color-shadow-solid);
+}
+
 .refreshBtn {
     display: flex;
     align-items: center;
@@ -137,6 +172,14 @@
 
 .scoreInfo {
     flex: 1;
+    min-width: 0;
+}
+
+.scoreRow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-md);
 }
 
 .scoreTitle {
@@ -154,12 +197,53 @@
     line-height: 1.4;
 }
 
+.scoreMeta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-top: var(--space-sm);
+    flex-wrap: wrap;
+}
+
 .lastChecked {
     font-family: 'Courier New', monospace;
     font-size: 0.7rem;
     color: var(--color-text-dim);
     text-transform: uppercase;
-    margin-top: var(--space-sm);
+}
+
+.serviceCounter {
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border: 2px solid var(--color-border-heavy);
+    background: var(--color-surface-hover);
+    color: var(--color-text-dim);
+}
+
+/* ─── Sparkline ─── */
+.sparklineContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.sparklineSvg {
+    width: 200px;
+    height: 40px;
+}
+
+.sparklineLabel {
+    font-family: 'Courier New', monospace;
+    font-size: 0.55rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
 /* ─── Section Grid ─── */
@@ -361,6 +445,85 @@
     transition: width 0.6s var(--ease-expo);
 }
 
+/* ─── Latency Chart ─── */
+.latencyChart {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.latencyRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.latencyLabel {
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+    width: 60px;
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.latencyTrack {
+    flex: 1;
+    height: 10px;
+    background: var(--color-background);
+    border: 2px solid var(--color-border);
+    overflow: hidden;
+}
+
+.latencyBar {
+    height: 100%;
+    transition: width 0.5s ease-out;
+}
+
+.latencyValue {
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    color: var(--color-text-dim);
+    width: 50px;
+    flex-shrink: 0;
+}
+
+/* ─── Queue Note ─── */
+.queueNote {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border: 2px dashed var(--color-border);
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ─── Editorial Last ─── */
+.editorialLast {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border: 2px solid var(--color-border);
+    background: var(--color-background);
+}
+
+.editorialTitle {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* ─── Security Row ─── */
 .securityRow {
     display: flex;
@@ -468,6 +631,188 @@
     animation: pulse 2s ease-in-out infinite;
 }
 
+/* ─── Alert Banner ─── */
+.alertBanner {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-lg);
+    background: #ef4444;
+    color: #fff;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 4px solid var(--color-border-heavy);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.alertLeft {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.alertAction {
+    background: #fff;
+    color: #ef4444;
+    border: none;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 900;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: transform 0.1s;
+}
+
+.alertAction:hover {
+    transform: scale(1.05);
+}
+
+/* ─── Secondary Actions Row ─── */
+.secondaryActions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.repairBtn, .discordBtn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 6px 12px;
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 3px solid var(--color-border-heavy);
+    background: var(--color-surface);
+    color: var(--color-text);
+    transition: all var(--duration-fast);
+}
+
+.repairBtn:hover {
+    background: var(--color-primary);
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.discordBtn:hover {
+    background: #5865F2;
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+/* ─── Simple Modal Overlay ─── */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-md);
+}
+
+.modalContent {
+    background: var(--color-surface);
+    border: 6px solid var(--color-border-heavy);
+    box-shadow: 12px 12px 0 var(--color-shadow-solid);
+    width: 100%;
+    max-width: 500px;
+    padding: var(--space-xl);
+}
+
+.modalTitle {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    margin-bottom: var(--space-md);
+    color: var(--color-text);
+}
+
+.modalBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.modalDesc {
+    font-size: 0.85rem;
+    color: var(--color-text-dim);
+    line-height: 1.5;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.inputLabel {
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--color-text);
+}
+
+.textInput {
+    background: var(--color-background);
+    border: 3px solid var(--color-border-heavy);
+    padding: var(--space-sm);
+    color: var(--color-text);
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+}
+
+.cancelBtn, .saveBtn {
+    padding: 8px 16px;
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 3px solid var(--color-border-heavy);
+}
+
+.cancelBtn {
+    background: transparent;
+    color: var(--color-text-dim);
+}
+
+.saveBtn {
+    background: var(--color-primary);
+    color: #fff;
+    box-shadow: 4px 4px 0 var(--color-shadow-solid);
+}
+
+.saveBtn:active {
+    box-shadow: 1px 1px 0 var(--color-shadow-solid);
+    transform: translate(3px, 3px);
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
     .healthPage {
@@ -479,6 +824,11 @@
         align-items: flex-start;
     }
 
+    .headerActions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
     .sectionsGrid {
         grid-template-columns: 1fr;
     }
@@ -486,6 +836,15 @@
     .overallScoreCard {
         flex-direction: column;
         text-align: center;
+    }
+
+    .scoreRow {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .sparklineSvg {
+        width: 160px;
     }
 
     .title {
@@ -504,5 +863,9 @@
 @media (max-width: 480px) {
     .statsGrid {
         grid-template-columns: 1fr;
+    }
+
+    .sparklineSvg {
+        width: 120px;
     }
 }
