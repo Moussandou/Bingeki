@@ -15,18 +15,22 @@
 ## 🚀 Quick Links
 
 ### 📚 Documentation
-- **[Getting Started](docs/Getting-Started.md)** - Setup & Installation.
+- **[Getting Started](docs/Getting-Started.md)** - Setup & Local Emulation.
 - **[Architecture](docs/Architecture.md)** - Tech stack & folder structure.
-- **[Deployment](docs/Deployment.md)** - Firebase Hosting & CI/CD.
+- **[Design System](docs/Design-System.md)** - Style guide, tokens & motion.
+
+### 🏗️ Infrastructure
+- **[Firebase & Backend](docs/Firebase-Backend.md)** - Firestore, Functions & Storage.
+- **[Testing Strategy](docs/Testing.md)** - Vitest, Playwright & Lighthouse.
+- **[Internationalization](docs/Internationalization.md)** - Multi-language support.
+- **[Admin Backoffice](docs/Admin-Backoffice.md)** - CMS & Health Dashboard.
+- **[Maintenance](docs/Maintenance.md)** - Build scripts & SW.
 
 ### ✨ Features
 - **[Gamification](docs/Features/Gamification.md)** - XP, Badges, Nen Chart.
 - **[Social](docs/Features/Social.md)** - Friends, Watch Parties.
-- **[Library & API](docs/Features/Library%20&%20API.md)** - Jikan integration, Offline mode.
-- **[PWA & Mobile](docs/Features/PWA%20&%20Mobile.md)** - Installation & Mobile UX.
-
-### 🎨 Design
-- **[Brutalist Design System](docs/Design-System.md)** - Style guide & tokens.
+- **[Library & API](docs/Features/Library%20&%20API.md)** - Jikan integration.
+- **[PWA & Mobile](docs/Features/PWA%20&%20Mobile.md)** - Mobile UX & Push.
 
 ---
 

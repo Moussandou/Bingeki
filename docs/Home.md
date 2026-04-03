@@ -1,34 +1,56 @@
 # Welcome to the Bingeki V2 Wiki 🏯
 
-**Bingeki** is a Progressive Web App (PWA) that transforms your manga and anime consumption into an RPG adventure.
-
-## 🎯 Project Goal
-The goal of Bingeki is to gamify the experience of tracking your reading and watching habits. By turning chapters read into XP and streaks into "Flames of Passion", we aim to make keeping up with your backlog as addictive as playing a game.
-
-## 📚 Key Sections
-
-### [Getting Started](./Getting-Started.md)
-Everything you need to set up the project locally, configure environment variables, and run the development server.
-
-### [Architecture](./Architecture.md)
-Deep dive into the tech stack (React, Firebase, Zustand), folder structure, and database schema.
-
-### Features
-Detailed documentation of the core modules:
-- **[Gamification](./Features/Gamification.md)**: XP, Levels, Nen Chart, Badges.
-- **[Social](./Features/Social.md)**: Friends, Watch Parties, Challenges.
-- **[Library & API](./Features/Library%20&%20API.md)**: Jikan integration, Search, Offline support.
-- **[PWA & Mobile](./Features/PWA%20&%20Mobile.md)**: Installation, Service Workers, Mobile UX.
-- **[SEO & Social Sharing](./Features/SEO-Social-Sharing.md)**: Dynamic OG images, Microlink, and Bot optimization.
-
-### [Design System](./Design-System.md)
-Understanding the "Brutalist Manga" aesthetic, design tokens, and component guidelines.
-
-### [Deployment](./Deployment.md)
-How to build and deploy to Firebase Hosting using our CI/CD pipelines.
-
-### [Contributing](./Contributing.md)
-Guidelines for submitting PRs, coding standards, and internationalization (i18n).
+**Bingeki** is a high-performance Progressive Web App (PWA) that transforms manga and anime tracking into a competitive, RPG-inspired adventure. Built with React, Firebase, and a custom **"Brutalist Manga"** design system.
 
 ---
+
+## 🚀 Developer Quick Start
+
+| Action | Command |
+| :--- | :--- |
+| **Setup** | `npm install` |
+| **Development** | `npm run dev` |
+| **Tests** | `npm test` |
+| **Validation** | `npm run validate:i18n` |
+| **Build & Audit** | `npm run audit` |
+
+> [!TIP]
+> Make sure to copy `.env.example` to `.env` and configure your Firebase keys before starting.
+
+---
+
+## 🗺️ Documentation Map
+
+### 🏗️ Foundation
+*   **[Getting Started](./Getting-Started.md)**: Environment setup, local emulation, and coding standards.
+*   **[Architecture](./Architecture.md)**: Technical stack, folder structure, and Firestore schema.
+*   **[Design System](./Design-System.md)**: The "Brutalist Manga" aesthetic, tokens, and component recipes.
+*   **[Internationalization](./Internationalization.md)**: Workflow for multi-language support (FR/EN).
+
+### 🛠️ Engineering
+*   **[Testing Strategy](./Testing.md)**: Unit tests (Vitest), E2E (Playwright), and Performance (Lighthouse).
+*   **[Firebase & Backend](./Firebase-Backend.md)**: Security rules, Cloud Functions, and SEO handler.
+*   **[Maintenance & Ops](./Maintenance.md)**: Service Workers, Prerendering, and CI/CD pipelines.
+
+### 🛡️ Administration
+*   **[Admin & Backoffice](./Admin-Backoffice.md)**: Health dashboard, content management, and security logs.
+
+---
+
+## ✨ Features Deep-Dive
+
+Browse the technical specifications for core modules:
+
+*   **🎮 [Gamification](./Features/Gamification.md)**: XP algorithms, Levels, Nen Chart, and dynamic Badges.
+*   **🤝 [Social](./Features/Social.md)**: Real-time Watch Parties, Friends system, and Global Challenges.
+*   **📚 [Library & API](./Features/Library%20&%20API.md)**: Jikan (MAL) integration, offline persistence, and search optimization.
+*   **📱 [PWA & Mobile](./Features/PWA%20&%20Mobile.md)**: Mobile-first UX, push notifications, and installation flow.
+*   **🔍 [SEO & Social Sharing](./Features/SEO-Social-Sharing.md)**: Bot interceptors, dynamic OG images, and Microlink integration.
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please read our **[Contributing Guidelines](./Contributing.md)** before submitting a Pull Request.
+
 *Maintained by [Moussandou](https://github.com/Moussandou)*
