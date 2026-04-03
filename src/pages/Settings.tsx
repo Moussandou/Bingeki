@@ -3,152 +3,66 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Switch } from '@/components/ui/Switch';
 import { useSettingsStore } from '@/store/settingsStore';
+import type { TitleLanguage, ProfileVisibility } from '@/store/settingsStore';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Volume2, Trash2, Palette, HardDrive, Download, Upload, Info, Github, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Volume2, Trash2, Palette, HardDrive, Download, Upload, Info, Github, ShieldAlert, BookOpen, Lock, Wifi } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import { useLibraryStore } from '@/store/libraryStore';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { useTutorialStore } from '@/store/tutorialStore';
-import { getWorkDetails } from '@/services/animeApi';
-import { RefreshCw } from 'lucide-react';
 import { SEO } from '@/components/layout/SEO';
 import { useToast } from '@/context/ToastContext';
 import { getLocalStorageSize, exportData, importData, clearImageCache } from '@/utils/storageUtils';
 import { useAuthStore } from '@/store/authStore';
-import { saveLibraryToFirestore, saveGamificationToFirestore, deleteUserData } from '@/firebase/firestore';
+import { saveLibraryToFirestore, saveGamificationToFirestore, deleteUserData, saveUserProfileToFirestore } from '@/firebase/firestore';
 import { deleteUser } from 'firebase/auth';
-import { NotificationTester } from '@/components/debug/NotificationTester';
 import { MALImportModal } from '@/components/library/MALImportModal';
 
-function SyncButton() {
-    const { t } = useTranslation();
-    // ... existing SyncButton code ...
-    const { works, updateWorkDetails } = useLibraryStore();
-
-    const { addToast } = useToast();
-    const [isSyncing, setIsSyncing] = useState(false);
-    const [progress, setProgress] = useState(0);
-
-    const handleSync = async () => {
-        if (works.length === 0) {
-            addToast(t('settings.sync.no_works'), 'info');
-            return;
-        }
-
-        setIsSyncing(true);
-        setProgress(0);
-        let updatedCount = 0;
-
-        try {
-            for (let i = 0; i < works.length; i++) {
-                const work = works[i];
-                try {
-                    const details = await getWorkDetails(Number(work.id), work.type);
-                    if (details) {
-                        updateWorkDetails(work.id, {
-                            score: details.score || undefined,
-                            synopsis: details.synopsis || undefined,
-                            image: details.images.jpg.image_url,
-                            totalChapters: work.type === 'manga' ? details.chapters : details.episodes,
-                        });
-                        updatedCount++;
-                    }
-                } catch {
-                    // Ignore error
-                }
-                setProgress(Math.round(((i + 1) / works.length) * 100));
-            }
-            addToast(t('settings.sync.complete', { count: updatedCount }), 'success');
-        } catch (error) {
-            addToast(t('settings.sync.error'), 'error');
-            console.error(error);
-        } finally {
-            setIsSyncing(false);
-            setProgress(0);
-        }
-    };
-
+/** Reusable pill-style option selector */
+function OptionSelector<T extends string>({ options, value, onChange }: {
+    options: { value: T; label: string; sublabel?: string }[];
+    value: T;
+    onChange: (v: T) => void;
+}) {
     return (
-        <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSync}
-            disabled={isSyncing}
-            style={{
-                borderColor: 'var(--color-border-heavy)',
-                color: 'var(--color-text)',
-                minWidth: '130px'
-            }}
-        >
-            {isSyncing ? (
-                <>
-                    <RefreshCw size={16} className="animate-spin" /> {progress}%
-                </>
-            ) : (
-                <>
-                    <RefreshCw size={16} /> {t('settings.sync.button')}
-                </>
-            )}
-        </Button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {options.map(opt => {
+                const active = opt.value === value;
+                return (
+                    <button
+                        key={opt.value}
+                        onClick={() => onChange(opt.value)}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: '8px',
+                            border: active ? '2px solid var(--color-accent, #FF2E63)' : '1px solid var(--color-border)',
+                            background: active ? 'color-mix(in srgb, var(--color-accent, #FF2E63) 15%, transparent)' : 'var(--color-surface)',
+                            color: active ? 'var(--color-accent, #FF2E63)' : 'var(--color-text)',
+                            cursor: 'pointer',
+                            fontWeight: active ? 700 : 500,
+                            fontSize: '0.85rem',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '0.15rem',
+                            minWidth: '90px',
+                        }}
+                    >
+                        <span>{opt.label}</span>
+                        {opt.sublabel && (
+                            <span style={{ fontSize: '0.7rem', opacity: 0.6, fontWeight: 400 }}>
+                                {opt.sublabel}
+                            </span>
+                        )}
+                    </button>
+                );
+            })}
+        </div>
     );
 }
 
-function RecalculateButton() {
-    const { t } = useTranslation();
-    const { works } = useLibraryStore();
-    const { recalculateStats } = useGamificationStore();
-    const { addToast } = useToast();
-    const [isCalculating, setIsCalculating] = useState(false);
-    const { user } = useAuthStore();
-
-    const handleRecalculate = async () => {
-        setIsCalculating(true);
-        try {
-            recalculateStats(works);
-
-            // Force save to Firestore if user is logged in
-            if (user) {
-                const { level, xp, totalXp, xpToNextLevel, streak, lastActivityDate, badges, totalChaptersRead, totalAnimeEpisodesWatched, totalMoviesWatched, totalWorksAdded, totalWorksCompleted } = useGamificationStore.getState();
-                await saveGamificationToFirestore(user.uid, {
-                    level, xp, totalXp, xpToNextLevel, streak, lastActivityDate, badges,
-                    totalChaptersRead, totalAnimeEpisodesWatched, totalMoviesWatched, totalWorksAdded, totalWorksCompleted
-                });
-            }
-
-            addToast(t('settings.data.recalculate_success'), 'success');
-        } catch (error) {
-            console.error(error);
-            addToast(t('settings.data.recalculate_error'), 'error');
-        } finally {
-            setTimeout(() => setIsCalculating(false), 500);
-        }
-    };
-
-    return (
-        <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRecalculate}
-            disabled={isCalculating}
-            style={{
-                borderColor: 'var(--color-border-heavy)',
-                color: 'var(--color-text)',
-                minWidth: '130px'
-            }}
-        >
-            {isCalculating ? (
-                <>
-                    <RefreshCw size={16} className="animate-spin" /> ...
-                </>
-            ) : (
-                <>
-                    <RefreshCw size={16} /> {t('settings.data.recalculate_button')}
-                </>
-            )}
-        </Button>
-    );
-}
 
 export default function Settings() {
     const { t } = useTranslation();
@@ -171,7 +85,18 @@ export default function Settings() {
         toggleSpoilerMode,
         nsfwMode,
         toggleNsfwMode,
-        setAccentColor
+        setAccentColor,
+        // New settings
+        titleLanguage,
+        setTitleLanguage,
+        hideScores,
+        toggleHideScores,
+        dataSaver,
+        toggleDataSaver,
+        profileVisibility,
+        setProfileVisibility,
+        showActivityStatus,
+        toggleActivityStatus,
     } = useSettingsStore();
 
 
@@ -273,6 +198,18 @@ export default function Settings() {
         { name: t('settings.colors.purple'), value: '#8B5CF6' },
     ];
 
+    const TITLE_OPTIONS: { value: TitleLanguage; label: string; sublabel: string }[] = [
+        { value: 'romaji', label: t('settings.content.title_default'), sublabel: t('settings.content.title_default_example') },
+        { value: 'english', label: t('settings.content.title_english'), sublabel: t('settings.content.title_english_example') },
+        { value: 'native', label: t('settings.content.title_japanese'), sublabel: t('settings.content.title_japanese_example') },
+    ];
+
+    const VISIBILITY_OPTIONS: { value: ProfileVisibility; label: string; sublabel: string }[] = [
+        { value: 'public', label: t('settings.privacy.visibility_public'), sublabel: t('settings.privacy.visibility_public_desc') },
+        { value: 'friends', label: t('settings.privacy.visibility_friends'), sublabel: t('settings.privacy.visibility_friends_desc') },
+        { value: 'private', label: t('settings.privacy.visibility_private'), sublabel: t('settings.privacy.visibility_private_desc') },
+    ];
+
     return (
         <Layout>
             <SEO title={t('settings.title', 'Settings')} />
@@ -325,7 +262,6 @@ export default function Settings() {
                                     isOn={spoilerMode}
                                     onToggle={() => {
                                         toggleSpoilerMode();
-                                        // Feedback toast (state value is old value here, so inversion logic applies for message)
                                         addToast(!spoilerMode ? t('settings.appearance.spoiler_enabled') : t('settings.appearance.spoiler_disabled'), 'info');
                                     }}
                                 />
@@ -359,6 +295,126 @@ export default function Settings() {
                             </div>
                         </section>
 
+                        {/* Contenu & Affichage */}
+                        <section>
+                            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-heading)', fontWeight: 900, color: 'var(--color-text)' }}>
+                                <BookOpen size={20} /> {t('settings.content.title')}
+                            </h2>
+                            <div className="manga-panel" style={{ padding: '1.5rem', background: 'var(--color-surface)', color: 'var(--color-text)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {/* Title Language */}
+                                <div>
+                                    <p style={{ fontWeight: 700, marginBottom: '0.5rem' }}>{t('settings.content.title_language')}</p>
+                                    <p style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '0.75rem' }}>
+                                        {t('settings.content.title_language_help')}
+                                    </p>
+                                    <OptionSelector
+                                        options={TITLE_OPTIONS}
+                                        value={titleLanguage}
+                                        onChange={(v) => {
+                                            setTitleLanguage(v);
+                                            if (user) {
+                                                saveUserProfileToFirestore({ uid: user.uid, titlePriority: v }, true)
+                                                    .catch(err => console.error('Failed to sync title language:', err));
+                                            }
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ height: '1px', background: 'var(--color-border)' }} />
+
+                                {/* Hide Scores */}
+                                <Switch
+                                    label={t('settings.content.hide_scores')}
+                                    isOn={hideScores}
+                                    onToggle={() => {
+                                        const newValue = !hideScores;
+                                        toggleHideScores();
+                                        if (user) {
+                                            saveUserProfileToFirestore({ uid: user.uid, hideScores: newValue }, true)
+                                                .catch(err => console.error('Failed to sync hide scores:', err));
+                                        }
+                                        addToast(newValue ? t('settings.content.hide_scores_enabled') : t('settings.content.hide_scores_disabled'), 'info');
+                                    }}
+                                />
+                                <p style={{ fontSize: '0.85rem', opacity: 0.6, marginTop: '-0.5rem' }}>
+                                    {t('settings.content.hide_scores_help')}
+                                </p>
+
+                                <div style={{ height: '1px', background: 'var(--color-border)' }} />
+
+                                {/* Data Saver */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Wifi size={16} style={{ opacity: 0.5 }} />
+                                    <div style={{ flex: 1 }}>
+                                        <Switch
+                                            label={t('settings.content.data_saver')}
+                                            isOn={dataSaver}
+                                            onToggle={() => {
+                                                const newValue = !dataSaver;
+                                                toggleDataSaver();
+                                                if (user) {
+                                                    saveUserProfileToFirestore({ uid: user.uid, dataSaver: newValue }, true)
+                                                        .catch(err => console.error('Failed to sync data saver:', err));
+                                                }
+                                                addToast(newValue ? t('settings.content.data_saver_enabled') : t('settings.content.data_saver_disabled'), 'info');
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                <p style={{ fontSize: '0.85rem', opacity: 0.6, marginTop: '-0.5rem' }}>
+                                    {t('settings.content.data_saver_help')}
+                                </p>
+                            </div>
+                        </section>
+
+                        {/* Confidentialité */}
+                        <section>
+                            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-heading)', fontWeight: 900, color: 'var(--color-text)' }}>
+                                <Lock size={20} /> {t('settings.privacy.title')}
+                            </h2>
+                            <div className="manga-panel" style={{ padding: '1.5rem', background: 'var(--color-surface)', color: 'var(--color-text)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {/* Profile Visibility */}
+                                <div>
+                                    <p style={{ fontWeight: 700, marginBottom: '0.5rem' }}>{t('settings.privacy.profile_visibility')}</p>
+                                    <p style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '0.75rem' }}>
+                                        {t('settings.privacy.profile_visibility_help')}
+                                    </p>
+                                    <OptionSelector
+                                        options={VISIBILITY_OPTIONS}
+                                        value={profileVisibility}
+                                        onChange={(v) => {
+                                            setProfileVisibility(v);
+                                            if (user) {
+                                                saveUserProfileToFirestore({ uid: user.uid, profileVisibility: v }, true)
+                                                    .catch(err => console.error('Failed to sync visibility:', err));
+                                            }
+                                        }}
+                                    />
+
+                                </div>
+
+                                <div style={{ height: '1px', background: 'var(--color-border)' }} />
+
+                                {/* Activity Status */}
+                                <Switch
+                                    label={t('settings.privacy.activity_status')}
+                                    isOn={showActivityStatus}
+                                    onToggle={() => {
+                                        const newValue = !showActivityStatus;
+                                        toggleActivityStatus();
+                                        if (user) {
+                                            saveUserProfileToFirestore({ uid: user.uid, showActivityStatus: newValue }, true)
+                                                .catch(err => console.error('Failed to sync activity status:', err));
+                                        }
+                                        addToast(newValue ? t('settings.privacy.activity_status_enabled') : t('settings.privacy.activity_status_disabled'), 'info');
+                                    }}
+                                />
+                                <p style={{ fontSize: '0.85rem', opacity: 0.6, marginTop: '-0.5rem' }}>
+                                    {t('settings.privacy.activity_status_help')}
+                                </p>
+                            </div>
+                        </section>
+
                         {/* Accessibilité & Audio */}
                         <section>
                             <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-heading)', fontWeight: 900, color: 'var(--color-text)' }}>
@@ -382,10 +438,6 @@ export default function Settings() {
                                     isOn={notifications}
                                     onToggle={toggleNotifications}
                                 />
-
-                                <div style={{ height: '1px', background: 'var(--color-border)' }} />
-                                {/* Notification Debugger */}
-                                <NotificationTester />
                             </div>
                         </section>
 
@@ -428,24 +480,9 @@ export default function Settings() {
                                         {t('mal_import.import_mal')}
                                     </Button>
                                 </div>
-
                                 <div style={{ height: '1px', background: 'var(--color-border)', margin: '1rem 0' }} />
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <p style={{ fontWeight: 700 }}>{t('settings.data.sync_library')}</p>
-                                        </div>
-                                        <SyncButton />
-                                    </div>
-                                    <div style={{ height: '1px', background: 'var(--color-border)' }} />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <p style={{ fontWeight: 700 }}>{t('settings.data.recalculate_button')}</p>
-                                        </div>
-                                        <RecalculateButton />
-                                    </div>
-                                    <div style={{ height: '1px', background: 'var(--color-border)' }} />
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
                                             <p style={{ fontWeight: 700, color: '#ef4444' }}>{t('settings.data.danger_zone')}</p>
@@ -521,4 +558,3 @@ export default function Settings() {
         </Layout>
     );
 }
-

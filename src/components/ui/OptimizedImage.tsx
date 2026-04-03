@@ -1,10 +1,12 @@
 import React from 'react';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
+import { useSettingsStore } from '@/store/settingsStore';
 import styles from './OptimizedImage.module.css';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
     src: string | undefined;
     alt: string;
+    lowResSrc?: string;
     fallback?: string;
     className?: string;
     containerClassName?: string;
@@ -27,9 +29,12 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     priority = false,
     fill = false,
     style,
+    lowResSrc,
     ...props
 }) => {
-    const finalSrc = getProxiedImageUrl(src) || fallback;
+    const { dataSaver } = useSettingsStore();
+    const effectiveSrc = (dataSaver && lowResSrc) ? lowResSrc : src;
+    const finalSrc = getProxiedImageUrl(effectiveSrc) || fallback;
 
     const wrapperStyles: React.CSSProperties = {
         ...(fill ? { position: 'absolute', inset: 0 } : {}),

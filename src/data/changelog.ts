@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: "v3.9",
+        date: "03 Avril 2026",
+        title: "Health Dashboard & System Hardening",
+        description: "A major step forward for admin monitoring and infrastructure robustness.",
+        changes: [
+            "Admin: New Health Dashboard with real-time monitoring of infrastructure and data integrity.",
+            "Admin: Added visual metrics, latency charts, and Data Shield logs.",
+            "Security: Hardened rules and restricted access to system history.",
+            "UI: Simplified Settings page and refined Login/Auth layouts.",
+            "Navigation: Standardized routes and improved internal linking.",
+            "Performance: Cleaned up legacy dependencies to optimize bundle size.",
+            "I18n: Global synchronization of translation keys."
+        ]
+    },
+    {
         version: 'v3.8',
         date: '02 Avril 2026',
         title: 'Image & SEO Optimization',

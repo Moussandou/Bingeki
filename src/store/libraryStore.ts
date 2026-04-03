@@ -34,7 +34,10 @@ export interface Folder {
 export interface Work {
     id: number | string;
     title: string;
+    title_english?: string | null;
+    title_japanese?: string | null;
     image: string;
+    image_small?: string;
     type: 'manga' | 'anime';
     format?: string; // TV, Movie, OVA, Manga, Novel, etc.
     totalChapters?: number | null;

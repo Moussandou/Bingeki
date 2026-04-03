@@ -89,9 +89,14 @@ export interface JikanResult {
     images: {
         jpg: {
             image_url: string;
+            small_image_url: string;
             large_image_url: string;
         }
     };
+    title_english?: string | null;
+    title_japanese?: string | null;
+    title_synonyms?: string[];
+    titles?: { type: string; title: string }[];
     trailer?: {
         youtube_id: string;
         url: string;

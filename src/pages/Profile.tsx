@@ -25,7 +25,8 @@ import {
     Clock,
     Share2,
     Copy,
-    Check
+    Check,
+    EyeOff
 } from 'lucide-react';
 import { HunterLicenseCard } from '@/components/profile/HunterLicenseCard';
 import { 
@@ -313,6 +314,37 @@ export default function Profile() {
     };
 
     if (loadingProfile && !user && !isBot()) return <div style={{ padding: '2rem' }}>{t('profile.loading')}</div>;
+
+    // Visibility Check
+    const isVisible = isOwnProfile || 
+                      extendedProfile.profileVisibility === 'public' || 
+                      !extendedProfile.profileVisibility || 
+                      (extendedProfile.profileVisibility === 'friends' && friendshipStatus === 'accepted') ||
+                      userProfile?.isAdmin;
+
+    if (!loadingProfile && !isVisible) {
+        return (
+            <Layout>
+                <div style={{ minHeight: 'calc(100vh - 80px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+                    <div className="manga-panel" style={{ padding: '3rem', maxWidth: '500px', textAlign: 'center', background: 'var(--color-surface)' }}>
+                        <EyeOff size={64} style={{ marginBottom: '1.5rem', opacity: 0.3 }} />
+                        <h2 className="text-outline" style={{ fontSize: '2rem', marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>
+                            {t('profile.private_title', 'PROFIL PRIVÉ')}
+                        </h2>
+                        <p style={{ fontSize: '1.1rem', opacity: 0.7, marginBottom: '2rem' }}>
+                            {t('profile.private_message', 'Ce héros a choisi de garder ses exploits secrets.')}
+                        </p>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            <Button onClick={() => navigate(-1)}>{t('profile.back')}</Button>
+                            {friendshipStatus === 'none' && (
+                                <Button variant="primary" onClick={handleSendFriendRequest}>{t('profile.add_friend')}</Button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout>

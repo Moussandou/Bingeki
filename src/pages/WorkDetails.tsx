@@ -29,6 +29,7 @@ import {
 import { handleProgressUpdateWithXP } from '@/utils/progressUtils';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { SEO } from '@/components/layout/SEO';
+import { getDisplayTitle } from '@/utils/titleUtils';
 import styles from './WorkDetails.module.css';
 
 // Helper Component for Recursive Comments
@@ -296,7 +297,7 @@ export default function WorkDetails() {
     const { getWork, addWork, updateStatus, updateWorkDetails, removeWork } = useLibraryStore(); // Add removeWork
     const { recalculateStats } = useGamificationStore();
     const { user } = useAuthStore();
-    const { spoilerMode } = useSettingsStore();
+    const { spoilerMode, titleLanguage, hideScores } = useSettingsStore();
 
     // Query Params for Public/Guest Access
     const [searchParams] = useSearchParams();
@@ -406,9 +407,12 @@ export default function WorkDetails() {
                 const mapped: DetailedWork = {
                     id: res.mal_id,
                     title: res.title,
+                    title_english: res.title_english,
+                    title_japanese: res.title_japanese,
                     type: internalType,
                     format: res.type,
                     image: res.images.jpg.large_image_url,
+                    image_small: res.images.jpg.small_image_url,
                     synopsis: res.synopsis,
                     totalChapters: res.chapters || res.episodes || 0,
                     status: res.status ? res.status.toLowerCase().replace(/ /g, '_') : 'unknown',
@@ -762,8 +766,8 @@ export default function WorkDetails() {
 
     return (
         <Layout>
-            <SEO
-                title={work.title}
+            <SEO 
+                title={getDisplayTitle(work, titleLanguage)}
                 description={work.synopsis?.slice(0, 160)}
                 image={work.image}
             />
@@ -781,12 +785,13 @@ export default function WorkDetails() {
 
                     {/* Cover Image */}
                     <div className={styles.coverSection}>
-                        <div className={styles.coverImageWrapper}>
-                            <OptimizedImage
+                        <div className={styles.coverImageWrapper}>                            <OptimizedImage
                                 src={work.image}
-                                alt={work.title}
-                                className={styles.coverImage}
+                                lowResSrc={work.image_small}
+                                alt={getDisplayTitle(work, titleLanguage)}
+                                className={styles.poster}
                             />
+
                             <div className={styles.typeLabel}>
                                 {work.type ? work.type.toUpperCase() : 'TYPE'}
                             </div>
@@ -882,13 +887,13 @@ export default function WorkDetails() {
                         {activeTab === 'info' && (
                             <>
                                 <h1 className={styles.title}>
-                                    {work.title}
+                                    {getDisplayTitle(work, titleLanguage)}
                                 </h1>
 
                                 <div className={styles.metaContainer}>
                                     <div className={styles.metaItem}>
                                         <Trophy size={20} />
-                                        <span>{t('work_details.meta.score')}: {work.score || '?'}</span>
+                                        {!hideScores && <span>{t('work_details.meta.score')}: {work.score || '?'}</span>}
                                     </div>
                                     <div
                                         onClick={() => {
@@ -1944,7 +1949,7 @@ export default function WorkDetails() {
                                                     </div>
 
                                                     {/* Score Distribution */}
-                                                    {statistics.scores && statistics.scores.length > 0 && (
+                                                    {!hideScores && statistics.scores && statistics.scores.length > 0 && (
                                                         <div style={{ border: '2px solid var(--color-border-heavy)', padding: '1rem', background: 'var(--color-surface)', boxShadow: '4px 4px 0 var(--color-shadow)' }}>
                                                             <h4 style={{ fontFamily: 'var(--font-heading)', marginBottom: '1rem' }}>{t('work_details.stats.score_distribution')}</h4>
                                                             <div style={{ display: 'flex', alignItems: 'flex-end', height: '150px', gap: '2px' }}>
@@ -2017,7 +2022,11 @@ export default function WorkDetails() {
                                                         alignItems: 'center',
                                                         gap: '0.25rem'
                                                     }}>
-                                                        <Star size={14} fill="currentColor" /> {review.score}
+                                                        {!hideScores && (
+                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                                                                <Star size={14} fill="currentColor" /> {review.score}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
 

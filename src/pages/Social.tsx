@@ -42,7 +42,7 @@ export default function Social() {
 
     const [activeTab, setActiveTab] = useState<'feed' | 'ranking' | 'friends' | 'activity' | 'challenges' | 'parties'>('ranking');
     const [leaderboard, setLeaderboard] = useState<UserProfile[]>([]);
-    const [friends, setFriends] = useState<(Friend & { banner?: string; xp?: number; totalXp?: number; level?: number })[]>([]);
+    const [friends, setFriends] = useState<(Friend & { banner?: string; xp?: number; totalXp?: number; level?: number; showActivityStatus?: boolean })[]>([]);
     const [activities, setActivities] = useState<ActivityEvent[]>([]);
     const [searchEmail, setSearchEmail] = useState('');
     const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
@@ -79,6 +79,7 @@ export default function Social() {
                                 xp: profile.xp, 
                                 totalXp: profile.totalXp, 
                                 level: profile.level, 
+                                showActivityStatus: profile.showActivityStatus,
                                 photoURL: profile.photoURL || f.photoURL 
                             };
                         }
@@ -117,7 +118,9 @@ export default function Social() {
                     getUserRank(user.uid, leaderboardCategory)
                 ]);
 
-                const data = result.data.leaderboard as UserProfile[];
+                const rawData = result.data.leaderboard as UserProfile[];
+                // Filter out private profiles from the public leaderboard (except self)
+                const data = rawData.filter(u => u.profileVisibility !== 'private' || u.uid === user.uid);
                 setLeaderboard(data);
 
                 const isInTop3 = data.slice(0, 3).some(u => u.uid === user.uid);
@@ -133,7 +136,12 @@ export default function Social() {
                     await fetchFriends(true);
                 }
                 const activityData = await getFriendsActivity(user.uid, 30, friends);
-                setActivities(activityData);
+                // Filter activities where the author has disabled activity status
+                const filteredActivities = activityData.filter(a => {
+                    const author = friends.find(f => f.uid === a.userId);
+                    return author?.showActivityStatus !== false;
+                });
+                setActivities(filteredActivities);
                 setActivityLoaded(true);
             }
         } catch (error) {

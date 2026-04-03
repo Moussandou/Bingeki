@@ -5,6 +5,8 @@ import type { JikanResult } from '@/services/animeApi';
 import { ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { useSettingsStore } from '@/store/settingsStore';
+import { getDisplayTitle } from '@/utils/titleUtils';
 
 interface CarouselProps {
     title: React.ReactNode;
@@ -18,6 +20,7 @@ interface CarouselProps {
 
 export function Carousel({ title, items, onItemClick, libraryIds, onAdd, loading, showRank }: CarouselProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const { titleLanguage, hideScores } = useSettingsStore();
 
     const scroll = (direction: 'left' | 'right') => {
         if (scrollRef.current) {
@@ -106,7 +109,8 @@ export function Carousel({ title, items, onItemClick, libraryIds, onAdd, loading
                                     <div style={{ position: 'relative', aspectRatio: '2/3', borderBottom: '2px solid var(--color-border)' }}>
                                         <OptimizedImage
                                             src={work.images.jpg.image_url}
-                                            alt={work.title}
+                                            lowResSrc={work.images.jpg.small_image_url}
+                                            alt={getDisplayTitle(work, titleLanguage)}
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                         />
 
@@ -178,11 +182,11 @@ export function Carousel({ title, items, onItemClick, libraryIds, onAdd, loading
                                             marginBottom: '0.5rem',
                                             color: 'var(--color-text)'
                                         }}>
-                                            {work.title}
+                                            {getDisplayTitle(work, titleLanguage)}
                                         </h3>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', padding: '2px 6px', background: 'var(--color-text)', color: 'var(--color-surface)' }}>{work.type}</span>
-                                            {work.score && (
+                                            {work.score && !hideScores && (
                                                 <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-text-contrast)', display: 'flex', alignItems: 'center', gap: '2px' }}>
                                                     ★ {work.score}
                                                 </span>

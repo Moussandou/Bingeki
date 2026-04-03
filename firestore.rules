@@ -21,6 +21,16 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
+    // Check if the requester can view the target user's private/protected content
+    function canViewUserContent(userId) {
+      let visibility = get(/databases/$(database)/documents/users/$(userId)).data.profileVisibility;
+      return isOwner(userId) || 
+             isAdmin() || 
+             visibility == 'public' || 
+             (visibility == 'friends' && exists(/databases/$(database)/documents/users/$(userId)/friends/$(request.auth.uid))) ||
+             (visibility == null); // Default to public if not set
+    }
+
     // ==================== USERS COLLECTION ====================
 
     match /users/{userId} {
@@ -55,7 +65,7 @@ service cloud.firestore {
 
       // 2. Library Data - Standard Access
       match /data/library {
-        allow read: if isAuthenticated();
+        allow read: if canViewUserContent(userId);
         allow write: if isOwner(userId) || isAdmin();
       }
 
@@ -104,11 +114,17 @@ service cloud.firestore {
 
     // ACTIVITY FEED (Server-side managed)
     match /activities/{activityId} {
-      // Read: Authenticated users can view the feed
-      allow read: if isAuthenticated();
-      // Write: BLOCKED for clients. Activities are auto-logged
-      // by the onLibraryUpdate Cloud Function trigger.
-      // Admin SDK bypasses these rules.
+      // Read: Authenticated users can view the feed ONLY if:
+      // 1. The actor's profile is visible to them (Visibility set to Public/Friends)
+      // 2. AND the actor has NOT disabled their activity status (default is enabled/true)
+      // 3. OR the requester is the owner/admin
+      allow read: if isAuthenticated() && 
+                    canViewUserContent(resource.data.userId) && 
+                    (isOwner(resource.data.userId) || 
+                     get(/databases/$(database)/documents/users/$(resource.data.userId)).data.showActivityStatus != false);
+      
+      // Write: BLOCKED for clients. Activities are auto-logged server-side.
+      allow write: if false; 
     }
 
     // COMMENTS

@@ -266,10 +266,13 @@ function App() {
   useEffect(() => {
     if (!user || userProfile === undefined) return;
     
-    const syncProfile = useGamificationStore.getState().syncFromProfile;
+    const syncGamification = useGamificationStore.getState().syncFromProfile;
+    const syncSettings = useSettingsStore.getState().syncFromProfile;
+    
     if (userProfile) {
       // Syncing from profile should NOT trigger a save back to Firestore
-      syncProfile(userProfile);
+      syncGamification(userProfile);
+      syncSettings(userProfile);
       setShouldSaveGamification(false);
     }
   }, [userProfile, user]);

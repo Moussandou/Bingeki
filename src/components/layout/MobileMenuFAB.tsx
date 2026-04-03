@@ -36,20 +36,64 @@ export function MobileMenuFAB() {
         navigate('/');
     };
 
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1,
+                delayChildren: 0.1
+            }
+        },
+        exit: {
+            opacity: 0,
+            transition: {
+                staggerChildren: 0.05,
+                staggerDirection: -1
+            }
+        }
+    } as const;
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20, scale: 0.8 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            transition: {
+                type: 'spring' as const,
+                damping: 12,
+                stiffness: 200
+            }
+        },
+        exit: {
+            opacity: 0,
+            y: 10,
+            scale: 0.8,
+            transition: {
+                duration: 0.2
+            }
+        }
+    } as const;
+
+    const menuItems = [
+        { to: '/social', icon: MessageSquare, label: t('header.community') },
+        { to: '/schedule', icon: Calendar, label: t('header.agenda') },
+        { to: '/changelog', icon: HistoryIcon, label: t('header.changelog') },
+        { to: '/news', icon: Newspaper, label: 'Anime News' },
+        { to: '/lens', icon: ScanSearch, label: t('header.lens') },
+        { to: '/feedback', icon: MessageCircle, label: t('header.feedback') },
+    ];
+
+    const authItems = user ? [
+        { to: '/feedback?tab=tickets', icon: MessageSquare, label: t('feedback.my_tickets'), className: styles.authAction },
+        { to: '/profile', icon: User, label: t('header.profile'), className: styles.authAction },
+        { to: '/settings', icon: Settings, label: t('header.settings'), className: styles.authAction },
+    ] : [];
+
     return (
         <div className={styles.fabContainer}>
-            {/* The Floating Action Button */}
-            <motion.button
-                className={styles.fabButton}
-                onClick={() => setIsOpen(true)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                aria-label="Open menu"
-            >
-                <Menu size={24} />
-            </motion.button>
-
-            {/* Bottom Sheet Overlay */}
+            {/* Overlay */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -58,88 +102,87 @@ export function MobileMenuFAB() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={handleClose}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Menu Items */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        className={styles.menuList}
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
                     >
-                        {/* The Bottom Sheet */}
-                        <motion.div
-                            className={styles.bottomSheet}
-                            initial={{ y: '100%' }}
-                            animate={{ y: 0 }}
-                            exit={{ y: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                            }} // Prevent clicks inside from closing
-                            drag="y"
-                            dragConstraints={{ top: 0 }}
-                            dragElastic={0.2}
-                            onDragEnd={(_, info) => {
-                                if (info.offset.y > 100) {
-                                    handleClose();
-                                }
-                            }}
-                        >
-                            <div className={styles.sheetHeader}>
-                                <h2 className={styles.sheetTitle}>Menu</h2>
-                                <button className={styles.closeButton} onClick={handleClose}>
-                                    <X size={24} />
-                                </button>
-                            </div>
+                        {/* Logout button first (bottom-most in the list above FAB) */}
+                        {user && (
+                            <motion.button
+                                variants={itemVariants}
+                                className={`${styles.menuItemCard} ${styles.authAction} ${styles.logoutAction}`}
+                                onClick={handleLogout}
+                            >
+                                <LogOut size={20} />
+                                <span>{t('header.logout')}</span>
+                            </motion.button>
+                        )}
 
-                            <div className={styles.menuGrid}>
-                                <Link to="/social" className={styles.menuItem} onClick={handleClose}>
-                                    <MessageSquare size={24} />
-                                    <span>{t('header.community')}</span>
+                        {/* Auth items */}
+                        {authItems.map((item, index) => (
+                            <motion.div key={`auth-${index}`} variants={itemVariants}>
+                                <Link to={item.to} className={`${styles.menuItemCard} ${item.className}`} onClick={handleClose}>
+                                    <item.icon size={20} />
+                                    <span>{item.label}</span>
                                 </Link>
-                                <Link to="/schedule" className={styles.menuItem} onClick={handleClose}>
-                                    <Calendar size={24} />
-                                    <span>{t('header.agenda')}</span>
-                                </Link>
-                                <Link to="/changelog" className={styles.menuItem} onClick={handleClose}>
-                                    <HistoryIcon size={24} />
-                                    <span>{t('header.changelog')}</span>
-                                </Link>
-                                <Link to="/news" className={styles.menuItem} onClick={handleClose}>
-                                    <Newspaper size={24} />
-                                    <span>Anime News</span>
-                                </Link>
+                            </motion.div>
+                        ))}
 
-                                <Link to="/lens" className={styles.menuItem} onClick={handleClose}>
-                                    <ScanSearch size={24} />
-                                    <span>{t('header.lens')}</span>
+                        {/* Standard items */}
+                        {[...menuItems].reverse().map((item, index) => (
+                            <motion.div key={`menu-${index}`} variants={itemVariants}>
+                                <Link to={item.to} className={styles.menuItemCard} onClick={handleClose}>
+                                    <item.icon size={20} />
+                                    <span>{item.label}</span>
                                 </Link>
-                                <Link to="/feedback" className={styles.menuItem} onClick={handleClose}>
-                                    <MessageCircle size={24} />
-                                    <span>{t('header.feedback')}</span>
-                                </Link>
-                                {user && (
-                                    <Link to="/feedback?tab=tickets" className={`${styles.menuItem} ${styles.authAction}`} onClick={handleClose}>
-                                        <MessageSquare size={20} />
-                                        <span>{t('feedback.my_tickets')}</span>
-                                    </Link>
-                                )}
-
-                                {/* User specific actions if logged in, but not already in the bottom dock */}
-                                {user && (
-                                    <>
-                                        <Link to="/profile" className={`${styles.menuItem} ${styles.authAction}`} onClick={handleClose}>
-                                            <User size={20} />
-                                            <span>{t('header.profile')}</span>
-                                        </Link>
-                                        <Link to="/settings" className={`${styles.menuItem} ${styles.authAction}`} onClick={handleClose}>
-                                            <Settings size={20} />
-                                            <span>{t('header.settings')}</span>
-                                        </Link>
-                                        <button className={`${styles.menuItem} ${styles.authAction} ${styles.logoutAction}`} onClick={handleLogout}>
-                                            <LogOut size={20} />
-                                            <span>{t('header.logout')}</span>
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </motion.div>
+                            </motion.div>
+                        ))}
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* The Floating Action Button */}
+            <motion.button
+                className={`${styles.fabButton} ${isOpen ? styles.open : ''}`}
+                onClick={() => setIsOpen(!isOpen)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label={isOpen ? "Close menu" : "Open menu"}
+            >
+                <AnimatePresence mode="wait">
+                    {isOpen ? (
+                        <motion.div
+                            key="close"
+                            initial={{ rotate: -90, opacity: 0 }}
+                            animate={{ rotate: 0, opacity: 1 }}
+                            exit={{ rotate: 90, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            <X size={28} />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="menu"
+                            initial={{ rotate: 90, opacity: 0 }}
+                            animate={{ rotate: 0, opacity: 1 }}
+                            exit={{ rotate: -90, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            <Menu size={28} />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.button>
         </div>
     );
 }

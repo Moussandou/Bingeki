@@ -841,6 +841,40 @@ const resources = {
                     sound_effects: "Effets sonores (UI)",
                     notifications: "Notifications"
                 },
+                content: {
+                    title: "CONTENU & AFFICHAGE",
+                    title_language: "Langue des titres",
+                    title_language_help: "Choisissez comment les titres des œuvres sont affichés.",
+                    title_default: "Romaji",
+                    title_default_example: "Shingeki no Kyojin",
+                    title_english: "Français / Anglais",
+                    title_english_example: "Attack on Titan",
+                    title_japanese: "Japonais",
+                    title_japanese_example: "進撃の巨人",
+                    hide_scores: "Masquer les scores",
+                    hide_scores_enabled: "Scores masqués",
+                    hide_scores_disabled: "Scores visibles",
+                    hide_scores_help: "Cache les scores des œuvres pour éviter d'être influencé avant de regarder/lire.",
+                    data_saver: "Mode économie de données",
+                    data_saver_enabled: "Économie de données activée",
+                    data_saver_disabled: "Économie de données désactivée",
+                    data_saver_help: "Charge des images en basse résolution pour économiser la bande passante sur mobile."
+                },
+                privacy: {
+                    title: "CONFIDENTIALITÉ",
+                    profile_visibility: "Visibilité du profil",
+                    profile_visibility_help: "Contrôlez qui peut voir votre bibliothèque et votre progression.",
+                    visibility_public: "Public",
+                    visibility_public_desc: "Tout le monde peut voir votre profil",
+                    visibility_friends: "Amis uniquement",
+                    visibility_friends_desc: "Seuls vos amis peuvent voir votre profil",
+                    visibility_private: "Privé",
+                    visibility_private_desc: "Personne ne peut voir votre profil",
+                    activity_status: "Statut d'activité",
+                    activity_status_enabled: "Statut d'activité visible",
+                    activity_status_disabled: "Statut d'activité masqué",
+                    activity_status_help: "Affiche votre activité en temps réel (lecture/visionnage) à vos amis."
+                },
                 data: {
                     title: "GESTION DES DONNÉES",
                     storage_used: "Espace utilisé",
@@ -933,6 +967,36 @@ const resources = {
                 new: "NEW",
                 to_be_continued: "À SUIVRE...",
                 entries: {
+                    v3_9: {
+                        date: "03 Avril 2026",
+                        title: "Health Dashboard & Sécurité Système",
+                        description: "Une avancée majeure pour le monitoring administrateur et la robustesse de l'infrastructure.",
+                        changes: [
+                            "Admin: Nouveau Health Dashboard avec monitoring en temps réel de l'infrastructure et de l'intégrité des données.",
+                            "Admin: Ajout de métriques visuelles, graphiques de latence et de logs Data Shield.",
+                            "Sécurité: Renforcement des règles et restriction d'accès aux historiques système.",
+                            "UI: Simplification de la page Paramètres et optimisation des layouts Auth.",
+                            "Navigation: Standardisation des routes et amélioration du maillage interne.",
+                            "Performance: Nettoyage des dépendances obsolètes pour alléger le bundle.",
+                            "I18n: Synchronisation globale des clés de traduction."
+                        ]
+                    },
+                    v3_8: {
+                        date: "02 Avril 2026",
+                        title: "Optimisation Images & SEO",
+                        description: "Migration massive vers OptimizedImage, refonte du handler SEO et amélioration du flux social.",
+                        changes: [
+                            "Tech : Migration complète de toutes les balises <img> vers le composant custom OptimizedImage.",
+                            "Tech : Intégration de wsrv.nl comme proxy d'image par défaut pour une meilleure fiabilité.",
+                            "OptimizedImage : Support des props priority (chargement impatient) et fill (gestion du ratio).",
+                            "SEO : Sécurisation du handler Cloud Function pour bloquer l'accès aux fichiers statiques.",
+                            "SEO : Mise à jour de la Permissions-Policy pour inclure browsing-topics.",
+                            "Social : Nouveau design 'Manga Grid' pour le flux d'activité des amis.",
+                            "Social : Intégration d'icônes personnalisées pour Discord et TikTok dans toute l'app.",
+                            "Gamification : Refonte de la synchronisation de l'XP pour garantir l'intégrité des données au chargement.",
+                            "UI : Suppression définitive des skeletons de chargement d'images au profit d'un fade-in natif."
+                        ]
+                    },
                     v3_7: {
                         date: "17 Mars 2026",
                         title: "Survey & Admin Revolution",
@@ -2160,6 +2224,40 @@ const resources = {
                     sound_effects: "Sound Effects (UI)",
                     notifications: "Notifications"
                 },
+                content: {
+                    title: "CONTENT & DISPLAY",
+                    title_language: "Title Language",
+                    title_language_help: "Choose how work titles are displayed.",
+                    title_default: "Romaji",
+                    title_default_example: "Shingeki no Kyojin",
+                    title_english: "English",
+                    title_english_example: "Attack on Titan",
+                    title_japanese: "Japanese",
+                    title_japanese_example: "進撃の巨人",
+                    hide_scores: "Hide Scores",
+                    hide_scores_enabled: "Scores hidden",
+                    hide_scores_disabled: "Scores visible",
+                    hide_scores_help: "Hides work scores to avoid being influenced before watching/reading.",
+                    data_saver: "Data Saver Mode",
+                    data_saver_enabled: "Data saver enabled",
+                    data_saver_disabled: "Data saver disabled",
+                    data_saver_help: "Loads lower resolution images to save bandwidth on mobile."
+                },
+                privacy: {
+                    title: "PRIVACY",
+                    profile_visibility: "Profile Visibility",
+                    profile_visibility_help: "Control who can see your library and your progress.",
+                    visibility_public: "Public",
+                    visibility_public_desc: "Everyone can see your profile",
+                    visibility_friends: "Friends Only",
+                    visibility_friends_desc: "Only your friends can see your profile",
+                    visibility_private: "Private",
+                    visibility_private_desc: "Nobody can see your profile",
+                    activity_status: "Activity Status",
+                    activity_status_enabled: "Activity status visible",
+                    activity_status_disabled: "Activity status hidden",
+                    activity_status_help: "Shows your real-time activity (reading/watching) to your friends."
+                },
                 data: {
                     title: "DATA MANAGEMENT",
                     storage_used: "Storage Used",
@@ -2608,6 +2706,36 @@ const resources = {
                 new: "NEW",
                 to_be_continued: "TO BE CONTINUED...",
                 entries: {
+                    v3_9: {
+                        date: "03 April 2026",
+                        title: "Health Dashboard & System Hardening",
+                        description: "A major step forward for admin monitoring and infrastructure robustness.",
+                        changes: [
+                            "Admin: New Health Dashboard with real-time monitoring of infrastructure and data integrity.",
+                            "Admin: Added visual metrics, latency charts, and Data Shield logs.",
+                            "Security: Hardened rules and restricted access to system history.",
+                            "UI: Simplified Settings page and refined Login/Auth layouts.",
+                            "Navigation: Standardized routes and improved internal linking.",
+                            "Performance: Cleaned up legacy dependencies to optimize bundle size.",
+                            "I18n: Global synchronization of translation keys."
+                        ]
+                    },
+                    v3_8: {
+                        date: "02 April 2026",
+                        title: "Image & SEO Optimization",
+                        description: "Massive migration to OptimizedImage, SEO handler redesign and social feed improvement.",
+                        changes: [
+                            "Tech: Full migration of all <img> tags to the custom OptimizedImage component.",
+                            "Tech: Integration of wsrv.nl as default image proxy for better reliability.",
+                            "OptimizedImage: Support for priority (eager loading) and fill (ratio management) props.",
+                            "SEO: Secured Cloud Function handler to block access to static files.",
+                            "SEO: Updated Permissions-Policy to include browsing-topics.",
+                            "Social: New 'Manga Grid' design for the friend activity feed.",
+                            "Social: Integration of custom icons for Discord and TikTok throughout the app.",
+                            "Gamification: Redesigned XP synchronization to ensure data integrity on load.",
+                            "UI: Persistent removal of image loading skeletons in favor of native fade-in."
+                        ]
+                    },
                     v3_7: {
                         date: "March 17, 2026",
                         title: "Survey & Admin Revolution",

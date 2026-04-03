@@ -58,11 +58,17 @@ export interface UserProfile {
     favoriteManga?: string;
     top3Favorites?: string[];
     favoriteCharacters?: FavoriteCharacter[];
+    // New Settings & Privacy
+    profileVisibility?: 'public' | 'friends' | 'private';
+    showActivityStatus?: boolean;
+    titlePriority?: 'romaji' | 'native' | 'english';
+    hideScores?: boolean;
+    dataSaver?: boolean;
     featuredBadge?: string;
     isAdmin?: boolean;
     isSuperAdmin?: boolean; // New Super Admin role
     isBanned?: boolean;
-    createdAt?: number; // Added for new user stats
+    createdAt?: number;
 }
 
 // Types for analytics and charts
@@ -119,7 +125,8 @@ export async function saveUserProfileToFirestore(user: Partial<UserProfile>, for
             'uid', 'email', 'displayName', 'photoURL', 'banner', 'bannerPosition', 'bio',
             'themeColor', 'cardBgColor', 'borderColor',
             'favoriteManga', 'top3Favorites', 'featuredBadge',
-            'favoriteCharacters', 'isAdmin', 'isSuperAdmin' // Allow syncing admin flags
+            'favoriteCharacters', 'isAdmin', 'isSuperAdmin',
+            'profileVisibility', 'showActivityStatus'
         ];
 
         allowedFields.forEach(field => {

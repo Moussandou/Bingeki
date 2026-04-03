@@ -14,6 +14,8 @@ import { AddWorkModal } from '@/components/library/AddWorkModal';
 import { FriendRecommendations } from '@/components/social/FriendRecommendations';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { SEO } from '@/components/layout/SEO';
+import { useSettingsStore } from '@/store/settingsStore';
+import { getDisplayTitle } from '@/utils/titleUtils';
 import styles from './Discover.module.css';
 
 export default function Discover() {
@@ -24,6 +26,7 @@ export default function Discover() {
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
     const [searchResults, setSearchResults] = useState<JikanResult[]>([]);
     const [loading, setLoading] = useState(false);
+    const { titleLanguage, hideScores } = useSettingsStore();
 
     // Filter States
     const [showFilters, setShowFilters] = useState(false);
@@ -253,7 +256,7 @@ export default function Discover() {
                                         <Flame size={18} fill="#fff" /> {t('discover.hero.featured')}
                                     </div>
                                     <h1 className={styles.heroTitle}>
-                                        {heroWork.title}
+                                        {getDisplayTitle(heroWork, titleLanguage)}
                                     </h1>
                                     <p className={styles.heroSynopsis}>
                                         {heroWork.synopsis}
@@ -596,7 +599,11 @@ export default function Discover() {
                                                     onClick={() => handleWorkClick(work)}
                                                 >
                                                     <div style={{ position: 'relative', aspectRatio: '2/3', borderBottom: '2px solid var(--color-border-heavy)', flexShrink: 0 }}>
-                                                        <OptimizedImage src={work.images.jpg.image_url} alt={work.title} />
+                                                        <OptimizedImage 
+                                                            src={work.images.jpg.large_image_url || work.images.jpg.image_url} 
+                                                            lowResSrc={work.images.jpg.small_image_url}
+                                                            alt={getDisplayTitle(work, titleLanguage)} 
+                                                        />
                                                         {isOwned && (
                                                             <div style={{ position: 'absolute', top: 5, right: 5, background: 'var(--color-primary)', color: '#fff', padding: '4px', borderRadius: '0' }}>
                                                                 <Check size={14} strokeWidth={3} />
@@ -615,10 +622,10 @@ export default function Discover() {
                                                             WebkitLineClamp: 2,
                                                             WebkitBoxOrient: 'vertical',
                                                             color: 'var(--color-text)'
-                                                        }}>{work.title}</h3>
+                                                        }}>{getDisplayTitle(work, titleLanguage)}</h3>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', opacity: 0.7 }}>
                                                             <span style={{ fontWeight: 600 }}>{work.type}</span>
-                                                            {work.score && <span>★ {work.score}</span>}
+                                                            {work.score && !hideScores && <span>★ {work.score}</span>}
                                                         </div>
                                                     </div>
                                                 </Card>

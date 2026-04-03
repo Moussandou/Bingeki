@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 type Theme = 'dark' | 'light';
+export type TitleLanguage = 'romaji' | 'english' | 'native';
+export type ProfileVisibility = 'public' | 'friends' | 'private';
 
 interface SettingsState {
     theme: Theme;
@@ -14,6 +16,13 @@ interface SettingsState {
     nsfwMode: boolean;
     accentColor: string;
 
+    // New settings
+    titleLanguage: TitleLanguage;
+    hideScores: boolean;
+    dataSaver: boolean;
+    profileVisibility: ProfileVisibility;
+    showActivityStatus: boolean;
+
     setTheme: (theme: Theme) => void;
     toggleTheme: () => void;
     toggleReducedMotion: () => void;
@@ -23,6 +32,15 @@ interface SettingsState {
     toggleSpoilerMode: () => void;
     toggleNsfwMode: () => void;
     setAccentColor: (color: string) => void;
+
+    // New setters
+    setTitleLanguage: (lang: TitleLanguage) => void;
+    toggleHideScores: () => void;
+    toggleDataSaver: () => void;
+    setProfileVisibility: (visibility: ProfileVisibility) => void;
+    toggleActivityStatus: () => void;
+
+    syncFromProfile: (profile: any) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -50,6 +68,26 @@ export const useSettingsStore = create<SettingsState>()(
             toggleNsfwMode: () => set((state) => ({ nsfwMode: !state.nsfwMode })),
             accentColor: '#FF2E63',
             setAccentColor: (color) => set({ accentColor: color }),
+
+            // New settings defaults
+            titleLanguage: 'romaji',
+            setTitleLanguage: (lang) => set({ titleLanguage: lang }),
+            hideScores: false,
+            toggleHideScores: () => set((state) => ({ hideScores: !state.hideScores })),
+            dataSaver: false,
+            toggleDataSaver: () => set((state) => ({ dataSaver: !state.dataSaver })),
+            profileVisibility: 'public',
+            setProfileVisibility: (visibility) => set({ profileVisibility: visibility }),
+            showActivityStatus: true,
+            toggleActivityStatus: () => set((state) => ({ showActivityStatus: !state.showActivityStatus })),
+
+            syncFromProfile: (profile) => set((state) => ({
+                titleLanguage: profile.titlePriority || state.titleLanguage,
+                hideScores: profile.hideScores !== undefined ? profile.hideScores : state.hideScores,
+                dataSaver: profile.dataSaver !== undefined ? profile.dataSaver : state.dataSaver,
+                profileVisibility: profile.profileVisibility || state.profileVisibility,
+                showActivityStatus: profile.showActivityStatus !== undefined ? profile.showActivityStatus : state.showActivityStatus,
+            })),
         }),
         {
             name: 'bingeki-settings',
