@@ -462,11 +462,6 @@ export function Header() {
                                 <Book size={22} />
                             </Button>
                         </Link>
-                        <Link to="/tierlist">
-                            <Button variant={isActive('/tierlist') ? 'primary' : 'ghost'} size="icon" style={{ borderRadius: '12px' }}>
-                                <LayoutList size={22} />
-                            </Button>
-                        </Link>
                     </nav>
                 )
             }
@@ -483,11 +478,6 @@ export function Header() {
                         <Link to="/discover">
                             <Button variant={isActive('/discover') ? 'primary' : 'ghost'} size="icon" style={{ borderRadius: '12px' }}>
                                 <Compass size={22} />
-                            </Button>
-                        </Link>
-                        <Link to="/tierlist">
-                            <Button variant={isActive('/tierlist') ? 'primary' : 'ghost'} size="icon" style={{ borderRadius: '12px' }}>
-                                <LayoutList size={22} />
                             </Button>
                         </Link>
                         <Link to="/auth">

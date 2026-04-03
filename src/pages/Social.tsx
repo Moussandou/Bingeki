@@ -113,7 +113,7 @@ export default function Social() {
                 >(functions, 'getLeaderboard');
 
                 const [result, rankData] = await Promise.all([
-                    getLeaderboardFn({ category: leaderboardCategory, limit: 20 }),
+                    getLeaderboardFn({ category: leaderboardCategory, limit: 50 }),
                     getUserRank(user.uid, leaderboardCategory)
                 ]);
 
@@ -388,10 +388,17 @@ export default function Social() {
                     {/* RANKING VIEW */}
                     {activeTab === 'ranking' && (
                         <>
-                            {/* Leaderboard Filters */}
-                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                    {/* <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{t('social.ranking.filter_by')}</span> */}
+                            {/* Header */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <h2 className="manga-title" style={{ fontSize: '1.1rem' }}>
+                                    <Trophy size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.35rem' }} />
+                                    {t('social.ranking.title', 'Classement')}
+                                </h2>
+                            </div>
+
+                            {/* Category selector */}
+                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                                <div className="manga-panel" style={{ display: 'inline-flex', gap: '0.5rem', padding: '0.5rem 0.75rem', background: 'var(--color-surface)' }}>
                                     <Button
                                         variant={leaderboardCategory === 'xp' ? 'manga' : 'ghost'}
                                         size="sm"
@@ -433,6 +440,15 @@ export default function Social() {
                                         }), {} as Record<string, string>)
                                     }
                                     currentUserRank={currentUserRank}
+                                    topScore={
+                                        leaderboard.length > 0
+                                            ? (leaderboardCategory === 'xp'
+                                                ? (leaderboard[0].totalXp ?? leaderboard[0].xp ?? 0)
+                                                : leaderboardCategory === 'chapters'
+                                                    ? (leaderboard[0].totalChaptersRead ?? 0)
+                                                    : (leaderboard[0].streak ?? 0))
+                                            : undefined
+                                    }
                                 />
                             </div>
                         </>
