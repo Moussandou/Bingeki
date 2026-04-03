@@ -15,11 +15,10 @@ import {
     getFriendsActivity,
     getUserRank,
     searchUsersByPrefix,
-    getUserProfile,
+    getUserProfiles,
     type Friend,
     type UserProfile,
-    type LeaderboardCategory,
-    type LeaderboardPeriod
+    type LeaderboardCategory
 } from '@/firebase/firestore';
 import type { ActivityEvent } from '@/types/activity';
 import { ACTIVITY_EMOJIS, getActivityLabel } from '@/types/activity';
@@ -51,56 +50,103 @@ export default function Social() {
     const [loading, setLoading] = useState(false);
     const [requestSent, setRequestSent] = useState<Record<string, boolean>>({});
 
-    // Leaderboard filters
     const [leaderboardCategory, setLeaderboardCategory] = useState<LeaderboardCategory>('xp');
-    const [leaderboardPeriod] = useState<LeaderboardPeriod>('all');
+    const [leaderboardLoaded, setLeaderboardLoaded] = useState(false);
+    const [friendsEnriched, setFriendsEnriched] = useState(false);
+    const [activityLoaded, setActivityLoaded] = useState(false);
     const [currentUserRank, setCurrentUserRank] = useState<{ rank: number; profile: UserProfile } | null>(null);
 
-    const loadData = useCallback(async () => {
-        setLoading(true);
-        // Always load friends to check status even in ranking
-        if (user) {
+    const fetchFriends = useCallback(async (forceEnrich = false) => {
+        if (!user) return;
+        
+        // If friends not loaded at all or we need enrichment and they aren't enriched yet
+        if (!friends.length || (forceEnrich && !friendsEnriched)) {
             const friendsData = await getFriends(user.uid);
             
-            // Enrich accepted friends with their full profile to get banner and stats
-            const enrichedFriends = await Promise.all(friendsData.map(async (f) => {
-                if (f.status === 'accepted') {
-                    const profile = await getUserProfile(f.uid);
-                    if (profile) {
-                        return { ...f, banner: profile.banner, xp: profile.xp, totalXp: profile.totalXp, level: profile.level, photoURL: profile.photoURL || f.photoURL };
-                    }
+            if (forceEnrich) {
+                const acceptedFriendIds = friendsData
+                    .filter(f => f.status === 'accepted')
+                    .map(f => f.uid);
+                
+                if (acceptedFriendIds.length > 0) {
+                    const profiles = await getUserProfiles(acceptedFriendIds);
+                    const enrichedFriends = friendsData.map(f => {
+                        const profile = profiles.find(p => p.uid === f.uid);
+                        if (profile) {
+                            return { 
+                                ...f, 
+                                banner: profile.banner, 
+                                xp: profile.xp, 
+                                totalXp: profile.totalXp, 
+                                level: profile.level, 
+                                photoURL: profile.photoURL || f.photoURL 
+                            };
+                        }
+                        return f;
+                    });
+                    setFriends(enrichedFriends);
+                    setFriendsEnriched(true);
+                } else {
+                    setFriends(friendsData);
                 }
-                return f;
-            }));
-            
-            setFriends(enrichedFriends);
+            } else {
+                setFriends(friendsData);
+            }
         }
+    }, [user, friends.length, friendsEnriched, getUserProfiles]);
 
-        if (activeTab === 'ranking') {
-            const getLeaderboardFn = httpsCallable<
-                { category: string; limit: number },
-                { leaderboard: (UserProfile & { rank: number })[] }
-            >(functions, 'getLeaderboard');
+    const loadData = useCallback(async () => {
+        if (!user) return;
+        setLoading(true);
 
-            // Fetch leaderboard and user rank in parallel
-            const [result, rankData] = await Promise.all([
-                getLeaderboardFn({ category: leaderboardCategory, limit: 20 }),
-                user ? getUserRank(user.uid, leaderboardCategory) : Promise.resolve(null)
-            ]);
+        try {
+            // 1. Always ensure basic friends list for status checks
+            if (friends.length === 0) {
+                await fetchFriends(false);
+            }
 
-            const data = result.data.leaderboard as UserProfile[];
-            setLeaderboard(data);
+            // 2. Tab-specific loading
+            if (activeTab === 'ranking' && !leaderboardLoaded) {
+                const getLeaderboardFn = httpsCallable<
+                    { category: string; limit: number },
+                    { leaderboard: (UserProfile & { rank: number })[] }
+                >(functions, 'getLeaderboard');
 
-            if (user) {
+                const [result, rankData] = await Promise.all([
+                    getLeaderboardFn({ category: leaderboardCategory, limit: 20 }),
+                    getUserRank(user.uid, leaderboardCategory)
+                ]);
+
+                const data = result.data.leaderboard as UserProfile[];
+                setLeaderboard(data);
+
                 const isInTop3 = data.slice(0, 3).some(u => u.uid === user.uid);
                 setCurrentUserRank(isInTop3 ? null : rankData);
+                setLeaderboardLoaded(true);
+            } 
+            else if (activeTab === 'friends' && !friendsEnriched) {
+                await fetchFriends(true);
             }
-        } else if (activeTab === 'activity' && user) {
-            const activityData = await getFriendsActivity(user.uid, 30);
-            setActivities(activityData);
+            else if (activeTab === 'activity' && !activityLoaded) {
+                // Ensure friends enriched for activity data injection
+                if (!friendsEnriched) {
+                    await fetchFriends(true);
+                }
+                const activityData = await getFriendsActivity(user.uid, 30, friends);
+                setActivities(activityData);
+                setActivityLoaded(true);
+            }
+        } catch (error) {
+            logger.error('[Social] Error loading data:', error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-    }, [activeTab, leaderboardCategory, leaderboardPeriod, user]);
+    }, [activeTab, leaderboardCategory, user, fetchFriends, friends, leaderboardLoaded, friendsEnriched, activityLoaded]);
+
+    // Reset tab-specific loading states when filters change
+    useEffect(() => {
+        setLeaderboardLoaded(false);
+    }, [leaderboardCategory]);
 
     useEffect(() => {
         loadData();

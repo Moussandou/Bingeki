@@ -490,6 +490,28 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     }
 }
 
+// Get Multiple User Profiles by UIDs (Batch fetch)
+export async function getUserProfiles(uids: string[]): Promise<UserProfile[]> {
+    try {
+        if (!uids || uids.length === 0) return [];
+
+        // Firestore 'in' query is limited to 30 items
+        const results: UserProfile[] = [];
+        for (let i = 0; i < uids.length; i += 30) {
+            const batch = uids.slice(i, i + 30);
+            const q = query(collection(db, 'users'), where('__name__', 'in', batch));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+                results.push({ uid: doc.id, ...doc.data() } as UserProfile);
+            });
+        }
+        return results;
+    } catch (error) {
+        logger.error('[Firestore] Error getting multiple user profiles:', error);
+        return [];
+    }
+}
+
 // Subscribe to User Profile (Real-time)
 export function subscribeToUserProfile(uid: string, callback: (profile: UserProfile | null) => void): () => void {
     const docRef = doc(db, 'users', uid);
@@ -609,10 +631,10 @@ export async function logActivity(_userId: string, _event: Omit<ActivityEvent, '
 }
 
 // Get activities from friends
-export async function getFriendsActivity(userId: string, limitCount: number = 20): Promise<ActivityEvent[]> {
+export async function getFriendsActivity(userId: string, limitCount: number = 20, friendsList?: Friend[]): Promise<ActivityEvent[]> {
     try {
         // First get friends list
-        const friends = await getFriends(userId);
+        const friends = friendsList || await getFriends(userId);
         const friendIds = friends.filter(f => f.status === 'accepted').map(f => f.uid);
 
         if (friendIds.length === 0) return [];
