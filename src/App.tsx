@@ -71,6 +71,7 @@ import { MobileMenuFAB } from '@/components/layout/MobileMenuFAB';
 import { UsernameSelectionModal } from '@/components/auth/UsernameSelectionModal';
 import { XPGainToast } from '@/components/gamification/XPGainToast';
 import { LevelUpModal } from '@/components/gamification/LevelUpModal';
+import { AvatarSelectionModal } from '@/components/auth/AvatarSelectionModal';
 
 // Global hook for hydration safety
 import { useMounted } from '@/hooks/useMounted';
@@ -424,6 +425,7 @@ function App() {
     <ToastProvider>
       <BrowserRouter>
         <UsernameSelectionModal />
+        <AvatarSelectionModal />
         <XPGainToast />
         <LevelUpModal />
         <BotAwareSuspense>

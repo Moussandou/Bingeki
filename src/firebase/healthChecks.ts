@@ -547,6 +547,14 @@ export async function runSelfHealing(adminName: string = "System"): Promise<{ re
                 userChanges.push(`Re-calculated totalXp`);
             }
 
+            // Fix 3: Missing Avatar (auto-assign Dicebear)
+            if (!data.photoURL || data.photoURL.trim() === "") {
+                const seed = updates.displayName || data.displayName || d.id;
+                const newAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+                updates.photoURL = newAvatar;
+                userChanges.push(`Auto-assigned profile picture (seed: ${seed})`);
+            }
+
             if (Object.keys(updates).length > 0) {
                 try {
                     await updateDoc(d.ref, updates);

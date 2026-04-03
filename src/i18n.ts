@@ -483,6 +483,12 @@ const resources = {
                 error_pseudo_short: "Le pseudo doit faire au moins 3 caractères",
                 error_pseudo_taken: "Ce pseudo est déjà utilisé",
             },
+            avatar_modal: {
+                title: "CHANGER VOTRE AVATAR ?",
+                desc: "Il semblerait que vous utilisiez un avatar généré par défaut. Vous pouvez le personnaliser dans votre profil !",
+                cta_profile: "PERSONNALISER",
+                cta_later: "PLUS TARD"
+            },
             feedback: {
                 success_icon: "💌",
                 success_title: "MERCI !",
@@ -2925,6 +2931,12 @@ const resources = {
                 save_pseudo: "CONFIRM MY USERNAME",
                 error_pseudo_short: "Username must be at least 3 characters",
                 error_pseudo_taken: "This username is already taken",
+            },
+            avatar_modal: {
+                title: "CHANGE YOUR AVATAR?",
+                desc: "It seems you are using a default generated avatar. You can customize it in your profile!",
+                cta_profile: "CUSTOMIZE",
+                cta_later: "NOT NOW"
             },
             feedback: {
                 success_icon: "💌",
