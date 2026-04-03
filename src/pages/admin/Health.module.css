@@ -1067,3 +1067,97 @@
     text-transform: uppercase;
     border: 2px dashed var(--color-border);
 }
+
+/* ─── Health History Timeline ─── */
+.historyTimeline {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    max-height: 480px;
+    overflow-y: auto;
+    padding-right: var(--space-xs);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+.historyTimeline::-webkit-scrollbar {
+    width: 6px;
+}
+
+.historyTimeline::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 10px;
+}
+
+.snapshotCard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-background);
+    border: 2px solid var(--color-border);
+    transition: transform 0.1s, border-color 0.2s;
+}
+
+.snapshotCard:hover {
+    border-color: var(--color-primary);
+    transform: translateX(4px);
+}
+
+.snapshotInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.snapshotDate {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+}
+
+.snapshotSummary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    font-weight: 800;
+}
+
+.summaryItem {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.statusIndicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.statusOperational { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+.statusDegraded { background: #f59e0b; box-shadow: 0 0 5px #f59e0b; }
+
+.snapshotScore {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.scoreBadge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: 1rem;
+    color: white;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+    border: 2px solid rgba(0,0,0,0.2);
+}
+
+.scoreHigh { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.scoreMid { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.scoreLow { background: linear-gradient(135deg, #ef4444, #dc2626); }

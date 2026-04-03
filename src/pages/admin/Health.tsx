@@ -971,6 +971,58 @@ export default function AdminHealth() {
                         )}
                     </div>
                 </div>
+
+                {/* ─── 11. Health Check History (TIMELINE) ─── */}
+                <div className={`${styles.sectionCard} ${styles.fullWidth}`}>
+                    <div className={styles.sectionHeader}>
+                        <Activity size={18} className={styles.sectionIcon} />
+                        <h3 className={styles.sectionTitle}>
+                            {t('admin.health.history_title', 'Historique Global de Santé')}
+                        </h3>
+                    </div>
+                    <div className={styles.sectionBody}>
+                        {scoreHistory.length === 0 ? (
+                            <div className={styles.emptyLog}>No health history recorded yet.</div>
+                        ) : (
+                            <div className={styles.historyTimeline}>
+                                {[...scoreHistory].reverse().map((entry, index) => (
+                                    <div key={entry.id || index} className={styles.snapshotCard}>
+                                        <div className={styles.snapshotInfo}>
+                                            <span className={styles.snapshotDate}>
+                                                {new Date(entry.timestamp).toLocaleString()}
+                                            </span>
+                                            <div className={styles.snapshotSummary}>
+                                                <div className={styles.summaryItem}>
+                                                    <div className={`${styles.statusIndicator} ${
+                                                        entry.summary?.infraStatus === 'operational' 
+                                                            ? styles.statusOperational 
+                                                            : styles.statusDegraded
+                                                    }`} />
+                                                    {entry.summary?.infraStatus === 'operational' ? 'Infra OK' : 'Degraded'}
+                                                </div>
+                                                <div className={styles.summaryItem}>
+                                                    <UserCheck size={12} /> {entry.summary?.users || 0} users
+                                                </div>
+                                                <div className={styles.summaryItem}>
+                                                    <AlertTriangle size={12} /> {entry.summary?.issues || 0} issues
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className={styles.snapshotScore}>
+                                            <div className={`${styles.scoreBadge} ${
+                                                entry.score >= 80 ? styles.scoreHigh 
+                                                : entry.score >= 50 ? styles.scoreMid 
+                                                : styles.scoreLow
+                                            }`}>
+                                                {entry.score}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* ─── Auto-refresh indicator ─── */}
