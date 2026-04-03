@@ -12,6 +12,7 @@ import { useLibraryStore } from '@/store/libraryStore';
 import { Link } from '@/components/routing/LocalizedLink';
 import { calculateRank, getRankColor } from '@/utils/rankUtils';
 import { useState, useEffect, useCallback } from 'react';
+import { useLocalizedNavigate } from '@/components/routing/LocalizedLink';
 import { getFriendsActivity } from '@/firebase/firestore';
 import type { ActivityEvent } from '@/types/activity';
 import { ACTIVITY_EMOJIS, getActivityLabel } from '@/types/activity';
@@ -32,6 +33,7 @@ import { useMounted } from '@/hooks/useMounted';
 
 export default function Dashboard() {
     const { t } = useTranslation();
+    const navigate = useLocalizedNavigate();
     const isMounted = useMounted();
     const { user, userProfile } = useAuthStore();
     const { level, xp, totalXp, xpToNextLevel, streak, totalChaptersRead, totalAnimeEpisodesWatched, totalMoviesWatched, recalculateStats } = useGamificationStore();
@@ -398,8 +400,14 @@ export default function Dashboard() {
                                                 gap: '1rem',
                                                 padding: '1rem',
                                                 borderBottom: i < friendsActivity.length - 1 ? '1px solid var(--color-border)' : 'none',
-                                                transition: 'background 0.2s'
+                                                transition: 'background 0.2s',
+                                                cursor: 'pointer',
                                             }}
+                                                onClick={(e) => {
+                                                    // Don't navigate if clicking a sub-link (like the work title)
+                                                    if ((e.target as HTMLElement).closest('a')) return;
+                                                    navigate('/social?tab=activity');
+                                                }}
                                                 onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-primary-glow)'}
                                                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                             >
@@ -410,7 +418,13 @@ export default function Dashboard() {
                                                     <p style={{ fontSize: '0.9rem', lineHeight: 1.4 }}>
                                                         <span style={{ fontWeight: 700 }}>{activity.userName}</span>
                                                         <span style={{ opacity: 0.8 }}> {getActivityLabel(activity.type, t)}</span>
-                                                        {activity.workTitle && <span> <strong>{activity.workTitle}</strong></span>}
+                                                        {activity.workTitle && activity.workId ? (
+                                                            <Link to={`/work/${activity.workId}`} style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 800 }}>
+                                                                {' '}{activity.workTitle}
+                                                            </Link>
+                                                        ) : activity.workTitle && (
+                                                            <span style={{ color: 'var(--color-primary)' }}> {activity.workTitle}</span>
+                                                        )}
                                                     </p>
                                                     <p style={{ fontSize: '0.75rem', opacity: 0.5, marginTop: '0.25rem' }}>
                                                         {ACTIVITY_EMOJIS[activity.type]} {formatTimeAgo(activity.timestamp)}
@@ -418,7 +432,7 @@ export default function Dashboard() {
                                                 </div>
                                             </div>
                                         ))}
-                                        <Link to="/social" style={{ textAlign: 'center', padding: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
+                                        <Link to="/social?tab=activity" style={{ textAlign: 'center', padding: '0.75rem', borderTop: '1px solid var(--color-border)' }}>
                                             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary)' }}>{t('dashboard.see_all_activity')}</span>
                                         </Link>
                                     </div>

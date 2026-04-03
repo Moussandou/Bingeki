@@ -28,7 +28,7 @@ import { Podium } from '@/components/social/Podium';
 import { RankingList } from '@/components/social/RankingList';
 import { SocialFeed } from '@/components/social/SocialFeed';
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useToast } from '@/context/ToastContext';
 import { SEO } from '@/components/layout/SEO';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
@@ -40,7 +40,11 @@ export default function Social() {
     const navigate = useNavigate();
     const { addToast } = useToast();
 
-    const [activeTab, setActiveTab] = useState<'feed' | 'ranking' | 'friends' | 'activity' | 'challenges' | 'parties'>('ranking');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const initialTab = (searchParams.get('tab') as any) || 'ranking';
+    const [activeTab, setActiveTab] = useState<'feed' | 'ranking' | 'friends' | 'activity' | 'challenges' | 'parties'>(
+        ['feed', 'ranking', 'friends', 'activity', 'challenges', 'parties'].includes(initialTab) ? initialTab : 'ranking'
+    );
     const [leaderboard, setLeaderboard] = useState<UserProfile[]>([]);
     const [friends, setFriends] = useState<(Friend & { banner?: string; xp?: number; totalXp?: number; level?: number; showActivityStatus?: boolean })[]>([]);
     const [activities, setActivities] = useState<ActivityEvent[]>([]);
@@ -87,14 +91,18 @@ export default function Social() {
                     });
                     setFriends(enrichedFriends);
                     setFriendsEnriched(true);
+                    return enrichedFriends;
                 } else {
                     setFriends(friendsData);
+                    return friendsData;
                 }
             } else {
                 setFriends(friendsData);
+                return friendsData;
             }
         }
-    }, [user, friends.length, friendsEnriched, getUserProfiles]);
+        return friends;
+    }, [user, friends, friendsEnriched, getUserProfiles]);
 
     const loadData = useCallback(async () => {
         if (!user) return;
@@ -132,13 +140,14 @@ export default function Social() {
             }
             else if (activeTab === 'activity' && !activityLoaded) {
                 // Ensure friends enriched for activity data injection
+                let currentFriends = friends;
                 if (!friendsEnriched) {
-                    await fetchFriends(true);
+                    currentFriends = await fetchFriends(true) || [];
                 }
-                const activityData = await getFriendsActivity(user.uid, 30, friends);
+                const activityData = await getFriendsActivity(user.uid, 30, currentFriends);
                 // Filter activities where the author has disabled activity status
                 const filteredActivities = activityData.filter(a => {
-                    const author = friends.find(f => f.uid === a.userId);
+                    const author = currentFriends.find(f => f.uid === a.userId);
                     return author?.showActivityStatus !== false;
                 });
                 setActivities(filteredActivities);
@@ -273,7 +282,10 @@ export default function Social() {
                         </Button>
                         <Button
                             variant={activeTab === 'activity' ? 'primary' : 'manga'}
-                            onClick={() => setActiveTab('activity')}
+                            onClick={() => {
+                                setActiveTab('activity');
+                                setSearchParams({ tab: 'activity' });
+                            }}
                             icon={<Activity size={20} />}
                             style={{ flexShrink: 0 }}
                         >
@@ -371,7 +383,13 @@ export default function Social() {
                                                         lineHeight: '1.2'
                                                     }}>
                                                         {ACTIVITY_EMOJIS[activity.type]} <strong>{activity.userName}</strong> {getActivityLabel(activity.type, t)}
-                                                        {activity.workTitle && <span style={{ color: 'var(--color-primary)' }}> {activity.workTitle}</span>}
+                                                        {activity.workTitle && activity.workId ? (
+                                                            <Link to={`/work/${activity.workId}`} style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 800 }}>
+                                                                {' '}{activity.workTitle}
+                                                            </Link>
+                                                        ) : activity.workTitle && (
+                                                            <span style={{ color: 'var(--color-primary)' }}> {activity.workTitle}</span>
+                                                        )}
                                                         {activity.episodeNumber && <span> (Ep. {activity.episodeNumber})</span>}
                                                         {activity.newLevel && <span style={{ color: 'var(--color-primary)' }}> {activity.newLevel}</span>}
                                                         {activity.badgeName && <span style={{ color: 'var(--color-primary)' }}> {activity.badgeName}</span>}

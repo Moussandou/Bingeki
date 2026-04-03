@@ -640,14 +640,18 @@ export async function logActivity(_userId: string, _event: Omit<ActivityEvent, '
 // Get activities from friends
 export async function getFriendsActivity(userId: string, limitCount: number = 20, friendsList?: Friend[]): Promise<ActivityEvent[]> {
     try {
-        // First get friends list
-        const friends = friendsList || await getFriends(userId);
+        // 1. Get fundamental friends list (Uids & status)
+        let friends = friendsList;
+        if (!friends) {
+            friends = await getFriends(userId);
+        }
+        
         const friendIds = friends.filter(f => f.status === 'accepted').map(f => f.uid);
-
         if (friendIds.length === 0) return [];
 
-        // Get activities from friends (Firestore 'in' query limited to 10 items)
-        const batchedIds = friendIds.slice(0, 10); // Take first 10 friends
+        // 2. Fetch activities from friends
+        // Firestore 'in' query limited to 30 items (not 10 as previously commented)
+        const batchedIds = friendIds.slice(0, 30);
         const q = query(
             collection(db, 'activities'),
             where('userId', 'in', batchedIds),
@@ -657,16 +661,34 @@ export async function getFriendsActivity(userId: string, limitCount: number = 20
 
         const querySnapshot = await getDocs(q);
         const activities: ActivityEvent[] = [];
+        
+        // 3. Fetch fresh profiles for the active friends in these activities to ensure correct photos
+        const activeUserIds = Array.from(new Set(querySnapshot.docs.map(doc => doc.data().userId as string)));
+        let freshProfiles: UserProfile[] = [];
+        if (activeUserIds.length > 0) {
+            freshProfiles = await getUserProfiles(activeUserIds);
+        }
+
         querySnapshot.forEach((doc) => {
             const data = doc.data() as ActivityEvent;
-            // Inject fresh photo/name from current friend profile
-            const friend = friends.find(f => f.uid === data.userId);
-            if (friend) {
-                data.userName = friend.displayName || data.userName;
-                data.userPhoto = friend.photoURL || data.userPhoto;
+            
+            // Priority: Freshly fetched Profile (most up to date) > Provided list (fallback) > Original activity data
+            const profile = freshProfiles.find(p => p.uid === data.userId);
+            if (profile) {
+                data.userName = profile.displayName || data.userName;
+                data.userPhoto = profile.photoURL || data.userPhoto;
+            } else if (friendsList) {
+                // If profiles failed for some reason, fallback to provided list
+                const friend = friendsList.find(f => f.uid === data.userId);
+                if (friend) {
+                    data.userName = friend.displayName || data.userName;
+                    data.userPhoto = friend.photoURL || data.userPhoto;
+                }
             }
-            activities.push(data);
+            
+            activities.push({ ...data, id: doc.id });
         });
+        
         return activities;
     } catch (error) {
         logger.error('[Firestore] Error loading friends activity:', error);
