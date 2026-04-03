@@ -62,17 +62,17 @@ describe('Header Component', () => {
         expect(screen.getByText('120 XP')).toBeInTheDocument();
     });
 
-    it('shows the tier list link for guest users in mobile dock', () => {
+    it('does not show the tier list link for guest users in mobile dock', () => {
         (useAuthStore as unknown as any).mockReturnValue({
             user: null,
         });
 
         render(<Header />);
         
-        // Find the link to tierlist by its href (prefixed by i18n lang in our mock)
+        // Ensure the tierlist link is NOT present
         const tierlistLink = screen.getAllByRole('link').find(link => 
             link.getAttribute('href')?.includes('/tierlist')
         );
-        expect(tierlistLink).toBeDefined();
+        expect(tierlistLink).toBeUndefined();
     });
 });
