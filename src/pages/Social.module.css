@@ -47,3 +47,130 @@
         gap: 0.4rem;
     }
 }
+
+/* Activity Redesign */
+.activityGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+
+.friendCard {
+    background: var(--color-surface);
+    border: 3px solid var(--color-border-heavy);
+    box-shadow: 6px 6px 0 var(--color-primary);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.friendCard:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0 var(--color-primary-glow);
+}
+
+.cardHeader {
+    padding: 0.85rem 1rem;
+    background: var(--color-manga-heavy);
+    border-bottom: 3px solid var(--color-border-heavy);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.cardHeader::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    width: 40px;
+    height: 40px;
+    background: var(--color-primary);
+    transform: rotate(45deg);
+    opacity: 0.2;
+}
+
+.friendName {
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cardBody {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.latestHighlight {
+    background: var(--color-surface-hover);
+    border: 1px solid var(--color-border);
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.activityList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.activityItem {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.activityItem:last-child {
+    border-bottom: none;
+}
+
+.iconWrapper {
+    width: 28px;
+    height: 28px;
+    background: var(--color-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    flex-shrink: 0;
+    box-shadow: 2px 2px 0 var(--color-border-heavy);
+}
+
+.activityContent {
+    flex: 1;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.workImageSmall {
+    width: 45px;
+    height: 65px;
+    border: 1px solid var(--color-border-heavy);
+    border-radius: 2px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .activityGrid {
+        grid-template-columns: 1fr;
+    }
+}

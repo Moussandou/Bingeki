@@ -1,9 +1,9 @@
 import { logger } from '@/utils/logger';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
-import { Trophy, Users, Search, UserPlus, Check, X, Activity, BookOpen, Flame, Clock, Swords, Tv, Library, Newspaper } from 'lucide-react';
+import { Trophy, Users, Search, UserPlus, Check, X, Activity, BookOpen, Flame, Clock, Swords, Tv, Library, Newspaper, PlusCircle, CheckCircle2, ArrowUpCircle, Award, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/firebase/config';
@@ -21,7 +21,7 @@ import {
     type LeaderboardCategory
 } from '@/firebase/firestore';
 import type { ActivityEvent } from '@/types/activity';
-import { ACTIVITY_EMOJIS, getActivityLabel } from '@/types/activity';
+import { getActivityLabel } from '@/types/activity';
 import { ChallengesSection } from '@/components/gamification/ChallengesSection';
 import { WatchPartiesSection } from '@/components/social/WatchPartiesSection';
 import { Podium } from '@/components/social/Podium';
@@ -33,6 +33,16 @@ import { useToast } from '@/context/ToastContext';
 import { SEO } from '@/components/layout/SEO';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import styles from './Social.module.css';
+
+// Mapping for activity types to icons
+const ACTIVITY_ICONS: Record<ActivityEvent['type'], React.ReactNode> = {
+    'watch': <Tv size={14} />,
+    'read': <BookOpen size={14} />,
+    'complete': <CheckCircle2 size={14} />,
+    'add_work': <PlusCircle size={14} />,
+    'level_up': <ArrowUpCircle size={14} />,
+    'badge': <Award size={14} />,
+};
 
 export default function Social() {
     const { user } = useAuthStore();
@@ -58,6 +68,33 @@ export default function Social() {
     const [leaderboardLoaded, setLeaderboardLoaded] = useState(false);
     const [friendsEnriched, setFriendsEnriched] = useState(false);
     const [activityLoaded, setActivityLoaded] = useState(false);
+
+    type GroupedActivity = { 
+        userId: string;
+        userName: string;
+        userPhoto: string;
+        events: ActivityEvent[];
+    };
+
+    const groupedActivities = useMemo(() => {
+        const groups: Record<string, GroupedActivity> = {};
+
+        activities.forEach(event => {
+            if (!groups[event.userId]) {
+                groups[event.userId] = {
+                    userId: event.userId,
+                    userName: event.userName,
+                    userPhoto: event.userPhoto,
+                    events: []
+                };
+            }
+            groups[event.userId].events.push(event);
+        });
+
+        return Object.values(groups).sort((a, b) => 
+            b.events[0].timestamp - a.events[0].timestamp
+        );
+    }, [activities]);
     const [currentUserRank, setCurrentUserRank] = useState<{ rank: number; profile: UserProfile } | null>(null);
 
     const fetchFriends = useCallback(async (forceEnrich = false) => {
@@ -334,78 +371,91 @@ export default function Social() {
 
                     {/* ACTIVITY FEED */}
                     {activeTab === 'activity' && (
-                        <div className="manga-panel" style={{ padding: '1.5rem', background: 'var(--color-surface)' }}>
-                            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Flame size={24} color="#ef4444" /> {t('social.activity.title')}
-                            </h2>
-                            {loading ? (
-                                <p style={{ textAlign: 'center', opacity: 0.6 }}>{t('social.activity.loading')}</p>
-                            ) : activities.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>
-                                    <p>{t('social.activity.no_activity')}</p>
-                                    <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>{t('social.activity.add_friends_hint')}</p>
+                        <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '4px solid var(--color-border-heavy)', paddingBottom: '0.5rem' }}>
+                                <h2 className="manga-title" style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Activity size={20} />
+                                    {t('social.activity.title', "Activité des amis")}
+                                </h2>
+                                <span className="manga-badge" style={{ fontSize: '0.75rem' }}>
+                                    {activities.length} UPDATES
+                                </span>
+                            </div>
+
+                            {activities.length === 0 ? (
+                                <div className="manga-panel" style={{ padding: '3rem', textAlign: 'center', background: 'rgba(0,0,0,0.05)' }}>
+                                    <Activity size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                                    <p style={{ opacity: 0.6 }}>{t('social.activity.empty', "Aucune activité récente")}</p>
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    {activities.map((activity) => {
-                                        /* eslint-disable-next-line */
-                                        const timeDiff = Date.now() - activity.timestamp;
-                                        const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-                                        const timeAgo = hours < 1 ? t('social.activity.time.less_than_hour') :
-                                            hours < 24 ? t('social.activity.time.hours_ago', { hours }) :
-                                                t('social.activity.time.days_ago', { days: Math.floor(hours / 24) });
-
-                                        return (
-                                            <div key={activity.id} style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '1rem',
-                                                padding: '1rem',
-                                                background: 'var(--color-surface-hover)',
-                                                borderRadius: '8px',
-                                                border: '1px solid var(--color-border)'
-                                            }}>
-                                                <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-border-heavy)', flexShrink: 0 }}>
+                                <div className={styles.activityGrid}>
+                                    {groupedActivities.map((group: GroupedActivity) => (
+                                        <div key={group.userId} className={styles.friendCard}>
+                                            <div className={styles.cardHeader}>
+                                                <div style={{ width: 44, height: 44, borderRadius: '4px', overflow: 'hidden', border: '2px solid var(--color-border-heavy)', flexShrink: 0, background: 'var(--color-surface)' }}>
                                                     <OptimizedImage 
-                                                        src={activity.userPhoto || undefined} 
-                                                        fallback={`https://api.dicebear.com/7.x/avataaars/svg?seed=${activity.userName}`}
+                                                        src={group.userPhoto || undefined} 
+                                                        fallback={`https://api.dicebear.com/7.x/avataaars/svg?seed=${group.userName}`}
                                                         alt="Avatar" 
                                                     />
                                                 </div>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <p style={{
-                                                        fontWeight: 600,
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        display: '-webkit-box',
-                                                        WebkitLineClamp: 2,
-                                                        WebkitBoxOrient: 'vertical',
-                                                        lineHeight: '1.2'
-                                                    }}>
-                                                        {ACTIVITY_EMOJIS[activity.type]} <strong>{activity.userName}</strong> {getActivityLabel(activity.type, t)}
-                                                        {activity.workTitle && activity.workId ? (
-                                                            <Link to={`/work/${activity.workId}`} style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 800 }}>
-                                                                {' '}{activity.workTitle}
-                                                            </Link>
-                                                        ) : activity.workTitle && (
-                                                            <span style={{ color: 'var(--color-primary)' }}> {activity.workTitle}</span>
-                                                        )}
-                                                        {activity.episodeNumber && <span> (Ep. {activity.episodeNumber})</span>}
-                                                        {activity.newLevel && <span style={{ color: 'var(--color-primary)' }}> {activity.newLevel}</span>}
-                                                        {activity.badgeName && <span style={{ color: 'var(--color-primary)' }}> {activity.badgeName}</span>}
-                                                    </p>
-                                                    <p style={{ fontSize: '0.75rem', opacity: 0.5, display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                                                        <Clock size={12} /> {timeAgo}
-                                                    </p>
+                                                <div className={styles.friendName}>{group.userName}</div>
+                                                <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.5 }} />
+                                            </div>
+
+                                            <div className={styles.cardBody}>
+                                                <div className={styles.activityList}>
+                                                    {group.events.slice(0, 3).map((activity: ActivityEvent, idx: number) => {
+                                                        const timeDiff = Date.now() - activity.timestamp;
+                                                        const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+                                                        const timeAgo = hours < 1 ? t('social.activity.time.less_than_hour') :
+                                                            hours < 24 ? t('social.activity.time.hours_ago', { hours }) :
+                                                                t('social.activity.time.days_ago', { days: Math.floor(hours / 24) });
+
+                                                        return (
+                                                            <div key={activity.id} className={`${styles.activityItem} ${idx === 0 ? styles.latestHighlight : ''}`}>
+                                                                <div className={styles.iconWrapper} style={{ 
+                                                                    background: activity.type === 'complete' || activity.type === 'level_up' ? 'var(--color-primary)' : 'var(--color-manga-heavy)',
+                                                                    color: activity.type === 'complete' || activity.type === 'level_up' ? 'white' : 'inherit',
+                                                                    border: '1px solid var(--color-border-heavy)'
+                                                                }}>
+                                                                    {ACTIVITY_ICONS[activity.type]}
+                                                                </div>
+                                                                <div className={styles.activityContent}>
+                                                                    <div style={{ fontWeight: 600 }}>
+                                                                        {getActivityLabel(activity.type, t)}
+                                                                        {activity.workTitle && activity.workId ? (
+                                                                            <Link to={`/work/${activity.workId}`} style={{ display: 'block', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 800, marginTop: '2px' }}>
+                                                                                {activity.workTitle}
+                                                                            </Link>
+                                                                        ) : activity.workTitle && (
+                                                                            <span style={{ display: 'block', color: 'var(--color-primary)', marginTop: '2px' }}> {activity.workTitle}</span>
+                                                                        )}
+                                                                        {activity.episodeNumber && <span style={{ opacity: 0.7 }}> (Ep. {activity.episodeNumber})</span>}
+                                                                        {activity.newLevel && <span style={{ color: 'var(--color-primary)' }}> Lvl {activity.newLevel}</span>}
+                                                                        {activity.badgeName && <span style={{ color: 'var(--color-primary)' }}> {activity.badgeName}</span>}
+                                                                    </div>
+                                                                    <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                        <Clock size={10} /> {timeAgo}
+                                                                    </div>
+                                                                </div>
+                                                                {activity.workImage && (
+                                                                    <div className={styles.workImageSmall}>
+                                                                        <OptimizedImage src={activity.workImage || undefined} alt="" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
-                                                {activity.workImage && (
-                                                    <div style={{ width: 50, height: 70, borderRadius: '4px', overflow: 'hidden', flexShrink: 0 }}>
-                                                        <OptimizedImage src={activity.workImage || undefined} alt="" />
+                                                {group.events.length > 3 && (
+                                                    <div style={{ fontSize: '0.75rem', opacity: 0.4, textAlign: 'center', paddingTop: '0.5rem', borderTop: '1px solid var(--color-border)' }}>
+                                                        + {group.events.length - 3} {t('social.activity.more', 'autres activités')}
                                                     </div>
                                                 )}
                                             </div>
-                                        );
-                                    })}
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>

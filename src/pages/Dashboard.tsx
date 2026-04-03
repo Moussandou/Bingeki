@@ -4,7 +4,7 @@ import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { XPBar } from '@/components/gamification/XPBar';
 import { StreakCounter } from '@/components/gamification/StreakCounter';
-import { Play, Plus, ChevronRight, Target, TrendingUp, BookOpen, Users, Flame } from 'lucide-react';
+import { Play, Plus, ChevronRight, Target, TrendingUp, BookOpen, Users, Flame, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '@/store/authStore';
 import { useGamificationStore } from '@/store/gamificationStore';
@@ -15,7 +15,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocalizedNavigate } from '@/components/routing/LocalizedLink';
 import { getFriendsActivity } from '@/firebase/firestore';
 import type { ActivityEvent } from '@/types/activity';
-import { ACTIVITY_EMOJIS, getActivityLabel } from '@/types/activity';
+import { getActivityLabel } from '@/types/activity';
 import { getTopWorks } from '@/services/animeApi';
 import type { JikanResult } from '@/services/animeApi';
 import { Star } from 'lucide-react';
@@ -426,8 +426,8 @@ export default function Dashboard() {
                                                             <span style={{ color: 'var(--color-primary)' }}> {activity.workTitle}</span>
                                                         )}
                                                     </p>
-                                                    <p style={{ fontSize: '0.75rem', opacity: 0.5, marginTop: '0.25rem' }}>
-                                                        {ACTIVITY_EMOJIS[activity.type]} {formatTimeAgo(activity.timestamp)}
+                                                    <p style={{ fontSize: '0.75rem', opacity: 0.5, marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                        <Clock size={12} /> {formatTimeAgo(activity.timestamp)}
                                                     </p>
                                                 </div>
                                             </div>
