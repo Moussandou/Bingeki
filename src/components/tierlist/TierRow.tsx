@@ -11,7 +11,7 @@ import styles from './TierRow.module.css';
 interface TierItem {
     id: number | string;
     name: string;
-    image: string;
+    image: string | { jpg: { image_url: string; small_image_url?: string; large_image_url?: string } };
 }
 
 interface TierRowProps {

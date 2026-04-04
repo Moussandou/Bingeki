@@ -3,12 +3,18 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import styles from './SortableItem.module.css';
 
+type CharacterImage = string | { jpg: { image_url: string; small_image_url?: string; large_image_url?: string } };
+
+function getImageUrl(image: CharacterImage): string {
+    return typeof image === 'string' ? image : image.jpg.image_url;
+}
+
 interface SortableItemProps {
     id: string;
     character: {
         id: number | string;
         name: string;
-        image: string;
+        image: CharacterImage;
     };
     onRemove?: () => void;
 }
@@ -26,7 +32,7 @@ export function TierItemDisplay({ character, style, isDragging, onRemove }: {
         >
             <div
                 className={styles.tierItem}
-                style={{ backgroundImage: `url(${character.image})` }}
+                style={{ backgroundImage: `url(${getImageUrl(character.image)})` }}
             />
             <div className={styles.nameOverlay}>
                 {character.name}
