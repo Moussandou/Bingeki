@@ -99,9 +99,10 @@ export default function CreateTierList() {
     );
 
     const findContainer = (id: string) => {
-        if (id === 'pool') return 'pool';
+        if (id === 'pool' || id.startsWith('pool-')) return 'pool';
+        if (id === 'trash') return 'trash';
         if (tiers.find(t => t.id === id)) return id;
-        return tiers.find(t => t.items.find(i => `${t.id}-${i.id}` === id))?.id;
+        return tiers.find(t => t.items.some(i => `${t.id}-${i.id}` === id))?.id;
     };
 
     const handleDragStart = (event: DragStartEvent) => {
@@ -412,10 +413,33 @@ export default function CreateTierList() {
                         />
                     </div>
                     <div className={styles.actions}>
-                        <Button onClick={handleImportJSON} variant="ghost" size="sm">{t('tierlist.import_json')}</Button>
-                        <Button onClick={handleExportJSON} variant="ghost" size="sm">{t('tierlist.export_json')}</Button>
-                        <Button onClick={handleExportImage} variant="ghost" icon={<Download size={20} />}>{t('tierlist.export_button')}</Button>
-                        <Button onClick={handleSave} variant="primary" icon={<Save size={20} />}>{t('tierlist.save_button')}</Button>
+                        <Button
+                            onClick={() => handleAddTier()}
+                            variant="ghost"
+                            size="sm"
+                        >
+                            {t('tierlist.add_tier')}
+                        </Button>
+                        <Button
+                            onClick={handleClearAll}
+                            variant="ghost"
+                            size="sm"
+                            className={styles.clearButton}
+                        >
+                            {t('tierlist.clear_all')}
+                        </Button>
+                        <Button onClick={handleImportJSON} variant="ghost" size="sm">
+                            {t('tierlist.import_json')}
+                        </Button>
+                        <Button onClick={handleExportJSON} variant="ghost" size="sm">
+                            {t('tierlist.export_json')}
+                        </Button>
+                        <Button onClick={handleExportImage} variant="ghost" size="sm" icon={<Download size={16} />}>
+                            {t('tierlist.export_button')}
+                        </Button>
+                        <Button onClick={handleSave} variant="primary" size="sm" icon={<Save size={16} />}>
+                            {t('tierlist.save_button')}
+                        </Button>
                     </div>
                 </div>
 
@@ -456,15 +480,6 @@ export default function CreateTierList() {
                                     isLast={index === tiers.length - 1}
                                 />
                             ))}
-                        </div>
-
-                        <div className={styles.boardFooter}>
-                            <Button onClick={() => handleAddTier()} variant="outline" size="sm">
-                                {t('tierlist.add_tier')}
-                            </Button>
-                            <Button onClick={handleClearAll} variant="ghost" size="sm" className={styles.clearButton}>
-                                {t('tierlist.clear_all')}
-                            </Button>
                         </div>
 
                         <div className={styles.poolContainer}>
