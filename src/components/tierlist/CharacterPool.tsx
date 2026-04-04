@@ -56,6 +56,7 @@ export function CharacterPool() {
     const [characters, setCharacters] = useState<PoolCharacter[]>([]);
     const [works, setWorks] = useState<JikanResult[]>([]);
     const [mode, setMode] = useState<'character' | 'work'>('character');
+    const [workType, setWorkType] = useState<'anime' | 'manga'>('anime');
 
     // Quick Collections
     const handleLoadCollection = async (type: string) => {
@@ -70,6 +71,10 @@ export function CharacterPool() {
                 results = await getWorkCharacters(20, 'anime'); // Naruto
             } else if (type === 'aot') {
                 results = await getWorkCharacters(16498, 'anime'); // Attack on Titan
+            } else if (type === 'berserk') {
+                results = await getWorkCharacters(2, 'manga'); // Berserk
+            } else if (type === 'onepiece') {
+                results = await getWorkCharacters(13, 'manga'); // One Piece
             }
 
             // Map to standard format
@@ -106,7 +111,7 @@ export function CharacterPool() {
                 const unique = Array.from(new Map(results.map((item) => [item.mal_id, item])).values());
                 setCharacters(unique);
             } else {
-                const results = await searchWorks(query, 'anime');
+                const results = await searchWorks(query, workType);
                 setWorks(results);
             }
         } catch (error) {
@@ -123,7 +128,7 @@ export function CharacterPool() {
     const handleWorkSelect = async (workId: number) => {
         setIsLoading(true);
         try {
-            const results = await getWorkCharacters(workId, 'anime');
+            const results = await getWorkCharacters(workId, workType);
             const formatted: PoolCharacter[] = results.map((c: JikanCharacter) => ({
                 mal_id: c.character.mal_id,
                 name: c.character.name,
@@ -162,15 +167,32 @@ export function CharacterPool() {
                         onClick={() => setMode('work')}
                         style={{ flex: 1, fontSize: '0.75rem', height: '32px' }}
                     >
-                        {t('tierlist.by_anime')}
+                        {workType === 'anime' ? t('tierlist.by_anime') : t('tierlist.by_manga')}
                     </Button>
                 </div>
+
+                {mode === 'work' && (
+                    <div className={styles.workTypeTabs}>
+                        <button
+                            className={`${styles.workTypeButton} ${workType === 'anime' ? styles.workTypeButtonActive : ''}`}
+                            onClick={() => setWorkType('anime')}
+                        >
+                            {t('tierlist.anime')}
+                        </button>
+                        <button
+                            className={`${styles.workTypeButton} ${workType === 'manga' ? styles.workTypeButtonActive : ''}`}
+                            onClick={() => setWorkType('manga')}
+                        >
+                            {t('tierlist.manga')}
+                        </button>
+                    </div>
+                )}
 
                 <form onSubmit={handleSearch} className={styles.searchForm}>
                     <input
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder={mode === 'character' ? t('tierlist.search_name') : t('tierlist.search_anime')}
+                        placeholder={mode === 'character' ? t('tierlist.search_name') : (workType === 'anime' ? t('tierlist.search_anime') : t('tierlist.search_manga'))}
                         className={styles.searchInput}
                     />
                     <Button type="submit" size="sm" icon={<Search size={16} />}></Button>
@@ -178,7 +200,8 @@ export function CharacterPool() {
 
                 <div className={styles.quickCollections}>
                     <Button size="sm" variant="ghost" onClick={() => handleLoadCollection('jjk')}>JJK</Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleLoadCollection('naruto')}>Naruto</Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleLoadCollection('onepiece')}>OP</Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleLoadCollection('berserk')}>Berserk</Button>
                     <Button size="sm" variant="ghost" onClick={() => handleLoadCollection('aot')}>AOT</Button>
                 </div>
             </div>
@@ -222,7 +245,7 @@ export function CharacterPool() {
                                 {works.length === 0 && (
                                     <div className={styles.emptyState} style={{ gridColumn: 'span 2' }}>
                                         <Info size={24} />
-                                        <p>{t('tierlist.no_anime')}</p>
+                                        <p>{workType === 'anime' ? t('tierlist.no_anime') : t('tierlist.no_manga')}</p>
                                     </div>
                                 )}
                             </div>

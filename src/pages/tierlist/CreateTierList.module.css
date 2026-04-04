@@ -164,3 +164,21 @@
         border-width: 2px;
     }
 }
+
+.toolbar {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border-heavy);
+    justify-content: center;
+}
+
+.clearButton {
+    color: var(--color-error);
+}
+
+.clearButton:hover {
+    background: rgba(255, 0, 0, 0.1);
+}

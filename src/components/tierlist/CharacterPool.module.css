@@ -171,3 +171,29 @@
     letter-spacing: 0.05em;
     font-size: 0.9rem;
 }
+
+.workTypeTabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: var(--space-sm);
+    background: var(--color-border-heavy);
+    padding: 2px;
+}
+
+.workTypeButton {
+    flex: 1;
+    border: none;
+    background: var(--color-background);
+    color: var(--color-text-dim);
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    padding: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 900;
+}
+
+.workTypeButtonActive {
+    background: var(--color-primary);
+    color: white;
+}

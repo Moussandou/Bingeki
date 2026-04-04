@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import {
     DndContext,
     DragOverlay,
-    closestCorners,
+    rectIntersection,
     KeyboardSensor,
     PointerSensor,
     useSensor,
@@ -99,6 +99,7 @@ export default function CreateTierList() {
     );
 
     const findContainer = (id: string) => {
+        if (id === 'pool') return 'pool';
         if (tiers.find(t => t.id === id)) return id;
         return tiers.find(t => t.items.find(i => `${t.id}-${i.id}` === id))?.id;
     };
@@ -126,22 +127,55 @@ export default function CreateTierList() {
         const { active, over } = event;
         const overId = over?.id;
 
-        if (!overId || active.id === overId) return;
+        if (!overId || overId === 'trash') return;
 
-        // activeContainer variable removed as it was unused
-        // If sorting within same container, let DragEnd handle it.
-        // If moving between containers, handle here.
+        const activeContainer = findContainer(active.id as string);
+        const overContainer = findContainer(overId as string);
+
+        if (!activeContainer || !overContainer || activeContainer === overContainer) {
+            return;
+        }
+
+        // Logic for moving between tiers while dragging
+        if (activeContainer !== 'pool' && overContainer !== 'pool') {
+            setTiers((prev) => {
+                const activeItems = prev.find((t) => t.id === activeContainer)?.items || [];
+                const overItems = prev.find((t) => t.id === overContainer)?.items || [];
+
+                const activeIndex = activeItems.findIndex((i) => `${activeContainer}-${i.id}` === active.id);
+                const overIndex = overItems.findIndex((i) => `${overContainer}-${i.id}` === over.id);
+
+                let newIndex: number;
+                if (prev.find((t) => t.id === overId)) {
+                    newIndex = overItems.length;
+                } else {
+                    const isBelowLastItem = over && overIndex === overItems.length - 1;
+                    const modifier = isBelowLastItem ? 1 : 0;
+                    newIndex = overIndex >= 0 ? overIndex + modifier : overItems.length;
+                }
+
+                const item = activeItems[activeIndex];
+                if (!item) return prev;
+
+                return prev.map((tier) => {
+                    if (tier.id === activeContainer) {
+                        return { ...tier, items: tier.items.filter((_, i) => i !== activeIndex) };
+                    }
+                    if (tier.id === overContainer) {
+                        const newTierItems = [...tier.items];
+                        newTierItems.splice(newIndex, 0, item);
+                        return { ...tier, items: newTierItems };
+                    }
+                    return tier;
+                });
+            });
+        }
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-        const activeContainer = active.id.toString().startsWith('pool-') ? 'pool' : findContainer(active.id as string);
-        const overContainer = over ? (tiers.find(t => t.id === over.id) ? over.id : findContainer(over.id as string)) : null;
-
-        // Calculate activeIndex here so it's available for all cases
-        const activeIndex = (activeContainer && activeContainer !== 'pool')
-            ? tiers.find(t => t.id === activeContainer)?.items.findIndex(i => `${activeContainer}-${i.id}` === active.id) ?? -1
-            : -1;
+        const activeContainer = findContainer(active.id as string);
+        const overContainer = over ? findContainer(over.id as string) : null;
 
         if (!overContainer || !over) {
             setActiveId(null);
@@ -149,19 +183,19 @@ export default function CreateTierList() {
             return;
         }
 
-
         // Case 0: Dropped into Trash
-        if (overContainer === 'trash') {
-            if (activeContainer === 'pool') {
-                // Do nothing, just cancel drag
-            } else if (activeContainer && activeIndex !== -1) {
-                // Remove from source tier
-                setTiers(prev => prev.map(tier => {
-                    if (tier.id === activeContainer) {
-                        return { ...tier, items: tier.items.filter((_, idx) => idx !== activeIndex) };
-                    }
-                    return tier;
-                }));
+        if (over.id === 'trash') {
+            if (activeContainer && activeContainer !== 'pool') {
+                const activeItems = tiers.find(t => t.id === activeContainer)?.items || [];
+                const activeIndex = activeItems.findIndex(i => `${activeContainer}-${i.id}` === active.id);
+                if (activeIndex !== -1) {
+                    setTiers(prev => prev.map(tier => {
+                        if (tier.id === activeContainer) {
+                            return { ...tier, items: tier.items.filter((_, idx) => idx !== activeIndex) };
+                        }
+                        return tier;
+                    }));
+                }
             }
             setActiveId(null);
             setActiveItem(null);
@@ -185,59 +219,38 @@ export default function CreateTierList() {
                     }
                     return prev.map(tier => {
                         if (tier.id === overContainer) {
-                            return {
-                                ...tier, items: [...tier.items, {
-                                    id: character.mal_id,
-                                    name: character.name,
-                                    image: character.images?.jpg?.image_url
-                                }]
-                            };
-                        }
-                        return tier;
-                    });
-                });
-            }
-        }
-        // Case 2: Moving between Tiers or Reordering
-        else if (activeContainer && overContainer) {
-            const overIndex = tiers.find(t => t.id === overContainer)?.items.findIndex(i => `${overContainer}-${i.id}` === over.id) ?? -1;
-
-            if (activeContainer === overContainer) {
-                // Reordering
-                if (activeIndex !== overIndex && activeIndex !== -1 && overIndex !== -1) {
-                    setTiers(prev => prev.map(tier => {
-                        if (tier.id === activeContainer) {
-                            return { ...tier, items: arrayMove(tier.items, activeIndex, overIndex) };
-                        }
-                        return tier;
-                    }));
-                }
-            } else {
-                // Moving between tiers
-                setTiers(prev => {
-                    const sourceTier = prev.find(t => t.id === activeContainer);
-                    const destTier = prev.find(t => t.id === overContainer);
-                    if (!sourceTier || !destTier) return prev;
-
-                    const item = sourceTier.items[activeIndex];
-
-                    return prev.map(tier => {
-                        if (tier.id === activeContainer) {
-                            return { ...tier, items: tier.items.filter((_, idx) => idx !== activeIndex) };
-                        }
-                        if (tier.id === overContainer) {
-                            // Insert at specific index if dropped on item, else append
+                            const overIndex = tier.items.findIndex(i => `${overContainer}-${i.id}` === over.id);
                             const newItems = [...tier.items];
+                            const newItem = {
+                                id: character.mal_id,
+                                name: character.name,
+                                image: character.images?.jpg?.image_url
+                            };
                             if (overIndex !== -1) {
-                                newItems.splice(overIndex, 0, item);
+                                newItems.splice(overIndex, 0, newItem);
                             } else {
-                                newItems.push(item);
+                                newItems.push(newItem);
                             }
                             return { ...tier, items: newItems };
                         }
                         return tier;
                     });
                 });
+            }
+        }
+        // Case 2: Reordering within same Tier (Moving between tiers is handled by handleDragOver)
+        else if (activeContainer === overContainer) {
+            const activeItems = tiers.find(t => t.id === activeContainer)?.items || [];
+            const activeIndex = activeItems.findIndex(i => `${activeContainer}-${i.id}` === active.id);
+            const overIndex = activeItems.findIndex(i => `${overContainer}-${i.id}` === over.id);
+
+            if (activeIndex !== overIndex && activeIndex !== -1 && overIndex !== -1) {
+                setTiers(prev => prev.map(tier => {
+                    if (tier.id === activeContainer) {
+                        return { ...tier, items: arrayMove(tier.items, activeIndex, overIndex) };
+                    }
+                    return tier;
+                }));
             }
         }
 
@@ -301,6 +314,62 @@ export default function CreateTierList() {
         }
     };
 
+    const handleAddTier = () => {
+        const newId = `tier-${Date.now()}`;
+        setTiers(prev => [...prev, { id: newId, label: 'NEW', color: '#888', items: [] }]);
+    };
+
+    const handleDeleteTier = (id: string) => {
+        setTiers(prev => {
+            if (prev.length <= 1) return prev; // Keep at least one tier
+            return prev.filter(t => t.id !== id);
+        });
+    };
+
+    const handleClearAll = () => {
+        if (window.confirm(t('tierlist.clear_all_confirm'))) {
+            setTiers(prev => prev.map(t => ({ ...t, items: [] })));
+        }
+    };
+
+    const handleImportJSON = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target?.result as string);
+                    if (data.tiers && Array.isArray(data.tiers)) {
+                        setTiers(data.tiers);
+                        if (data.title) setTitle(data.title);
+                        addToast(t('tierlist.import_success'), 'success');
+                    } else {
+                        throw new Error('Invalid format');
+                    }
+                } catch (error) {
+                    addToast(t('tierlist.import_error'), 'error');
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    };
+
+    const handleExportJSON = () => {
+        const data = { title, tiers };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${title.replace(/\s+/g, '_')}_tierlist.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
     const dropAnimation: DropAnimation = {
         sideEffects: defaultDropAnimationSideEffects({
             styles: {
@@ -323,6 +392,8 @@ export default function CreateTierList() {
                         />
                     </div>
                     <div className={styles.actions}>
+                        <Button onClick={handleImportJSON} variant="ghost" size="sm">{t('tierlist.import_json')}</Button>
+                        <Button onClick={handleExportJSON} variant="ghost" size="sm">{t('tierlist.export_json')}</Button>
                         <Button onClick={handleExportImage} variant="ghost" icon={<Download size={20} />}>{t('tierlist.export_button')}</Button>
                         <Button onClick={handleSave} variant="primary" icon={<Save size={20} />}>{t('tierlist.save_button')}</Button>
                     </div>
@@ -330,7 +401,7 @@ export default function CreateTierList() {
 
                 <DndContext
                     sensors={sensors}
-                    collisionDetection={closestCorners}
+                    collisionDetection={rectIntersection}
                     onDragStart={handleDragStart}
                     onDragOver={handleDragOver}
                     onDragEnd={handleDragEnd}
@@ -355,8 +426,18 @@ export default function CreateTierList() {
                                         newTiers[index].color = val;
                                         setTiers(newTiers);
                                     }}
+                                    onDelete={() => handleDeleteTier(tier.id)}
                                 />
                             ))}
+                        </div>
+
+                        <div className={styles.toolbar}>
+                            <Button onClick={handleAddTier} variant="outline" size="sm">
+                                {t('tierlist.add_tier')}
+                            </Button>
+                            <Button onClick={handleClearAll} variant="ghost" size="sm" className={styles.clearButton}>
+                                {t('tierlist.clear_all')}
+                            </Button>
                         </div>
 
                         <div className={styles.poolContainer}>

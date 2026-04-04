@@ -306,7 +306,21 @@ const resources = {
                 delete_confirm: "Supprimer cette tier list ?",
                 delete_success: "Tier list supprimée.",
                 delete_error: "Erreur lors de la suppression.",
-                like_error: "Erreur lors du like."
+                like_error: "Erreur lors du like.",
+                import_json: "Importer JSON",
+                export_json: "Exporter JSON",
+                add_tier: "Ajouter un Tier",
+                clear_all: "Tout Effacer",
+                clear_all_confirm: "Voulez-vous vraiment effacer tous les personnages de la tier list ?",
+                import_success: "Tier list importée !",
+                import_error: "Erreur lors de l'importation",
+                manga: "MANGA",
+                anime: "ANIME",
+                search_manga: "Rechercher un manga...",
+                no_manga: "Aucun manga trouvé.",
+                by_manga: "PAR MANGA",
+                by_anime: "PAR ANIME",
+                by_name: "PAR NOM"
             },
             stats: {
                 level: "Niveau",
