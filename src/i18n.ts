@@ -318,6 +318,13 @@ const resources = {
                 anime: "ANIME",
                 search_manga: "Rechercher un manga...",
                 no_manga: "Aucun manga trouvé.",
+                tier_settings: "PARAMÈTRES DU TIER",
+                edit_label: "Titre du Tier",
+                choose_color: "Couleur du Tier",
+                add_above: "Ajouter au-dessus",
+                add_below: "Ajouter en-dessous",
+                clear_row: "Vider le Tier",
+                delete_tier: "Supprimer le Tier",
                 by_manga: "PAR MANGA"
             },
             stats: {

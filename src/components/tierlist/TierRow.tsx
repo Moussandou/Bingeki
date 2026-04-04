@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableItem, TierItemDisplay } from './SortableItem';
-import { X } from 'lucide-react';
+import { Settings, ChevronUp, ChevronDown, Plus, Trash2, Eraser, X } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/Button';
 import styles from './TierRow.module.css';
 
 interface TierItem {
@@ -19,14 +21,41 @@ interface TierRowProps {
         color: string;
         items: TierItem[];
     };
-    onLabelChange?: (newLabel: string) => void;
-    onColorChange?: (newColor: string) => void;
-    onDelete?: () => void;
+    onLabelChange: (newLabel: string) => void;
+    onColorChange: (newColor: string) => void;
+    onDelete: () => void;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
+    onAddAbove: () => void;
+    onAddBelow: () => void;
+    onClear: () => void;
+    isFirst: boolean;
+    isLast: boolean;
     readOnly?: boolean;
 }
 
-export function TierRow({ tier, onLabelChange, onColorChange, onDelete, readOnly = false }: TierRowProps) {
+const PALETTE = [
+    '#ff7f7f', '#ffbf7f', '#ffdf7f', '#ffff7f', '#bfff7f', '#7fff7f',
+    '#7fffff', '#7fbfff', '#7f7fff', '#ff7fff', '#bf7fff', '#333333', '#bfbfbf', '#ffffff'
+];
+
+export function TierRow({
+    tier,
+    onLabelChange,
+    onColorChange,
+    onDelete,
+    onMoveUp,
+    onMoveDown,
+    onAddAbove,
+    onAddBelow,
+    onClear,
+    isFirst,
+    isLast,
+    readOnly = false
+}: TierRowProps) {
     const { t } = useTranslation();
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
     const { setNodeRef } = useDroppable({
         id: tier.id,
         disabled: readOnly
@@ -34,30 +63,14 @@ export function TierRow({ tier, onLabelChange, onColorChange, onDelete, readOnly
 
     return (
         <div className={styles.row}>
-            {/* Label Column — background stays inline (dynamic tier color) */}
+            {/* Label Column */}
             <div
                 className={styles.labelCell}
                 style={{ background: tier.color }}
             >
-                {readOnly ? (
-                    <div className={styles.labelText}>
-                        {tier.label}
-                    </div>
-                ) : (
-                    <>
-                        <input
-                            value={tier.label}
-                            onChange={(e) => onLabelChange && onLabelChange(e.target.value)}
-                            className={styles.labelInput}
-                        />
-                        <input
-                            type="color"
-                            value={tier.color}
-                            onChange={(e) => onColorChange && onColorChange(e.target.value)}
-                            className={styles.colorPicker}
-                        />
-                    </>
-                )}
+                <div className={styles.labelText}>
+                    {tier.label}
+                </div>
             </div>
 
             {/* Droppable Area */}
@@ -93,11 +106,110 @@ export function TierRow({ tier, onLabelChange, onColorChange, onDelete, readOnly
             {/* Controls */}
             {!readOnly && (
                 <div className={styles.controls}>
-                    {onDelete && (
-                        <button onClick={onDelete} className={styles.deleteButton}>
-                            <X size={20} />
+                    <button
+                        onClick={() => setIsSettingsOpen(true)}
+                        className={styles.controlButton}
+                        title={t('common.settings')}
+                    >
+                        <Settings size={18} />
+                    </button>
+                    <div className={styles.moveButtons}>
+                        <button
+                            onClick={onMoveUp}
+                            disabled={isFirst}
+                            className={styles.controlButton}
+                        >
+                            <ChevronUp size={18} />
                         </button>
-                    )}
+                        <button
+                            onClick={onMoveDown}
+                            disabled={isLast}
+                            className={styles.controlButton}
+                        >
+                            <ChevronDown size={18} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Settings Modal */}
+            {isSettingsOpen && (
+                <div className={styles.modalOverlay} onClick={() => setIsSettingsOpen(false)}>
+                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3>{t('tierlist.tier_settings')}</h3>
+                            <button onClick={() => setIsSettingsOpen(false)} className={styles.closeModal}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className={styles.modalBody}>
+                            {/* Label Text */}
+                            <div className={styles.settingGroup}>
+                                <label>{t('tierlist.edit_label')}</label>
+                                <input
+                                    value={tier.label}
+                                    onChange={(e) => onLabelChange(e.target.value)}
+                                    className={styles.labelInput}
+                                    autoFocus
+                                />
+                            </div>
+
+                            {/* Color Palette */}
+                            <div className={styles.settingGroup}>
+                                <label>{t('tierlist.choose_color')}</label>
+                                <div className={styles.palette}>
+                                    {PALETTE.map(color => (
+                                        <button
+                                            key={color}
+                                            className={`${styles.colorOption} ${tier.color === color ? styles.colorOptionActive : ''}`}
+                                            style={{ background: color }}
+                                            onClick={() => onColorChange(color)}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Quick Actions */}
+                            <div className={styles.modalActions}>
+                                <div className={styles.actionGrid}>
+                                    <Button
+                                        variant="manga"
+                                        size="sm"
+                                        icon={<Plus size={16} />}
+                                        onClick={() => { onAddAbove(); setIsSettingsOpen(false); }}
+                                    >
+                                        {t('tierlist.add_above')}
+                                    </Button>
+                                    <Button
+                                        variant="manga"
+                                        size="sm"
+                                        icon={<Plus size={16} />}
+                                        onClick={() => { onAddBelow(); setIsSettingsOpen(false); }}
+                                    >
+                                        {t('tierlist.add_below')}
+                                    </Button>
+                                    <Button
+                                        variant="manga"
+                                        size="sm"
+                                        icon={<Eraser size={16} />}
+                                        onClick={() => { onClear(); setIsSettingsOpen(false); }}
+                                    >
+                                        {t('tierlist.clear_row')}
+                                    </Button>
+                                    <Button
+                                        variant="manga"
+                                        size="sm"
+                                        icon={<Trash2 size={16} />}
+                                        onClick={() => { onDelete(); setIsSettingsOpen(false); }}
+                                        className={styles.deleteTierBtn}
+                                    >
+                                        {t('tierlist.delete_tier')}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

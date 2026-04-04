@@ -1,111 +1,195 @@
-/* Row container */
 .row {
-    display: flex;
-    margin-bottom: 2px;
+    display: grid;
+    grid-template-columns: 80px 1fr 40px;
     min-height: 80px;
-    background: var(--color-background);
-}
-
-/* Label column — background is dynamic (tier.color), only layout/border here */
-.labelCell {
-    width: 80px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    padding: var(--space-xs);
-    border: 3px solid var(--color-border-heavy);
-    border-right: none;
+    background: var(--bg-dark);
+    border-bottom: 2px solid var(--border-color);
     position: relative;
 }
 
-/* Contrast trick: forces text to be either pure black or white
-   depending on the luminance of the tier color background.
-   Applied only to the text elements, not the cell itself. */
-.labelText {
+.labelCell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    color: #000;
+    font-weight: 800;
     text-align: center;
+    text-transform: uppercase;
+    font-size: 1.2rem;
+    word-break: break-all;
+}
+
+.labelText {
+    width: 100%;
+}
+
+.droppable {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 5px;
+    background: #1a1a1a;
+    min-height: 80px;
+}
+
+.dropPlaceholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    pointer-events: none;
+}
+
+/* Controls */
+.controls {
+    display: flex;
+    flex-direction: column;
+    background: #000;
+}
+
+.controlButton {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 5px;
+}
+
+.controlButton:hover:not(:disabled) {
+    background: var(--primary-color);
+    color: #000;
+}
+
+.controlButton:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.moveButtons {
+    display: flex;
+    flex-direction: column;
+    flex: 2;
+    border-top: 1px solid #333;
+}
+
+/* Modal Styling */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.98); /* Almost fully opaque to hide background elements */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modalContent {
+    background: #000; /* Solid background as requested */
+    border: 4px solid #fff; /* White border for contrast on black */
+    box-shadow: 10px 10px 0px var(--primary-color);
+    width: 90%;
+    max-width: 400px;
+    padding: 30px;
+    position: relative;
+    color: #fff;
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #fff; /* White border for contrast */
+    padding-bottom: 15px;
+}
+
+.modalHeader h3 {
+    text-transform: uppercase;
     font-weight: 900;
-    font-size: 1.1rem;
-    font-family: var(--font-heading);
-    word-break: break-word;
-    filter: invert(1) grayscale(1) contrast(9);
+    margin: 0;
+}
+
+.closeModal {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.settingGroup {
+    margin-bottom: 20px;
+}
+
+.settingGroup label {
+    display: block;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 0.8rem;
 }
 
 .labelInput {
-    background: transparent;
-    border: none;
-    text-align: center;
-    font-weight: 900;
-    font-size: 1.1rem;
     width: 100%;
-    outline: none;
-    font-family: var(--font-heading);
-    filter: invert(1) grayscale(1) contrast(9);
-}
-
-.colorPicker {
-    width: 16px;
-    height: 16px;
-    border: 2px solid var(--color-border-heavy);
-    padding: 0;
-    cursor: pointer;
-    margin-top: 4px;
-    background: transparent;
-}
-
-/* Droppable area */
-.droppable {
-    flex: 1;
-    background: var(--color-surface);
-    border: 3px solid var(--color-border-heavy);
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-xs);
-    padding: var(--space-xs);
-    align-items: center;
-    min-width: 0;
-}
-
-/* Drop placeholder — was opacity: 0.2 (unreadable), now 0.5 with dashed border */
-.dropPlaceholder {
-    opacity: 0.5;
-    color: var(--color-text-dim);
-    width: 100%;
-    text-align: center;
-    font-family: var(--font-heading);
-    font-size: 0.8rem;
+    background: #111;
+    border: 2px solid #fff; /* White border */
+    color: #fff;
+    padding: 15px;
+    font-size: 1.2rem;
+    font-family: inherit;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: var(--space-md);
-    border: 2px dashed var(--color-border);
 }
 
-/* Controls column */
-.controls {
-    background: var(--color-background);
-    width: 40px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid var(--color-border-heavy);
-    border-left: none;
+.palette {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
 }
 
-/* Delete button */
-.deleteButton {
-    color: var(--color-primary);
-    background: none;
-    border: none;
+.colorOption {
+    aspect-ratio: 1;
+    border: 2px solid #000;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-xs);
-    transition: opacity 0.15s;
+    transition: transform 0.1s ease;
 }
 
-.deleteButton:hover {
-    opacity: 0.7;
+.colorOptionActive {
+    outline: 3px solid var(--primary-color);
+    transform: scale(1.1);
+}
+
+.actionGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.deleteTierBtn {
+    background: #ff4444 !important;
+    color: #fff !important;
+}
+
+.deleteTierBtn:hover {
+    background: #cc0000 !important;
+}
+
+@media (max-width: 768px) {
+    .row {
+        grid-template-columns: 60px 1fr 40px;
+    }
+    .labelCell {
+        font-size: 1rem;
+        padding: 5px;
+    }
 }

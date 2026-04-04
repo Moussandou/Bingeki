@@ -314,16 +314,36 @@ export default function CreateTierList() {
         }
     };
 
-    const handleAddTier = () => {
+    const handleAddTier = (index?: number, offset: number = 1) => {
         const newId = `tier-${Date.now()}`;
-        setTiers(prev => [...prev, { id: newId, label: 'NEW', color: '#888', items: [] }]);
+        const newTier: Tier = { id: newId, label: 'NEW', color: '#888', items: [] };
+
+        setTiers(prev => {
+            if (index === undefined) return [...prev, newTier];
+            const newTiers = [...prev];
+            const insertIndex = index + (offset > 0 ? 1 : 0);
+            newTiers.splice(insertIndex, 0, newTier);
+            return newTiers;
+        });
     };
 
-    const handleDeleteTier = (id: string) => {
+    const handleDeleteTier = (index: number) => {
         setTiers(prev => {
-            if (prev.length <= 1) return prev; // Keep at least one tier
-            return prev.filter(t => t.id !== id);
+            if (prev.length <= 1) return prev;
+            return prev.filter((_, i) => i !== index);
         });
+    };
+
+    const handleMoveTier = (index: number, direction: 'up' | 'down') => {
+        setTiers(prev => {
+            const nextIndex = direction === 'up' ? index - 1 : index + 1;
+            if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+            return arrayMove(prev, index, nextIndex);
+        });
+    };
+
+    const handleClearTier = (index: number) => {
+        setTiers(prev => prev.map((t, i) => i === index ? { ...t, items: [] } : t));
     };
 
     const handleClearAll = () => {
@@ -426,13 +446,20 @@ export default function CreateTierList() {
                                         newTiers[index].color = val;
                                         setTiers(newTiers);
                                     }}
-                                    onDelete={() => handleDeleteTier(tier.id)}
+                                    onDelete={() => handleDeleteTier(index)}
+                                    onMoveUp={() => handleMoveTier(index, 'up')}
+                                    onMoveDown={() => handleMoveTier(index, 'down')}
+                                    onAddAbove={() => handleAddTier(index, -1)}
+                                    onAddBelow={() => handleAddTier(index, 1)}
+                                    onClear={() => handleClearTier(index)}
+                                    isFirst={index === 0}
+                                    isLast={index === tiers.length - 1}
                                 />
                             ))}
                         </div>
 
-                        <div className={styles.toolbar}>
-                            <Button onClick={handleAddTier} variant="outline" size="sm">
+                        <div className={styles.boardFooter}>
+                            <Button onClick={() => handleAddTier()} variant="outline" size="sm">
                                 {t('tierlist.add_tier')}
                             </Button>
                             <Button onClick={handleClearAll} variant="ghost" size="sm" className={styles.clearButton}>
