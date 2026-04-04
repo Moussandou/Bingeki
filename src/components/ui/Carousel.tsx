@@ -16,9 +16,10 @@ interface CarouselProps {
     onAdd: (work: JikanResult) => void;
     loading?: boolean;
     showRank?: boolean;
+    priority?: boolean;
 }
 
-export function Carousel({ title, items, onItemClick, libraryIds, onAdd, loading, showRank }: CarouselProps) {
+export function Carousel({ title, items, onItemClick, libraryIds, onAdd, loading, showRank, priority }: CarouselProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const { titleLanguage, hideScores } = useSettingsStore();
 
@@ -77,21 +78,33 @@ export function Carousel({ title, items, onItemClick, libraryIds, onAdd, loading
                     ? Array.from({ length: 6 }).map((_, i) => (
                         <div key={i} style={{ flex: '0 0 220px', scrollSnapAlign: 'start' }}>
                             <Card variant="manga" style={{ padding: 0, overflow: 'hidden', height: '100%', border: '2px solid var(--color-border-heavy)', background: 'var(--color-surface)' }}>
-                                <div style={{ aspectRatio: '2/3', background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '4px solid var(--color-border)', borderTopColor: 'var(--color-text)', animation: 'spin 1s linear infinite' }} />
+                                <div style={{ aspectRatio: '2/3', background: 'var(--color-surface-dim)', position: 'relative', overflow: 'hidden' }}>
+                                    <div style={{ 
+                                        position: 'absolute', 
+                                        inset: 0, 
+                                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%)',
+                                        animation: 'shimmer 1.5s infinite' 
+                                    }} />
+                                    <style>{`
+                                        @keyframes shimmer {
+                                            0% { transform: translateX(-100%); }
+                                            100% { transform: translateX(100%); }
+                                        }
+                                    `}</style>
                                 </div>
                                 <div style={{ padding: '0.75rem', background: 'var(--color-surface)' }}>
-                                    <div style={{ height: '1rem', background: 'var(--color-surface-dim)', marginBottom: '0.5rem', width: '80%' }}></div>
-                                    <div style={{ height: '0.8rem', background: 'var(--color-surface-dim)', width: '50%' }}></div>
+                                    <div style={{ height: '1.2rem', background: 'var(--color-surface-dim)', marginBottom: '0.5rem', width: '90%' }}></div>
+                                    <div style={{ height: '0.8rem', background: 'var(--color-surface-dim)', width: '40%' }}></div>
                                 </div>
                             </Card>
                         </div>
                     ))
                     : items.map((work, index) => {
                         const isOwned = libraryIds.has(work.mal_id);
+                        const compositeKey = `${work.type || 'anime'}-${work.mal_id}`;
                         return (
                             <motion.div
-                                key={work.mal_id}
+                                key={compositeKey}
                                 whileHover={{ y: -10 }}
                                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                                 style={{
@@ -112,6 +125,7 @@ export function Carousel({ title, items, onItemClick, libraryIds, onAdd, loading
                                             lowResSrc={work.images.jpg.small_image_url}
                                             alt={getDisplayTitle(work, titleLanguage)}
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            priority={priority && index < 4}
                                         />
 
                                         {/* Rank Badge */}

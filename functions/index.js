@@ -726,6 +726,7 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
                             workId: work.id,
                             workTitle: work.title,
                             workImage: work.image || '',
+                            workType: (work.type || 'manga').toLowerCase(),
                             timestamp: Date.now()
                         });
                     } else if (work.status === 'completed' && prev.status !== 'completed') {
@@ -738,6 +739,7 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
                             workId: work.id,
                             workTitle: work.title,
                             workImage: work.image || '',
+                            workType: (work.type || 'manga').toLowerCase(),
                             timestamp: Date.now()
                         });
                     } else if ((work.currentChapter || 0) > (prev.currentChapter || 0)) {
@@ -753,6 +755,7 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
                                 workId: work.id,
                                 workTitle: work.title,
                                 workImage: work.image || '',
+                                workType: workType,
                                 episodeNumber: work.currentChapter || 0,
                                 timestamp: Date.now()
                             });

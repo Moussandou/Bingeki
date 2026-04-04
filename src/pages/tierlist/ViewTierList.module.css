@@ -64,7 +64,7 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    background: transparent;
+    background: var(--color-surface);
     border: 2px solid var(--color-border-heavy);
     border-radius: 0;
     color: var(--color-text-dim);
@@ -89,6 +89,17 @@
 .likeButtonActive {
     color: var(--color-primary);
     border-color: var(--color-primary);
+    box-shadow: 2px 2px 0 var(--color-primary);
+}
+
+.deleteButton {
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+}
+
+.deleteButton:hover {
+    background: #ef4444 !important;
+    color: white !important;
 }
 
 /* Tiers display panel */

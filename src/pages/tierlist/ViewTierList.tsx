@@ -165,11 +165,11 @@ export default function ViewTierList() {
                             <Button onClick={handleExportImage} variant="primary" icon={<Download size={20} />}>
                                 {t('tierlist.export_image')}
                             </Button>
-                            <Button onClick={() => navigate(`/${lang}/tierlist/create`)} variant="outline" icon={<Copy size={20} />}>
+                            <Button onClick={() => navigate(`/${lang}/tierlist/create`)} variant="manga" icon={<Copy size={20} />}>
                                 {t('tierlist.create_your_own')}
                             </Button>
                             {isAuthor && (
-                                <Button onClick={handleDelete} variant="ghost" icon={<Trash2 size={18} />}>
+                                <Button onClick={handleDelete} variant="manga" icon={<Trash2 size={18} />} className={styles.deleteButton}>
                                     {t('tierlist.delete_button')}
                                 </Button>
                             )}

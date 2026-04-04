@@ -805,7 +805,7 @@ export default function Library() {
                                             }}
                                             onClick={() => {
                                                 if (isSelectionMode) toggleSelection(work.id);
-                                                else navigate(`/work/${work.id}`);
+                                                else navigate(`/work/${work.id}?type=${work.type}`);
                                             }}
                                         >
                                             {/* Selection Overlay */}

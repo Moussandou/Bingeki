@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, deleteDoc, addDoc, onSnapshot, getAggregateFromServer, count, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, deleteDoc, addDoc, onSnapshot, getAggregateFromServer, count, getCountFromServer, Timestamp, startAfter, type QueryDocumentSnapshot } from 'firebase/firestore';
 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './config';
@@ -1856,9 +1856,15 @@ export interface TierList {
         label: string;
         color: string;
         items: {
-            id: number; // MAL ID
+            id: number | string; // MAL ID for characters, "work-{id}" for anime/manga items
             name: string;
-            image: string;
+            image: string | {
+                jpg: {
+                    image_url: string;
+                    small_image_url?: string;
+                    large_image_url?: string;
+                }
+            };
         }[];
     }[];
 }
@@ -1893,24 +1899,47 @@ export async function getTierListById(id: string): Promise<TierList | null> {
     }
 }
 
-// Get public tier lists (feed)
-export async function getPublicTierLists(limitCount: number = 20): Promise<TierList[]> {
+// Get public tier lists (feed) with pagination and filtering
+export async function getPublicTierLists(
+    limitCount: number = 20, 
+    lastDoc?: QueryDocumentSnapshot,
+    filter: 'recent' | 'popular' | 'trending' = 'recent'
+): Promise<{ lists: TierList[], lastVisible: QueryDocumentSnapshot | null }> {
     try {
-        const q = query(
+        let q = query(
             collection(db, 'tierLists'),
-            where('isPublic', '==', true),
-            orderBy('createdAt', 'desc'),
-            limit(limitCount)
+            where('isPublic', '==', true)
         );
+
+        // Sorting based on filter
+        if (filter === 'popular') {
+            q = query(q, orderBy('likesCount', 'desc'), orderBy('createdAt', 'desc'));
+        } else if (filter === 'trending') {
+            // Trending could be a mix of likes and recency, for now just high likes among recent
+            const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+            q = query(q, where('createdAt', '>=', weekAgo), orderBy('createdAt', 'desc'), orderBy('likesCount', 'desc'));
+        } else {
+            q = query(q, orderBy('createdAt', 'desc'));
+        }
+
+        q = query(q, limit(limitCount));
+
+        if (lastDoc) {
+            q = query(q, startAfter(lastDoc));
+        }
+
         const querySnapshot = await getDocs(q);
         const lists: TierList[] = [];
         querySnapshot.forEach((doc) => {
             lists.push({ id: doc.id, ...doc.data() } as TierList);
         });
-        return lists;
+
+        const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
+        
+        return { lists, lastVisible };
     } catch (error) {
         logger.error('[Firestore] Error getting public tier lists:', error);
-        return [];
+        return { lists: [], lastVisible: null };
     }
 }
 
@@ -1931,6 +1960,21 @@ export async function getUserTierLists(userId: string): Promise<TierList[]> {
     } catch (error) {
         logger.error('[Firestore] Error getting user tier lists:', error);
         return [];
+    }
+}
+
+// Get user's tier lists count (optimized)
+export async function getUserTierListsCount(userId: string): Promise<number> {
+    try {
+        const q = query(
+            collection(db, 'tierLists'),
+            where('userId', '==', userId)
+        );
+        const snapshot = await getCountFromServer(q);
+        return snapshot.data().count;
+    } catch (error) {
+        logger.error('[Firestore] Error getting user tier lists count:', error);
+        return 0;
     }
 }
 

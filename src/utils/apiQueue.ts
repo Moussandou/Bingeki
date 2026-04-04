@@ -20,9 +20,9 @@ export class ApiQueue {
     private processing = false;
     private lastRequestTime = 0;
     private inflight = new Map<string, Promise<Response>>();
-    private readonly minInterval = 400; // 2.5 req/sec — safe under Jikan's 3/sec limit
+    private readonly minInterval = 800; // 1.25 req/sec — much safer for Jikan's 3/sec limit
     private readonly maxRetries = 3;
-    private readonly retryDelay = 3000; // Wait 3s on 429
+    private readonly retryDelay = 1500; // Wait 1.5s on initial 429
 
     /**
      * Add a request to the queue

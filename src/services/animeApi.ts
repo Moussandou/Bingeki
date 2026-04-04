@@ -12,6 +12,17 @@ export class ApiError extends Error {
     }
 }
 
+export interface JikanPagination {
+    last_visible_page: number;
+    has_next_page: boolean;
+    current_page?: number;
+    items?: {
+        count: number;
+        total: number;
+        per_page: number;
+    };
+}
+
 // Jikan API Status Response
 export interface JikanStatusResponse {
     status: 'online' | 'offline' | 'error';
@@ -24,6 +35,7 @@ export interface JikanStatusResponse {
 interface CacheEntry<T> {
     data: T;
     timestamp: number;
+    isError?: boolean;
 }
 
 const API_CACHE = new Map<string, CacheEntry<unknown>>();
@@ -36,14 +48,25 @@ const CACHE_TTL_LONG = 4 * 60 * 60 * 1000; // 4 hours — anime details, charact
 const getCached = <T>(key: string, ttl: number = CACHE_TTL_SHORT): T | null => {
     const cached = API_CACHE.get(key) as CacheEntry<T> | undefined;
     if (cached && Date.now() - cached.timestamp < ttl) {
+        if (cached.isError) return null; // Treat negative cache as miss for list functions
         return cached.data;
     }
     if (cached) API_CACHE.delete(key);
     return null;
 };
 
-const setCache = <T>(key: string, data: T) => {
-    API_CACHE.set(key, { data, timestamp: Date.now() } as CacheEntry<unknown>);
+const getCachedDetail = <T>(key: string, ttl: number = CACHE_TTL_LONG): T | 'NOT_FOUND' | null => {
+    const cached = API_CACHE.get(key) as CacheEntry<T> | undefined;
+    if (cached && Date.now() - cached.timestamp < ttl) {
+        if (cached.isError) return 'NOT_FOUND';
+        return cached.data;
+    }
+    if (cached) API_CACHE.delete(key);
+    return null;
+};
+
+const setCache = <T>(key: string, data: T, isError: boolean = false) => {
+    API_CACHE.set(key, { data, timestamp: Date.now(), isError } as CacheEntry<unknown>);
 };
 
 // Check Jikan API status
@@ -147,7 +170,7 @@ export const searchWorks = async (
     query: string,
     type: 'anime' | 'manga' = 'manga',
     filters?: SearchFilters
-) => {
+): Promise<JikanResult[]> => {
     const { nsfwMode } = useSettingsStore.getState();
     const cacheKey = `search_${type}_${query}_${JSON.stringify(filters || {})}_nsfw_${nsfwMode}`;
     const cached = getCached<JikanResult[]>(cacheKey);
@@ -183,7 +206,7 @@ export const getTopWorks = async (
     type: 'anime' | 'manga' = 'manga',
     filter: 'airing' | 'upcoming' | 'bypopularity' | 'favorite' = 'bypopularity',
     limit: number = 24
-) => {
+): Promise<JikanResult[]> => {
     const { nsfwMode } = useSettingsStore.getState();
     const cacheKey = `top_${type}_${filter}_${limit}_nsfw_${nsfwMode}`;
     const cached = getCached<JikanResult[]>(cacheKey);
@@ -201,7 +224,7 @@ export const getTopWorks = async (
     }
 };
 
-export const getSeasonalAnime = async (limit: number = 24) => {
+export const getSeasonalAnime = async (limit: number = 24): Promise<JikanResult[]> => {
     const { nsfwMode } = useSettingsStore.getState();
     const cacheKey = `seasonal_${limit}_nsfw_${nsfwMode}`;
     const cached = getCached<JikanResult[]>(cacheKey);
@@ -233,9 +256,9 @@ export interface JikanEpisode {
     forum_url: string | null;
 }
 
-export const getAnimeEpisodes = async (id: number, page: number = 1) => {
+export const getAnimeEpisodes = async (id: number, page: number = 1): Promise<{ data: JikanEpisode[]; pagination: JikanPagination }> => {
     const cacheKey = `anime_${id}_episodes_p${page}`;
-    const cached = getCached<{ data: JikanEpisode[]; pagination: { has_next_page: boolean } }>(cacheKey, CACHE_TTL_LONG);
+    const cached = getCached<{ data: JikanEpisode[]; pagination: JikanPagination }>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;
     try {
         const response = await queuedFetch(`${BASE_URL}/anime/${id}/episodes?page=${page}`);
@@ -246,11 +269,11 @@ export const getAnimeEpisodes = async (id: number, page: number = 1) => {
         return result;
     } catch (error) {
         console.error('API Error:', error);
-        return { data: [], pagination: { has_next_page: false } };
+        return { data: [], pagination: { has_next_page: false, last_visible_page: 1 } };
     }
 };
 
-export const getAnimeEpisodeDetails = async (id: number, episodeId: number) => {
+export const getAnimeEpisodeDetails = async (id: number, episodeId: number): Promise<{ synopsis: string; duration: number } | null> => {
     const cacheKey = `anime_${id}_episode_${episodeId}`;
     const cached = getCached<{ synopsis: string; duration: number }>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;
@@ -269,12 +292,14 @@ export const getAnimeEpisodeDetails = async (id: number, episodeId: number) => {
 
 export const getWorkDetails = async (id: number, type: 'anime' | 'manga'): Promise<JikanResult> => {
     const cacheKey = `${type}_${id}_details`;
-    const cached = getCached<JikanResult>(cacheKey, CACHE_TTL_LONG);
+    const cached = getCachedDetail<JikanResult>(cacheKey, CACHE_TTL_LONG);
+    if (cached === 'NOT_FOUND') throw new ApiError(404, `${type} with ID ${id} not found (cached)`);
     if (cached) return cached;
 
     try {
         const response = await queuedFetch(`${BASE_URL}/${type}/${id}`);
         if (response.status === 404) {
+             setCache(cacheKey, null, true);
              throw new ApiError(404, `${type} with ID ${id} not found`);
         }
         if (!response.ok) {
@@ -307,12 +332,14 @@ export interface JikanResultFull extends JikanResult {
 
 export const getWorkFull = async (id: number, type: 'anime' | 'manga'): Promise<JikanResultFull> => {
     const cacheKey = `${type}_${id}_full`;
-    const cached = getCached<JikanResultFull>(cacheKey, CACHE_TTL_LONG);
+    const cached = getCachedDetail<JikanResultFull>(cacheKey, CACHE_TTL_LONG);
+    if (cached === 'NOT_FOUND') throw new ApiError(404, `Full ${type} with ID ${id} not found (cached)`);
     if (cached) return cached;
 
     try {
         const response = await queuedFetch(`${BASE_URL}/${type}/${id}/full`);
         if (response.status === 404) {
+             setCache(cacheKey, null, true);
              throw new ApiError(404, `Full ${type} with ID ${id} not found`);
         }
         if (!response.ok) {
@@ -362,7 +389,7 @@ export interface JikanCharacter {
     voice_actors: JikanVoiceActor[];
 }
 
-export const getWorkCharacters = async (id: number, type: 'anime' | 'manga') => {
+export const getWorkCharacters = async (id: number, type: 'anime' | 'manga'): Promise<JikanCharacter[]> => {
     const cacheKey = `${type}_${id}_characters`;
     const cached = getCached<JikanCharacter[]>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;
@@ -390,7 +417,7 @@ export interface JikanRelation {
     }[];
 }
 
-export const getWorkRelations = async (id: number, type: 'anime' | 'manga') => {
+export const getWorkRelations = async (id: number, type: 'anime' | 'manga'): Promise<JikanRelation[]> => {
     const cacheKey = `${type}_${id}_relations`;
     const cached = getCached<JikanRelation[]>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;
@@ -422,7 +449,7 @@ export interface JikanRecommendation {
     votes: number;
 }
 
-export const getWorkRecommendations = async (id: number, type: 'anime' | 'manga') => {
+export const getWorkRecommendations = async (id: number, type: 'anime' | 'manga'): Promise<JikanRecommendation[]> => {
     const cacheKey = `${type}_${id}_recommendations`;
     const cached = getCached<JikanRecommendation[]>(cacheKey, CACHE_TTL_MEDIUM);
     if (cached) return cached;
@@ -500,7 +527,7 @@ export interface JikanStatistics {
     }[];
 }
 
-export const getWorkStatistics = async (id: number, type: 'anime' | 'manga') => {
+export const getWorkStatistics = async (id: number, type: 'anime' | 'manga'): Promise<JikanStatistics> => {
     const cacheKey = `${type}_${id}_statistics`;
     const cached = getCached<JikanStatistics>(cacheKey, CACHE_TTL_MEDIUM);
     if (cached) return cached;
@@ -554,7 +581,7 @@ export interface JikanStaff {
 }
 
 
-export const getAnimeStaff = async (id: number) => {
+export const getAnimeStaff = async (id: number): Promise<JikanStaff[]> => {
     const cacheKey = `anime_${id}_staff`;
     const cached = getCached<JikanStaff[]>(cacheKey, CACHE_TTL_LONG);
     if (cached) return cached;

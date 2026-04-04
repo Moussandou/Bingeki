@@ -187,7 +187,7 @@ export function WatchPartiesSection() {
                                 {/* Work image */}
                                 <div
                                     style={{ width: 80, height: 110, borderRadius: '4px', overflow: 'hidden', border: '2px solid var(--color-border-heavy)', cursor: 'pointer', flexShrink: 0 }}
-                                    onClick={() => navigate(`/work/${party.workId}`)}
+                                    onClick={() => navigate(`/work/${party.workId}?type=${party.workType}`)}
                                 >
                                     <OptimizedImage
                                         src={party.workImage || `https://via.placeholder.com/80x110?text=${party.workType}`}

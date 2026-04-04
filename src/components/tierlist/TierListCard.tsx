@@ -13,37 +13,57 @@ export function TierListCard({ tierList }: TierListCardProps) {
     const navigate = useNavigate();
     const { lang } = useParams();
 
-    // Find the first tier with items to show as preview
-    const previewTier = tierList.tiers.find(t => t.items.length > 0) || tierList.tiers[0];
-    const previewItems = previewTier?.items.slice(0, 5) || [];
+    // Get the first 3 tiers that have at least one item
+    const tiersWithItems = tierList.tiers.filter(t => t.items.length > 0).slice(0, 3);
+    
+    // Fallback if no items at all
+    const previewTiers = tiersWithItems.length > 0 ? tiersWithItems : [tierList.tiers[0]];
 
     return (
         <motion.div
             layout
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            whileHover={{ x: -2, y: -2, boxShadow: '8px 8px 0 var(--color-primary)' }}
+            whileHover={{ y: -8, transition: { duration: 0.2 } }}
             onClick={() => navigate(`/${lang}/tierlist/${tierList.id}`)}
             className={styles.card}
         >
-            {/* Preview Section */}
-            <div
-                className={styles.preview}
-                style={{ background: previewTier?.color || 'var(--color-border)' }}
-            >
-                <div className={styles.previewLabel}>
-                    {previewTier?.label || 'RANK'}
-                </div>
-                {previewItems.map(item => (
-                    <OptimizedImage
-                        key={item.id}
-                        src={item.image}
-                        alt={item.name}
-                        className={styles.previewImage}
-                        style={{ width: '60px', height: '80px' }}
-                        objectFit="cover"
-                        showSkeleton={false}
-                    />
+            {/* Preview Section - Shows multiple tiers */}
+            <div className={styles.previewContainer}>
+                {previewTiers.map((tier, idx) => (
+                    <div 
+                        key={tier.id} 
+                        className={styles.previewRow}
+                        style={{ 
+                            background: tier.color,
+                            zIndex: 3 - idx,
+                            height: previewTiers.length === 1 ? '100%' : `${100 / previewTiers.length}%`
+                        }}
+                    >
+                        <div className={styles.previewLabel}>
+                            {tier.label}
+                        </div>
+                        <div className={styles.previewItems}>
+                            {tier.items.slice(0, 6).map(item => {
+                                // Extract image URLs safely (handles both string and Jikan object)
+                                const src = typeof item.image === 'string' ? item.image : item.image?.jpg?.image_url;
+                                const lowResSrc = typeof item.image === 'string' ? undefined : item.image?.jpg?.small_image_url;
+
+                                return (
+                                    <OptimizedImage
+                                        key={item.id}
+                                        src={src}
+                                        lowResSrc={lowResSrc}
+                                        alt={item.name}
+                                        className={styles.previewImage}
+                                        style={{ width: '40px', height: '54px' }}
+                                        objectFit="cover"
+                                        showSkeleton={false}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </div>
                 ))}
             </div>
 
@@ -59,19 +79,19 @@ export function TierListCard({ tierList }: TierListCardProps) {
                             <OptimizedImage
                                 src={tierList.authorPhoto}
                                 className={styles.authorAvatar}
-                                style={{ width: 24, height: 24 }}
+                                style={{ width: 20, height: 20 }}
                                 alt="Author"
                                 objectFit="cover"
                                 showSkeleton={false}
                             />
                         ) : (
-                            <User size={16} />
+                            <User size={14} />
                         )}
                         <span>{tierList.authorName}</span>
                     </div>
                     <div className={styles.metaLikes}>
                         <Heart
-                            size={16}
+                            size={14}
                             fill={tierList.likes.length > 0 ? 'var(--color-primary)' : 'none'}
                             color={tierList.likes.length > 0 ? 'var(--color-primary)' : 'var(--color-text-dim)'}
                         />

@@ -20,15 +20,15 @@ import type {
     DropAnimation
 } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Save, Download, Trash2 } from 'lucide-react';
-import { useDroppable } from '@dnd-kit/core';
+import { Save, Download, Trash2, Plus, Upload, FileCode } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { createTierList, type TierList } from '@/firebase/firestore';
 import { useNavigate, useParams } from 'react-router-dom';
 import html2canvas from 'html2canvas';
+import { Modal } from '@/components/ui/Modal';
 
 import { TierRow } from '@/components/tierlist/TierRow';
-import { CharacterPool } from '@/components/tierlist/CharacterPool';
+import { CharacterPoolControls, CharacterPoolResults, useCharacterPool } from '@/components/tierlist/CharacterPool';
 import { useToast } from '@/context/ToastContext';
 import styles from './CreateTierList.module.css';
 
@@ -50,24 +50,17 @@ interface PoolDragItem {
     };
 }
 
-function TrashZone() {
-    const { t } = useTranslation();
-    const { setNodeRef, isOver } = useDroppable({
-        id: 'trash',
-    });
-
-    return (
-        <div
-            ref={setNodeRef}
-            className={`${styles.trashZone} ${isOver ? styles.trashZoneActive : ''}`}
-        >
-            <Trash2 size={24} />
-            <span className={styles.trashText}>
-                {isOver ? t('tierlist.release_to_delete') : t('tierlist.drag_to_delete')}
-            </span>
-        </div>
-    );
+// Work drag item (anime or manga dragged directly into a tier)
+interface WorkDragItem {
+    mal_id: number;
+    title: string;
+    images: {
+        jpg: {
+            image_url: string;
+        };
+    };
 }
+
 
 export default function CreateTierList() {
     const { t } = useTranslation();
@@ -76,6 +69,9 @@ export default function CreateTierList() {
     const navigate = useNavigate();
     const { addToast } = useToast();
     const tiersRef = useRef<HTMLDivElement>(null);
+
+    // Pool state (lifted so controls and results can be in different layout slots)
+    const pool = useCharacterPool();
 
     // State
     const [title, setTitle] = useState(t('tierlist.default_title'));
@@ -87,8 +83,15 @@ export default function CreateTierList() {
         { id: 'D', label: 'D', color: '#bfff7f', items: [] },
     ]);
     const [activeId, setActiveId] = useState<string | null>(null);
-    // Active item can be from Pool (PoolDragItem) or Tier (TierItem)
-    const [activeItem, setActiveItem] = useState<PoolDragItem | TierItem | null>(null);
+    // Active item can be from Pool (PoolDragItem | WorkDragItem) or Tier (TierItem)
+    const [activeItem, setActiveItem] = useState<PoolDragItem | WorkDragItem | TierItem | null>(null);
+    const [confirmModal, setConfirmModal] = useState<{
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    } | null>(null);
+
+    const usedCharacterIds = tiers.flatMap(t => t.items.map(i => i.id));
 
     // Sensors
     const sensors = useSensors(
@@ -100,9 +103,16 @@ export default function CreateTierList() {
 
     const findContainer = (id: string) => {
         if (id === 'pool' || id.startsWith('pool-')) return 'pool';
-        if (id === 'trash') return 'trash';
         if (tiers.find(t => t.id === id)) return id;
         return tiers.find(t => t.items.some(i => `${t.id}-${i.id}` === id))?.id;
+    };
+
+    const handleRemoveItem = (tierId: string, itemId: number | string) => {
+        setTiers(prev => prev.map(tier =>
+            tier.id === tierId
+                ? { ...tier, items: tier.items.filter(i => i.id !== itemId) }
+                : tier
+        ));
     };
 
     const handleDragStart = (event: DragStartEvent) => {
@@ -110,7 +120,9 @@ export default function CreateTierList() {
         const id = active.id as string;
         setActiveId(id);
 
-        if (id.startsWith('pool-')) {
+        if (id.startsWith('pool-work-')) {
+            setActiveItem(active.data.current?.work as WorkDragItem);
+        } else if (id.startsWith('pool-')) {
             setActiveItem(active.data.current?.character as PoolDragItem);
         } else {
             // Find item in tiers
@@ -184,59 +196,79 @@ export default function CreateTierList() {
             return;
         }
 
-        // Case 0: Dropped into Trash
-        if (over.id === 'trash') {
-            if (activeContainer && activeContainer !== 'pool') {
-                const activeItems = tiers.find(t => t.id === activeContainer)?.items || [];
-                const activeIndex = activeItems.findIndex(i => `${activeContainer}-${i.id}` === active.id);
-                if (activeIndex !== -1) {
-                    setTiers(prev => prev.map(tier => {
-                        if (tier.id === activeContainer) {
-                            return { ...tier, items: tier.items.filter((_, idx) => idx !== activeIndex) };
-                        }
-                        return tier;
-                    }));
-                }
-            }
-            setActiveId(null);
-            setActiveItem(null);
-            return;
-        }
-
         // Case 1: Dragging from Pool to Tier
         if (activeContainer === 'pool') {
-            const character = active.data.current?.character;
-            if (character) {
-                setTiers(prev => {
-                    const targetTier = prev.find(t => t.id === overContainer);
-                    if (targetTier && targetTier.items.length >= MAX_ITEMS_PER_TIER) {
-                        addToast(t('tierlist.tier_full', { max: MAX_ITEMS_PER_TIER }), 'error');
-                        return prev;
-                    }
-                    const isDuplicate = prev.some(t => t.items.some(i => String(i.id) === String(character.mal_id)));
-                    if (isDuplicate) {
-                        addToast(t('tierlist.duplicate_character'), 'error');
-                        return prev;
-                    }
-                    return prev.map(tier => {
-                        if (tier.id === overContainer) {
-                            const overIndex = tier.items.findIndex(i => `${overContainer}-${i.id}` === over.id);
-                            const newItems = [...tier.items];
-                            const newItem = {
-                                id: character.mal_id,
-                                name: character.name,
-                                image: character.images?.jpg?.image_url
-                            };
-                            if (overIndex !== -1) {
-                                newItems.splice(overIndex, 0, newItem);
-                            } else {
-                                newItems.push(newItem);
-                            }
-                            return { ...tier, items: newItems };
+            if (active.id.toString().startsWith('pool-work-')) {
+                // Work (anime or manga) dragged into a tier
+                const work = active.data.current?.work as WorkDragItem;
+                if (work) {
+                    setTiers(prev => {
+                        const targetTier = prev.find(t => t.id === overContainer);
+                        if (targetTier && targetTier.items.length >= MAX_ITEMS_PER_TIER) {
+                            addToast(t('tierlist.tier_full', { max: MAX_ITEMS_PER_TIER }), 'error');
+                            return prev;
                         }
-                        return tier;
+                        const workItemId = `work-${work.mal_id}`;
+                        const isDuplicate = prev.some(t => t.items.some(i => String(i.id) === workItemId));
+                        if (isDuplicate) {
+                            addToast(t('tierlist.duplicate_work'), 'error');
+                            return prev;
+                        }
+                        return prev.map(tier => {
+                            if (tier.id === overContainer) {
+                                const overIndex = tier.items.findIndex(i => `${overContainer}-${i.id}` === over.id);
+                                const newItems = [...tier.items];
+                                const newItem = {
+                                    id: workItemId,
+                                    name: work.title,
+                                    image: work.images?.jpg?.image_url
+                                };
+                                if (overIndex !== -1) {
+                                    newItems.splice(overIndex, 0, newItem);
+                                } else {
+                                    newItems.push(newItem);
+                                }
+                                return { ...tier, items: newItems };
+                            }
+                            return tier;
+                        });
                     });
-                });
+                }
+            } else {
+                // Character dragged into a tier
+                const character = active.data.current?.character;
+                if (character) {
+                    setTiers(prev => {
+                        const targetTier = prev.find(t => t.id === overContainer);
+                        if (targetTier && targetTier.items.length >= MAX_ITEMS_PER_TIER) {
+                            addToast(t('tierlist.tier_full', { max: MAX_ITEMS_PER_TIER }), 'error');
+                            return prev;
+                        }
+                        const isDuplicate = prev.some(t => t.items.some(i => String(i.id) === String(character.mal_id)));
+                        if (isDuplicate) {
+                            addToast(t('tierlist.duplicate_character'), 'error');
+                            return prev;
+                        }
+                        return prev.map(tier => {
+                            if (tier.id === overContainer) {
+                                const overIndex = tier.items.findIndex(i => `${overContainer}-${i.id}` === over.id);
+                                const newItems = [...tier.items];
+                                const newItem = {
+                                    id: character.mal_id,
+                                    name: character.name,
+                                    image: character.images?.jpg?.image_url
+                                };
+                                if (overIndex !== -1) {
+                                    newItems.splice(overIndex, 0, newItem);
+                                } else {
+                                    newItems.push(newItem);
+                                }
+                                return { ...tier, items: newItems };
+                            }
+                            return tier;
+                        });
+                    });
+                }
             }
         }
         // Case 2: Reordering within same Tier (Moving between tiers is handled by handleDragOver)
@@ -329,9 +361,16 @@ export default function CreateTierList() {
     };
 
     const handleDeleteTier = (index: number) => {
-        setTiers(prev => {
-            if (prev.length <= 1) return prev;
-            return prev.filter((_, i) => i !== index);
+        setConfirmModal({
+            title: t('tierlist.delete_tier'),
+            message: t('tierlist.delete_tier_confirm'),
+            onConfirm: () => {
+                setTiers(prev => {
+                    if (prev.length <= 1) return prev;
+                    return prev.filter((_, i) => i !== index);
+                });
+                setConfirmModal(null);
+            }
         });
     };
 
@@ -348,9 +387,14 @@ export default function CreateTierList() {
     };
 
     const handleClearAll = () => {
-        if (window.confirm(t('tierlist.clear_all_confirm'))) {
-            setTiers(prev => prev.map(t => ({ ...t, items: [] })));
-        }
+        setConfirmModal({
+            title: t('tierlist.clear_all'),
+            message: t('tierlist.clear_all_confirm'),
+            onConfirm: () => {
+                setTiers(prev => prev.map(t => ({ ...t, items: [] })));
+                setConfirmModal(null);
+            }
+        });
     };
 
     const handleImportJSON = () => {
@@ -415,29 +459,45 @@ export default function CreateTierList() {
                     <div className={styles.actions}>
                         <Button
                             onClick={() => handleAddTier()}
-                            variant="ghost"
-                            size="sm"
+                            variant="manga"
+                            icon={<Plus size={18} />}
                         >
                             {t('tierlist.add_tier')}
                         </Button>
                         <Button
                             onClick={handleClearAll}
-                            variant="ghost"
-                            size="sm"
+                            variant="manga"
                             className={styles.clearButton}
+                            icon={<Trash2 size={18} />}
                         >
                             {t('tierlist.clear_all')}
                         </Button>
-                        <Button onClick={handleImportJSON} variant="ghost" size="sm">
+                        <Button
+                            onClick={handleImportJSON}
+                            variant="manga"
+                            icon={<Upload size={18} />}
+                        >
                             {t('tierlist.import_json')}
                         </Button>
-                        <Button onClick={handleExportJSON} variant="ghost" size="sm">
+                        <Button
+                            onClick={handleExportJSON}
+                            variant="manga"
+                            icon={<FileCode size={18} />}
+                        >
                             {t('tierlist.export_json')}
                         </Button>
-                        <Button onClick={handleExportImage} variant="ghost" size="sm" icon={<Download size={16} />}>
+                        <Button
+                            onClick={handleExportImage}
+                            variant="manga"
+                            icon={<Download size={18} />}
+                        >
                             {t('tierlist.export_button')}
                         </Button>
-                        <Button onClick={handleSave} variant="primary" size="sm" icon={<Save size={16} />}>
+                        <Button
+                            onClick={handleSave}
+                            variant="primary"
+                            icon={<Save size={18} />}
+                        >
                             {t('tierlist.save_button')}
                         </Button>
                     </div>
@@ -451,51 +511,53 @@ export default function CreateTierList() {
                     onDragEnd={handleDragEnd}
                 >
                     <div className={styles.workspace}>
-                        {/* Main Board */}
-                        <div
-                            ref={tiersRef}
-                            className={styles.board}
-                        >
-                            {tiers.map((tier, index) => (
-                                <TierRow
-                                    key={tier.id}
-                                    tier={tier}
-                                    onLabelChange={(val) => {
-                                        const newTiers = [...tiers];
-                                        newTiers[index].label = val;
-                                        setTiers(newTiers);
-                                    }}
-                                    onColorChange={(val) => {
-                                        const newTiers = [...tiers];
-                                        newTiers[index].color = val;
-                                        setTiers(newTiers);
-                                    }}
-                                    onDelete={() => handleDeleteTier(index)}
-                                    onMoveUp={() => handleMoveTier(index, 'up')}
-                                    onMoveDown={() => handleMoveTier(index, 'down')}
-                                    onAddAbove={() => handleAddTier(index, -1)}
-                                    onAddBelow={() => handleAddTier(index, 1)}
-                                    onClear={() => handleClearTier(index)}
-                                    isFirst={index === 0}
-                                    isLast={index === tiers.length - 1}
-                                />
-                            ))}
+                        {/* Top row: tier board + search controls */}
+                        <div className={styles.mainArea}>
+                            <div ref={tiersRef} className={styles.board}>
+                                {tiers.map((tier, index) => (
+                                    <TierRow
+                                        key={tier.id}
+                                        tier={tier}
+                                        onLabelChange={(val) => {
+                                            const newTiers = [...tiers];
+                                            newTiers[index].label = val;
+                                            setTiers(newTiers);
+                                        }}
+                                        onColorChange={(val) => {
+                                            const newTiers = [...tiers];
+                                            newTiers[index].color = val;
+                                            setTiers(newTiers);
+                                        }}
+                                        onDelete={() => handleDeleteTier(index)}
+                                        onMoveUp={() => handleMoveTier(index, 'up')}
+                                        onMoveDown={() => handleMoveTier(index, 'down')}
+                                        onAddAbove={() => handleAddTier(index, -1)}
+                                        onAddBelow={() => handleAddTier(index, 1)}
+                                        onClear={() => handleClearTier(index)}
+                                        onRemoveItem={(itemId) => handleRemoveItem(tier.id, itemId)}
+                                        isFirst={index === 0}
+                                        isLast={index === tiers.length - 1}
+                                    />
+                                ))}
+                            </div>
+
+                            <div className={styles.controlsPanel}>
+                                <CharacterPoolControls pool={pool} />
+                            </div>
                         </div>
 
-                        <div className={styles.poolContainer}>
-                            <CharacterPool />
+                        {/* Results panel — full width below */}
+                        <div className={styles.resultsPanel}>
+                            <CharacterPoolResults pool={pool} usedCharacterIds={usedCharacterIds} />
                         </div>
                     </div>
-
-                    {/* Trash Zone */}
-                    <TrashZone />
 
                     <DragOverlay dropAnimation={dropAnimation}>
                         {activeId && activeItem ? (
                             <div style={{
                                 width: '80px',
                                 height: '80px',
-                                backgroundImage: `url(${('images' in activeItem) ? activeItem.images.jpg.image_url : activeItem.image})`,
+                                backgroundImage: `url(${'images' in activeItem ? activeItem.images.jpg.image_url : activeItem.image})`,
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                                 borderRadius: '4px',
@@ -504,6 +566,26 @@ export default function CreateTierList() {
                             }} />
                         ) : null}
                     </DragOverlay>
+
+                    {confirmModal && (
+                        <Modal
+                            isOpen={!!confirmModal}
+                            onClose={() => setConfirmModal(null)}
+                            title={confirmModal.title}
+                        >
+                            <div className={styles.confirmContent}>
+                                <p>{confirmModal.message}</p>
+                                <div className={styles.confirmActions}>
+                                    <Button onClick={() => setConfirmModal(null)} variant="manga">
+                                        {t('common.cancel')}
+                                    </Button>
+                                    <Button onClick={confirmModal.onConfirm} variant="primary">
+                                        {t('common.confirm')}
+                                    </Button>
+                                </div>
+                            </div>
+                        </Modal>
+                    )}
                 </DndContext>
             </div>
         </Layout>

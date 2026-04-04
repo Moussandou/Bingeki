@@ -4,11 +4,11 @@ import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocalizedNavigate } from '@/components/routing/LocalizedLink';
 import { Layout } from '@/components/layout/Layout';
-import { createPortal } from 'react-dom';
+
 import { useLibraryStore, type Work } from '@/store/libraryStore';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal'; // Import Modal
-import { ArrowLeft, Star, BookOpen, Check, Trash2, Tv, FileText, Trophy, AlertTriangle, MessageCircle, Heart, Send, EyeOff, Reply, Video, Calendar, BarChart, Music, Disc, X, ArrowUp } from 'lucide-react';
+import { ArrowLeft, Star, BookOpen, Check, Trash2, Tv, FileText, Trophy, AlertTriangle, MessageCircle, Heart, Send, EyeOff, Reply, Video, Calendar, BarChart, Music, Disc, X, ArrowUp, Youtube, ExternalLink } from 'lucide-react';
 import { useState, useEffect, memo } from 'react';
 
 
@@ -404,6 +404,16 @@ export default function WorkDetails() {
                 const workTypeNormalized = res.type ? res.type.toLowerCase() : typeToFetch;
                 const internalType = (workTypeNormalized === 'manga' || workTypeNormalized === 'manhwa' || workTypeNormalized === 'manhua' || workTypeNormalized === 'novel') ? 'manga' : 'anime';
  
+                // Fix: Jikan API sometimes returns null for youtube_id even if embed_url is valid.
+                // Extract it manually to fix thumbnails and external links.
+                const trailer = res.trailer ? { ...res.trailer } : undefined;
+                if (trailer && !trailer.youtube_id && trailer.embed_url) {
+                    const match = trailer.embed_url.match(/\/embed\/([a-zA-Z0-9_-]+)/);
+                    if (match) {
+                        trailer.youtube_id = match[1];
+                    }
+                }
+
                 const mapped: DetailedWork = {
                     id: res.mal_id,
                     title: res.title,
@@ -420,7 +430,7 @@ export default function WorkDetails() {
                     currentChapter: 0,
                     rating: 0,
                     notes: '',
-                    trailer: res.trailer,
+                    trailer: trailer,
                     studios: res.studios || [],
                     genres: res.genres || [],
                     season: res.season,
@@ -1098,164 +1108,75 @@ export default function WorkDetails() {
                                             || (work.trailer.youtube_id ? `https://img.youtube.com/vi/${work.trailer.youtube_id}/hqdefault.jpg` : null);
 
                                         return (
-                                            <div style={{ width: '100%', marginTop: '1rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                                                    <Video size={20} strokeWidth={2.5} />
-                                                    <h3 className={styles.synopsisTitle} style={{ marginBottom: 0 }}>{t('work_details.trailer.title')}</h3>
+                                            <div className={styles.trailerSection}>
+                                                <div className={styles.infoLabel}>
+                                                    <Video size={14} />
+                                                    {t('work_details.trailer.title')}
                                                 </div>
 
-                                                {/* Theater Mode Trigger Card */}
                                                 <div
-                                                    onClick={() => setIsTrailerOpen(true)}
-                                                    style={{
-                                                        position: 'relative',
-                                                        width: '100%',
-                                                        height: '200px',
-                                                        background: '#000',
-                                                        backgroundImage: trailerThumbnail ? `url(${trailerThumbnail})` : 'none',
-                                                        backgroundSize: 'cover',
-                                                        backgroundPosition: 'center',
-                                                        border: '4px solid #000',
-                                                        boxShadow: '8px 8px 0 rgba(0,0,0,1)',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        overflow: 'hidden',
-                                                        transition: 'all 0.2s ease'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.transform = 'translate(-2px, -2px)';
-                                                        e.currentTarget.style.boxShadow = '10px 10px 0 rgba(0,0,0,1)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.transform = 'translate(0, 0)';
-                                                        e.currentTarget.style.boxShadow = '8px 8px 0 rgba(0,0,0,1)';
-                                                    }}
+                                                    className={styles.trailerCard}
+                                                    onClick={() => !isTrailerOpen && setIsTrailerOpen(true)}
                                                 >
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        top: 0, left: 0, right: 0, bottom: 0,
-                                                        background: 'rgba(0,0,0,0.4)',
-                                                        transition: 'background 0.2s'
-                                                    }} />
-
-                                                    <div style={{
-                                                        position: 'relative',
-                                                        zIndex: 2,
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        alignItems: 'center',
-                                                    }}>
-                                                        <div style={{
-                                                            width: '80px',
-                                                            height: '80px',
-                                                            borderRadius: '50%',
-                                                            background: 'rgba(255, 255, 255, 0.9)',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            border: '4px solid #000',
-                                                            backdropFilter: 'blur(4px)',
-                                                            boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
-                                                        }}>
-                                                            <div style={{
-                                                                width: 0,
-                                                                height: 0,
-                                                                borderTop: '12px solid transparent',
-                                                                borderBottom: '12px solid transparent',
-                                                                borderLeft: '20px solid #000',
-                                                                marginLeft: '6px'
-                                                            }} />
-                                                        </div>
-                                                        <span style={{
-                                                            color: '#fff',
-                                                            fontFamily: 'var(--font-heading)',
-                                                            fontSize: '1.5rem',
-                                                            textTransform: 'uppercase',
-                                                            letterSpacing: '2px',
-                                                            textShadow: '3px 3px 0 #000',
-                                                            textAlign: 'center',
-                                                            padding: '0 1rem'
-                                                        }}>
-                                                            {t('work_details.trailer.watch')}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Full Screen Trailer Modal (Portal) */}
-                                                {isTrailerOpen && createPortal(
-                                                    <div
-                                                        style={{
-                                                            position: 'fixed',
-                                                            top: 0, left: 0, right: 0, bottom: 0,
-                                                            background: 'rgba(0,0,0,0.95)',
-                                                            zIndex: 99999,
-                                                            display: 'flex',
-                                                            flexDirection: 'column',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center'
-                                                        }}
-                                                        onClick={() => setIsTrailerOpen(false)}
-                                                    >
-                                                        <div
-                                                            style={{
-                                                                width: '80%',
-                                                                maxWidth: '1000px',
-                                                                aspectRatio: '16/9',
-                                                                background: '#000',
-                                                                border: '2px solid #333',
-                                                                boxShadow: '0 0 50px rgba(0,0,0,0.8)',
-                                                                position: 'relative'
-                                                            }}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
+                                                    {isTrailerOpen ? (
+                                                        <div className={styles.videoWrapper}>
                                                             <iframe
-                                                                src={`${work.trailer.embed_url}?autoplay=1`}
-                                                                title="Full Screen Trailer"
+                                                                src={`${work.trailer.embed_url}${work.trailer.embed_url.includes('?') ? '&' : '?'}autoplay=1&mute=1&rel=0`}
+                                                                title="Trailer"
+                                                                className={styles.iframe}
                                                                 frameBorder="0"
                                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                                                 allowFullScreen
-                                                                style={{ width: '100%', height: '100%' }}
+                                                                loading="lazy"
                                                             />
                                                         </div>
+                                                    ) : (
+                                                        <>
+                                                            <OptimizedImage
+                                                                src={trailerThumbnail || ''}
+                                                                alt="Trailer Thumbnail"
+                                                                className={styles.trailerThumbnail}
+                                                            />
+                                                            <div className={styles.playButton}>
+                                                                <div style={{
+                                                                    width: 0,
+                                                                    height: 0,
+                                                                    borderTop: '15px solid transparent',
+                                                                    borderBottom: '15px solid transparent',
+                                                                    borderLeft: '25px solid currentColor',
+                                                                    marginLeft: '8px'
+                                                                }} />
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+
+                                                <div className={styles.trailerActions}>
+                                                    {isTrailerOpen ? (
                                                         <button
+                                                            className={styles.closeTrailer}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setIsTrailerOpen(false);
                                                             }}
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: '30px',
-                                                                right: '30px',
-                                                                zIndex: 100000,
-                                                                background: '#000',
-                                                                border: '2px solid #fff',
-                                                                color: '#fff',
-                                                                cursor: 'pointer',
-                                                                padding: '0.5rem 1rem',
-                                                                borderRadius: '50px',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '0.5rem',
-                                                                boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
-                                                                transition: 'all 0.2s ease'
-                                                            }}
-                                                            onMouseEnter={(e) => {
-                                                                e.currentTarget.style.background = '#333';
-                                                                e.currentTarget.style.transform = 'scale(1.05)';
-                                                            }}
-                                                            onMouseLeave={(e) => {
-                                                                e.currentTarget.style.background = '#000';
-                                                                e.currentTarget.style.transform = 'scale(1)';
-                                                            }}
                                                         >
-                                                            <span style={{ fontWeight: 700, fontSize: '0.9rem', letterSpacing: '1px' }}>{t('work_details.trailer.close')}</span>
-                                                            <X size={24} strokeWidth={2.5} />
+                                                            {t('work_details.trailer.close')}
                                                         </button>
-                                                    </div>,
-                                                    document.body
-                                                )}
+                                                    ) : (
+                                                        <div />
+                                                    )}
+
+                                                    <a
+                                                        href={work.trailer.url || `https://www.youtube.com/watch?v=${work.trailer.youtube_id}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className={styles.youtubeLink}
+                                                    >
+                                                        <Youtube size={18} />
+                                                        {t('work_details.trailer.watch_on_youtube')}
+                                                        <ExternalLink size={14} />
+                                                    </a>
+                                                </div>
                                             </div>
                                         )
                                     })()}

@@ -1,7 +1,7 @@
 .tierItem {
     position: relative;
-    width: 80px;
-    height: 80px;
+    width: 64px;
+    height: 64px;
     background-size: cover;
     background-position: center;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -33,4 +33,35 @@
 
 .dragging {
     opacity: 0.5;
+}
+
+/* Remove button — appears on hover */
+.removeBtn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    border: none;
+    border-radius: 0;
+    font-size: 0.75rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.1s;
+    padding: 0;
+    z-index: 10;
+}
+
+.tierItemWrapper:hover .removeBtn {
+    opacity: 1;
+}
+
+.removeBtn:hover {
+    background: var(--color-primary);
 }

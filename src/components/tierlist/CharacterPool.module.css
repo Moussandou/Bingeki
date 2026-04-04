@@ -27,11 +27,171 @@
     letter-spacing: 0.05em;
 }
 
-/* Mode tabs */
-.modeTabs {
+/* Main 3-tab bar */
+.mainTabs {
     display: flex;
-    gap: var(--space-sm);
+    gap: 2px;
     margin-bottom: var(--space-sm);
+    background: var(--color-border-heavy);
+    padding: 2px;
+}
+
+.mainTab {
+    flex: 1;
+    border: none;
+    background: var(--color-background);
+    color: var(--color-text-dim);
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    padding: 6px 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    transition: background 0.1s, color 0.1s;
+}
+
+.mainTabActive {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+/* Character sub-tabs */
+.subTabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: var(--space-sm);
+}
+
+.subTab {
+    flex: 1;
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-dim);
+    font-family: var(--font-heading);
+    font-size: 0.6rem;
+    padding: 4px 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 700;
+    transition: border-color 0.1s, color 0.1s;
+}
+
+.subTabActive {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+/* Demographic filter chips */
+.demoFilters {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: var(--space-sm);
+}
+
+.demoChip {
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-dim);
+    font-family: var(--font-heading);
+    font-size: 0.58rem;
+    padding: 3px 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    transition: border-color 0.1s, color 0.1s;
+}
+
+.demoChipActive {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+/* Suggestions horizontal scroll strip */
+.suggestionsStrip {
+    display: flex;
+    gap: var(--space-xs);
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: var(--space-sm);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.suggestionsStrip::-webkit-scrollbar {
+    display: none;
+}
+
+.suggestionCard {
+    flex-shrink: 0;
+    width: 75px;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    opacity: 1;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.suggestionCard:hover {
+    transform: translateY(-8px) scale(1.05);
+    z-index: 2;
+}
+
+.suggestionImage {
+    width: 100px;
+    height: 140px;
+    object-fit: cover;
+    border: 3px solid var(--color-border-heavy);
+    box-shadow: 4px 4px 0 var(--color-shadow-solid);
+    display: block;
+    background: #000;
+}
+
+.suggestionLabel {
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--color-text);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    padding: 2px 0;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 4px var(--space-xs);
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    border: 1px solid var(--color-primary);
+    margin-bottom: var(--space-sm);
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: background 0.1s;
+}
+
+.breadcrumb:hover {
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 /* Search form */
@@ -63,26 +223,38 @@
     color: var(--color-text-dim);
 }
 
-/* Quick collections */
-.quickCollections {
-    display: flex;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-    margin-top: var(--space-xs);
+
+/* Controls section (when used standalone inside controlsPanel) */
+.poolControls {
+    padding: var(--space-sm);
+    flex-shrink: 0;
 }
 
-/* Scroll content */
+/* Scroll content (legacy CharacterPool) */
 .poolContent {
     flex: 1;
     overflow-y: auto;
     padding: var(--space-sm);
 }
 
+/* Wide grids for full-width results panel */
+.characterGridWide {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.workGridWide {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: var(--space-sm);
+}
+
 /* Character grid */
 .characterGrid {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-xs);
+    gap: var(--space-sm);
     justify-content: center;
 }
 
@@ -92,7 +264,8 @@
     height: 80px;
     background-size: cover;
     background-position: center;
-    border: 2px solid var(--color-border-heavy);
+    border: 3px solid var(--color-border-heavy);
+    box-shadow: 3px 3px 0 var(--color-shadow-solid);
     border-radius: 0;
     cursor: grab;
     flex-shrink: 0;
@@ -133,7 +306,7 @@
     gap: var(--space-sm);
 }
 
-/* Work card */
+/* Work card — click-to-browse (characters sub-tabs) */
 .workCard {
     cursor: pointer;
     border: 2px solid var(--color-border);
@@ -145,6 +318,24 @@
 
 .workCard:hover {
     border-color: var(--color-border-heavy);
+}
+
+/* Draggable work card — ANIME/MANGA tabs (the work itself becomes the tier item) */
+.workDraggableCard {
+    cursor: grab;
+    border: 2px solid var(--color-border);
+    overflow: hidden;
+    position: relative;
+    transition: border-color 0.15s;
+    user-select: none;
+}
+
+.workDraggableCard:hover {
+    border-color: var(--color-primary);
+}
+
+.workDraggableCard:active {
+    cursor: grabbing;
 }
 
 /* Work title overlay */
@@ -168,12 +359,15 @@
 .emptyState {
     text-align: center;
     opacity: 0.5;
-    margin-top: 2rem;
+    margin: auto; /* Center in flex container */
+    padding: var(--space-xl) 0;
     color: var(--color-text-dim);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-sm);
+    grid-column: 1 / -1; /* For grid layout */
+    width: 100%;
 }
 
 .emptyState p {
@@ -196,28 +390,3 @@
     font-size: 0.9rem;
 }
 
-.workTypeTabs {
-    display: flex;
-    gap: 2px;
-    margin-bottom: var(--space-sm);
-    background: var(--color-border-heavy);
-    padding: 2px;
-}
-
-.workTypeButton {
-    flex: 1;
-    border: none;
-    background: var(--color-background);
-    color: var(--color-text-dim);
-    font-family: var(--font-heading);
-    font-size: 0.7rem;
-    padding: 4px;
-    cursor: pointer;
-    text-transform: uppercase;
-    font-weight: 900;
-}
-
-.workTypeButtonActive {
-    background: var(--color-primary);
-    color: white;
-}

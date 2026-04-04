@@ -3,13 +3,63 @@
     overflow: hidden;
     width: 100%;
     height: 100%;
-    background-color: transparent;
+    background-color: var(--color-surface-dim);
 }
 
 .image {
     width: 100%;
     height: 100%;
     display: block;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    position: relative;
+    z-index: 2;
+}
+
+.imageLoaded {
     opacity: 1;
-    transition: opacity 0.3s ease-in-out;
+}
+
+.placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    filter: blur(10px);
+    transform: scale(1.1); /* Prevent white edges from blur */
+    z-index: 1;
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.placeholderHidden {
+    opacity: 0;
+}
+
+.shimmer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: shimmer 1.5s infinite, fadeIn 0.3s forwards;
+    z-index: 0;
+    opacity: 0;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }

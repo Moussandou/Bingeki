@@ -3,56 +3,87 @@
     background: var(--color-surface);
     border: 3px solid var(--color-border-heavy);
     border-radius: 0;
-    box-shadow: 4px 4px 0 var(--color-shadow-solid);
+    box-shadow: 6px 6px 0 var(--color-shadow-solid);
     overflow: hidden;
     cursor: pointer;
     display: flex;
     flex-direction: column;
+    transition: box-shadow 0.2s, border-color 0.2s;
+    height: 100%;
 }
 
-/* Preview strip — background stays inline (dynamic tier color) */
-.preview {
-    height: 100px;
-    padding: var(--space-sm);
+.card:hover {
+    border-color: var(--color-primary);
+    box-shadow: 8px 8px 0 var(--color-primary);
+}
+
+/* Preview Section */
+.previewContainer {
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-border);
+    overflow: hidden;
+    position: relative;
+    border-bottom: 3px solid var(--color-border-heavy);
+}
+
+.previewRow {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
+    padding: 0 0.5rem;
+    gap: 0.5rem;
     overflow: hidden;
+    position: relative;
+}
+
+/* Tier label in preview */
+.previewLabel {
+    font-weight: 900;
+    font-size: 0.9rem;
+    font-family: var(--font-heading);
+    min-width: 24px;
+    text-align: center;
+    color: rgba(0,0,0,0.5);
+    text-transform: uppercase;
     flex-shrink: 0;
 }
 
-/* Tier label in preview — contrast trick for any tier color */
-.previewLabel {
-    writing-mode: vertical-rl;
-    text-orientation: upright;
-    font-weight: 900;
-    font-size: 1.2rem;
-    font-family: var(--font-heading);
-    margin-right: var(--space-sm);
-    flex-shrink: 0;
-    filter: invert(1) grayscale(1) contrast(9);
+.previewItems {
+    display: flex;
+    gap: 4px;
+    overflow: hidden;
 }
 
 /* Preview character images */
 .previewImage {
     border-radius: 0;
-    border: 2px solid var(--color-border-heavy);
+    border: 1px solid rgba(0,0,0,0.1);
     object-fit: cover;
     flex-shrink: 0;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.1);
 }
 
 /* Info section */
 .info {
-    padding: var(--space-md);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 }
 
 .infoTitle {
-    margin: 0 0 var(--space-sm) 0;
-    font-size: 1.2rem;
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
     color: var(--color-text);
     font-family: var(--font-heading);
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1.2;
+    text-transform: uppercase;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 /* Meta row */
@@ -61,17 +92,20 @@
     justify-content: space-between;
     align-items: center;
     color: var(--color-text-dim);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    margin-top: auto;
 }
 
 .metaAuthor {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
+    gap: 0.5rem;
+    font-weight: 600;
 }
 
 .authorAvatar {
-    border-radius: 50%;
+    border-radius: 0;
+    border: 1px solid var(--color-border);
     flex-shrink: 0;
 }
 
@@ -79,4 +113,6 @@
     display: flex;
     align-items: center;
     gap: 0.3rem;
+    font-weight: 700;
+    color: var(--color-text);
 }

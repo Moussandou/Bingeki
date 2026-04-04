@@ -9,6 +9,7 @@ export interface ActivityEvent {
     workId?: number;
     workTitle?: string;
     workImage?: string;
+    workType?: 'anime' | 'manga';
     episodeNumber?: number;
     badgeName?: string;
     newLevel?: number;

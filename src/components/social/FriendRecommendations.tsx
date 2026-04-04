@@ -132,7 +132,7 @@ export function FriendRecommendations() {
                 {recommendations.map(work => (
                     <div
                         key={work.id}
-                        onClick={() => navigate(`/work/${work.id}`)}
+                        onClick={() => navigate(`/work/${work.id}?type=${work.type}`)}
                         style={{
                             cursor: 'pointer',
                             transition: 'transform 0.2s'

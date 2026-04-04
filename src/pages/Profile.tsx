@@ -26,15 +26,17 @@ import {
     Share2,
     Copy,
     Check,
-    EyeOff
+    EyeOff,
+    Layout as LayoutIcon
 } from 'lucide-react';
 import { HunterLicenseCard } from '@/components/profile/HunterLicenseCard';
 import { 
-    getUserProfile, 
-    saveUserProfileToFirestore, 
-    compareLibraries, 
-    checkFriendship, 
-    sendFriendRequest, 
+    getUserProfile,
+    saveUserProfileToFirestore,
+    compareLibraries,
+    checkFriendship,
+    sendFriendRequest,
+    getUserTierListsCount,
     type UserProfile
 } from '@/firebase/firestore';
 import { Input } from '@/components/ui/Input';
@@ -88,6 +90,7 @@ export default function Profile() {
     // Library comparison (for visited profiles)
     const [commonWorks, setCommonWorks] = useState<{ common: Work[]; count: number } | null>(null);
     const [friendshipStatus, setFriendshipStatus] = useState<'accepted' | 'pending' | 'none' | 'loading'>('loading');
+    const [tierListCount, setTierListCount] = useState<number>(0);
 
     // Load Profile Data logic
     useEffect(() => {
@@ -141,11 +144,13 @@ export default function Profile() {
             Promise.all([
                 loadProfile(),
                 checkFriendship(user.uid, uid).then(setFriendshipStatus),
-                compareLibraries(user.uid, uid).then(setCommonWorks)
+                compareLibraries(user.uid, uid).then(setCommonWorks),
+                getUserTierListsCount(targetUid).then(setTierListCount)
             ]);
         } else {
             setFriendshipStatus('none');
             loadProfile();
+            getUserTierListsCount(targetUid).then(setTierListCount);
         }
 
     }, [uid, user?.uid, isOwnProfile, user?.displayName, user?.photoURL]);
@@ -603,6 +608,25 @@ export default function Profile() {
                                             {displayTotalMovies}
                                         </div>
                                         <p style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('profile.movies_watched')}</p>
+                                    </div>
+                                </div>
+
+                                {/* Tier Lists Créées */}
+                                <div className="manga-panel" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--color-surface)', color: 'var(--color-text)' }}>
+                                    <div style={{ padding: '0.75rem', background: '#eab308', color: '#fff' }}>
+                                        <LayoutIcon size={24} />
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ 
+                                            fontSize: tierListCount > 999 ? '1.25rem' : '1.75rem', 
+                                            fontWeight: 900,
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis'
+                                        }}>
+                                            {tierListCount}
+                                        </div>
+                                        <p style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('profile.tierlists_created')}</p>
                                     </div>
                                 </div>
 

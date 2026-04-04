@@ -21,16 +21,17 @@ interface TierRowProps {
         color: string;
         items: TierItem[];
     };
-    onLabelChange: (newLabel: string) => void;
-    onColorChange: (newColor: string) => void;
-    onDelete: () => void;
-    onMoveUp: () => void;
-    onMoveDown: () => void;
-    onAddAbove: () => void;
-    onAddBelow: () => void;
-    onClear: () => void;
-    isFirst: boolean;
-    isLast: boolean;
+    onLabelChange?: (newLabel: string) => void;
+    onColorChange?: (newColor: string) => void;
+    onDelete?: () => void;
+    onMoveUp?: () => void;
+    onMoveDown?: () => void;
+    onAddAbove?: () => void;
+    onAddBelow?: () => void;
+    onClear?: () => void;
+    onRemoveItem?: (itemId: number | string) => void;
+    isFirst?: boolean;
+    isLast?: boolean;
     readOnly?: boolean;
 }
 
@@ -49,6 +50,7 @@ export function TierRow({
     onAddAbove,
     onAddBelow,
     onClear,
+    onRemoveItem,
     isFirst,
     isLast,
     readOnly = false
@@ -92,6 +94,7 @@ export function TierRow({
                                 key={`${tier.id}-${item.id}`}
                                 id={`${tier.id}-${item.id}`}
                                 character={item}
+                                onRemove={onRemoveItem ? () => onRemoveItem(item.id) : undefined}
                             />
                         ))}
                         {tier.items.length === 0 && (
@@ -106,29 +109,35 @@ export function TierRow({
             {/* Controls */}
             {!readOnly && (
                 <div className={styles.controls}>
-                    <button
+                    <Button
+                        variant="manga"
+                        size="icon"
                         onClick={() => setIsSettingsOpen(true)}
-                        className={styles.controlButton}
+                        className={styles.tierActionButton}
                         title={t('common.settings')}
                     >
                         <Settings size={18} />
-                    </button>
-                    <div className={styles.moveButtons}>
-                        <button
-                            onClick={onMoveUp}
-                            disabled={isFirst}
-                            className={styles.controlButton}
-                        >
-                            <ChevronUp size={18} />
-                        </button>
-                        <button
-                            onClick={onMoveDown}
-                            disabled={isLast}
-                            className={styles.controlButton}
-                        >
-                            <ChevronDown size={18} />
-                        </button>
-                    </div>
+                    </Button>
+                    <Button
+                        variant="manga"
+                        size="icon"
+                        onClick={onMoveUp}
+                        disabled={isFirst}
+                        className={styles.tierActionButton}
+                        title={t('tierlist.move_up')}
+                    >
+                        <ChevronUp size={18} />
+                    </Button>
+                    <Button
+                        variant="manga"
+                        size="icon"
+                        onClick={onMoveDown}
+                        disabled={isLast}
+                        className={styles.tierActionButton}
+                        title={t('tierlist.move_down')}
+                    >
+                        <ChevronDown size={18} />
+                    </Button>
                 </div>
             )}
 
@@ -149,7 +158,7 @@ export function TierRow({
                                 <label>{t('tierlist.edit_label')}</label>
                                 <input
                                     value={tier.label}
-                                    onChange={(e) => onLabelChange(e.target.value)}
+                                    onChange={(e) => onLabelChange?.(e.target.value)}
                                     className={styles.labelInput}
                                     autoFocus
                                 />
@@ -164,7 +173,7 @@ export function TierRow({
                                             key={color}
                                             className={`${styles.colorOption} ${tier.color === color ? styles.colorOptionActive : ''}`}
                                             style={{ background: color }}
-                                            onClick={() => onColorChange(color)}
+                                            onClick={() => onColorChange?.(color)}
                                         />
                                     ))}
                                 </div>
@@ -177,7 +186,7 @@ export function TierRow({
                                         variant="manga"
                                         size="sm"
                                         icon={<Plus size={16} />}
-                                        onClick={() => { onAddAbove(); setIsSettingsOpen(false); }}
+                                        onClick={() => { onAddAbove?.(); setIsSettingsOpen(false); }}
                                     >
                                         {t('tierlist.add_above')}
                                     </Button>
@@ -185,7 +194,7 @@ export function TierRow({
                                         variant="manga"
                                         size="sm"
                                         icon={<Plus size={16} />}
-                                        onClick={() => { onAddBelow(); setIsSettingsOpen(false); }}
+                                        onClick={() => { onAddBelow?.(); setIsSettingsOpen(false); }}
                                     >
                                         {t('tierlist.add_below')}
                                     </Button>
@@ -193,7 +202,7 @@ export function TierRow({
                                         variant="manga"
                                         size="sm"
                                         icon={<Eraser size={16} />}
-                                        onClick={() => { onClear(); setIsSettingsOpen(false); }}
+                                        onClick={() => { onClear?.(); setIsSettingsOpen(false); }}
                                     >
                                         {t('tierlist.clear_row')}
                                     </Button>
@@ -201,7 +210,7 @@ export function TierRow({
                                         variant="manga"
                                         size="sm"
                                         icon={<Trash2 size={16} />}
-                                        onClick={() => { onDelete(); setIsSettingsOpen(false); }}
+                                        onClick={() => { onDelete?.(); setIsSettingsOpen(false); }}
                                         className={styles.deleteTierBtn}
                                     >
                                         {t('tierlist.delete_tier')}

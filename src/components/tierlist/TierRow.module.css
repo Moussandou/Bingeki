@@ -1,23 +1,26 @@
 .row {
     display: grid;
-    grid-template-columns: 80px 1fr 40px;
-    min-height: 80px;
-    background: var(--bg-dark);
-    border-bottom: 2px solid var(--border-color);
+    grid-template-columns: 70px 1fr 52px;
+    min-height: 64px;
+    background: #0d0d0d;
+    border-bottom: 2px solid var(--color-border-heavy);
     position: relative;
+    overflow: hidden;
 }
 
 .labelCell {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 10px;
+    padding: 6px;
     color: #000;
-    font-weight: 800;
+    font-weight: 900;
     text-align: center;
     text-transform: uppercase;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     word-break: break-all;
+    font-family: var(--font-heading);
+    border-right: 2px solid var(--color-border-heavy);
 }
 
 .labelText {
@@ -25,21 +28,26 @@
 }
 
 .droppable {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
-    background: #1a1a1a;
-    min-height: 80px;
+    background: #111;
+    min-height: 64px;
+    align-content: flex-start;
 }
 
 .dropPlaceholder {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    color: rgba(255, 255, 255, 0.5); /* Improved visibility on dark background */
-    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    font-size: 0.75rem;
     text-transform: uppercase;
     pointer-events: none;
+    font-weight: 800;
+    letter-spacing: 1px;
 }
 
 /* Controls */
@@ -47,37 +55,22 @@
     display: flex;
     flex-direction: column;
     background: #000;
-}
-
-.controlButton {
-    flex: 1;
-    display: flex;
-    align-items: center;
+    padding: 4px;
+    gap: 4px;
     justify-content: center;
-    background: transparent;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    padding: 5px;
+    border-left: 2px solid var(--color-border-heavy);
 }
 
-.controlButton:hover:not(:disabled) {
-    background: var(--primary-color);
-    color: #000;
+.tierActionButton {
+    padding: 0 !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
-.controlButton:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.moveButtons {
-    display: flex;
-    flex-direction: column;
-    flex: 2;
-    border-top: 1px solid #333;
-}
 
 /* Modal Styling */
 .modalOverlay {

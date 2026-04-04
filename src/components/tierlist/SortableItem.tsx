@@ -4,15 +4,21 @@ import { CSS } from '@dnd-kit/utilities';
 import styles from './SortableItem.module.css';
 
 interface SortableItemProps {
-    id: string; // Unique ID (e.g., "S-1234")
+    id: string;
     character: {
         id: number | string;
         name: string;
         image: string;
     };
+    onRemove?: () => void;
 }
 
-export function TierItemDisplay({ character, style, isDragging }: { character: SortableItemProps['character'], style?: React.CSSProperties, isDragging?: boolean }) {
+export function TierItemDisplay({ character, style, isDragging, onRemove }: {
+    character: SortableItemProps['character'];
+    style?: React.CSSProperties;
+    isDragging?: boolean;
+    onRemove?: () => void;
+}) {
     return (
         <div
             className={`${styles.tierItemWrapper} ${isDragging ? styles.dragging : ''}`}
@@ -25,11 +31,24 @@ export function TierItemDisplay({ character, style, isDragging }: { character: S
             <div className={styles.nameOverlay}>
                 {character.name}
             </div>
+            {onRemove && (
+                <button
+                    className={styles.removeBtn}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onRemove();
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    title="Supprimer"
+                >
+                    ×
+                </button>
+            )}
         </div>
     );
 }
 
-export function SortableItem({ id, character }: SortableItemProps) {
+export function SortableItem({ id, character, onRemove }: SortableItemProps) {
     const {
         attributes,
         listeners,
@@ -50,7 +69,7 @@ export function SortableItem({ id, character }: SortableItemProps) {
 
     return (
         <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-            <TierItemDisplay character={character} />
+            <TierItemDisplay character={character} onRemove={onRemove} />
         </div>
     );
 }

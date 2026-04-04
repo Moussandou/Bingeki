@@ -260,7 +260,7 @@ export default function Lens() {
                                                     variant="primary"
                                                     size="sm"
                                                     icon={<ExternalLink size={14} />}
-                                                    onClick={() => navigate(`/${lang}/work/${result.malId}`)}
+                                                    onClick={() => navigate(`/${lang}/work/${result.malId}?type=anime`)}
                                                 >
                                                     {t('lens.view_details')}
                                                 </Button>

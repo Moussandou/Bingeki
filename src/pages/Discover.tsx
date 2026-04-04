@@ -84,19 +84,40 @@ export default function Discover() {
         const fetchHomeData = async () => {
             setIsLoadingSections(true);
             try {
+                // Deduplicate all home data just in case
+                const dedup = (arr: JikanResult[]) => {
+                    const map = new Map();
+                    arr.forEach(i => map.set(`${i.type || 'unknown'}-${i.mal_id}`, i));
+                    return Array.from(map.values());
+                };
+
                 // Fetch all sections in parallel — apiQueue handles rate limiting
-                const [season, topA, popM, topM] = await Promise.all([
+                console.debug('[Perf] Starting Anime batch fetch...');
+                const [season, topA] = await Promise.all([
                     getSeasonalAnime(15),
-                    getTopWorks('anime', 'favorite', 15),
+                    getTopWorks('anime', 'favorite', 15)
+                ]);
+
+                setSeasonalAnime(dedup(season));
+                setTopAnime(dedup(topA));
+                console.info('[Perf] Anime batch loaded');
+
+                // Wait 500ms before starting Manga batch to let the UI breathe
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                console.debug('[Perf] Starting Manga batch fetch...');
+                const [popM, topM] = await Promise.all([
                     getTopWorks('manga', 'bypopularity', 15),
                     getTopWorks('manga', 'favorite', 15)
                 ]);
-                setSeasonalAnime(season);
-                setTopAnime(topA);
-                setPopularManga(popM);
-                setTopManga(topM);
+
+                setPopularManga(dedup(popM));
+                setTopManga(dedup(topM));
+                console.info('[Perf] Manga batch loaded');
+                
+                console.info('[Perf] All home data loaded and deduplicated');
             } catch (error) {
-                console.error("Failed to load discovery data", error);
+                console.error("[Discover] ❌ Failed to load discovery data", error);
             } finally {
                 setIsLoadingSections(false);
             }
@@ -110,6 +131,7 @@ export default function Discover() {
             const hasActiveFilters = filterStatus || filterRating || filterScore > 0 || filterYear || selectedGenre || filterStudio;
 
             if (searchQuery.length > 2 || hasActiveFilters) {
+                console.time('[Perf] Search Lifecycle');
                 setLoading(true);
 
                 const filters: SearchFilters = {};
@@ -138,8 +160,23 @@ export default function Discover() {
                     // Concat: Anime first (primary), then Manga.
                     const allResults = [...animeResults, ...mangaResults];
 
-                    // Filter out duplicates
-                    const uniqueResults = Array.from(new Map(allResults.map(item => [item.mal_id, item])).values());
+                    // Filter out duplicates using composite key (type + id)
+                    const resultsMap = new Map();
+                    allResults.forEach(item => {
+                        const key = `${item.type || 'unknown'}-${item.mal_id}`;
+                        if (resultsMap.has(key)) {
+                            console.debug(`[Perf] Duplicate caught: ${key}`);
+                        }
+                        resultsMap.set(key, item);
+                    });
+                    
+                    const uniqueResults = Array.from(resultsMap.values());
+                    
+                    console.info(`[Perf] Search: Found ${allResults.length} total, ${uniqueResults.length} unique items.`);
+                    if (uniqueResults.length > 0) {
+                        console.table(uniqueResults.slice(0, 5).map(r => ({ id: r.mal_id, type: r.type, title: r.title })));
+                    }
+                    console.timeEnd('[Perf] Search Lifecycle');
                     setSearchResults(uniqueResults);
                 } catch (err) {
                     console.error("Search failed", err);
@@ -579,10 +616,11 @@ export default function Discover() {
                                 </div>
                             ) : (
                                 <div className={styles.resultsGrid}>
-                                    {searchResults.map((work) => {
+                                    {searchResults.map((work, index) => {
                                         const isOwned = libraryIds.has(work.mal_id);
+                                        const compositeKey = `${work.type || 'unknown'}-${work.mal_id}`;
                                         return (
-                                            <motion.div key={work.mal_id} whileHover={{ y: -5 }}>
+                                            <motion.div key={compositeKey} whileHover={{ y: -5 }}>
                                                 <Card
                                                     variant="manga"
                                                     hoverable
@@ -600,9 +638,10 @@ export default function Discover() {
                                                 >
                                                     <div style={{ position: 'relative', aspectRatio: '2/3', borderBottom: '2px solid var(--color-border-heavy)', flexShrink: 0 }}>
                                                         <OptimizedImage 
-                                                            src={work.images.jpg.large_image_url || work.images.jpg.image_url} 
+                                                            src={work.images.jpg.image_url} 
                                                             lowResSrc={work.images.jpg.small_image_url}
                                                             alt={getDisplayTitle(work, titleLanguage)} 
+                                                            priority={index < 4}
                                                         />
                                                         {isOwned && (
                                                             <div style={{ position: 'absolute', top: 5, right: 5, background: 'var(--color-primary)', color: '#fff', padding: '4px', borderRadius: '0' }}>
@@ -696,6 +735,7 @@ export default function Discover() {
                                 libraryIds={libraryIds}
                                 onAdd={handleQuickAdd}
                                 loading={isLoadingSections}
+                                priority={true}
                             />
 
                             <Carousel
@@ -706,6 +746,7 @@ export default function Discover() {
                                 onAdd={handleQuickAdd}
                                 loading={isLoadingSections}
                                 showRank
+                                priority={true}
                             />
 
                             <Carousel

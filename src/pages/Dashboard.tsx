@@ -231,7 +231,7 @@ export default function Dashboard() {
                                     style={{ marginBottom: '3rem' }}
                                     className="manga-panel"
                                 >
-                                    <Link to={`/work/${lastUpdatedWork.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+                                    <Link to={`/work/${lastUpdatedWork.id}?type=${lastUpdatedWork.type}`} style={{ textDecoration: 'none', display: 'block' }}>
                                         <div style={{
                                             position: 'relative',
                                             height: '220px',
@@ -324,7 +324,7 @@ export default function Dashboard() {
                                 ) : (
                                     inProgressWorks.map((work) => (
                                         <motion.div key={work.id} whileHover={{ y: -5 }}>
-                                            <Link to={`/work/${work.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+                                            <Link to={`/work/${work.id}?type=${work.type}`} style={{ textDecoration: 'none', display: 'block' }}>
                                                 <Card
                                                     variant="manga"
                                                     hoverable
@@ -419,7 +419,7 @@ export default function Dashboard() {
                                                         <span style={{ fontWeight: 700 }}>{activity.userName}</span>
                                                         <span style={{ opacity: 0.8 }}> {getActivityLabel(activity.type, t)}</span>
                                                         {activity.workTitle && activity.workId ? (
-                                                            <Link to={`/work/${activity.workId}`} style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 800 }}>
+                                                            <Link to={`/work/${activity.workId}?type=${activity.workType || 'manga'}`} style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 800 }}>
                                                                 {' '}{activity.workTitle}
                                                             </Link>
                                                         ) : activity.workTitle && (
