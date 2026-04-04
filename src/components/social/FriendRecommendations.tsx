@@ -76,7 +76,7 @@ export function FriendRecommendations() {
                     id,
                     title: data.work.title,
                     image: data.work.image,
-                    type: data.work.type,
+                    type: data.work.type || ((data.work.totalChapters || data.work.currentChapter) ? 'manga' : 'anime'),
                     friendsWatching: data.friends
                 }));
 

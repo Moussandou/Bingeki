@@ -1121,13 +1121,14 @@ export default function WorkDetails() {
                                                     {isTrailerOpen ? (
                                                         <div className={styles.videoWrapper}>
                                                             <iframe
-                                                                src={`${work.trailer.embed_url}${work.trailer.embed_url.includes('?') ? '&' : '?'}autoplay=1&mute=1&rel=0`}
+                                                                src={`${work.trailer.embed_url}${work.trailer.embed_url.includes('?') ? '&' : '?'}autoplay=1&mute=1&rel=0&origin=${encodeURIComponent(window.location.origin)}`}
                                                                 title="Trailer"
                                                                 className={styles.iframe}
                                                                 frameBorder="0"
                                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                                                 allowFullScreen
                                                                 loading="lazy"
+                                                                referrerPolicy="strict-origin-when-cross-origin"
                                                             />
                                                         </div>
                                                     ) : (

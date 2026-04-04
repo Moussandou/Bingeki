@@ -419,7 +419,7 @@ export default function Dashboard() {
                                                         <span style={{ fontWeight: 700 }}>{activity.userName}</span>
                                                         <span style={{ opacity: 0.8 }}> {getActivityLabel(activity.type, t)}</span>
                                                         {activity.workTitle && activity.workId ? (
-                                                            <Link to={`/work/${activity.workId}?type=${activity.workType || 'manga'}`} style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 800 }}>
+                                                            <Link to={`/work/${activity.workId}?type=${activity.workType || (activity.episodeNumber ? 'anime' : 'manga')}`} style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 800 }}>
                                                                 {' '}{activity.workTitle}
                                                             </Link>
                                                         ) : activity.workTitle && (

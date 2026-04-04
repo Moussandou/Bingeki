@@ -438,7 +438,7 @@ export default function Social() {
                                                                     <div style={{ fontWeight: 600 }}>
                                                                         {getActivityLabel(activity.type, t)}
                                                                         {activity.workTitle && activity.workId ? (
-                                                                            <Link to={`/work/${activity.workId}?type=${activity.workType || 'manga'}`} style={{ display: 'block', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 800, marginTop: '2px' }}>
+                                                                            <Link to={`/work/${activity.workId}?type=${activity.workType || (activity.episodeNumber ? 'anime' : 'manga')}`} style={{ display: 'block', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 800, marginTop: '2px' }}>
                                                                                 {activity.workTitle}
                                                                             </Link>
                                                                         ) : activity.workTitle && (
