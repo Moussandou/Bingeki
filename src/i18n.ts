@@ -260,6 +260,11 @@ const resources = {
                 unknown: "Inconnu",
                 continue: "Continuer"
             },
+            not_found: {
+                title: "404 - PERDU DANS LES CASES ?",
+                subtitle: "Cette page n'existe pas ou a été aspirée dans une autre dimension.",
+                back_home: "RETOURNER AU Q.G."
+            },
             tierlist: {
                 characters: "PERSONNAGES",
                 by_name: "Par Nom",
@@ -2154,6 +2159,11 @@ const resources = {
                 view_details: "View Details",
                 unknown: "Unknown",
                 continue: "Continue"
+            },
+            not_found: {
+                title: "404 - LOST IN THE PANELS?",
+                subtitle: "This page doesn't exist or has been sucked into another dimension.",
+                back_home: "RETURN TO H.Q."
             },
             tierlist: {
                 characters: "CHARACTERS",

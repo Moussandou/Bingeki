@@ -464,7 +464,7 @@ app.get('/*', async (req, res) => {
     res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), browsing-topics=()');
     res.set('X-SEO-Handler', 'true');
-    res.set('Cache-Control', 'public, max-age=300, s-maxage=600');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.send(html);
 });
 

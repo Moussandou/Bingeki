@@ -1,0 +1,147 @@
+.container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-xl);
+    background-color: var(--color-background);
+    position: relative;
+    overflow: hidden;
+    color: var(--color-text);
+}
+
+.halftoneOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: radial-gradient(var(--color-dots) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: var(--manga-halftone-opacity);
+    pointer-events: none;
+}
+
+.content {
+    position: relative;
+    max-width: 600px;
+    width: 100%;
+    background: var(--color-surface);
+    border: var(--manga-panel-border);
+    padding: var(--space-2xl);
+    text-align: center;
+    box-shadow: 12px 12px 0 var(--color-shadow-solid);
+    transform: rotate(-1deg);
+    z-index: 1;
+}
+
+.errorCode {
+    font-family: var(--font-heading);
+    font-size: clamp(6rem, 15vw, 10rem);
+    font-weight: 900;
+    line-height: 0.8;
+    margin: 0;
+    color: transparent;
+    -webkit-text-stroke: 4px var(--color-text-contrast);
+    position: relative;
+    display: block;
+    margin-bottom: var(--space-md);
+    letter-spacing: -2px;
+    filter: drop-shadow(4px 4px 0 var(--color-primary));
+}
+
+.errorCode::after {
+    content: '404';
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: var(--color-text-contrast);
+    clip-path: inset(45% 0 0 0);
+    transform: translate(4px, 4px);
+    z-index: -1;
+}
+
+.title {
+    font-family: var(--font-heading);
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    margin-bottom: var(--space-md);
+    background: var(--color-primary);
+    color: white;
+    display: inline-block;
+    padding: 0.2rem 1rem;
+    transform: skew(-5deg);
+    border: 3px solid var(--color-border-heavy);
+    box-shadow: 4px 4px 0 var(--color-shadow-solid);
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: var(--color-text-dim);
+    margin-bottom: var(--space-xl);
+    line-height: 1.6;
+}
+
+.buttonWrapper {
+    margin-top: var(--space-xl);
+}
+
+.homeButton {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-2xl);
+    background: var(--color-accent);
+    color: var(--color-background);
+    text-decoration: none;
+    font-weight: 900;
+    font-family: var(--font-heading);
+    text-transform: uppercase;
+    border: 3px solid var(--color-border-heavy);
+    box-shadow: 6px 6px 0 var(--color-primary);
+    transition: all var(--duration-fast) var(--ease-expo);
+    cursor: pointer;
+}
+
+.homeButton:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 10px 10px 0 var(--color-primary);
+    background: var(--color-primary);
+}
+
+.homeButton:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 var(--color-primary);
+}
+
+/* Manga impact lines effect */
+.impactLines {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200%;
+    height: 200%;
+    z-index: -1;
+    opacity: 0.15;
+    pointer-events: none;
+}
+
+.impactLines div {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    height: 100%;
+    background: var(--color-text-contrast);
+    transform-origin: top center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .content {
+        padding: var(--space-xl);
+        transform: rotate(0);
+    }
+}

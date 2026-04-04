@@ -63,6 +63,7 @@ const About = lazy(() => import('@/pages/About'));
 const Lens = lazy(() => import('@/pages/Lens'));
 const NewsIndex = lazy(() => import('@/pages/NewsIndex'));
 const NewsArticle = lazy(() => import('@/pages/NewsArticle'));
+const NotFound = lazy(() => import('@/pages/NotFound'));
 
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { RequireAdmin } from '@/components/admin/RequireAdmin';
@@ -72,6 +73,7 @@ import { UsernameSelectionModal } from '@/components/auth/UsernameSelectionModal
 import { XPGainToast } from '@/components/gamification/XPGainToast';
 import { LevelUpModal } from '@/components/gamification/LevelUpModal';
 import { AvatarSelectionModal } from '@/components/auth/AvatarSelectionModal';
+import { ReloadPrompt } from '@/components/pwa/ReloadPrompt';
 
 // Global hook for hydration safety
 import { useMounted } from '@/hooks/useMounted';
@@ -121,9 +123,11 @@ const LanguageManager = () => {
     // (e.g. /fr/form but lang parameter was captured as something else, which shouldn't happen
     // with :lang route but let's be safe), or if it's already prefixed in general.
     if (cleanPath.startsWith('/fr/') || cleanPath.startsWith('/en/') || cleanPath === '/fr' || cleanPath === '/en') {
-      // In this case, we're likely in a loop if we stay here, 
-      // but let's just make sure we don't ADD another prefix.
-      return <div className="flex h-screen items-center justify-center">404 - Page Not Found</div>;
+      return (
+        <BotAwareSuspense>
+          <NotFound />
+        </BotAwareSuspense>
+      );
     }
 
     if (cleanPath === '/') cleanPath = '';
@@ -151,7 +155,11 @@ const RootRedirect = () => {
 
   // If already prefixed, don't re-prefix (this happens if a route falls through)
   if (currentPath.startsWith('/fr/') || currentPath.startsWith('/en/') || currentPath === '/fr' || currentPath === '/en') {
-    return <div className="flex h-screen items-center justify-center">404 - Page Not Found</div>;
+    return (
+      <BotAwareSuspense>
+        <NotFound />
+      </BotAwareSuspense>
+    );
   }
 
   return <Navigate to={`/${lang}${currentPath}${location.search}`} replace />;
@@ -185,6 +193,31 @@ function App() {
     if (isBot()) {
       document.body.classList.add('is-bot');
     }
+
+    // Handle ChunkLoadError - this happens when a new version is deployed
+    // and the user's browser 8tries to fetch a chunk that no longer exists
+    const handleChunkError = (e: ErrorEvent) => {
+      if (e.message && (e.message.includes('ChunkLoadError') || e.message.includes('Loading chunk'))) {
+        logger.warn('[App] ChunkLoadError detected, reloading page...');
+        window.location.reload();
+      }
+    };
+    
+    // Also catch promise rejections (for some async chunk loads)
+    const handlePromiseError = (e: PromiseRejectionEvent) => {
+      if (e.reason && (e.reason.message?.includes('ChunkLoadError') || e.reason.message?.includes('Loading chunk'))) {
+        logger.warn('[App] Promise ChunkLoadError detected, reloading page...');
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('error', handleChunkError);
+    window.addEventListener('unhandledrejection', handlePromiseError);
+    
+    return () => {
+      window.removeEventListener('error', handleChunkError);
+      window.removeEventListener('unhandledrejection', handlePromiseError);
+    };
   }, []);
 
   // Auth state listener + Firestore sync
@@ -491,6 +524,9 @@ function App() {
                 <Route path="analytics/retention" element={<AdminRetentionAnalytics />} />
                 <Route path="health" element={<AdminHealth />} />
               </Route>
+
+              {/* Catch-all for invalid sub-paths under language */}
+              <Route path="*" element={<NotFound />} />
             </Route>
 
             {/* Fallback for non-prefixed paths */}
@@ -503,6 +539,7 @@ function App() {
         isOpen={showInstallModal}
         onClose={() => setShowInstallModal(false)}
       />
+      <ReloadPrompt />
     </ToastProvider >
   )
 }
