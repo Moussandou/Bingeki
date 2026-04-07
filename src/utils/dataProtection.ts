@@ -10,6 +10,7 @@ export interface GamificationData {
     xpToNextLevel: number;
     streak: number;
     lastActivityDate: string | null;
+    bonusXp: number;
     badges: Badge[];
     totalChaptersRead: number;
     totalAnimeEpisodesWatched: number;
@@ -45,6 +46,7 @@ export function mergeGamificationData(
             xpToNextLevel: local.xpToNextLevel || 100,
             streak: local.streak || 0,
             lastActivityDate: local.lastActivityDate || null,
+            bonusXp: local.bonusXp || 0,
             badges: local.badges || [],
             totalChaptersRead: local.totalChaptersRead || 0,
             totalAnimeEpisodesWatched: local.totalAnimeEpisodesWatched || 0,
@@ -87,10 +89,15 @@ export function mergeGamificationData(
     const mergedTotalWorks = Math.max(local.totalWorksAdded || 0, cloud.totalWorksAdded || 0);
     const mergedTotalCompleted = Math.max(local.totalWorksCompleted || 0, cloud.totalWorksCompleted || 0);
 
-    // For streak, use the one from the most recent data
-    const useLocalStreak = localTimestamp >= cloudTimestamp;
+    // For streak and lastActivityDate, use the most recent data (compare actual dates, not just timestamps)
+    const localLastActivityTime = local.lastActivityDate ? new Date(local.lastActivityDate).getTime() : 0;
+    const cloudLastActivityTime = cloud.lastActivityDate ? new Date(cloud.lastActivityDate).getTime() : 0;
+    const useLocalStreak = localLastActivityTime >= cloudLastActivityTime;
     const mergedStreak = useLocalStreak ? (local.streak || 0) : (cloud.streak || 0);
     const mergedLastActivity = useLocalStreak ? local.lastActivityDate : cloud.lastActivityDate;
+
+    // bonusXp: always take the higher value (never lose daily login XP)
+    const mergedBonusXp = Math.max(local.bonusXp || 0, cloud.bonusXp || 0);
 
     // Merge badges - union of both sets
     const localBadges = local.badges || [];
@@ -130,6 +137,7 @@ export function mergeGamificationData(
         xpToNextLevel: xpToNext,
         streak: mergedStreak,
         lastActivityDate: mergedLastActivity || null,
+        bonusXp: mergedBonusXp,
         badges: mergedBadges,
         totalChaptersRead: mergedTotalChapters,
         totalAnimeEpisodesWatched: mergedTotalEpisodes,
@@ -232,10 +240,10 @@ export function validateGamificationWrite(
         }
     }
 
-    if (newData.xp && existing.xp) {
-        // Max 25000 XP increase per save
-        if (newData.xp > existing.xp + 25000) {
-            logger.warn(`[DataProtection] SECURITY: Prevented suspicious XP jump (+${newData.xp - existing.xp})`);
+    if (newData.totalXp !== undefined && existing.totalXp !== undefined) {
+        // Max 25000 totalXp increase per save (anti-cheat on cumulative XP)
+        if (newData.totalXp > existing.totalXp + 25000) {
+            logger.warn(`[DataProtection] SECURITY: Prevented suspicious totalXp jump (+${newData.totalXp - existing.totalXp})`);
             return false;
         }
     }

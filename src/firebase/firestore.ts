@@ -324,12 +324,15 @@ export async function saveGamificationToFirestore(
         });
 
         // 6. Sync essential stats to root user document for Leaderboards & Profile Viewing
+        // Include lastActivityDate and bonusXp so cross-device streak sync works
         const userDocRef = doc(db, 'users', userId);
         await setDoc(userDocRef, {
             xp: mergedData.xp,
             level: mergedData.level,
             totalXp: mergedData.totalXp, // Crucial for ranking
             streak: mergedData.streak,
+            lastActivityDate: mergedData.lastActivityDate || null,
+            bonusXp: mergedData.bonusXp || 0,
             badges: mergedData.badges,
             totalChaptersRead: mergedData.totalChaptersRead,
             totalAnimeEpisodesWatched: mergedData.totalAnimeEpisodesWatched || 0,

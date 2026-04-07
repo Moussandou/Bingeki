@@ -645,7 +645,7 @@ export default function WorkDetails() {
         };
     }, []);
 
-    if (fetchError?.status === 404) {
+    if (fetchError?.status === 404 && !libraryWork) {
         return (
             <Layout>
                 <div className="container" style={{ textAlign: 'center', paddingTop: '4rem' }}>

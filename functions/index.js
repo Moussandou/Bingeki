@@ -674,6 +674,7 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
             const gamData = gamificationSnap.exists ? gamificationSnap.data() : {};
             const bonusXp = gamData.bonusXp || 0;
             const streak = gamData.streak || 0;
+            const lastActivityDate = gamData.lastActivityDate || null;
             const existingBadges = gamData.badges || [];
 
             const stats = calculateUserStats(works, bonusXp);
@@ -682,13 +683,18 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
             const badges = calculateBadges(stats, streak, existingBadges);
 
             // Update Root User Profile (Leaderboard source)
+            // Include streak and lastActivityDate so cross-device sync works correctly
             await admin.firestore().collection('users').doc(userId).set({
                 ...stats,
                 badges,
+                streak,
+                lastActivityDate,
+                bonusXp,
                 lastUpdated: admin.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
 
             // Update Gamification Doc (Data integrity)
+            // Keep streak and lastActivityDate from existing data (managed client-side)
             await admin.firestore()
                 .collection('users')
                 .doc(userId)
@@ -697,6 +703,9 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
                 .set({
                     ...stats,
                     badges,
+                    streak,
+                    lastActivityDate,
+                    bonusXp,
                     lastUpdated: Date.now()
                 }, { merge: true });
 

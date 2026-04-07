@@ -42,10 +42,10 @@ const LEVEL_BASE = 100;
 const LEVEL_MULTIPLIER = 1.15;
 const MAX_LEVEL = 100;
 
-// XP Rewards
+// XP Rewards — must match functions/index.js XP_REWARDS exactly
 export const XP_REWARDS = {
     ADD_WORK: 15,
-    UPDATE_PROGRESS: 10,
+    UPDATE_PROGRESS: 5,
     COMPLETE_WORK: 50,
     DAILY_LOGIN: 25,
 };
@@ -316,16 +316,26 @@ export const useGamificationStore = create<GamificationState>()(
                 const totalMoviesWatched = profile.totalMoviesWatched ?? state.totalMoviesWatched;
                 const totalWorksAdded = profile.totalWorksAdded ?? state.totalWorksAdded;
                 const totalWorksCompleted = profile.totalWorksCompleted ?? state.totalWorksCompleted;
+                const bonusXp = profile.bonusXp ?? state.bonusXp;
+
+                // Sync lastActivityDate from cloud only if cloud is more recent
+                // This is critical for streak continuity across devices
+                const cloudLastActivity = profile.lastActivityDate || null;
+                const localLastActivity = state.lastActivityDate || null;
+                let lastActivityDate = localLastActivity;
+                if (cloudLastActivity) {
+                    const cloudTime = new Date(cloudLastActivity).getTime();
+                    const localTime = localLastActivity ? new Date(localLastActivity).getTime() : 0;
+                    if (cloudTime > localTime) {
+                        lastActivityDate = cloudLastActivity;
+                    }
+                }
 
                 const totalXp = profile.totalXp || calculateCumulativeXp(level, xp);
 
                 // Anti-regression guard: Only sync if incoming XP is higher or equal to current
                 // This prevents stale cloud data from overwriting recent local progress
                 if (state.totalXp > totalXp) {
-                    // Only skip if totalXp is strictly greater (allow sync if equal to refresh other stats)
-                    // Wait, if it's equal, the equality check below would catch it if EVERYTHING is same.
-                    // If totalXp is same but totalChaptersRead is different, we SHOULD sync.
-                    // So let's only return if state.totalXp > totalXp.
                     logger.log('[GamificationStore] Skip profile sync - local XP is ahead:', { local: state.totalXp, remote: totalXp });
                     return;
                 }
@@ -336,6 +346,8 @@ export const useGamificationStore = create<GamificationState>()(
                     state.xp === xp &&
                     state.streak === streak &&
                     state.totalXp === totalXp &&
+                    state.bonusXp === bonusXp &&
+                    state.lastActivityDate === lastActivityDate &&
                     state.totalChaptersRead === totalChaptersRead &&
                     state.totalAnimeEpisodesWatched === totalAnimeEpisodesWatched &&
                     state.totalMoviesWatched === totalMoviesWatched &&
@@ -358,6 +370,8 @@ export const useGamificationStore = create<GamificationState>()(
                     totalXp: totalXp,
                     xpToNextLevel: xpToNext,
                     streak: streak,
+                    lastActivityDate,
+                    bonusXp,
                     badges: profile.badges || [],
                     totalChaptersRead,
                     totalAnimeEpisodesWatched,
@@ -366,7 +380,7 @@ export const useGamificationStore = create<GamificationState>()(
                     totalWorksCompleted,
                 });
 
-                logger.log('[GamificationStore] Synced from profile:', { level, xp, totalXp: totalXp });
+                logger.log('[GamificationStore] Synced from profile:', { level, xp, totalXp, streak, lastActivityDate });
             }
         }),
         {
