@@ -3445,7 +3445,10 @@ const resources = {
                         waitlist: "Waitlist",
                         hyped: "Hyped",
                         premium: "Premium"
-                    }
+                    },
+                    confirm_delete: "Delete this response permanently?",
+                    delete_success: "Response deleted.",
+                    delete_error: "Error while deleting."
                 },
                 health: {
                     title: "Health Dashboard",
