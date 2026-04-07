@@ -4,6 +4,7 @@
     width: 100%;
     height: 100%;
     background-color: var(--color-surface-dim);
+    isolation: isolate; /* Create stacking context for internal z-indexes */
 }
 
 .image {
