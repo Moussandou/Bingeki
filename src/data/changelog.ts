@@ -8,6 +8,22 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: "v4.0",
+        date: "07 Avril 2026",
+        title: "Social Activity & Infrastructure Polish",
+        description: "Enrichissement des fiches détails, correction massive des erreurs de console et déploiement du nouveau système de miniatures.",
+        changes: [
+            "Social : Nouvelle section 'Activité des Amis' dans WorkDetails avec cartes de progression, notes et notes étoilées.",
+            "Security : Mise à jour de la Content-Security-Policy pour supporter les trailers YouTube (no-cookie).",
+            "Tech : Refonte du fallback des miniatures YouTube (gestion intelligente du 404 vers hqdefault).",
+            "Tech : Migration vers une gestion dynamique du CORS dans OptimizedImage pour éviter les blocages de domaines tiers.",
+            "Tech : Résolution des avertissements de dimension Recharts sur tous les dashboards administrateurs.",
+            "I18n : Ajout des clés de traduction manquantes pour les chapitres et épisodes de la bibliothèque.",
+            "Fix : Réparation d'une erreur de syntaxe critique sur le Dashboard Admin.",
+            "Fix : Nettoyage de la Permissions-Policy pour supprimer les fonctionnalités obsolètes (browsing-topics)."
+        ]
+    },
+    {
         version: "v3.9",
         date: "03 Avril 2026",
         title: "Health Dashboard & System Hardening",
