@@ -7,7 +7,7 @@ import { submitFeedback, getUserFeedback, getFeedbackById } from '@/firebase/fir
 import type { FeedbackData } from '@/firebase/firestore';
 import { uploadFeedbackImage } from '@/firebase/storage';
 import {
-    Star, Send, Bug, Lightbulb, MessageSquare,
+    Send, Bug, Lightbulb, MessageSquare,
     Mail, Inbox, ArrowLeft, User as UserIcon
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -32,7 +32,6 @@ export default function Feedback() {
     const selectedTicketId = searchParams.get('id');
 
     // Submission State
-    const [rating, setRating] = useState(0);
     const [category, setCategory] = useState<'bug' | 'feature' | 'general'>('general');
     const [priority, setPriority] = useState<FeedbackData['priority']>('medium');
     const [message, setMessage] = useState('');
@@ -108,12 +107,6 @@ export default function Feedback() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Rating is optional for bugs
-        if (category !== 'bug' && rating === 0) {
-            addToast(t('feedback.toast_select_rating'), 'error');
-            return;
-        }
-
         if (category !== 'bug' && !message.trim()) {
             addToast(t('feedback.toast_write_message'), 'error');
             return;
@@ -136,7 +129,7 @@ export default function Feedback() {
             }
 
             const feedbackId = await submitFeedback({
-                rating: category === 'bug' ? 0 : rating, // 0 means N/A
+                rating: 0, // 0 means N/A
                 category,
                 priority,
                 message,
@@ -157,7 +150,6 @@ export default function Feedback() {
                     getUserFeedback(user.uid).then(setTickets);
                 }
 
-                setRating(0);
                 setMessage('');
                 setAttachments([]);
                 if (!user) setEmail('');
@@ -216,7 +208,6 @@ export default function Feedback() {
                             <Button onClick={() => navigate('/')}>{t('feedback.back_home')}</Button>
                             <Button variant="ghost" onClick={() => {
                                 setIsSuccess(false);
-                                setRating(0);
                                 setMessage('');
                             }}>
                                 {t('feedback.submit_another')}
@@ -257,25 +248,6 @@ export default function Feedback() {
                 {activeTab === 'submit' && (
                     <div className={styles.formCard}>
                         <form onSubmit={handleSubmit} className={styles.form}>
-                            {/* Rating (Hidden for bugs) */}
-                            {category !== 'bug' && (
-                                <div className={styles.formSection}>
-                                    <label className={styles.sectionLabel}>{t('feedback.rating_label')}</label>
-                                    <div className={styles.ratingContainer}>
-                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
-                                            <button
-                                                key={star} type="button" onClick={() => setRating(star)}
-                                                className={styles.starButton}
-                                                style={{ opacity: rating >= star ? 1 : 0.3 }}
-                                            >
-                                                <Star fill={rating >= star ? 'var(--color-text)' : 'none'} color="var(--color-text)" size={28} />
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className={styles.ratingScore}>{rating > 0 ? `${rating}/10` : ''}</div>
-                                </div>
-                            )}
-
                             {/* Category & Priority */}
                             <div className={styles.selectionRow}>
                                 <div style={{ flex: 1 }}>

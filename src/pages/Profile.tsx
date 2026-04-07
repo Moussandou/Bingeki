@@ -36,6 +36,7 @@ import {
     compareLibraries,
     checkFriendship,
     sendFriendRequest,
+    rejectFriendRequest,
     getUserTierListsCount,
     type UserProfile
 } from '@/firebase/firestore';
@@ -318,6 +319,18 @@ export default function Profile() {
         }
     };
 
+    const handleRemoveFriend = async () => {
+        if (!user || !uid) return;
+        try {
+            await rejectFriendRequest(user.uid, uid);
+            setFriendshipStatus('none');
+            addToast(t('profile.toast.friend_removed', "Ami retiré de votre liste"), 'success');
+        } catch (error) {
+            logger.error(error);
+            addToast(t('profile.toast.friend_remove_error', "Erreur lors de la suppression de l'ami"), 'error');
+        }
+    };
+
     if (loadingProfile && !user && !isBot()) return <div style={{ padding: '2rem' }}>{t('profile.loading')}</div>;
 
     // Visibility Check
@@ -385,8 +398,8 @@ export default function Profile() {
                                         </Button>
                                     )}
                                     {friendshipStatus === 'accepted' && (
-                                        <Button variant="ghost" disabled icon={<UserCheck size={18} />}>
-                                            {t('profile.friends')}
+                                        <Button variant="manga" icon={<UserCheck size={18} />} onClick={() => { if(window.confirm(t('profile.confirm_remove_friend', 'Voulez-vous vraiment retirer cet ami ?'))) handleRemoveFriend(); }}>
+                                            {t('profile.remove_friend', 'Retirer des amis')}
                                         </Button>
                                     )}
 
