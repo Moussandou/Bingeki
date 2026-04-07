@@ -495,7 +495,9 @@ const resources = {
                 delete_btn: "SUPPRIMER",
                 delete_work: "Supprimer l'oeuvre",
                 episode: "Ep.",
-                chapter: "Ch."
+                chapter: "Ch.",
+                chapters: "Chapitres",
+                episodes: "Épisodes"
             },
             auth: {
                 back: "RETOUR",
@@ -2801,7 +2803,9 @@ const resources = {
                 delete_btn: "DELETE",
                 delete_work: "Delete work",
                 episode: "Ep.",
-                chapter: "Ch."
+                chapter: "Ch.",
+                chapters: "Chapters",
+                episodes: "Episodes"
             },
             changelog: {
                 title: "LOGBOOK",
