@@ -8,12 +8,13 @@ import {
     TrendingUp,
     Star,
     Mail,
-    Globe,
     Calendar,
     Clipboard,
+    Trash2,
+    Loader2,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { getSurveyResponses, type SurveyResponse } from '@/firebase/firestore';
+import { getSurveyResponses, deleteSurveyResponse, type SurveyResponse } from '@/firebase/firestore';
 import { 
     PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend
@@ -22,29 +23,50 @@ import { useTranslation } from 'react-i18next';
 import styles from './SurveyDashboard.module.css';
 import { Link } from '@/components/routing/LocalizedLink';
 import { useMounted } from '@/hooks/useMounted';
+import { useToast } from '@/context/ToastContext';
 
 const COLORS = ['#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#6366f1'];
 
 export default function SurveyDashboard() {
     const { t } = useTranslation();
     const isMounted = useMounted();
+    const { addToast } = useToast();
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const loadResponses = async () => {
+        try {
+            const data = await getSurveyResponses();
+            setResponses(data);
+        } catch (err) {
+            console.error("Failed to load survey responses:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const load = async () => {
-            try {
-                const data = await getSurveyResponses();
-                setResponses(data);
-            } catch (err) {
-                console.error("Failed to load survey responses:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        load();
+        loadResponses();
     }, []);
+
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (!window.confirm(t('admin.survey.confirm_delete'))) return;
+
+        setDeletingId(id);
+        try {
+            await deleteSurveyResponse(id);
+            addToast(t('admin.survey.delete_success'), 'success');
+            setResponses(prev => prev.filter(r => r.id !== id));
+            if (expandedRow === id) setExpandedRow(null);
+        } catch (err) {
+            addToast(t('admin.survey.delete_error'), 'error');
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     const stats = useMemo(() => {
         if (!responses.length) return null;
@@ -311,9 +333,19 @@ export default function SurveyDashboard() {
                                                     {String(response.answers?.interestLevel || t('common.unknown'))}
                                                 </span>
                                             </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                {expandedRow === response.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                                            </td>
+                                             <td style={{ textAlign: 'right' }}>
+                                                <div className={styles.actionGroup}>
+                                                    <button 
+                                                        className={styles.deleteBtn}
+                                                        onClick={(e) => handleDelete(e, response.id)}
+                                                        disabled={deletingId === response.id}
+                                                        title={t('admin.feedback.delete')}
+                                                    >
+                                                        {deletingId === response.id ? <Loader2 size={16} className={styles.spin} /> : <Trash2 size={16} />}
+                                                    </button>
+                                                    {expandedRow === response.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                                </div>
+                                             </td>
                                         </tr>
                                         {expandedRow === response.id && (
                                             <tr className={styles.detailsRow}>
@@ -327,16 +359,20 @@ export default function SurveyDashboard() {
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                        {(response.userAgent || response.language) && (
-                                                            <div className={styles.technicalInfo}>
-                                                                {response.userAgent && <small><Globe size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} /> User Agent: {response.userAgent}</small>}
-                                                                {response.language && <small>Language: {response.language}</small>}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
+                                            <div className={styles.detailsActions}>
+                                                <button 
+                                                    className={styles.deleteFullBtn}
+                                                    onClick={(e) => handleDelete(e, response.id)}
+                                                    disabled={deletingId === response.id}
+                                                >
+                                                    {deletingId === response.id ? <Loader2 size={14} className={styles.spin} /> : <Trash2 size={14} />}
+                                                    {t('admin.feedback.delete')}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
                                     </Fragment>
                                 ))}
                             </tbody>

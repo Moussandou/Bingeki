@@ -2077,3 +2077,14 @@ export async function getSurveyResponses(): Promise<SurveyResponse[]> {
         return [];
     }
 }
+
+export async function deleteSurveyResponse(id: string): Promise<void> {
+    try {
+        await deleteDoc(doc(db, 'survey_responses', id));
+        logger.log('[Firestore] Survey response deleted:', id);
+    } catch (error) {
+        logger.error('[Firestore] Error deleting survey response:', error);
+        throw error;
+    }
+}
+

@@ -1513,7 +1513,10 @@ const resources = {
                         waitlist: "Liste d'attente",
                         hyped: "Impatients",
                         premium: "Premium"
-                    }
+                    },
+                    confirm_delete: "Supprimer cette réponse définitivement ?",
+                    delete_success: "Réponse supprimée.",
+                    delete_error: "Erreur lors de la suppression."
                 },
                 health: {
                     title: "Health Dashboard",

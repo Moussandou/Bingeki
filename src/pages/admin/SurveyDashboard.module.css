@@ -184,7 +184,7 @@
 .responsesTable th:nth-child(2), .responsesTable td:nth-child(2) { width: auto; }
 .responsesTable th:nth-child(3), .responsesTable td:nth-child(3) { width: 220px; }
 .responsesTable th:nth-child(4), .responsesTable td:nth-child(4) { width: 180px; }
-.responsesTable th:nth-child(5), .responsesTable td:nth-child(5) { width: 60px; text-align: right; }
+.responsesTable th:nth-child(5), .responsesTable td:nth-child(5) { width: 100px; text-align: right; }
 
 .responsesTable tr {
     border-bottom: 1px solid var(--color-border);
@@ -203,6 +203,36 @@
 
 .expandedRow {
     background: var(--color-surface-hover);
+}
+
+.actionGroup {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.deleteBtn {
+    background: none;
+    border: none;
+    color: var(--color-text-dim);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.deleteBtn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.deleteBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .dateTime, .emailCell {
@@ -256,6 +286,44 @@
 .detailItem p {
     font-size: 0.9rem;
     line-height: 1.4;
+}
+
+.detailsActions {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--color-border);
+    padding-top: 1rem;
+}
+
+.deleteFullBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 2px solid #ef4444;
+    color: #ef4444;
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-heading);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.8rem;
+}
+
+.deleteFullBtn:hover {
+    background: #ef4444;
+    color: #fff;
+    box-shadow: 4px 4px 0 rgba(239, 68, 68, 0.2);
+}
+
+.deleteFullBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.spin {
+    animation: spin 1s linear infinite;
 }
 
 .technicalInfo {
