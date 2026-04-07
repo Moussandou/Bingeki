@@ -394,72 +394,81 @@ export default function WorkDetails() {
             } 
             // 2. Secondary: check URL parameter
             else if (typeParam) {
-                const normalized = typeParam.toLowerCase();
+                const normalized = (typeParam as string).toLowerCase();
                 if (['manga', 'novel', 'manhwa', 'manhua', 'doujinshi', 'oneshot', 'oel'].includes(normalized)) {
                     typeToFetch = 'manga';
                 }
             }
 
-            getWorkFull(Number(id), typeToFetch).then(res => {
-                const workTypeNormalized = res.type ? res.type.toLowerCase() : typeToFetch;
-                const internalType = (workTypeNormalized === 'manga' || workTypeNormalized === 'manhwa' || workTypeNormalized === 'manhua' || workTypeNormalized === 'novel') ? 'manga' : 'anime';
- 
-                // Fix: Jikan API sometimes returns null for youtube_id even if embed_url is valid.
-                // Extract it manually to fix thumbnails and external links.
-                const trailer = res.trailer ? { ...res.trailer } : undefined;
-                if (trailer && !trailer.youtube_id && trailer.embed_url) {
-                    const match = trailer.embed_url.match(/\/embed\/([a-zA-Z0-9_-]+)/);
-                    if (match) {
-                        trailer.youtube_id = match[1];
+            const loadWork = async (type: 'anime' | 'manga', isRetry = false) => {
+                try {
+                    const res = await getWorkFull(Number(id), type);
+                    const workTypeNormalized = res.type ? res.type.toLowerCase() : type;
+                    const internalType = (workTypeNormalized === 'manga' || workTypeNormalized === 'manhwa' || workTypeNormalized === 'manhua' || workTypeNormalized === 'novel') ? 'manga' : 'anime';
+     
+                    // Fix: Jikan API sometimes returns null for youtube_id even if embed_url is valid.
+                    // Extract it manually to fix thumbnails and external links.
+                    const trailer = res.trailer ? { ...res.trailer } : undefined;
+                    if (trailer && !trailer.youtube_id && trailer.embed_url) {
+                        const match = trailer.embed_url.match(/\/embed\/([a-zA-Z0-9_-]+)/);
+                        if (match) {
+                            trailer.youtube_id = match[1];
+                        }
+                    }
+
+                    const mapped: DetailedWork = {
+                        id: res.mal_id,
+                        title: res.title,
+                        title_english: res.title_english,
+                        title_japanese: res.title_japanese,
+                        type: internalType,
+                        format: res.type,
+                        image: res.images.jpg.large_image_url,
+                        image_small: res.images.jpg.small_image_url,
+                        synopsis: res.synopsis,
+                        totalChapters: res.chapters || res.episodes || 0,
+                        status: res.status ? res.status.toLowerCase().replace(/ /g, '_') : 'unknown',
+                        score: res.score ?? undefined,
+                        currentChapter: 0,
+                        rating: 0,
+                        notes: '',
+                        trailer: trailer,
+                        studios: res.studios || [],
+                        genres: res.genres || [],
+                        season: res.season,
+                        year: res.year,
+                        rank: res.rank,
+                        popularity: res.popularity,
+                        duration: res.duration,
+                        ratingString: res.rating,
+                        source: res.source
+                    };
+     
+                    // Sync extra data from /full immediately
+                    if (res.relations) setRelations(res.relations);
+                    if (res.theme) setThemes(res.theme);
+                    if (res.streaming) setStreaming(res.streaming);
+     
+                    setFetchedWork(mapped);
+                    setFetchError(null);
+                    setIsFetchingDetails(false);
+                } catch (err) {
+                    if (!isRetry && err instanceof ApiError && err.status === 404) {
+                        const nextType = type === 'anime' ? 'manga' : 'anime';
+                        loadWork(nextType, true);
+                    } else {
+                        logger.error("Failed to fetch work details", err);
+                        if (err instanceof ApiError) {
+                            setFetchError({ status: err.status, message: err.message });
+                        } else {
+                            setFetchError({ status: 500, message: "Internal Error" });
+                        }
+                        setIsFetchingDetails(false);
                     }
                 }
+            };
 
-                const mapped: DetailedWork = {
-                    id: res.mal_id,
-                    title: res.title,
-                    title_english: res.title_english,
-                    title_japanese: res.title_japanese,
-                    type: internalType,
-                    format: res.type,
-                    image: res.images.jpg.large_image_url,
-                    image_small: res.images.jpg.small_image_url,
-                    synopsis: res.synopsis,
-                    totalChapters: res.chapters || res.episodes || 0,
-                    status: res.status ? res.status.toLowerCase().replace(/ /g, '_') : 'unknown',
-                    score: res.score ?? undefined,
-                    currentChapter: 0,
-                    rating: 0,
-                    notes: '',
-                    trailer: trailer,
-                    studios: res.studios || [],
-                    genres: res.genres || [],
-                    season: res.season,
-                    year: res.year,
-                    rank: res.rank,
-                    popularity: res.popularity,
-                    duration: res.duration,
-                    ratingString: res.rating,
-                    source: res.source
-                };
- 
-                // Sync extra data from /full immediately
-                if (res.relations) setRelations(res.relations);
-                if (res.theme) setThemes(res.theme);
-                if (res.streaming) setStreaming(res.streaming);
- 
-                setFetchedWork(mapped);
-                setFetchError(null);
-                setIsFetchingDetails(false);
-            })
-            .catch(err => {
-                logger.error("Failed to fetch work details", err);
-                if (err instanceof ApiError) {
-                    setFetchError({ status: err.status, message: err.message });
-                } else {
-                    setFetchError({ status: 500, message: "Internal Error" });
-                }
-                setIsFetchingDetails(false);
-            });
+            loadWork(typeToFetch);
         }
     }, [id, libraryWork, fetchedWork, typeParam, isFetchingDetails]);
 

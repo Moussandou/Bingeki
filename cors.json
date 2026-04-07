@@ -1,19 +1,7 @@
 [
-    {
-        "origin": [
-            "http://localhost:5173",
-            "http://localhost:5174"
-        ],
-        "method": [
-            "GET",
-            "POST",
-            "PUT",
-            "DELETE",
-            "HEAD"
-        ],
-        "responseHeader": [
-            "Content-Type"
-        ],
-        "maxAgeSeconds": 3600
-    }
+  {
+    "origin": ["*"],
+    "method": ["GET", "HEAD"],
+    "maxAgeSeconds": 3600
+  }
 ]

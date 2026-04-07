@@ -114,6 +114,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
                     className={`${styles.placeholder} ${isLoaded ? styles.placeholderHidden : ''}`}
                     style={{ objectFit }}
                     aria-hidden="true"
+                    crossOrigin="anonymous"
                     onLoad={() => {
                         setPlaceholderLoaded(true);
                     }}
@@ -136,6 +137,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
                     }}
                     loading={priority ? 'eager' : 'lazy'}
                     referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
                     {...props}
                 />
             )}

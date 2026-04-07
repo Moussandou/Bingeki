@@ -32,3 +32,9 @@ public/firebase-messaging-sw.js
 
 # Coverage
 coverage/
+
+# GCloud
+.gsutil/
+google-cloud-sdk/
+gcloud/
+.config/gcloud/
