@@ -40,8 +40,8 @@ describe('apiQueue', () => {
             await vi.advanceTimersByTimeAsync(0);
             expect(mockFetch).toHaveBeenCalledTimes(1);
 
-            // Second appel après intervalle (400ms par défaut)
-            await vi.advanceTimersByTimeAsync(401);
+            // Second appel après intervalle (800ms par défaut dans ApiQueue)
+            await vi.advanceTimersByTimeAsync(801);
             expect(mockFetch).toHaveBeenCalledTimes(2);
             
             await Promise.all([p1, p2]);
