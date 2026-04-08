@@ -68,9 +68,6 @@ export function mergeGamificationData(
     }
 
     // Both exist - smart merge
-    const localTimestamp = local.lastUpdated || 0;
-    const cloudTimestamp = cloud.lastUpdated || 0;
-
     // For cumulative stats, always take the HIGHER value
     const MAX_LEVEL = 100;
     

@@ -120,7 +120,8 @@ export const logout = async (): Promise<void> => {
                 totalAnimeEpisodesWatched: gamificationState.totalAnimeEpisodesWatched,
                 totalMoviesWatched: gamificationState.totalMoviesWatched,
                 totalWorksAdded: gamificationState.totalWorksAdded,
-                totalWorksCompleted: gamificationState.totalWorksCompleted
+                totalWorksCompleted: gamificationState.totalWorksCompleted,
+                bonusXp: gamificationState.bonusXp
             });
 
             logger.log("Data synced before logout");

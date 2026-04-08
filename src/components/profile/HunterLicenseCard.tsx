@@ -5,7 +5,7 @@ import { BADGE_ICONS } from '@/utils/badges';
 import { NenChart } from './NenChart';
 import styles from './HunterLicenseCard.module.css';
 import { useTranslation } from 'react-i18next';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import Tilt from 'react-parallax-tilt';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 

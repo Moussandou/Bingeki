@@ -126,7 +126,8 @@ export default function Settings() {
                     totalWorksAdded: 0,
                     totalWorksCompleted: 0,
                     totalAnimeEpisodesWatched: 0,
-                    totalMoviesWatched: 0
+                    totalMoviesWatched: 0,
+                    bonusXp: 0
                 });
             }
 

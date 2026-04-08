@@ -186,6 +186,7 @@ function App() {
     totalWorksCompleted: s.totalWorksCompleted,
     totalAnimeEpisodesWatched: s.totalAnimeEpisodesWatched,
     totalMoviesWatched: s.totalMoviesWatched,
+    bonusXp: s.bonusXp,
   })));
 
   // Detect bot and apply class to body for CSS targeting (e.g. disabling animations)
