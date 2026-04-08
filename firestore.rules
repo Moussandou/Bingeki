@@ -114,14 +114,20 @@ service cloud.firestore {
 
     // ACTIVITY FEED (Server-side managed)
     match /activities/{activityId} {
-      // Read: Authenticated users can view the feed ONLY if:
-      // 1. The actor's profile is visible to them (Visibility set to Public/Friends)
-      // 2. AND the actor has NOT disabled their activity status (default is enabled/true)
-      // 3. OR the requester is the owner/admin
-      allow read: if isAuthenticated() && 
-                    canViewUserContent(resource.data.userId) && 
-                    (isOwner(resource.data.userId) || 
-                     get(/databases/$(database)/documents/users/$(resource.data.userId)).data.showActivityStatus != false);
+      // Read: Authenticated users can view the feed IF:
+      // 1. They are the owner or an admin
+      // 2. OR the activity is explicitly marked as visible (isVisible == true)
+      //    AND the profile visibility matches (Public OR is a Friend)
+      allow read: if isAuthenticated() && (
+                    isOwner(resource.data.userId) || 
+                    isAdmin() || 
+                    (resource.data.isVisible != false && (
+                      resource.data.profileVisibility == 'public' || 
+                      resource.data.profileVisibility == null ||
+                      (resource.data.profileVisibility == 'friends' && 
+                       exists(/databases/$(database)/documents/users/$(resource.data.userId)/friends/$(request.auth.uid)))
+                    ))
+                  );
       
       // Write: BLOCKED for clients, except for owners deleting their own logs.
       allow create, update: if false; 

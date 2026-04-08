@@ -721,6 +721,8 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
                 const userData = userDoc.exists ? userDoc.data() : {};
                 const userName = userData.displayName || 'Héros';
                 const userPhoto = userData.photoURL || '';
+                const isVisible = userData.showActivityStatus !== false;
+                const profileVisibility = userData.profileVisibility || 'public';
 
                 const prevWorkMap = {};
                 prevWorks.forEach(w => { prevWorkMap[w.id] = w; });
@@ -741,6 +743,8 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
                             workTitle: work.title,
                             workImage: work.image || '',
                             workType: (work.type || 'manga').toLowerCase(),
+                            isVisible,
+                            profileVisibility,
                             timestamp: Date.now()
                         });
                     } else if (work.status === 'completed' && prev.status !== 'completed') {
@@ -754,6 +758,8 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
                             workTitle: work.title,
                             workImage: work.image || '',
                             workType: (work.type || 'manga').toLowerCase(),
+                            isVisible,
+                            profileVisibility,
                             timestamp: Date.now()
                         });
                     } else if ((work.currentChapter || 0) > (prev.currentChapter || 0)) {
@@ -770,6 +776,8 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
                                 workTitle: work.title,
                                 workImage: work.image || '',
                                 workType: workType,
+                                isVisible,
+                                profileVisibility,
                                 episodeNumber: work.currentChapter || 0,
                                 timestamp: Date.now()
                             });

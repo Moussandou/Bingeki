@@ -672,6 +672,7 @@ export async function getFriendsActivity(userId: string, limitCount: number = 20
             const q = query(
                 collection(db, 'activities'),
                 where('userId', 'in', batch),
+                where('isVisible', '==', true),
                 orderBy('timestamp', 'desc'),
                 limit(limitCount)
             );
