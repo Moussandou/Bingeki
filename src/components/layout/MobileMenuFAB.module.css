@@ -58,9 +58,21 @@
     flex-direction: column;
     align-items: flex-end;
     gap: 0.75rem;
+    padding: 0.5rem;
     padding-bottom: 0.5rem;
     z-index: 201;
     width: max-content;
+    max-height: calc(100vh - 12rem);
+    overflow-y: auto;
+    overflow-x: hidden;
+    
+    /* Hide scrollbar but keep functionality */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.menuList::-webkit-scrollbar {
+    display: none;
 }
 
 .menuItemCard {
@@ -81,6 +93,15 @@
     white-space: nowrap;
     min-width: 140px;
     justify-content: flex-start;
+}
+
+.menuItemCard span {
+    text-transform: lowercase;
+    display: inline-block;
+}
+
+.menuItemCard span::first-letter {
+    text-transform: uppercase;
 }
 
 .menuItemCard:active {

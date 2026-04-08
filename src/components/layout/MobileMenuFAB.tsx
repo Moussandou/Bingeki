@@ -80,7 +80,7 @@ export function MobileMenuFAB() {
         { to: '/social', icon: MessageSquare, label: t('header.community') },
         { to: '/schedule', icon: Calendar, label: t('header.agenda') },
         { to: '/changelog', icon: HistoryIcon, label: t('header.changelog') },
-        { to: '/news', icon: Newspaper, label: 'Anime News' },
+        { to: '/news', icon: Newspaper, label: t('header.news') },
         { to: '/lens', icon: ScanSearch, label: t('header.lens') },
         { to: '/feedback', icon: MessageCircle, label: t('header.feedback') },
     ];
