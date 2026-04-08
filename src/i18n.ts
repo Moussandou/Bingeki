@@ -474,7 +474,8 @@ const resources = {
                     recent: "Récents",
                     added: "Ajoutés",
                     alphabetical: "A-Z",
-                    progress: "Progression"
+                    progress: "Progression",
+                    custom: "Personnalisé"
                 },
                 view_grid: "Vue Grille",
                 view_list: "Vue Liste",
@@ -2791,7 +2792,8 @@ const resources = {
                     recent: "Recent",
                     added: "Added",
                     alphabetical: "A-Z",
-                    progress: "Progress"
+                    progress: "Progress",
+                    custom: "Custom"
                 },
                 view_grid: "Grid View",
                 view_list: "List View",

@@ -164,34 +164,51 @@ export function mergeLibraryData(
         return cloud;
     }
 
-    // Merge works by ID - keep the most recently updated version
+    // Map all works (cloud first, then local updates/overwrites cloud)
     const workMap = new Map<number | string, Work>();
-
-    // Add cloud works first
+    
+    // 1. Load cloud works into map
     cloud.forEach(work => {
         workMap.set(work.id, work);
     });
 
-    // Add/update with local works (prefer local if more recent)
+    // 2. Load local works into map (local wins if more recent or same time)
     local.forEach(work => {
         const existing = workMap.get(work.id);
-        if (!existing) {
+        if (!existing || (work.lastUpdated || 0) >= (existing.lastUpdated || 0)) {
             workMap.set(work.id, work);
-        } else {
-            // Keep the more recently updated version
-            const localTime = work.lastUpdated || 0;
-            const cloudTime = existing.lastUpdated || 0;
-            if (localTime >= cloudTime) {
-                workMap.set(work.id, work);
+        }
+    });
+
+    // 3. Construct the merged array respecting LOCAL order
+    const merged: Work[] = [];
+    const seenIds = new Set<number | string>();
+
+    // Add local works in their existing order
+    local.forEach(work => {
+        const upToDateWork = workMap.get(work.id);
+        if (upToDateWork) {
+            merged.push(upToDateWork);
+            seenIds.add(work.id);
+        }
+    });
+
+    // Append cloud works that aren't in local (likely added from another device)
+    cloud.forEach(work => {
+        if (!seenIds.has(work.id)) {
+            const upToDateWork = workMap.get(work.id);
+            if (upToDateWork) {
+                merged.push(upToDateWork);
+                seenIds.add(work.id);
             }
         }
     });
 
-    const merged = Array.from(workMap.values());
     logger.log('[DataProtection] Merged library:', {
         localCount: local.length,
         cloudCount: cloud.length,
-        mergedCount: merged.length
+        mergedCount: merged.length,
+        strategy: 'local-priority-order'
     });
 
     return merged;

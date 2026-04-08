@@ -83,11 +83,15 @@ export default function Auth() {
                 setUser(user);
                 navigate('/dashboard');
             }
-        } catch (err) {
-            console.error(err);
-            setError(t('auth.error_generic'));
+        } catch (err: any) {
+            console.error('[Auth] Discord login error:', err);
+            // Don't show error if user just closed the popup
+            if (err?.code !== 'auth/popup-closed-by-user' && err?.code !== 'auth/cancelled-popup-request') {
+                setError(t('auth.error_generic'));
+            }
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleGoogleLogin = async () => {
@@ -107,11 +111,15 @@ export default function Auth() {
                 setUser(user);
                 navigate('/dashboard');
             }
-        } catch (err) {
-            console.error(err);
-            setError(t('auth.error_generic'));
+        } catch (err: any) {
+            console.error('[Auth] Google login error:', err);
+            // Don't show error if user just closed the popup
+            if (err?.code !== 'auth/popup-closed-by-user' && err?.code !== 'auth/cancelled-popup-request') {
+                setError(t('auth.error_generic'));
+            }
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     // handleAppleLogin removed

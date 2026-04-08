@@ -23,34 +23,15 @@ discordProvider.addScope('email');
 // appleConfig removed
 
 export const loginWithDiscord = async (): Promise<User | null> => {
-    try {
-        const result = await signInWithPopup(auth, discordProvider);
-
-        return result.user;
-    } catch (error) {
-        logger.error("Error logging in with Discord:", error);
-        if (error && typeof error === 'object' && 'code' in error) {
-            logger.error("Discord Auth Error Code:", (error as { code: string }).code);
-        }
-        return null;
-    }
+    const result = await signInWithPopup(auth, discordProvider);
+    return result.user;
 };
 
 // loginWithApple removed
 
 export const loginWithGoogle = async (): Promise<User | null> => {
-    try {
-        const result = await signInWithPopup(auth, googleProvider);
-        return result.user;
-    } catch (error) {
-        logger.error("Error logging in with Google:", error);
-        if (error && typeof error === 'object' && 'code' in error) {
-            const err = error as { code: string; message: string };
-            logger.error("Google Auth Error Code:", err.code);
-            logger.error("Google Auth Error Message:", err.message);
-        }
-        return null;
-    }
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
 };
 
 export const loginWithEmail = async (email: string, password: string): Promise<{ user: User | null; error: string | null }> => {

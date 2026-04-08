@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
 import { Modal } from '@/components/ui/Modal';
 import { AddWorkModal } from '@/components/library/AddWorkModal';
-import { useLibraryStore, type Work } from '@/store/libraryStore';
+import { useLibraryStore, type Work, type Folder, type FolderSharing } from '@/store/libraryStore';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { useAuthStore } from '@/store/authStore';
 import { Search, Plus, Filter, Grid, List, Trash2, AlertTriangle, BookOpen, CheckCircle, SortAsc, ChevronDown, Download, Upload, TrendingUp, User, FolderPlus, Share2 } from 'lucide-react';
@@ -21,8 +21,55 @@ import { loadFullLibraryData, getUserProfile, updateFolderSharing, updateLibrary
 import { MALImportModal } from '@/components/library/MALImportModal';
 import { FolderModal } from '@/components/library/FolderModal';
 import { ShareModal } from '@/components/library/ShareModal';
-import type { Folder, FolderSharing } from '@/store/libraryStore';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { 
+    DndContext, 
+    closestCenter, 
+    KeyboardSensor, 
+    PointerSensor, 
+    useSensor, 
+    useSensors, 
+    type DragEndEvent,
+    TouchSensor,
+    type PointerSensorOptions,
+    type TouchSensorOptions
+} from '@dnd-kit/core';
+import { 
+    arrayMove, 
+    SortableContext, 
+    sortableKeyboardCoordinates, 
+    verticalListSortingStrategy, 
+    rectSortingStrategy,
+    useSortable 
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable wrapper for library items
+function SortableWorkItem({ id, children, disabled }: { id: string | number; children: React.ReactNode; disabled: boolean }) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id, disabled });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : 1,
+        position: 'relative' as const,
+        opacity: isDragging ? 0.5 : 1,
+        touchAction: 'none'
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+            {children}
+        </div>
+    );
+}
 
 export default function Library() {
     const { t, i18n } = useTranslation();
@@ -31,7 +78,7 @@ export default function Library() {
     const [searchParams] = useSearchParams();
     const { user: currentUser } = useAuthStore();
     const { addToast } = useToast();
-    const { works: localWorks, removeWork, folders, createFolder, addToFolder, updateFolder, deleteFolder } = useLibraryStore();
+    const { works: localWorks, removeWork, folders, createFolder, addToFolder, updateFolder, deleteFolder, reorderWorks } = useLibraryStore();
     const { recalculateStats } = useGamificationStore();
 
     // Friend Library State
@@ -171,7 +218,7 @@ export default function Library() {
     const [filterOpen, setFilterOpen] = useState(false);
     const [filterType, setFilterType] = useState<'all' | 'manga' | 'anime'>('all');
     const [filterStatus, setFilterStatus] = useState<'all' | 'reading' | 'completed' | 'plan_to_read'>('all');
-    const [sortBy, setSortBy] = useState<'updated' | 'added' | 'alphabetical' | 'progress'>('updated');
+    const [sortBy, setSortBy] = useState<'updated' | 'added' | 'alphabetical' | 'progress' | 'custom'>('updated');
     const [sortOpen, setSortOpen] = useState(false);
     const [showMALImportModal, setShowMALImportModal] = useState(false);
     const [showFolderModal, setShowFolderModal] = useState(false);
@@ -182,7 +229,8 @@ export default function Library() {
         { value: 'updated', label: t('library.sort.recent') },
         { value: 'added', label: t('library.sort.added') },
         { value: 'alphabetical', label: t('library.sort.alphabetical') },
-        { value: 'progress', label: t('library.sort.progress') }
+        { value: 'progress', label: t('library.sort.progress') },
+        { value: 'custom', label: t('library.sort.custom') }
     ];
 
     // Bulk Actions State
@@ -202,6 +250,24 @@ export default function Library() {
 
         return { total, reading, completed, avgProgress };
     }, [currentWorks]);
+    
+    // DND Sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        } as PointerSensorOptions),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 200,
+                tolerance: 5,
+            },
+        } as TouchSensorOptions),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     // Filter Logic
     const filteredWorks = useMemo(() => {
@@ -226,11 +292,42 @@ export default function Library() {
                         const progressB = (b.currentChapter || 0) / (b.totalChapters || 1);
                         return progressB - progressA;
                     }
+                    case 'custom':
+                        return 0; // Maintain current order
                     default:
                         return 0;
                 }
             });
     }, [currentWorks, searchQuery, filterType, filterStatus, sortBy, activeFolder]);
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id && !isReadOnly) {
+            const oldIndex = filteredWorks.findIndex((w) => w.id === active.id);
+            const newIndex = filteredWorks.findIndex((w) => w.id === over.id);
+
+            if (oldIndex !== -1 && newIndex !== -1) {
+                const newFilteredWorks = arrayMove(filteredWorks, oldIndex, newIndex);
+                
+                // Update the main works array preserving non-filtered items
+                const resultWorks = [...localWorks];
+                const originalFilteredIds = filteredWorks.map(w => w.id);
+                
+                // Find all indices of filtered items in localWorks
+                const mainIndices = originalFilteredIds.map(id => resultWorks.findIndex(w => w.id === id))
+                    .sort((a, b) => a - b);
+                
+                // Place new order into those discovered indices
+                newFilteredWorks.forEach((work, idx) => {
+                    const targetIdx = mainIndices[idx];
+                    resultWorks[targetIdx] = work;
+                });
+
+                reorderWorks(resultWorks);
+            }
+        }
+    };
 
     // Selection Handlers
     const toggleSelection = (id: string | number) => {
@@ -588,7 +685,7 @@ export default function Library() {
                                                 <button
                                                     key={option.value}
                                                     onClick={() => {
-                                                        setSortBy(option.value as 'updated' | 'added' | 'alphabetical' | 'progress');
+                                                        setSortBy(option.value as 'updated' | 'added' | 'alphabetical' | 'progress' | 'custom');
                                                         setSortOpen(false);
                                                     }}
                                                     style={{
@@ -776,211 +873,255 @@ export default function Library() {
                             <h3>{t('library.no_works')}</h3>
                         </div>
                     ) : (
-                        <div className={viewMode === 'grid' ? styles.worksGrid : styles.worksList}>
-                            <AnimatePresence>
-                                {filteredWorks.map(work => (
-                                    <motion.div
-                                        key={work.id}
-                                        layout
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.9 }}
-                                        transition={{ duration: 0.2 }}
-                                        whileHover={{ y: -8, transition: { duration: 0.2 } }}
-                                        style={{ position: 'relative' }}
-                                    >
-                                        <Card
-                                            variant="manga"
-                                            hoverable={!isSelectionMode}
-                                            style={{
-                                                padding: 0,
-                                                overflow: 'hidden',
-                                                height: '100%',
-                                                cursor: isSelectionMode ? 'default' : 'pointer',
-                                                display: viewMode === 'list' ? 'flex' : 'block',
-                                                alignItems: 'center',
-                                                border: selectedWorks.has(work.id) ? '2px solid var(--color-primary)' : undefined,
-                                                transform: selectedWorks.has(work.id) ? 'translate(-2px, -2px)' : undefined,
-                                                boxShadow: selectedWorks.has(work.id) ? '6px 6px 0 var(--color-primary)' : undefined
-                                            }}
-                                            onClick={() => {
-                                                if (isSelectionMode) toggleSelection(work.id);
-                                                else navigate(`/work/${work.id}?type=${work.type}`);
-                                            }}
-                                        >
-                                            {/* Selection Overlay */}
-                                            {isSelectionMode && !isReadOnly && (
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    inset: 0,
-                                                    background: selectedWorks.has(work.id) ? 'rgba(255, 46, 99, 0.1)' : 'transparent',
-                                                    pointerEvents: 'none',
-                                                    zIndex: 10
-                                                }} />
-                                            )}
-
-                                            {/* Image */}
-                                            <div
-                                                className={viewMode === 'grid' ? styles.workCover : undefined}
-                                                style={{
-                                                    height: viewMode === 'list' ? '150px' : undefined, // Handled by class in grid
-                                                    width: viewMode === 'list' ? '120px' : undefined,
-                                                    position: 'relative',
-                                                    overflow: 'hidden',
-                                                    flexShrink: 0,
-                                                    borderRight: viewMode === 'list' ? '2px solid var(--color-border-heavy)' : 'none',
-                                                    borderBottom: viewMode === 'grid' ? '2px solid var(--color-border-heavy)' : 'none'
-                                                }}
-                                            >
-                                                <OptimizedImage src={work.image} alt={work.title} />
-                                            </div>
-
-                                            {/* Info */}
-                                            <div style={{ padding: '1.25rem', flex: 1, background: 'var(--color-surface)' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
-                                                    <h3 style={{
-                                                        fontFamily: 'var(--font-heading)',
-                                                        fontSize: viewMode === 'list' ? '1.5rem' : '1.2rem',
-                                                        fontWeight: 900,
-                                                        lineHeight: 1.1,
-                                                        marginBottom: '0.25rem',
-                                                        textTransform: 'uppercase'
-                                                    }}>
-                                                        {work.title}
-                                                    </h3>
-                                                </div>
-
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                                                    <span style={{
-                                                        fontSize: '0.75rem',
-                                                        padding: '4px 8px',
-                                                        background: 'var(--color-border-heavy)',
-                                                        color: 'var(--color-text-inverse)',
-                                                        fontWeight: 800,
-                                                        textTransform: 'uppercase'
-                                                    }}>
-                                                        {work.type}
-                                                    </span>
-                                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase' }}>{statusToFrench(work.status)}</span>
-                                                </div>
-
-                                                {/* Progress Bar */}
-                                                <div style={{ height: '10px', background: 'var(--color-surface-hover)', borderRadius: '0', overflow: 'hidden', marginTop: 'auto', border: '1px solid var(--color-border-heavy)' }}>
-                                                    <div style={{
-                                                        height: '100%',
-                                                        width: `${((work.currentChapter || 0) / (work.totalChapters || 1)) * 100}%`,
-                                                        background: 'var(--color-primary)'
-                                                    }} />
-                                                </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem' }}>
-                                                    <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>
-                                                        {work.type === 'anime' ? t('library.episode') : t('library.chapter')} {work.currentChapter} / {work.totalChapters || '?'}
-                                                    </span>
-                                                    {work.rating && <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fbbf24' }}>★ {work.rating}</span>}
-                                                </div>
-                                            </div>
-                                        </Card>
-
-                                        {/* Delete Button */}
-                                        {!isSelectionMode && !isReadOnly && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setWorkToDelete(work);
-                                                }}
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: 10,
-                                                    right: 10,
-                                                    background: 'rgba(255, 255, 255, 0.9)',
-                                                    border: '2px solid var(--color-border-heavy)',
-                                                    borderRadius: '50%',
-                                                    width: '32px',
-                                                    height: '32px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    cursor: 'pointer',
-                                                    zIndex: 20,
-                                                    boxShadow: '2px 2px 0 var(--color-shadow-solid)',
-                                                    transition: 'transform 0.2s'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1.1)';
-                                                    e.currentTarget.style.background = '#fee2e2';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1)';
-                                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-                                                }}
-                                                title={t('library.delete_work')}
-                                            >
-                                                <Trash2 size={16} color="#dc2626" />
-                                            </button>
-                                        )}
-
-                                        {/* Selection Checkbox (Visual only) */}
-                                        {isSelectionMode && !isReadOnly && (
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: 10,
-                                                right: 10,
-                                                width: 24,
-                                                height: 24,
-                                                background: selectedWorks.has(work.id) ? 'var(--color-primary)' : 'var(--color-surface)',
-                                                border: '2px solid var(--color-border-heavy)',
-                                                borderRadius: '50%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                zIndex: 20,
-                                                boxShadow: '2px 2px 0 var(--color-shadow-solid)'
-                                            }}>
-                                                {selectedWorks.has(work.id) && <CheckCircle size={16} color="#fff" />}
-                                            </div>
-                                        )}
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
-                        </div>
-                    )}
-
-                    <AddWorkModal
-                        isOpen={isAddModalOpen}
-                        onClose={() => setIsAddModalOpen(false)}
-                    />
-
-                    {/* Delete Confirmation Modal */}
-                    <Modal isOpen={!!workToDelete} onClose={() => setWorkToDelete(null)} title={t('library.delete_title')}>
-                        <div style={{ textAlign: 'center', padding: '1rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-                                <div style={{ background: '#fee2e2', padding: '1rem', borderRadius: '50%', color: '#dc2626', border: '2px solid #dc2626' }}>
-                                    <AlertTriangle size={32} />
-                                </div>
-                            </div>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
-                                {t('library.delete_question', { title: workToDelete?.title })}
-                            </h3>
-                            <p style={{ marginBottom: '2rem', opacity: 0.7 }}>
-                                {t('library.delete_warning')}
-                            </p>
-                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                                <Button variant="ghost" onClick={() => setWorkToDelete(null)}>
-                                    {t('library.cancel')}
-                                </Button>
-                                <Button
-                                    variant="primary"
-                                    onClick={confirmDelete}
-                                    style={{ background: '#dc2626', borderColor: '#b91c1c' }}
+                        <>
+                            {sortBy === 'custom' && !isReadOnly && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    style={{ 
+                                        background: 'var(--color-primary-dim)', 
+                                        border: '2px dashed var(--color-primary)', 
+                                        padding: '1rem', 
+                                        borderRadius: '12px',
+                                        marginBottom: '2rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '1rem',
+                                        color: 'var(--color-text)'
+                                    }}
                                 >
-                                    {t('library.delete_btn')}
-                                </Button>
-                            </div>
-                        </div>
-                    </Modal>
+                                    <div style={{ fontSize: '1.5rem' }}>🎨</div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                                        {i18n.language === 'fr' 
+                                            ? "Mode rangement actif : faites glisser les œuvres pour réorganiser votre bibliothèque !"
+                                            : "Reordering mode active: drag and drop works to reorganize your library!"}
+                                    </div>
+                                </motion.div>
+                            )}
+                            
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <div className={viewMode === 'grid' ? styles.worksGrid : styles.worksList}>
+                                    <SortableContext 
+                                        items={filteredWorks.map(w => w.id)} 
+                                        strategy={viewMode === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}
+                                    >
+                                        <AnimatePresence>
+                                            {filteredWorks.map(work => {
+                                                return (
+                                                    <SortableWorkItem 
+                                                        key={work.id} 
+                                                        id={work.id} 
+                                                        disabled={sortBy !== 'custom' || isReadOnly || isSelectionMode}
+                                                    >
+                                                        <motion.div
+                                                            layout
+                                                            initial={{ opacity: 0, scale: 0.9 }}
+                                                            animate={{ opacity: 1, scale: 1 }}
+                                                            exit={{ opacity: 0, scale: 0.9 }}
+                                                            transition={{ duration: 0.2 }}
+                                                            whileHover={sortBy === 'custom' ? undefined : { y: -8, transition: { duration: 0.2 } }}
+                                                            style={{ position: 'relative', height: '100%' }}
+                                                        >
+                                                            <Card
+                                                                variant="manga"
+                                                                hoverable={!isSelectionMode}
+                                                                style={{
+                                                                    padding: 0,
+                                                                    overflow: 'hidden',
+                                                                    height: '100%',
+                                                                    cursor: isSelectionMode ? 'default' : 'pointer',
+                                                                    display: viewMode === 'list' ? 'flex' : 'block',
+                                                                    alignItems: 'center',
+                                                                    border: selectedWorks.has(work.id) ? '2px solid var(--color-primary)' : undefined,
+                                                                    transform: selectedWorks.has(work.id) ? 'translate(-2px, -2px)' : undefined,
+                                                                    boxShadow: selectedWorks.has(work.id) ? '6px 6px 0 var(--color-primary)' : undefined
+                                                                }}
+                                                                onClick={() => {
+                                                                    if (isSelectionMode) toggleSelection(work.id);
+                                                                    else navigate(`/work/${work.id}?type=${work.type}`);
+                                                                }}
+                                                            >
+                                                                {/* Selection Overlay */}
+                                                                {isSelectionMode && !isReadOnly && (
+                                                                    <div style={{
+                                                                        position: 'absolute',
+                                                                        inset: 0,
+                                                                        background: selectedWorks.has(work.id) ? 'rgba(255, 46, 99, 0.1)' : 'transparent',
+                                                                        pointerEvents: 'none',
+                                                                        zIndex: 10
+                                                                    }} />
+                                                                )}
 
+                                                                {/* Image */}
+                                                                <div
+                                                                    className={viewMode === 'grid' ? styles.workCover : undefined}
+                                                                    style={{
+                                                                        height: viewMode === 'list' ? '150px' : undefined, // Handled by class in grid
+                                                                        width: viewMode === 'list' ? '120px' : undefined,
+                                                                        position: 'relative',
+                                                                        overflow: 'hidden',
+                                                                        flexShrink: 0,
+                                                                        borderRight: viewMode === 'list' ? '2px solid var(--color-border-heavy)' : 'none',
+                                                                        borderBottom: viewMode === 'grid' ? '2px solid var(--color-border-heavy)' : 'none'
+                                                                    }}
+                                                                >
+                                                                    <OptimizedImage src={work.image} alt={work.title} />
+                                                                </div>
+
+                                                                {/* Info */}
+                                                                <div style={{ padding: '1.25rem', flex: 1, background: 'var(--color-surface)' }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
+                                                                        <h3 style={{
+                                                                            fontFamily: 'var(--font-heading)',
+                                                                            fontSize: viewMode === 'list' ? '1.5rem' : '1.2rem',
+                                                                            fontWeight: 900,
+                                                                            lineHeight: 1.1,
+                                                                            marginBottom: '0.25rem',
+                                                                            textTransform: 'uppercase'
+                                                                        }}>
+                                                                            {work.title}
+                                                                        </h3>
+                                                                    </div>
+
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                                                        <span style={{
+                                                                            fontSize: '0.75rem',
+                                                                            padding: '4px 8px',
+                                                                            background: 'var(--color-border-heavy)',
+                                                                            color: 'var(--color-text-inverse)',
+                                                                            fontWeight: 800,
+                                                                            textTransform: 'uppercase'
+                                                                        }}>
+                                                                            {work.type}
+                                                                        </span>
+                                                                        <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase' }}>{statusToFrench(work.status)}</span>
+                                                                    </div>
+
+                                                                    {/* Progress Bar */}
+                                                                    <div style={{ height: '10px', background: 'var(--color-surface-hover)', borderRadius: '0', overflow: 'hidden', marginTop: 'auto', border: '1px solid var(--color-border-heavy)' }}>
+                                                                        <div style={{
+                                                                            height: '100%',
+                                                                            width: `${((work.currentChapter || 0) / (work.totalChapters || 1)) * 100}%`,
+                                                                            background: 'var(--color-primary)'
+                                                                        }} />
+                                                                    </div>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem' }}>
+                                                                        <span style={{ fontSize: '0.9rem', fontWeight: 800 }}>
+                                                                            {work.type === 'anime' ? t('library.episode') : t('library.chapter')} {work.currentChapter} / {work.totalChapters || '?'}
+                                                                        </span>
+                                                                        {work.rating && <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fbbf24' }}>★ {work.rating}</span>}
+                                                                    </div>
+                                                                </div>
+                                                            </Card>
+
+                                                            {/* Delete Button */}
+                                                            {!isSelectionMode && !isReadOnly && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setWorkToDelete(work);
+                                                                    }}
+                                                                    style={{
+                                                                        position: 'absolute',
+                                                                        top: 10,
+                                                                        right: 10,
+                                                                        background: 'rgba(255, 255, 255, 0.9)',
+                                                                        border: '2px solid var(--color-border-heavy)',
+                                                                        borderRadius: '50%',
+                                                                        width: '32px',
+                                                                        height: '32px',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        cursor: 'pointer',
+                                                                        zIndex: 20,
+                                                                        boxShadow: '2px 2px 0 var(--color-shadow-solid)',
+                                                                        transition: 'transform 0.2s'
+                                                                    }}
+                                                                    onMouseEnter={(e) => {
+                                                                        e.currentTarget.style.transform = 'scale(1.1)';
+                                                                        e.currentTarget.style.background = '#fee2e2';
+                                                                    }}
+                                                                    onMouseLeave={(e) => {
+                                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+                                                                    }}
+                                                                    title={t('library.delete_work')}
+                                                                >
+                                                                    <Trash2 size={16} color="#dc2626" />
+                                                                </button>
+                                                            )}
+
+                                                            {/* Selection Checkbox (Visual only) */}
+                                                            {isSelectionMode && !isReadOnly && (
+                                                                <div style={{
+                                                                    position: 'absolute',
+                                                                    top: 10,
+                                                                    right: 10,
+                                                                    width: 24,
+                                                                    height: 24,
+                                                                    background: selectedWorks.has(work.id) ? 'var(--color-primary)' : 'var(--color-surface)',
+                                                                    border: '2px solid var(--color-border-heavy)',
+                                                                    borderRadius: '50%',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    zIndex: 20,
+                                                                    boxShadow: '2px 2px 0 var(--color-shadow-solid)'
+                                                                }}>
+                                                                    {selectedWorks.has(work.id) && <CheckCircle size={16} color="#fff" />}
+                                                                </div>
+                                                            )}
+                                                        </motion.div>
+                                                    </SortableWorkItem>
+                                                )
+                                            })}
+                        </AnimatePresence>
+                    </SortableContext>
                 </div>
-            </div>
+            </DndContext>
+                </>
+            )}
+
+            <AddWorkModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+            />
+
+            {/* Delete Confirmation Modal */}
+            <Modal isOpen={!!workToDelete} onClose={() => setWorkToDelete(null)} title={t('library.delete_title')}>
+                <div style={{ textAlign: 'center', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+                        <div style={{ background: '#fee2e2', padding: '1rem', borderRadius: '50%', color: '#dc2626', border: '2px solid #dc2626' }}>
+                            <AlertTriangle size={32} />
+                        </div>
+                    </div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
+                        {t('library.delete_question', { title: workToDelete?.title })}
+                    </h3>
+                    <p style={{ marginBottom: '2rem', opacity: 0.7 }}>
+                        {t('library.delete_warning')}
+                    </p>
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                        <Button variant="ghost" onClick={() => setWorkToDelete(null)}>
+                            {t('library.cancel')}
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={confirmDelete}
+                            style={{ background: '#dc2626', borderColor: '#b91c1c' }}
+                        >
+                            {t('library.delete_btn')}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
+    </div>
             <MALImportModal isOpen={showMALImportModal} onClose={() => setShowMALImportModal(false)} />
             <FolderModal
                 isOpen={showFolderModal}

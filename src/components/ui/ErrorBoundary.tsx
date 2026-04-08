@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface Props {
   children?: ReactNode;
@@ -36,47 +37,126 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      const errorMsg = this.state.error?.toString() || "Une erreur inconnue est survenue";
+
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0a] p-6 text-white text-center">
-          <div className="relative mb-8">
-            <div className="absolute inset-0 animate-pulse blur-3xl rounded-full bg-red-600/20" />
-            <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 backdrop-blur-sm">
-              <AlertCircle size={48} className="text-red-500" />
-            </div>
-          </div>
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-6 text-center"
+          style={{
+            backgroundColor: 'var(--color-background, #0a0a0a)',
+            color: 'var(--color-text, #ffffff)',
+            fontFamily: 'var(--font-body, sans-serif)',
+            overflow: 'hidden'
+          }}
+        >
+          {/* Background Halftone Pattern - ensure it covers everything */}
+          <div
+            className="manga-halftone"
+            style={{
+              opacity: 0.05,
+              pointerEvents: 'none',
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: 'radial-gradient(var(--color-dots, #fff) 2px, transparent 2.5px)',
+              backgroundSize: '20px 20px',
+              zIndex: 0
+            }}
+          />
 
-          <h1 className="mb-4 font-outfit text-4xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-400">
-            Aventure Interrompue
-          </h1>
-          
-          <p className="mb-12 max-w-md font-medium text-gray-400">
-            Une erreur inattendue a perturbé votre lecture. Ne vous inquiétez pas, votre progression est en sécurité.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={this.handleReset}
-              className="group flex items-center justify-center gap-2 rounded-xl bg-red-600 px-8 py-4 font-bold text-white transition-all hover:bg-red-500 hover:scale-105 active:scale-95 shadow-[0_0_40px_rgba(239,68,68,0.3)]"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", damping: 20 }}
+            className="manga-panel relative z-10 w-full"
+            style={{
+              background: 'var(--color-surface, #1a1a1a)',
+              border: '4px solid var(--color-text, #ffffff)',
+              boxShadow: '12px 12px 0 var(--color-shadow-solid, #000000)',
+              padding: '3rem 2rem',
+              maxWidth: '500px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}
+          >
+            <div 
+              className="mb-8"
+              style={{
+                backgroundColor: 'var(--color-primary, #FF2E63)',
+                border: '4px solid var(--color-text, #ffffff)',
+                padding: '1.25rem',
+                boxShadow: '4px 4px 0 var(--color-shadow-solid, #000000)'
+              }}
             >
-              <RefreshCw size={20} className="transition-transform group-hover:rotate-180" />
-              Réessayer
-            </button>
-
-            <button
-              onClick={this.handleGoHome}
-              className="flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-white/10 px-8 py-4 font-bold text-white transition-all hover:bg-white/10 hover:border-white/20"
-            >
-              <Home size={20} />
-              Retour Accueil
-            </button>
-          </div>
-
-          {process.env.NODE_ENV === 'development' && this.state.error && (
-            <div className="mt-20 w-full max-w-2xl rounded-xl border border-white/5 bg-white/5 p-6 text-left">
-              <p className="mb-2 font-mono text-xs uppercase tracking-widest text-gray-500">Developer Info</p>
-              <p className="font-mono text-sm text-red-400 break-words">{this.state.error.toString()}</p>
+              <AlertCircle size={48} color="white" />
             </div>
-          )}
+
+            <h1 className="manga-title text-2xl sm:text-3xl mb-6" style={{ display: 'inline-block' }}>
+              Aventure Interrompue
+            </h1>
+
+            <p className="mb-8 font-bold opacity-90 leading-relaxed max-w-sm">
+              Une erreur inattendue a perturbé votre lecture. Ne vous inquiétez pas, votre progression est en sécurité.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
+              <button
+                onClick={this.handleReset}
+                className="group flex items-center justify-center gap-2 px-8 py-4 font-black uppercase tracking-tighter transition-all"
+                style={{
+                  backgroundColor: 'var(--color-primary, #FF2E63)',
+                  border: '4px solid var(--color-text, #ffffff)',
+                  color: 'white',
+                  boxShadow: '6px 6px 0 var(--color-shadow-solid, #000000)',
+                  cursor: 'pointer'
+                }}
+              >
+                <RefreshCw size={20} className="transition-transform group-hover:rotate-180" />
+                Réessayer
+              </button>
+
+              <button
+                onClick={this.handleGoHome}
+                className="flex items-center justify-center gap-2 px-8 py-4 font-black uppercase tracking-tighter transition-all"
+                style={{
+                  backgroundColor: 'var(--color-surface, #1a1a1a)',
+                  border: '4px solid var(--color-text, #ffffff)',
+                  color: 'var(--color-text, #ffffff)',
+                  boxShadow: '6px 6px 0 var(--color-shadow-solid, #000000)',
+                  cursor: 'pointer'
+                }}
+              >
+                <Home size={20} />
+                Accueil
+              </button>
+            </div>
+
+            {/* Technical Details for Developers */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-10 w-full text-left">
+                <div style={{ height: '2px', backgroundColor: 'var(--color-text)', opacity: 0.1, marginBottom: '1rem' }} />
+                <p style={{ fontFamily: 'monospace', fontSize: '10px', textTransform: 'uppercase', opacity: 0.5, marginBottom: '0.5rem', letterSpacing: '0.1em' }}>
+                  Rapport technique
+                </p>
+                <div
+                  style={{
+                    backgroundColor: 'var(--color-background, #000)',
+                    border: '2px solid var(--color-text, #ffffff)',
+                    padding: '1rem',
+                    fontFamily: 'monospace',
+                    fontSize: '11px',
+                    color: '#ff5555',
+                    wordBreak: 'break-all',
+                    maxHeight: '120px',
+                    overflow: 'auto',
+                    width: '100%'
+                  }}
+                >
+                  {errorMsg}
+                </div>
+              </div>
+            )}
+          </motion.div>
         </div>
       );
     }
