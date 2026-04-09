@@ -88,8 +88,8 @@
     }
 
     .heroContainer {
-        padding-top: 5rem;
-        /* More space for header */
+        padding-top: 1rem;
+        /* Layout already handles header spacing */
         gap: 1rem;
         flex-direction: row-reverse;
         /* Image on Right, Text on Left */

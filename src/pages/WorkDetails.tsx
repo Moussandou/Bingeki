@@ -8,7 +8,8 @@ import { Layout } from '@/components/layout/Layout';
 import { useLibraryStore, type Work } from '@/store/libraryStore';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal'; // Import Modal
-import { ArrowLeft, Star, BookOpen, Check, Trash2, Tv, FileText, Trophy, AlertTriangle, MessageCircle, Heart, Send, EyeOff, Reply, Video, Calendar, BarChart, Music, Disc, X, ArrowUp, Youtube, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Star, BookOpen, Check, Trash2, Tv, FileText, Trophy, AlertTriangle, MessageCircle, Heart, Send, EyeOff, Reply, Video, Calendar, BarChart, Music, Disc, X, ArrowUp, ExternalLink } from 'lucide-react';
+import { YoutubeIcon } from '@/components/ui/BrandIcons';
 import { useState, useEffect, memo } from 'react';
 
 
@@ -1194,7 +1195,7 @@ export default function WorkDetails() {
                                                         rel="noopener noreferrer"
                                                         className={styles.youtubeLink}
                                                     >
-                                                        <Youtube size={18} />
+                                                        <YoutubeIcon size={18} />
                                                         {t('work_details.trailer.watch_on_youtube')}
                                                         <ExternalLink size={14} />
                                                     </a>

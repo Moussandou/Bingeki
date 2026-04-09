@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, Globe, Instagram } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Globe } from 'lucide-react';
+import { InstagramIcon } from '@/components/ui/BrandIcons';
 import { db, analytics } from '@/firebase/config';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
@@ -639,7 +640,7 @@ export default function FormSurvey() {
                       rel="noopener noreferrer"
                       className={styles.instaLink}
                     >
-                      <Instagram size={20} />
+                      <InstagramIcon size={20} />
                       <span>{t('survey.footer.follow_insta')}</span>
                     </a>
                   </div>

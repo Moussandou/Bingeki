@@ -1,5 +1,5 @@
-import { Mail, MapPin, Github, Linkedin, Globe, Briefcase, Coffee, Instagram } from 'lucide-react';
-import { DiscordIcon, TikTokIcon } from '@/components/ui/BrandIcons';
+import { Mail, MapPin, Globe, Briefcase, Coffee } from 'lucide-react';
+import { DiscordIcon, TikTokIcon, GithubIcon, LinkedinIcon, InstagramIcon } from '@/components/ui/BrandIcons';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
@@ -61,7 +61,7 @@ export function Footer() {
                         title="Instagram"
                         className={`${styles.socialIconActive} ${styles.instagram}`}
                     >
-                        <Instagram size={24} />
+                        <InstagramIcon size={24} />
                     </a>
 
                     <div style={{ width: 1, height: 24, background: 'var(--color-border)', margin: '0 0.5rem' }} />
@@ -70,12 +70,12 @@ export function Footer() {
                     <a href="https://github.com/Moussandou" target="_blank" rel="noopener noreferrer"
                         className={styles.socialIcon}
                     >
-                        <Github size={20} />
+                        <GithubIcon size={20} />
                     </a>
                     <a href="https://www.linkedin.com/in/moussandou" target="_blank" rel="noopener noreferrer"
                         className={styles.socialIcon}
                     >
-                        <Linkedin size={20} />
+                        <LinkedinIcon size={20} />
                     </a>
                     <a href="https://www.malt.fr/profile/moussandoumroivili" target="_blank" rel="noopener noreferrer"
                         title="Malt"

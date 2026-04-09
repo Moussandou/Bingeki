@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
-import { Smartphone, Share, PlusSquare, Chrome, Menu } from 'lucide-react';
+import { Smartphone, Share, PlusSquare, Menu } from 'lucide-react';
+import { ChromeIcon } from '@/components/ui/BrandIcons';
 
 interface InstallInstructionsModalProps {
     isOpen: boolean;
@@ -43,7 +44,7 @@ export function InstallInstructionsModal({ isOpen, onClose }: InstallInstruction
                 {/* Android / Chrome Instructions */}
                 <div style={{ background: 'var(--color-surface-hover)', padding: '1rem', border: '2px solid var(--color-border)', borderRadius: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.8rem' }}>
-                        <Chrome size={24} />
+                        <ChromeIcon size={24} />
                         <h4 style={{ fontWeight: 900, fontFamily: 'var(--font-heading)' }}>Android / Chrome</h4>
                     </div>
                     <ol style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: 0 }}>

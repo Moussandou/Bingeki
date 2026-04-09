@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import { PartyPopper, Home, UserPlus, Instagram } from 'lucide-react';
-import { DiscordIcon, TikTokIcon } from '@/components/ui/BrandIcons';
+import { PartyPopper, Home, UserPlus } from 'lucide-react';
+import { DiscordIcon, TikTokIcon, InstagramIcon } from '@/components/ui/BrandIcons';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Layout } from '@/components/layout/Layout';
@@ -62,7 +62,7 @@ export default function FormSurveyThankYou() {
                 size="lg"
                 onClick={() => window.open("https://www.instagram.com/bingeki.fr", "_blank")}
               >
-                <Instagram size={20} /> {t('survey.thank_you.instagram')}
+                <InstagramIcon size={20} /> {t('survey.thank_you.instagram')}
               </Button>
 
               <Button 

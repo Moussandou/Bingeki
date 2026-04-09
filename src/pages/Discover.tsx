@@ -253,10 +253,6 @@ export default function Discover() {
         <Layout>
             <SEO title={t('discover.title', 'Découvrir')} />
             <div style={{ minHeight: 'calc(100vh - 80px)', paddingBottom: '6rem' }}>
-
-
-
-
                 {/* Hero Section */}
                 {heroWork && !searchQuery && !hasFilters && (
                     <div className={styles.heroSection}>
@@ -337,7 +333,7 @@ export default function Discover() {
                     </div>
                 )}
 
-                <div className="container" style={{ marginTop: '3rem' }}>
+                <div className="container" style={{ marginTop: '1rem' }}>
                     {/* Search Section */}
                     <div style={{ margin: '0 auto 2rem', maxWidth: '800px' }}>
                         <div style={{ display: 'flex', gap: '1rem' }}>

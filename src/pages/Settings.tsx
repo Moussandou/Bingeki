@@ -5,7 +5,8 @@ import { Switch } from '@/components/ui/Switch';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { TitleLanguage, ProfileVisibility } from '@/store/settingsStore';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Volume2, Trash2, Palette, HardDrive, Download, Upload, Info, Github, ShieldAlert, BookOpen, Lock, Wifi } from 'lucide-react';
+import { ArrowLeft, Volume2, Trash2, Palette, HardDrive, Download, Upload, Info, ShieldAlert, BookOpen, Lock, Wifi } from 'lucide-react';
+import { GithubIcon } from '@/components/ui/BrandIcons';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import { useLibraryStore } from '@/store/libraryStore';
@@ -543,7 +544,7 @@ export default function Settings() {
                                     </div>
                                     <div style={{ display: 'flex', gap: '1rem' }}>
                                         <a href="https://github.com/Moussandou" target="_blank" rel="noopener noreferrer" style={{ opacity: 0.7, transition: 'opacity 0.2s' }}>
-                                            <Github size={24} />
+                                            <GithubIcon size={24} />
                                         </a>
                                     </div>
                                 </div>

@@ -1,6 +1,7 @@
 import { Layout } from '@/components/layout/Layout';
 import styles from './Credits.module.css';
-import { Github, Linkedin, Globe, Code, Heart } from 'lucide-react';
+import { Globe, Code, Heart } from 'lucide-react';
+import { GithubIcon, LinkedinIcon } from '@/components/ui/BrandIcons';
 import { useTranslation } from 'react-i18next';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
@@ -53,10 +54,10 @@ export default function Credits() {
 
                         <div className={styles.socialLinks}>
                             <a href="https://github.com/Moussandou" target="_blank" rel="noopener noreferrer" className={styles.socialBtn}>
-                                <Github size={20} /> GitHub
+                                <GithubIcon size={20} /> GitHub
                             </a>
                             <a href="https://www.linkedin.com/in/moussandou" target="_blank" rel="noopener noreferrer" className={styles.socialBtn}>
-                                <Linkedin size={20} /> LinkedIn
+                                <LinkedinIcon size={20} /> LinkedIn
                             </a>
                             <a href="https://moussandou.github.io/Portfolio/" target="_blank" rel="noopener noreferrer" className={styles.socialBtn}>
                                 <Globe size={20} /> Portfolio

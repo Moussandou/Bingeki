@@ -1,5 +1,4 @@
-import { Instagram } from 'lucide-react';
-import { DiscordIcon, TikTokIcon } from '@/components/ui/BrandIcons';
+import { DiscordIcon, TikTokIcon, InstagramIcon } from '@/components/ui/BrandIcons';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 
@@ -27,7 +26,7 @@ export function SocialLinksBanner() {
         },
         {
             name: 'Instagram',
-            icon: <Instagram size={24} />,
+            icon: <InstagramIcon size={24} />,
             url: 'https://www.instagram.com/bingeki.fr',
             color: '#E4405F',
             title: t('dashboard.community_instagram'),
