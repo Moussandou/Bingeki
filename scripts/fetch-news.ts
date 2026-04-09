@@ -14,11 +14,22 @@ if (!serviceAccountKeyStr) {
     process.exit(1);
 }
 
-const serviceAccount = JSON.parse(serviceAccountKeyStr);
-
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-});
+console.log("Initializing Firebase Admin...");
+try {
+    const serviceAccount = JSON.parse(serviceAccountKeyStr);
+    console.log(` - Project ID: ${serviceAccount.project_id || 'unknown'}`);
+    
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
+    console.log("Firebase Admin initialized successfully.");
+} catch (parseError: any) {
+    console.error("FATAL: Failed to parse Firebase Service Account JSON.");
+    console.error("Error details:", parseError.message);
+    // Log the first few characters of the string to help identifying encoding issues
+    console.log(`String preview (first 20 chars): ${serviceAccountKeyStr.substring(0, 20)}...`);
+    process.exit(1);
+}
 
 const db = admin.firestore();
 const parser = new Parser({
@@ -284,7 +295,11 @@ async function fetchAndSaveNews() {
     console.log(`Starting optimized news fetch (Force Update: ${forceUpdate})`);
 
     // Clean up old sources first
-    await cleanupOldSources();
+    try {
+        await cleanupOldSources();
+    } catch (cleanupError) {
+        console.error("Warning: Cleanup of legacy sources failed, but continuing news fetch:", cleanupError);
+    }
 
     for (const feedConfig of FEEDS) {
         console.log(`Processing feed: ${feedConfig.name}`);
@@ -309,7 +324,13 @@ async function fetchAndSaveNews() {
 fetchAndSaveNews().catch(async (error) => {
     console.error('Fatal error in fetchAndSaveNews:', error);
     try {
-        await admin.app().delete();
-    } catch (e) {}
+        // Only attempt to delete if an app was actually initialized
+        const apps = admin.apps;
+        if (apps && apps.length > 0) {
+            await admin.app().delete();
+        }
+    } catch (e) {
+        console.error('Error during cleanup in catch block:', e);
+    }
     process.exit(1);
 });
