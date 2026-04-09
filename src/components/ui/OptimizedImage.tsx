@@ -41,6 +41,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         // List of domains known to support CORS (lowercase for comparison)
         const corsSafeDomains = [
             'firebasestorage.googleapis.com',
+            'cdn.myanimelist.net',
             'api.dicebear.com',
             'localhost',
             '127.0.0.1',
