@@ -1,3 +1,7 @@
+/**
+ * Debounced sync of Zustand stores to Firestore
+ * Handles library, folders, and gamification state
+ */
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/store/authStore';
@@ -10,10 +14,7 @@ import {
 } from '@/firebase/firestore';
 import { useAuthSync } from './useAuthSync';
 
-/**
- * Hook to manage the debounced synchronization of local store data (Zustand)
- * to Firestore. Handles library works, folders, and gamification progress.
- */
+
 export function useFirestoreSync() {
   const { user, userProfile } = useAuthStore();
   const { isInitialSync } = useAuthSync();
@@ -40,7 +41,7 @@ export function useFirestoreSync() {
     bonusXp: s.bonusXp,
   })));
 
-  // 1. Sync store state from profile changes (e.g. from Cloud Functions or other devices)
+  // Hydrate stores from profile changes (other devices, cloud functions)
   useEffect(() => {
     if (!user || userProfile === undefined) return;
     
@@ -51,7 +52,7 @@ export function useFirestoreSync() {
     }
   }, [userProfile, user]);
 
-  // 2. Set flag to allow saving when gamification state changes, but ONLY after initial sync
+  // Skip first save after initial sync to avoid write loop
   useEffect(() => {
     if (!user) return;
     if (isInitialSync.current) {
@@ -62,7 +63,7 @@ export function useFirestoreSync() {
     setShouldSaveGamification(true);
   }, [gamificationState, user]);
 
-  // 3. Auto-save Library to Firestore (3s debounce)
+  // Auto-save library (3s debounce)
   useEffect(() => {
     if (!user) return;
     const timeout = setTimeout(() => {
@@ -71,7 +72,7 @@ export function useFirestoreSync() {
     return () => clearTimeout(timeout);
   }, [libraryWorks, libraryFolders, libraryViewMode, librarySortBy, user]);
 
-  // 4. Auto-save Gamification to Firestore (3s debounce)
+  // Auto-save gamification (3s debounce)
   useEffect(() => {
     if (!user || !shouldSaveGamification) return;
     const timeout = setTimeout(() => {

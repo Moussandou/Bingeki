@@ -1,3 +1,6 @@
+/**
+ * Hunter License Card component (profile)
+ */
 import { LogOut, Star, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { type UserProfile } from '@/firebase/firestore';
@@ -36,9 +39,7 @@ export function HunterLicenseCard({ user, stats, isOwnProfile, onLogout, feature
     const bgColor = user.cardBgColor || 'var(--color-surface)';
 
     // Determine text color:
-    // 1. If user has a custom bg color, try to pick contrasting text (simple check for black/white)
-    // 2. If no custom bg (using theme), use theme text color
-    const isCustomBg = !!user.cardBgColor;
+            const isCustomBg = !!user.cardBgColor;
     let textColor = 'var(--color-text)'; // Default to theme text
 
     if (isCustomBg) {

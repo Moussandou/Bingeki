@@ -1,3 +1,6 @@
+/**
+ * Applies theme and accent color CSS variables to document root
+ */
 import { useEffect } from 'react';
 import { useSettingsStore } from '@/store/settingsStore';
 import { isBot } from '@/utils/isBot';

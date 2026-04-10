@@ -1,3 +1,6 @@
+/**
+ * Tier Row component (tierlist)
+ */
 
 import { useTranslation } from 'react-i18next';
 import { useDroppable } from '@dnd-kit/core';

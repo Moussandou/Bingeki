@@ -1,3 +1,6 @@
+/**
+ * Level-to-rank letter mapping and associated colors
+ */
 export const calculateRank = (level: number): string => {
     if (level >= 100) return '臭';
     if (level >= 75) return 'S';

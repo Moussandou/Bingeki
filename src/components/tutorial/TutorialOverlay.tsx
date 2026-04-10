@@ -1,3 +1,6 @@
+/**
+ * Tutorial Overlay component (tutorial)
+ */
 import { useTutorialStore } from '@/store/tutorialStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';

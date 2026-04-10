@@ -1,3 +1,6 @@
+/**
+ * Error Boundary component (ui)
+ */
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
 import { motion } from 'framer-motion';

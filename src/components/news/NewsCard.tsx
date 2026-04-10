@@ -1,3 +1,6 @@
+/**
+ * News Card component (news)
+ */
 import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';

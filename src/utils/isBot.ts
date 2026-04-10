@@ -1,6 +1,5 @@
 /**
- * Detection of common bot User Agents
- * Used to bypass loading screens and ensure link previewers/screenshot tools see content
+ * Bot/crawler UA detection for SSR and prerender handling
  */
 export const isBot = (): boolean => {
   if (typeof navigator === 'undefined') return false;

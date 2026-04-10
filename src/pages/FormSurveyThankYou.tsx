@@ -1,3 +1,6 @@
+/**
+ * Form Survey Thank You page
+ */
 import { motion } from 'framer-motion';
 import { PartyPopper, Home, UserPlus } from 'lucide-react';
 import { DiscordIcon, TikTokIcon, InstagramIcon } from '@/components/ui/BrandIcons';

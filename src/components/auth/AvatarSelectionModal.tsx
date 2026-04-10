@@ -1,3 +1,6 @@
+/**
+ * Avatar Selection Modal component (auth)
+ */
 import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';

@@ -1,3 +1,6 @@
+/**
+ * Edit Work Modal page
+ */
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Work } from '@/store/libraryStore';

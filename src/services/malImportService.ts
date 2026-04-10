@@ -1,3 +1,6 @@
+/**
+ * Mal Import Service service layer
+ */
 import { logger } from '@/utils/logger';
 /**
  * MyAnimeList Import Service

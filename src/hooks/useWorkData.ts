@@ -1,3 +1,7 @@
+/**
+ * Fetches and assembles work detail data from Jikan API
+ * Merges API responses with local library state
+ */
 import { useState, useEffect } from 'react';
 import {
     getWorkDetails,
@@ -81,14 +85,7 @@ export interface UseWorkDataResult {
     reviews: JikanReview[];
 }
 
-/**
- * Custom hook to fetch and manage work data from Jikan API
- * Extracts all data fetching logic from WorkDetails component
- * 
- * @param id - The MAL ID of the work
- * @param typeParam - Optional type hint from URL params
- * @param libraryWork - Optional work from library store (for merging user progress)
- */
+
 export function useWorkData(
     id: string | undefined,
     typeParam: 'anime' | 'manga' | null,
@@ -109,7 +106,7 @@ export function useWorkData(
     const [fetchedWork, setFetchedWork] = useState<DetailedWork | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Related data
+
     const [characters, setCharacters] = useState<JikanCharacter[]>([]);
     const [relations, setRelations] = useState<JikanRelation[]>([]);
     const [recommendations, setRecommendations] = useState<JikanRecommendation[]>([]);
@@ -120,7 +117,7 @@ export function useWorkData(
     const [staff, setStaff] = useState<JikanStaff[]>([]);
     const [reviews, setReviews] = useState<JikanReview[]>([]);
 
-    // Merge library work with fetched details
+
     const work: DetailedWork | null = libraryWork ? {
         ...libraryWork,
         synopsis: libraryWork.synopsis || '',
@@ -139,14 +136,14 @@ export function useWorkData(
         } : {})
     } : fetchedWork;
 
-    // Fetch main work details
+
     useEffect(() => {
         if (!id) return;
 
         const fetchWork = async () => {
             setIsLoading(true);
             try {
-                // Determine type to fetch
+
                 let typeToFetch: 'anime' | 'manga' = 'anime';
                 if (typeParam) {
                     const normalized = typeParam.toLowerCase();
@@ -178,7 +175,7 @@ export function useWorkData(
         fetchWork();
     }, [id, typeParam, libraryWork?.type]);
 
-    // Fetch related data (characters, relations, etc.)
+
     useEffect(() => {
         if (!id || !work) return;
 
@@ -192,7 +189,7 @@ export function useWorkData(
             ) ? 'manga' : 'anime';
 
             try {
-                // All requests go through apiQueue which handles rate limiting
+
                 const [chars, rels, recs, pics, stats] = await Promise.all([
                     getWorkCharacters(Number(id), type),
                     getWorkRelations(Number(id), type),
@@ -207,7 +204,7 @@ export function useWorkData(
                 setPictures(pics);
                 setStatistics(stats);
 
-                // Anime-specific data
+
                 if (type === 'anime') {
                     const [themesData, streamData, staffData] = await Promise.all([
                         getWorkThemes(Number(id)),
@@ -219,7 +216,7 @@ export function useWorkData(
                     setStaff(staffData);
                 }
 
-                // Reviews for both types
+
                 const revs = await getWorkReviews(Number(id), type);
                 setReviews(revs);
             } catch (error) {

@@ -1,3 +1,7 @@
+/**
+ * App entry point
+ * Handles hydration for prerendered pages, otherwise mounts fresh
+ */
 import { logger } from '@/utils/logger';
 import { StrictMode } from 'react'
 import { hydrateRoot, createRoot } from 'react-dom/client'
@@ -7,7 +11,7 @@ import './i18n'
 import App from './App.tsx'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 
-// Handle asset loading errors (common after new deployments)
+// Force reload on chunk mismatch after deploy
 window.addEventListener('vite:preloadError', (event) => {
   logger.log('Vite preload error detected, reloading page...', event);
   window.location.reload();

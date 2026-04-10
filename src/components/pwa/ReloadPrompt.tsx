@@ -1,3 +1,6 @@
+/**
+ * Reload Prompt component (pwa)
+ */
 import React from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { RefreshCw, X, Download } from 'lucide-react';

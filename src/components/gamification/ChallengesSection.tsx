@@ -1,3 +1,6 @@
+/**
+ * Challenges Section component (gamification)
+ */
 import { useState, useEffect, useCallback } from 'react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';

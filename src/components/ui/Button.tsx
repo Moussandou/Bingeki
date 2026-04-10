@@ -1,3 +1,6 @@
+/**
+ * Button component (ui)
+ */
 import React from 'react';
 import { motion, type HTMLMotionProps } from 'framer-motion';
 import { cn } from '@/utils/cn';

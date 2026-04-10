@@ -1,3 +1,6 @@
+/**
+ * Social Generator page
+ */
 import React, { useState, useRef, useEffect } from 'react';
 import { Download, Layout, Type, Search, Plus, Trash2, Settings, Moon, Sun, Image as ImageIcon } from 'lucide-react';
 import html2canvas from 'html2canvas';

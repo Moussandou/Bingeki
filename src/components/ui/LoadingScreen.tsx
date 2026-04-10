@@ -1,3 +1,6 @@
+/**
+ * Loading Screen component (ui)
+ */
 import { motion } from 'framer-motion';
 
 export function LoadingScreen() {

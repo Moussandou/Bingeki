@@ -1,3 +1,6 @@
+/**
+ * X P Bar component (gamification)
+ */
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 

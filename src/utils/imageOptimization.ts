@@ -1,5 +1,5 @@
 /**
- * Utilities for client-side image optimization and compression.
+ * Client-side image compression and optimization
  */
 
 export interface CompressionOptions {
@@ -9,9 +9,7 @@ export interface CompressionOptions {
   format?: 'image/jpeg' | 'image/webp';
 }
 
-/**
- * Compresses an image from a Data URL and returns a compressed Data URL.
- */
+
 export async function compressImage(
   dataUrl: string,
   options: CompressionOptions = {}
@@ -30,7 +28,7 @@ export async function compressImage(
       let width = img.width;
       let height = img.height;
 
-      // Calculate new dimensions while maintaining aspect ratio
+      // Maintain aspect ratio
       if (width > maxWidth) {
         height = (height * maxWidth) / width;
         width = maxWidth;
@@ -49,7 +47,7 @@ export async function compressImage(
         return;
       }
 
-      // Draw and compress
+
       ctx.drawImage(img, 0, 0, width, height);
       
       const compressedDataUrl = canvas.toDataURL(format, quality);
@@ -64,9 +62,7 @@ export async function compressImage(
   });
 }
 
-/**
- * Converts a File or Blob to a Data URL.
- */
+
 export function fileToDataUrl(file: File | Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -76,9 +72,7 @@ export function fileToDataUrl(file: File | Blob): Promise<string> {
   });
 }
 
-/**
- * High-level function to compress a File and return a compressed Data URL.
- */
+
 export async function optimizeUpload(
   file: File | Blob,
   options: CompressionOptions = {}

@@ -1,3 +1,6 @@
+/**
+ * Survey Dashboard page
+ */
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { 
     Users, 

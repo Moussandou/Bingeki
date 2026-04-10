@@ -1,3 +1,6 @@
+/**
+ * Vibration feedback patterns for mobile PWA
+ */
 import { logger } from '@/utils/logger';
 import { useCallback } from 'react';
 

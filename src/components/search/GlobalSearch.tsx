@@ -1,3 +1,6 @@
+/**
+ * Global Search component (search)
+ */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
@@ -109,35 +112,8 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             const work = item as JikanResult;
             image = work.images?.jpg?.image_url;
             title = work.title;
-            // JikanResult defines title_japanese? Checking... JikanResult interface in source says no title_japanese.
-            // Let's check JikanResult definition again from previous turn...
-            // It has title, but not explicitly title_japanese in the JikanResult interface I saw earlier (lines 48-88).
-            // It has 'title' and other fields. Let's assume title for now.
-            // But wait, the original code used 'title_japanese'.
-            // I should double check JikanResult content.
-            // The JikanResult interface (lines 48-88) DOES NOT have 'title_japanese'. 
-            // However, the API returns it. I should extend JikanResult or assume it's missing from the type definition.
-            // But I am fixing types. I should probably add it to JikanResult definition if it's used, OR ignore it safely.
-            // For now I will strictly use what is in JikanResult.
-            // If I look at generated JikanResult (lines 48-88), it doesn't have title_japanese. 
-            // However, the API returns it. I should extend JikanResult or assume it's missing from the type definition.
-            // But I am fixing types. I should probably add it to JikanResult definition if it's used, OR ignore it safely.
-            // For now I will strictly use what is in JikanResult.
-            // If I look at generated JikanResult (lines 48-88), it doesn't have title_japanese. 
-            // BUT, `GlobalSearch.tsx` logic `const subtitle = item.title_japanese || item.name_kanji;` implies it was used.
-            // I will err on side of type safety: if it's not in JikanResult, I won't use it, OR I will cast.
-            // Better yet, I'll assume JikanResult might be incomplete and fix it later if needed, but for now I'll stick to 'title'.
-            // Wait, JikanResult DOES NOT have published date struct in the interface (lines 48-88), only `year`. 
-            // Original code: `const year = item.year || (item.published?.from ...)`
-            // JikanResult interface has `year?: number`. It doesn't show `published`.
-            // I will use `year` directly.
-
-            // To be safe and avoid errors, I will use accessible properties.
             year = work.year;
         }
-
-        // Re-evaluating subtitle/year logic based on JikanResult definition I saw.
-        // It has `year`.
 
         let link = '';
         if (type === 'anime') link = `/work/${item.mal_id}?type=anime`;

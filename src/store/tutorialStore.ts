@@ -1,3 +1,7 @@
+/**
+ * Onboarding tutorial state
+ * Persists completion flag to localStorage and Firestore
+ */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { doc, setDoc } from 'firebase/firestore';
@@ -13,7 +17,7 @@ interface TutorialState {
     nextStep: () => void;
     prevStep: () => void;
     setHasSeenTutorial: (hasSeen: boolean) => void;
-    resetTutorial: () => void; // for debug
+    resetTutorial: () => void;
 }
 
 export const useTutorialStore = create<TutorialState>()(
@@ -37,11 +41,10 @@ export const useTutorialStore = create<TutorialState>()(
             setHasSeenTutorial: async (hasSeen) => {
                 set({ hasSeenTutorial: hasSeen });
 
-                // Sync to Firestore if logged in
+
                 const user = useAuthStore.getState().user;
                 if (user) {
                     try {
-                        // Merge into user profile
                         await setDoc(doc(db, 'users', user.uid), { hasSeenTutorial: hasSeen }, { merge: true });
                     } catch (e) {
                         console.error("Failed to sync tutorial state", e);
@@ -53,7 +56,7 @@ export const useTutorialStore = create<TutorialState>()(
         }),
         {
             name: 'bingeki-tutorial-storage',
-            partialize: (state) => ({ hasSeenTutorial: state.hasSeenTutorial }), // Only persist hasSeen
+            partialize: (state) => ({ hasSeenTutorial: state.hasSeenTutorial }),
         }
     )
 );

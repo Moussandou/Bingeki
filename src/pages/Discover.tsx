@@ -1,3 +1,6 @@
+/**
+ * Discover page
+ */
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, useNavigate } from 'react-router-dom';

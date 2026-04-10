@@ -1,3 +1,6 @@
+/**
+ * Image Upload component (feedback)
+ */
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Upload } from 'lucide-react';

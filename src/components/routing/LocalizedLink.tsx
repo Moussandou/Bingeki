@@ -1,3 +1,6 @@
+/**
+ * Localized Link component (routing)
+ */
 import { Link as RouterLink, NavLink as RouterNavLink, useNavigate } from 'react-router-dom';
 import type { LinkProps, NavLinkProps, NavigateOptions } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';

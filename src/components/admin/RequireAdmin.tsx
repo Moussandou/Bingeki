@@ -1,3 +1,6 @@
+/**
+ * Require Admin component (admin)
+ */
 import { Navigate, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { useAuthStore } from '@/store/authStore';

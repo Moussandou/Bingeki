@@ -1,3 +1,6 @@
+/**
+ * Scroll To Top component (layout)
+ */
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { logger } from '@/utils/logger';
@@ -49,11 +52,9 @@ export function ScrollToTop() {
     // 1. Immediate reset
     handleScroll();
 
-    // 2. Second frame reset (handles initial React render)
-    const frame1 = requestAnimationFrame(handleScroll);
+        const frame1 = requestAnimationFrame(handleScroll);
     
-    // 3. Delayed reset (handles layout shifts from async data like carousels)
-    const timer = setTimeout(handleScroll, 100);
+        const timer = setTimeout(handleScroll, 100);
     const timer2 = setTimeout(handleScroll, 500); // Fail-safe for slow loading content
 
     return () => {

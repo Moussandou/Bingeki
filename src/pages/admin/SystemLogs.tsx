@@ -1,3 +1,6 @@
+/**
+ * System Logs page
+ */
 import { useState, useEffect } from 'react';
 import { Shield, Save, Database, Server, Terminal, Radio, Megaphone, Activity, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
@@ -207,8 +210,6 @@ export default function AdminSystem() {
                             </button>
                         </div>
                     </Card>
-
-
 
                     <Card variant="manga" style={{ padding: '1.5rem', backgroundColor: 'var(--color-surface)' }}>
                         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', textTransform: 'uppercase', borderBottom: '2px solid var(--color-border)', paddingBottom: '0.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

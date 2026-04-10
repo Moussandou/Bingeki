@@ -1,3 +1,6 @@
+/**
+ * S E O component (layout)
+ */
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 

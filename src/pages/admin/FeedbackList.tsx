@@ -1,3 +1,6 @@
+/**
+ * Feedback List page
+ */
 import { Layout } from '@/components/layout/Layout';
 import { getAllFeedback, type FeedbackData } from '@/firebase/firestore';
 import { useState, useEffect } from 'react';

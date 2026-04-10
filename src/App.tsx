@@ -1,3 +1,7 @@
+/**
+ * Root application component
+ * Routes, global modals, auth sync, and maintenance gate
+ */
 import { logger } from '@/utils/logger';
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
@@ -11,7 +15,7 @@ import {
 import { ToastProvider } from '@/context/ToastContext';
 import { isBot } from '@/utils/isBot';
 
-// Lazy load pages
+// Pages (lazy loaded)
 const Opening = lazy(() => import('@/pages/Opening'));
 const Auth = lazy(() => import('@/pages/Auth'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -32,7 +36,7 @@ const PersonDetails = lazy(() => import('@/pages/PersonDetails'));
 const Credits = lazy(() => import('@/pages/Credits'));
 const Assets = lazy(() => import('@/pages/AssetsPage'));
 const Donors = lazy(() => import('@/pages/Donors'));
-const Notifications = lazy(() => import('@/pages/Notifications')); // Added
+const Notifications = lazy(() => import('@/pages/Notifications'));
 const TierListFeed = lazy(() => import('@/pages/tierlist/TierListFeed'));
 const CreateTierList = lazy(() => import('@/pages/tierlist/CreateTierList'));
 const ViewTierList = lazy(() => import('@/pages/tierlist/ViewTierList'));
@@ -44,7 +48,7 @@ const Privacy = lazy(() => import('@/pages/Privacy'));
 const Terms = lazy(() => import('@/pages/Terms'));
 const Contact = lazy(() => import('@/pages/Contact'));
 const About = lazy(() => import('@/pages/About'));
-// MyTickets and TicketDetail are now merged into Feedback.tsx
+
 
 const Lens = lazy(() => import('@/pages/Lens'));
 const NewsIndex = lazy(() => import('@/pages/NewsIndex'));
@@ -62,7 +66,7 @@ import { AvatarSelectionModal } from '@/components/auth/AvatarSelectionModal';
 import { ReloadPrompt } from '@/components/pwa/ReloadPrompt';
 import { ScrollToTop } from '@/components/layout/ScrollToTop';
 
-// Hooks
+
 import { useAuthSync } from '@/hooks/useAuthSync';
 import { usePWAHandler } from '@/hooks/usePWAHandler';
 import { useThemeManager } from '@/hooks/useThemeManager';
@@ -70,14 +74,14 @@ import { useMounted } from '@/hooks/useMounted';
 import { useFirestoreSync } from '@/hooks/useFirestoreSync';
 import { useLanguageDetection } from '@/hooks/useLanguageDetection';
 
-// Bot aware suspense to avoid blank screen during hydration for screenshot tools
+// Skip loading spinners for bots / prerendered pages
 const BotAwareSuspense = ({ children }: { children: React.ReactNode }) => {
   const isMounted = useMounted();
   const fallback = !isMounted || isBot() ? null : <LoadingScreen />;
   return <Suspense fallback={fallback}>{children}</Suspense>;
 };
 
-// Admin Components
+// Admin pages
 const AdminDashboard = lazy(() => import('@/pages/admin/Dashboard'));
 const AdminUsers = lazy(() => import('@/pages/admin/Users'));
 const AdminFeedback = lazy(() => import('@/pages/admin/FeedbackAdmin'));
@@ -88,7 +92,7 @@ const AdminEngagementAnalytics = lazy(() => import('@/pages/admin/analytics/Enga
 const AdminRetentionAnalytics = lazy(() => import('@/pages/admin/analytics/Retention'));
 const AdminHealth = lazy(() => import('@/pages/admin/Health'));
 
-// Language Manager Component
+
 const LanguageManager = () => {
   const { handleLanguageManagerRedirect } = useLanguageDetection();
   const redirect = handleLanguageManagerRedirect();
@@ -137,13 +141,13 @@ function App() {
   const [configLoaded, setConfigLoaded] = useState(false);
   const { showInstallModal, setShowInstallModal } = usePWAStore();
   
-  // Custom Hooks
+
   useAuthSync();
   usePWAHandler();
   useThemeManager();
-  useFirestoreSync(); // Handles debounced sync and profile hydration
+  useFirestoreSync();
 
-  // Subscribe to global config for maintenance mode
+  // Maintenance mode toggle
   useEffect(() => {
     const unsubscribe = subscribeToGlobalConfig((config) => {
       if (config) setIsMaintenance(config.maintenance);
@@ -152,7 +156,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Safety timeout: force loading to finish if it hangs too long (5s)
+  // Force render after 5s timeout to avoid infinite loading
   useEffect(() => {
     if (loading || !configLoaded) {
       const timer = setTimeout(() => {
@@ -185,10 +189,10 @@ function App() {
         <LevelUpModal />
         <BotAwareSuspense>
           <Routes>
-            {/* Root redirect to language prefix */}
+
             <Route path="/" element={<RootRedirect />} />
 
-            {/* Language-prefixed routes */}
+
             <Route path="/:lang" element={<LanguageManager />}>
               <Route index element={<Opening />} />
               <Route path="form" element={<FormSurvey />} />
@@ -245,11 +249,11 @@ function App() {
                 <Route path="health" element={<AdminHealth />} />
               </Route>
 
-              {/* Catch-all for invalid sub-paths under language */}
+
               <Route path="*" element={<NotFound />} />
             </Route>
 
-            {/* Fallback for non-prefixed paths */}
+
             <Route path="*" element={<RootRedirect />} />
           </Routes>
         </BotAwareSuspense>

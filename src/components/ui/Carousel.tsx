@@ -1,3 +1,6 @@
+/**
+ * Carousel component (ui)
+ */
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';

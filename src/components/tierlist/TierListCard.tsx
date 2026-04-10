@@ -1,3 +1,6 @@
+/**
+ * Tier List Card component (tierlist)
+ */
 import type { TierList } from '@/firebase/firestore';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { Heart, User } from 'lucide-react';

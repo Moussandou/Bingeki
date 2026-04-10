@@ -1,3 +1,6 @@
+/**
+ * Priority-aware concurrent task queue with retry and abort support
+ */
 import { logger } from '@/utils/logger';
 
 export type Priority = 'high' | 'medium' | 'low';
@@ -27,10 +30,7 @@ export class PriorityQueue {
     private readonly baseRetryDelay: number;
     private readonly maxConcurrent: number;
 
-    /**
-     * @param baseRetryDelay Base delay in ms for exponential backoff (default 1000). Pass 0 in tests.
-     * @param maxConcurrent  Max parallel tasks (default 4).
-     */
+
     constructor(baseRetryDelay: number = 1000, maxConcurrent: number = DEFAULT_MAX_CONCURRENT) {
         this.baseRetryDelay = baseRetryDelay;
         this.maxConcurrent = maxConcurrent;
@@ -115,7 +115,7 @@ export class PriorityQueue {
             const delay = this.baseRetryDelay * Math.pow(2, task.retries - 1);
             logger.warn(`[PriorityQueue] Retry ${task.retries}/${MAX_RETRIES} in ${delay}ms`);
             await new Promise(r => setTimeout(r, delay));
-            // Re-queue at same priority (front of queue)
+            // Re-queue at front for retry
             this.queues[task.priority].unshift(task);
         }
     }
@@ -126,5 +126,5 @@ export class PriorityQueue {
     }
 }
 
-// Singleton used by all CF calls
+
 export const jikanQueue = new PriorityQueue();

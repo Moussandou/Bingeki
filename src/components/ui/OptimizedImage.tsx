@@ -1,3 +1,6 @@
+/**
+ * Optimized Image component (ui)
+ */
 import React, { useState, useEffect, useMemo } from 'react';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
 import { useSettingsStore } from '@/store/settingsStore';

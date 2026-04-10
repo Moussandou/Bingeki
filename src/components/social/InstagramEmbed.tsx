@@ -1,3 +1,6 @@
+/**
+ * Instagram Embed component (social)
+ */
 import React, { useEffect } from 'react';
 
 interface InstagramEmbedProps {

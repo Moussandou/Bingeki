@@ -1,3 +1,6 @@
+/**
+ * Add Work Modal component (library)
+ */
 import { useState, useEffect } from 'react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';

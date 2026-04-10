@@ -1,3 +1,6 @@
+/**
+ * Install P W A component (pwa)
+ */
 
 import { useTranslation } from 'react-i18next';
 import { Download } from 'lucide-react';

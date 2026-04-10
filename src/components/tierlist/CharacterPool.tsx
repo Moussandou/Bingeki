@@ -1,3 +1,6 @@
+/**
+ * Character Pool component (tierlist)
+ */
 
 import React, { useState, useEffect } from 'react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';

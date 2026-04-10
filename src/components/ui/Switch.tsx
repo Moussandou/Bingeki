@@ -1,3 +1,6 @@
+/**
+ * Switch component (ui)
+ */
 import { motion } from 'framer-motion';
 import styles from './Switch.module.css';
 

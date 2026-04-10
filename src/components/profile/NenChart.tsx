@@ -1,3 +1,6 @@
+/**
+ * Nen Chart component (profile)
+ */
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useState, useEffect } from 'react';
 import { Info } from 'lucide-react';

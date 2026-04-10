@@ -1,3 +1,6 @@
+/**
+ * Dashboard page
+ */
 import { logger } from '@/utils/logger';
 import { Layout } from '@/components/layout/Layout';
 // Card component removed as part of redesign
@@ -68,8 +71,6 @@ export default function Dashboard() {
         const topManga = await getTopWorks('manga', 'bypopularity', 6); // Fetch 6 for a better grid
         setRecommendations(topManga);
     }, []);
-
-
 
     useEffect(() => {
         if (user) {

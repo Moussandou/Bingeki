@@ -1,3 +1,6 @@
+/**
+ * Mockup Browser component (mockups)
+ */
 import React from 'react';
 
 interface MockupBrowserProps {

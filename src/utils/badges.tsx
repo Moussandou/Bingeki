@@ -1,3 +1,6 @@
+/**
+ * Badge icon and rarity color mappings
+ */
 import {
     Award, BookOpen, CheckCircle, Library, Trophy, Flame,
     Flag, Book, Zap, Layers, Database, Timer, CalendarCheck, Crown, Target, Star, Medal
@@ -24,7 +27,7 @@ export const BADGE_ICONS: Record<string, React.ReactNode> = {
     'trophy': <Trophy size={32} />,
 };
 
-// Rarity colors for badges
+
 export const RARITY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
     'common': { bg: '#6b7280', text: '#fff', border: '#4b5563' },       // Gray
     'rare': { bg: '#3b82f6', text: '#fff', border: '#2563eb' },         // Blue
@@ -32,14 +35,14 @@ export const RARITY_COLORS: Record<string, { bg: string; text: string; border: s
     'legendary': { bg: 'linear-gradient(135deg, #ffd700, #ff8c00)', text: '#000', border: '#ffd700' }, // Gold gradient
 };
 
-// Helper to get badge icon safely
+
 export function getBadgeIcon(iconName: string | undefined): React.ReactNode {
     if (!iconName) return <Star size={32} />;
     const normalized = iconName.toLowerCase().trim();
     return BADGE_ICONS[normalized] || <Star size={32} />;
 }
 
-// Helper to get badge colors by rarity
+
 export function getBadgeColors(rarity: string | undefined): { bg: string; text: string; border: string } {
     if (!rarity) return RARITY_COLORS['common'];
     return RARITY_COLORS[rarity.toLowerCase()] || RARITY_COLORS['common'];

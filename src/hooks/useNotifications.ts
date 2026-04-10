@@ -1,3 +1,6 @@
+/**
+ * Real-time Firestore notifications listener
+ */
 import { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, onSnapshot, doc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
@@ -46,8 +49,7 @@ export function useNotifications(limitCount = 20) {
             setLoading(false);
         });
 
-        // Separate listener for total unread count if needed, but for now this is fine for the dropdown
-        // Ideally we might want a separate count query or summary document for performance at scale.
+
 
         return () => unsubscribe();
     }, [user, limitCount]);

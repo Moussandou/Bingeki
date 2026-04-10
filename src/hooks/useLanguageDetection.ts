@@ -1,12 +1,10 @@
+/**
+ * URL-based language detection and redirect logic
+ */
 import { useEffect } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMounted } from './useMounted';
-
-/**
- * Hook to handle language detection from URL, handle redirects to the detected language,
- * and ensure the i18next instance is in sync with the current URL parameter.
- */
 export function useLanguageDetection() {
   const { lang } = useParams();
   const { i18n } = useTranslation();
@@ -24,7 +22,7 @@ export function useLanguageDetection() {
   const handleRootRedirect = () => {
     if (!isMounted) return null;
 
-    // Prevent redirect loops for static files that fell through
+    // Skip redirects for static file paths
     if (/\.(xml|txt|json|png|jpg|jpeg|svg|ico)$/i.test(location.pathname)) {
       return '404';
     }
@@ -32,7 +30,7 @@ export function useLanguageDetection() {
     const detectedLang = i18n.language === 'en' ? 'en' : 'fr';
     const currentPath = location.pathname;
 
-    // If already prefixed, don't re-prefix
+
     if (currentPath.startsWith('/fr/') || currentPath.startsWith('/en/') || currentPath === '/fr' || currentPath === '/en') {
       return 'not_found';
     }

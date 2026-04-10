@@ -1,3 +1,7 @@
+/**
+ * Comments CRUD for work detail pages
+ * Handles threading, spoilers, and likes
+ */
 import { useState, useEffect, useCallback } from 'react';
 import { getCommentsWithReplies, addComment, toggleCommentLike } from '@/firebase/firestore';
 import type { CommentWithReplies } from '@/types/comment';
@@ -22,10 +26,7 @@ export interface UseWorkCommentsResult {
     refreshComments: () => void;
 }
 
-/**
- * Custom hook to manage comments for a work
- * Extracts all comments logic from WorkDetails component
- */
+
 export function useWorkComments(
     workId: number | undefined,
     t: (key: string) => string
@@ -34,14 +35,14 @@ export function useWorkComments(
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Form state
+
     const [newComment, setNewComment] = useState('');
     const [isSpoiler, setIsSpoiler] = useState(false);
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
     const [replyText, setReplyText] = useState('');
     const [revealedSpoilers, setRevealedSpoilers] = useState<string[]>([]);
 
-    // Load comments
+
     const loadComments = useCallback(async () => {
         if (!workId) return;
 
@@ -68,7 +69,7 @@ export function useWorkComments(
         loadComments();
     }, [loadComments]);
 
-    // Submit new comment
+
     const submitComment = useCallback(async (
         wId: number,
         userId: string,
@@ -96,7 +97,7 @@ export function useWorkComments(
         }
     }, [newComment, isSpoiler, loadComments]);
 
-    // Like/unlike comment
+    // Optimistic like toggle
     const likeComment = useCallback((commentId: string, userId: string) => {
         setComments(prev => prev.map(c => {
             if (c.id === commentId) {
@@ -111,7 +112,7 @@ export function useWorkComments(
         toggleCommentLike(commentId, userId).catch(console.error);
     }, []);
 
-    // Submit reply (a comment with replyTo field)
+
     const submitReply = useCallback(async (
         parentId: string,
         wId: number,

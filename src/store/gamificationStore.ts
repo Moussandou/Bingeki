@@ -1,3 +1,7 @@
+/**
+ * Gamification store: XP, levels, streaks, badges, and stat tracking
+ * Recalculates from library works; syncs with Firestore profile
+ */
 import { logger } from '@/utils/logger';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -7,9 +11,9 @@ import { type Work } from './libraryStore';
 interface GamificationState {
     level: number;
     xp: number;
-    totalXp: number; // Cumulative XP across all levels
+    totalXp: number;
     xpToNextLevel: number;
-    bonusXp: number; // Tracks non-library XP (e.g. daily logins)
+    bonusXp: number;
     streak: number;
     lastActivityDate: string | null;
     badges: Badge[];
@@ -18,7 +22,7 @@ interface GamificationState {
     xpGained: { amount: number; timestamp: number } | null;
     levelUpData: { newLevel: number; timestamp: number } | null;
 
-    // Stats for badge tracking
+
     totalChaptersRead: number;
     totalAnimeEpisodesWatched: number;
     totalMoviesWatched: number;
@@ -42,7 +46,7 @@ const LEVEL_BASE = 100;
 const LEVEL_MULTIPLIER = 1.15;
 const MAX_LEVEL = 100;
 
-// XP Rewards — must match functions/index.js XP_REWARDS exactly
+// Must match functions/index.js XP_REWARDS
 export const XP_REWARDS = {
     ADD_WORK: 15,
     UPDATE_PROGRESS: 5,
@@ -78,19 +82,19 @@ export const useGamificationStore = create<GamificationState>()(
                     set({ bonusXp: bonusXp + amount });
                 }
 
-                // If already at max level, we can still add XP for fun, but no leveling up
+
                 let newXp = Math.max(0, xp + amount);
                 let newLevel = level;
                 let newXpToNext = xpToNextLevel;
 
-                // Level up logic
+
                 while (newXp >= newXpToNext && newLevel < MAX_LEVEL) {
                     newXp -= newXpToNext;
                     newLevel++;
                     newXpToNext = Math.floor(newXpToNext * LEVEL_MULTIPLIER);
                 }
 
-                // Calculate Total XP
+
                 const newTotalXp = calculateCumulativeXp(newLevel, newXp);
 
                 set({
@@ -113,7 +117,7 @@ export const useGamificationStore = create<GamificationState>()(
                     const lastDate = new Date(lastActivityDate);
                     const lastLocalStr = `${lastDate.getFullYear()}-${lastDate.getMonth() + 1}-${lastDate.getDate()}`;
                     if (localTodayStr === lastLocalStr) {
-                        return; // Already recorded today
+                        return;
                     }
                 }
 
@@ -122,7 +126,7 @@ export const useGamificationStore = create<GamificationState>()(
                     const lastDate = new Date(lastActivityDate);
                     const hoursDiff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
 
-                    // 48 hours tolerance for generous streak continuity
+                    // 48h streak tolerance
                     if (hoursDiff <= 48) {
                         newStreak = streak + 1;
                     }
@@ -130,14 +134,14 @@ export const useGamificationStore = create<GamificationState>()(
 
                 set({ streak: newStreak, lastActivityDate: now.toISOString() });
 
-                // Add daily login XP + streak bonus (+5 XP per day of streak, max 100 bonus)
+                // Daily XP + streak bonus (capped at +100)
                 const streakBonus = Math.min((newStreak - 1) * 5, 100);
-                addXp(XP_REWARDS.DAILY_LOGIN + streakBonus, true); // Mark as bonus XP
+                addXp(XP_REWARDS.DAILY_LOGIN + streakBonus, true);
             },
 
             unlockBadge: (badgeId) => {
                 const { badges } = get();
-                if (badges.find(b => b.id === badgeId)) return; // Already unlocked
+                if (badges.find(b => b.id === badgeId)) return;
 
                 const badge = MOCK_BADGES.find(b => b.id === badgeId);
                 if (badge) {
@@ -171,9 +175,8 @@ export const useGamificationStore = create<GamificationState>()(
             },
 
             checkBadges: () => {
-                // Badges are now calculated server-side by onLibraryUpdate trigger.
-                // This function is kept as a no-op to avoid breaking call sites.
-                // Badge data is synced from Firestore when the gamification doc updates.
+                // Badges are calculated server-side (onLibraryUpdate trigger)
+                // Kept as no-op to avoid breaking call sites
             },
 
             resetStore: () => set({
@@ -200,20 +203,17 @@ export const useGamificationStore = create<GamificationState>()(
                 let worksCompleted = 0;
                 let calculatedXp = 0;
 
-                // Calculate raw stats
+
                 works.forEach(w => {
                     const progress = w.currentChapter || 0;
                     const total = w.totalChapters;
                     const type = w.type ? w.type.toLowerCase() : 'manga';
 
-                    // Anti-cheat: if total is unknown, don't count progress XP (0)
-                    // if total is known, cap progress by it.
+                    // Skip progress XP when total is unknown (anti-cheat)
                     let effectiveProgress = 0;
                     if (total && total > 0) {
                         effectiveProgress = Math.min(progress, total);
                     } else if (progress > 0) {
-                        // If no total is set by API, we don't grant XP for progress to prevent abuse
-                        // but we still track it in the stats UI (raw chapters read).
                         effectiveProgress = 0;
                     }
 
@@ -223,7 +223,7 @@ export const useGamificationStore = create<GamificationState>()(
                     } else if (type === 'anime') {
                         if (w.format === 'Movie') {
                             movies += progress;
-                            calculatedXp += Math.min(progress, 1) * XP_REWARDS.UPDATE_PROGRESS; // Movies usually 1 episode
+                            calculatedXp += Math.min(progress, 1) * XP_REWARDS.UPDATE_PROGRESS;
                         } else {
                             episodes += progress;
                             calculatedXp += effectiveProgress * XP_REWARDS.UPDATE_PROGRESS;
@@ -236,15 +236,15 @@ export const useGamificationStore = create<GamificationState>()(
                     if (w.status === 'completed') worksCompleted++;
                 });
 
-                // 1. Works Added
+
                 calculatedXp += worksAdded * XP_REWARDS.ADD_WORK;
-                // 3. Completed
+
                 calculatedXp += worksCompleted * XP_REWARDS.COMPLETE_WORK;
 
-                // 4. Bonus XP
+
                 calculatedXp += get().bonusXp || 0;
 
-                // Calculate Level from XP
+
                 let simLevel = 1;
                 let simXp = calculatedXp;
                 let simXpToNext = LEVEL_BASE;
@@ -258,12 +258,10 @@ export const useGamificationStore = create<GamificationState>()(
                 const prevLevel = get().level;
                 const prevTotalXp = get().totalXp;
 
-                // Calculate Total XP
+
                 const newTotalXp = calculateCumulativeXp(simLevel, simXp);
 
-                // GUARD: If new calculates are significantly lower than current, 
-                // and works list is small or empty, it's likely a loading state. 
-                // Don't overwrite state with zeroed values.
+                // Guard: don't overwrite with zeros during loading
                 if (works.length === 0 && prevLevel > 1 && prevTotalXp > 100) {
                     logger.log('[GamificationStore] recalculateStats ignored - empty works with high level (likely loading)');
                     return;
@@ -274,8 +272,7 @@ export const useGamificationStore = create<GamificationState>()(
                     return;
                 }
 
-                // Hack to show toast if XP increased (roughly)
-                // If they level up, we can't easily rely on simXp > prevXp, so just use logic:
+                // Estimate XP gain for toast display
                 const didIncreaseXP = newTotalXp > prevTotalXp;
                 const xpGainGuesstimate = didIncreaseXP ? Math.min(100, Math.floor(newTotalXp - prevTotalXp)) : 0;
 
@@ -285,14 +282,13 @@ export const useGamificationStore = create<GamificationState>()(
                     totalMoviesWatched: movies,
                     totalWorksAdded: worksAdded,
                     totalWorksCompleted: worksCompleted,
-                    // Update XP and Level
+
                     xp: simXp,
                     level: simLevel,
                     totalXp: newTotalXp,
                     xpToNextLevel: simXpToNext,
                     lastLevel: prevLevel,
-                    // Only show toast if it's a minor gain (manual action) 
-                    // or if explicitly requested. Large jumps from recalculation are muted.
+                    // Only show toast for small gains; mute large recalculation jumps
                     ...(didIncreaseXP && xpGainGuesstimate <= 100 ? {
                         xpGained: { amount: xpGainGuesstimate, timestamp: Date.now() },
                         levelUpData: simLevel > prevLevel ? { newLevel: simLevel, timestamp: Date.now() } : get().levelUpData
@@ -304,7 +300,7 @@ export const useGamificationStore = create<GamificationState>()(
             syncFromProfile: (profile: any) => {
                 if (!profile) return;
 
-                // Only update if we actually have gamification data in the profile
+
                 if (profile.level === undefined && profile.xp === undefined) return;
 
                 const state = get();
@@ -318,8 +314,7 @@ export const useGamificationStore = create<GamificationState>()(
                 const totalWorksCompleted = profile.totalWorksCompleted ?? state.totalWorksCompleted;
                 const bonusXp = profile.bonusXp ?? state.bonusXp;
 
-                // Sync lastActivityDate from cloud only if cloud is more recent
-                // This is critical for streak continuity across devices
+                // Use most recent lastActivityDate for streak continuity
                 const cloudLastActivity = profile.lastActivityDate || null;
                 const localLastActivity = state.lastActivityDate || null;
                 let lastActivityDate = localLastActivity;
@@ -333,14 +328,13 @@ export const useGamificationStore = create<GamificationState>()(
 
                 const totalXp = profile.totalXp || calculateCumulativeXp(level, xp);
 
-                // Anti-regression guard: Only sync if incoming XP is higher or equal to current
-                // This prevents stale cloud data from overwriting recent local progress
+                // Anti-regression: don't overwrite if local XP is ahead
                 if (state.totalXp > totalXp) {
                     logger.log('[GamificationStore] Skip profile sync - local XP is ahead:', { local: state.totalXp, remote: totalXp });
                     return;
                 }
 
-                // Quick equality check to prevent loops
+                // Skip if nothing changed
                 if (
                     state.level === level &&
                     state.xp === xp &&
@@ -358,7 +352,7 @@ export const useGamificationStore = create<GamificationState>()(
                     return;
                 }
 
-                // Calculate xpToNextLevel for the given level
+
                 let xpToNext = LEVEL_BASE;
                 for (let i = 1; i < level; i++) {
                     xpToNext = Math.floor(xpToNext * LEVEL_MULTIPLIER);
@@ -385,7 +379,7 @@ export const useGamificationStore = create<GamificationState>()(
         }),
         {
             name: 'bingeki-gamification-storage',
-            // Exclude notification and transient states from persistence
+
             partialize: (state: GamificationState) => {
                 const { xpGained, levelUpData, recentUnlock, ...rest } = state;
                 return rest;
@@ -394,9 +388,7 @@ export const useGamificationStore = create<GamificationState>()(
     )
 );
 
-/**
- * Calculates cumulative XP across all levels
- */
+
 function calculateCumulativeXp(level: number, currentLevelXp: number): number {
     let total = 0;
     let levelXpReq = LEVEL_BASE;

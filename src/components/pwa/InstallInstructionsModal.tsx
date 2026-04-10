@@ -1,3 +1,6 @@
+/**
+ * Install Instructions Modal component (pwa)
+ */
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Smartphone, Share, PlusSquare, Menu } from 'lucide-react';

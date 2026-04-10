@@ -1,3 +1,6 @@
+/**
+ * Firebase SDK initialization and emulator setup
+ */
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore, memoryLocalCache, connectFirestoreEmulator } from 'firebase/firestore';
@@ -18,7 +21,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-// Force memory cache to avoid "Unexpected state" errors from corrupted IndexedDB
+// Memory cache avoids IndexedDB corruption crashes
 export const db = initializeFirestore(app, {
     localCache: memoryLocalCache()
 });

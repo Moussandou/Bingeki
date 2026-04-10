@@ -1,3 +1,6 @@
+/**
+ * Firebase Health Checks module
+ */
 import { db, auth, storage } from '@/firebase/config';
 import { collection, getDocs, doc, getDoc, limit, query, orderBy, where, addDoc, serverTimestamp, type QuerySnapshot, type DocumentData, updateDoc } from 'firebase/firestore';
 import { ref, list } from 'firebase/storage';
@@ -696,8 +699,7 @@ export async function saveHealthReportToHistory(report: FullHealthReport): Promi
 // ─── Full Health Report ─────────────────────────────────────────────
 
 export async function getFullHealthReport(): Promise<FullHealthReport> {
-    // 1. Fetch users once to share across multiple checks (Performance Optimization)
-    const usersSnap = await getDocs(query(collection(db, 'users'), limit(500)));
+        const usersSnap = await getDocs(query(collection(db, 'users'), limit(500)));
 
     const [
         authResult, firestoreResult, storageResult, jikanResult,

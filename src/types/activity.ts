@@ -1,3 +1,6 @@
+/**
+ * Activity type definitions
+ */
 // Activity Event Types for Social Feed
 
 export interface ActivityEvent {

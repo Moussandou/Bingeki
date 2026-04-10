@@ -1,3 +1,6 @@
+/**
+ * Tier List Preview Modal component (tierlist)
+ */
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, Heart, User, Calendar } from 'lucide-react';
 import type { TierList } from '@/firebase/firestore';

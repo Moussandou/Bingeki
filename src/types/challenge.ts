@@ -1,3 +1,6 @@
+/**
+ * Challenge type definitions
+ */
 // Challenge Types for Friend Challenges
 
 export interface Challenge {

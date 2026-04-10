@@ -1,3 +1,6 @@
+/**
+ * Level Up Modal component (gamification)
+ */
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { useTranslation } from 'react-i18next';

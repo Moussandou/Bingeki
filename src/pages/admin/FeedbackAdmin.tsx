@@ -1,3 +1,6 @@
+/**
+ * Feedback Admin page
+ */
 import { useState, useEffect } from 'react';
 import {
     Star, Trash2,

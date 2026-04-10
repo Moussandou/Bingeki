@@ -1,3 +1,6 @@
+/**
+ * Add Favorite Character Modal component (profile)
+ */
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';

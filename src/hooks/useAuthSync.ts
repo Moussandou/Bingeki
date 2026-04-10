@@ -1,3 +1,7 @@
+/**
+ * Syncs Firebase auth state with local stores on login/logout
+ * Merges cloud + local data to avoid overwrites
+ */
 import { useEffect, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/firebase/config';
@@ -23,25 +27,25 @@ export function useAuthSync() {
             setUser(firebaseUser);
 
             if (firebaseUser) {
-                // Get current local state before loading cloud
+
                 const localLibrary = useLibraryStore.getState().works;
                 const localGamification = useGamificationStore.getState();
 
-                // Sync user profile (email, name, photo)
+
                 await saveUserProfileToFirestore(firebaseUser);
 
-                // REAL-TIME: Subscribe to profile changes
+
                 if (profileUnsubscribe) profileUnsubscribe();
                 profileUnsubscribe = useAuthStore.getState().subscribeToProfile(firebaseUser.uid);
 
-                // Load cloud data with error handling
+
                 try {
                     const cloudLibraryData = await loadFullLibraryData(firebaseUser.uid);
                     const cloudGamification = await loadGamificationFromFirestore(firebaseUser.uid);
 
                     const cloudWorks = cloudLibraryData?.works || null;
 
-                    // Smart merge: combine local and cloud data safely
+                    // Smart merge: prefer latest data from either side
                     const mergedLibrary = mergeLibraryData(localLibrary, cloudWorks);
                     const mergedGamification = mergeGamificationData(
                         {
@@ -51,7 +55,7 @@ export function useAuthSync() {
                         cloudGamification
                     );
 
-                    // Update stores with merged data
+
                     isInitialSync.current = true;
                     useLibraryStore.setState({ 
                         works: mergedLibrary,
@@ -66,7 +70,7 @@ export function useAuthSync() {
                     logger.error('[AuthSync] Error during initial data sync:', error);
                 }
             } else {
-                // User logged out
+
                 if (profileUnsubscribe) {
                     profileUnsubscribe();
                     profileUnsubscribe = undefined;

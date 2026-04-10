@@ -1,3 +1,6 @@
+/**
+ * Brand Icons component (ui)
+ */
 import React from 'react';
 
 interface IconProps {

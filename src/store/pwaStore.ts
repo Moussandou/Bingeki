@@ -1,3 +1,6 @@
+/**
+ * PWA install prompt state management
+ */
 import { create } from 'zustand';
 import { logger } from '@/utils/logger';
 
@@ -40,7 +43,7 @@ export const usePWAStore = create<PWAState>((set, get) => ({
                 set({ showInstallModal: true });
             }
         } else {
-            // Fallback to instructions modal if no native prompt is available
+            // No native prompt available, show manual instructions
             set({ showInstallModal: true });
         }
     },

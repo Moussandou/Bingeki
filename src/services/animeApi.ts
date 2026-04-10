@@ -1,3 +1,6 @@
+/**
+ * Anime Api service layer
+ */
 import { jikanQueue } from '@/utils/apiQueue';
 import type { QueueOptions } from '@/utils/apiQueue';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -151,12 +154,7 @@ const setCache = <T>(key: string, data: T, isError: boolean = false) => {
 /** In-flight requests — prevents duplicate concurrent calls (e.g. React StrictMode double-mount) */
 const inflight = new Map<string, Promise<any>>();
 
-/**
- * Call a Cloud Function proxy with session cache.
- * Checks in-memory session cache first, then calls the Function via PriorityQueue.
- * Deduplicates concurrent calls with the same key.
- * Falls back to defaultValue on error if provided, otherwise re-throws.
- */
+
 async function callProxy<T, I = any>(
     fn: HttpsCallable<I, any>,
     args: I,

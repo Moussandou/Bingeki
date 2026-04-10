@@ -1,3 +1,6 @@
+/**
+ * Streak Counter component (gamification)
+ */
 import { Flame } from 'lucide-react';
 
 interface StreakCounterProps {

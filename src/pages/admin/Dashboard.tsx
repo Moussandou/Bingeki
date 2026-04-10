@@ -1,3 +1,6 @@
+/**
+ * Dashboard page
+ */
 import { useState, useEffect } from 'react';
 import { 
     Users, TrendingUp, Activity, ExternalLink, Clipboard, Info, 
@@ -147,8 +150,6 @@ export default function AdminDashboard() {
     }
 
     const COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
-
-
 
     const statCardStyle = {
         padding: '1.5rem',

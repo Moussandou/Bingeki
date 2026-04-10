@@ -1,3 +1,6 @@
+/**
+ * Classname merge helper (clsx + tailwind-merge)
+ */
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 

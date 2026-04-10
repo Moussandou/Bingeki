@@ -1,3 +1,6 @@
+/**
+ * Profile page
+ */
 import { logger } from '@/utils/logger';
 
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
@@ -499,8 +502,6 @@ export default function Profile() {
                             </div>
                         </div>
                     </div>
-
-
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
                         {/* ID Card / Hunter License Style */}
@@ -1204,8 +1205,6 @@ export default function Profile() {
                                 </div>
                             </div>
                         </div>
-
-
 
                     <style>{`
                         @media (max-width: 900px) {

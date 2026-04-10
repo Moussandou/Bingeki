@@ -1,3 +1,6 @@
+/**
+ * Contact page
+ */
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { Link } from '@/components/routing/LocalizedLink';

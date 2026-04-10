@@ -1,3 +1,6 @@
+/**
+ * Users page
+ */
 import { useState, useEffect, useMemo } from 'react';
 import { Search, Shield, Ban, ExternalLink, Edit, Eye, Trash2, Clock, Circle, ArrowUpDown, LayoutGrid, List } from 'lucide-react';
 import { Card } from '@/components/ui/Card';

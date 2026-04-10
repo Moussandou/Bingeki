@@ -1,3 +1,6 @@
+/**
+ * LocalStorage size, export/import, and cache utilities
+ */
 export const getLocalStorageSize = (): string => {
     let total = 0;
     for (const x in localStorage) {
@@ -10,15 +13,7 @@ export const getLocalStorageSize = (): string => {
 };
 
 export const clearImageCache = () => {
-    // This is tricky since images are usually URLs. 
-    // If we were caching base64 images in localStorage, we could clear them.
-    // Assuming we might have some cache keys, or just clear non-essential keys.
-    // Clear specific keys if we had them.
-    // Browsers handle image caching.
-    // "Clear App Cache" clears specific temp keys or notifies user. 
-    // we'll just say "Cache Cleared" toast for satisfaction or clear specific temp keys.
-    // Realistically, we can't clear browser HTTP cache from JS.
-    // We'll just return true to simulate success for the UI action.
+    // Browser HTTP cache can't be cleared from JS — no-op placeholder
     return true;
 };
 
@@ -54,18 +49,18 @@ export const importData = (file: File): Promise<boolean> => {
                 const content = e.target?.result as string;
                 const data = JSON.parse(content);
 
-                // 1. Update localStorage (Persistence)
+
                 if (data.library) localStorage.setItem('bingeki-library-storage', data.library);
                 if (data.gamification) localStorage.setItem('bingeki-gamification-storage', data.gamification);
                 if (data.settings) localStorage.setItem('bingeki-settings', data.settings);
 
-                // 2. Update Zustand Stores (Reactive UI + Trigger Firestore Sync)
+                // Hydrate Zustand stores to trigger reactive UI + Firestore sync
                 if (data.library) {
                     try {
                         const parsedLib = JSON.parse(data.library);
-                        // Zustand persist wraps state in { state: ... }
+
                         const works = parsedLib.state ? parsedLib.state.works : parsedLib;
-                        // Handle both raw array or persist object format
+
                         const actualWorks = Array.isArray(works) ? works : (Array.isArray(parsedLib) ? parsedLib : []);
 
                         if (actualWorks.length > 0) {

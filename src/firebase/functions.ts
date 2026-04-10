@@ -1,3 +1,7 @@
+/**
+ * Firebase callable function bindings
+ * Typed wrappers for all Cloud Function endpoints
+ */
 import { httpsCallable } from 'firebase/functions';
 import { functions } from './config';
 
@@ -15,7 +19,6 @@ export const getAnimeThemesFn      = httpsCallable<{ id: number }, unknown>(func
 export const getWorkReviewsFn      = httpsCallable<{ id: number; type: string }, unknown>(functions, 'getWorkReviews');
 export const getFRTranslationFn    = httpsCallable<{ id: number; type: string; titleFrench?: string; titleRomaji?: string }, string | null>(functions, 'getFRTranslation');
 
-// ── New endpoints (previously called Jikan directly from client) ──────────
 
 export const getTopWorksFn          = httpsCallable<{ type: string; filter?: string; limit?: number; nsfwMode?: boolean }, unknown>(functions, 'getTopWorks');
 export const getSeasonalAnimeFn     = httpsCallable<{ limit?: number; nsfwMode?: boolean }, unknown>(functions, 'getSeasonalAnime');

@@ -1,3 +1,6 @@
+/**
+ * Challenges page
+ */
 import { useTranslation } from 'react-i18next';
 import { Layout } from '@/components/layout/Layout';
 

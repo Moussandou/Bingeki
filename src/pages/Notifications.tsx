@@ -1,3 +1,6 @@
+/**
+ * Notifications page
+ */
 import { Layout } from '@/components/layout/Layout';
 import { useTranslation } from 'react-i18next';
 import { SEO } from '@/components/layout/SEO';

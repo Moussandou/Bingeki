@@ -1,3 +1,7 @@
+/**
+ * User preferences store (theme, language, privacy, etc.)
+ * Persisted to localStorage, synced from Firestore profile
+ */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -16,7 +20,7 @@ interface SettingsState {
     nsfwMode: boolean;
     accentColor: string;
 
-    // New settings
+
     titleLanguage: TitleLanguage;
     hideScores: boolean;
     dataSaver: boolean;
@@ -33,7 +37,7 @@ interface SettingsState {
     toggleNsfwMode: () => void;
     setAccentColor: (color: string) => void;
 
-    // New setters
+
     setTitleLanguage: (lang: TitleLanguage) => void;
     toggleHideScores: () => void;
     toggleDataSaver: () => void;
@@ -51,7 +55,7 @@ export const useSettingsStore = create<SettingsState>()(
             soundEnabled: true,
             notifications: true,
 
-            streamingUrlPattern: 'https://www.google.com/search?q={title}+episode+{number}+streaming', // Default
+            streamingUrlPattern: 'https://www.google.com/search?q={title}+episode+{number}+streaming',
             setStreamingUrlPattern: (pattern) => set({ streamingUrlPattern: pattern }),
 
             setTheme: (theme) => set({ theme }),
@@ -69,7 +73,7 @@ export const useSettingsStore = create<SettingsState>()(
             accentColor: '#FF2E63',
             setAccentColor: (color) => set({ accentColor: color }),
 
-            // New settings defaults
+
             titleLanguage: 'romaji',
             setTitleLanguage: (lang) => set({ titleLanguage: lang }),
             hideScores: false,

@@ -1,3 +1,6 @@
+/**
+ * Library page
+ */
 import { useState, useMemo, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { Card } from '@/components/ui/Card';
@@ -13,7 +16,6 @@ import styles from './Library.module.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SEO } from '@/components/layout/SEO';
-import { statusToFrench } from '@/utils/statusTranslation';
 import { useToast } from '@/context/ToastContext';
 import { exportData, importData } from '@/utils/storageUtils';
 import { useTranslation } from 'react-i18next';
@@ -1015,7 +1017,7 @@ export default function Library() {
                                                                         }}>
                                                                             {work.type}
                                                                         </span>
-                                                                        <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase' }}>{statusToFrench(work.status)}</span>
+                                                                        <span style={{ fontSize: '0.85rem', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase' }}>{t(`work_details.status.${work.status}`)}</span>
                                                                     </div>
 
                                                                     {/* Progress Bar */}

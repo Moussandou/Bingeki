@@ -1,3 +1,6 @@
+/**
+ * X P Gain Toast component (gamification)
+ */
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGamificationStore } from '@/store/gamificationStore';

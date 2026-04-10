@@ -1,3 +1,6 @@
+/**
+ * Social page
+ */
 import { logger } from '@/utils/logger';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -149,8 +152,7 @@ export default function Social() {
         setLoading(true);
 
         try {
-            // 1. Always ensure basic friends list for status checks
-            if (friends.length === 0) {
+                        if (friends.length === 0) {
                 await fetchFriends(false);
             }
 

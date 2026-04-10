@@ -1,3 +1,6 @@
+/**
+ * Social Links Banner component (social)
+ */
 import { DiscordIcon, TikTokIcon, InstagramIcon } from '@/components/ui/BrandIcons';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';

@@ -1,3 +1,6 @@
+/**
+ * Social Feed component (social)
+ */
 import React from 'react';
 import { InstagramEmbed } from './InstagramEmbed';
 import styles from './SocialFeed.module.css';

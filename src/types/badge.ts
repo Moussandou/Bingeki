@@ -1,3 +1,6 @@
+/**
+ * Badge type definitions
+ */
 export interface Badge {
     id: string;
     name: string;

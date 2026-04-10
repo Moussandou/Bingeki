@@ -1,3 +1,6 @@
+/**
+ * News Index page
+ */
 import { useEffect, useState, useMemo } from 'react';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/firebase/config';

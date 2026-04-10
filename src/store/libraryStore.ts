@@ -1,9 +1,13 @@
+/**
+ * Library store: works, folders, and favorite characters
+ * Persisted to localStorage, synced to Firestore via useFirestoreSync
+ */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import type { FavoriteCharacter } from '@/types/character';
 
-// Folder colors palette
+
 export const FOLDER_COLORS = [
     '#FF2E63', // Pink/Red
     '#08D9D6', // Cyan
@@ -13,7 +17,7 @@ export const FOLDER_COLORS = [
     '#3B82F6', // Blue
 ] as const;
 
-// Folder emojis
+
 export const FOLDER_EMOJIS = ['📁', '⭐', '❤️', '🔥', '📚', '🎬', '✨', '🏆', '💎', '🎯'] as const;
 
 export interface FolderSharing {
@@ -44,12 +48,12 @@ export interface Work {
     currentChapter?: number;
     status: 'reading' | 'completed' | 'on_hold' | 'dropped' | 'plan_to_read';
     score?: number;
-    synopsis?: string; // Add synopsis field
-    rating?: number; // User personal rating (0-10)
-    notes?: string;  // User personal notes
-    lastUpdated?: number; // Timestamp of last progress update
-    dateAdded?: number; // Timestamp of creation
-    collections?: string[]; // Folder IDs
+    synopsis?: string;
+    rating?: number;
+    notes?: string;
+    lastUpdated?: number;
+    dateAdded?: number;
+    collections?: string[];
     genres?: { name: string }[];
     season?: string;
     year?: number;
@@ -64,21 +68,21 @@ interface LibraryState {
     works: Work[];
     folders: Folder[];
     favoriteCharacters: FavoriteCharacter[];
-    // Work actions
+
     addWork: (work: Work) => void;
     removeWork: (id: number | string) => void;
     updateProgress: (id: number | string, progress: number) => void;
     updateStatus: (id: number | string, status: Work['status']) => void;
     updateWorkDetails: (id: number | string, details: Partial<Work>) => void;
     getWork: (id: number | string) => Work | undefined;
-    // Folder actions
+
     createFolder: (name: string, color: string, emoji: string) => void;
     updateFolder: (id: string, updates: Partial<Omit<Folder, 'id' | 'createdAt'>>) => void;
     deleteFolder: (id: string) => void;
     addToFolder: (workId: number | string, folderId: string) => void;
     removeFromFolder: (workId: number | string, folderId: string) => void;
     getWorksInFolder: (folderId: string) => Work[];
-    // Character actions
+
     addFavoriteCharacter: (character: FavoriteCharacter) => void;
     removeFavoriteCharacter: (id: number) => void;
     isFavoriteCharacter: (id: number) => boolean;
@@ -99,7 +103,7 @@ export const useLibraryStore = create<LibraryState>()(
             folders: [],
             favoriteCharacters: [],
 
-            // Work actions
+
             addWork: (work) => set((state) => {
                 if (state.works.some((w) => w.id === work.id)) return state;
                 return {
@@ -131,7 +135,7 @@ export const useLibraryStore = create<LibraryState>()(
             })),
             getWork: (id) => get().works.find((w) => w.id === id),
 
-            // Folder actions
+
             createFolder: (name, color, emoji) => set((state) => ({
                 folders: [...state.folders, {
                     id: `folder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -148,7 +152,7 @@ export const useLibraryStore = create<LibraryState>()(
             })),
             deleteFolder: (id) => set((state) => ({
                 folders: state.folders.filter((f) => f.id !== id),
-                // Also remove folder reference from all works
+                // Remove folder reference from all works
                 works: state.works.map((w) => ({
                     ...w,
                     collections: w.collections?.filter((c) => c !== id) || []
@@ -175,7 +179,7 @@ export const useLibraryStore = create<LibraryState>()(
                 w.collections?.includes(folderId)
             ),
 
-            // Character actions
+
             addFavoriteCharacter: (character) => set((state) => {
                 if (state.favoriteCharacters.some((c) => c.id === character.id)) return state;
                 return { favoriteCharacters: [...state.favoriteCharacters, character] };
@@ -199,7 +203,7 @@ export const useLibraryStore = create<LibraryState>()(
             }),
             resetStore: () => {
                 get().resetStoreBase();
-                // Clear any other state if needed
+
             }
         }),
         {

@@ -1,3 +1,6 @@
+/**
+ * Bingeki Banner component (ui)
+ */
 import React from 'react';
 import styles from './BingekiBanner.module.css';
 

@@ -1,3 +1,6 @@
+/**
+ * PWA install prompt, chunk error recovery, and auto-install via URL param
+ */
 import { useEffect } from 'react';
 import { usePWAStore } from '@/store/pwaStore';
 import type { BeforeInstallPromptEvent } from '@/store/pwaStore';
@@ -7,7 +10,7 @@ export function usePWAHandler() {
     const { setDeferredPrompt, setIsInstalled, clearPrompt, triggerInstall } = usePWAStore();
 
     useEffect(() => {
-        // Handle ChunkLoadError - this happens when a new version is deployed
+        // Suppress ResizeObserver noise, reload on stale chunks
         const handleChunkError = (e: ErrorEvent) => {
             if (e.message === 'ResizeObserver loop limit exceeded' || e.message === 'ResizeObserver loop completed with undelivered notifications.') {
                 e.stopImmediatePropagation();
@@ -58,7 +61,7 @@ export function usePWAHandler() {
         };
     }, [setDeferredPrompt, setIsInstalled, clearPrompt]);
 
-    // Global Auto-install check
+    // Auto-trigger install if ?install=1
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('install') === '1') {

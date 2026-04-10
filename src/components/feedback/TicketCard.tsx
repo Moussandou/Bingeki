@@ -1,3 +1,6 @@
+/**
+ * Ticket Card component (feedback)
+ */
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { FeedbackData } from '@/firebase/firestore';

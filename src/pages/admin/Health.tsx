@@ -1,3 +1,6 @@
+/**
+ * Health page
+ */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Activity, RefreshCw, Server, Database, Shield, HardDrive,

@@ -1,3 +1,6 @@
+/**
+ * Comparison Table component (ui)
+ */
 import React from 'react';
 import styles from './ComparisonTable.module.css';
 

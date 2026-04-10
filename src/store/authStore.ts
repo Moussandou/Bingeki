@@ -1,3 +1,7 @@
+/**
+ * Auth state store (Zustand)
+ * Holds Firebase user and Firestore profile with real-time subscription
+ */
 import { logger } from '@/utils/logger';
 import { create } from 'zustand';
 import { type User } from 'firebase/auth';
@@ -34,7 +38,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
     },
     subscribeToProfile: (uid: string) => {
-        // Return the unsubscribe function so the component can clean it up
+
         return subscribeToUserProfile(uid, (profile) => {
             logger.log('[AuthStore] Real-time profile update received:', profile?.isAdmin ? 'Admin' : 'User');
             set({ userProfile: profile });

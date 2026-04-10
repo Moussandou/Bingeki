@@ -1,12 +1,16 @@
+/**
+ * Safe merge strategies for library and gamification data
+ * Prevents data loss during local/cloud conflict resolution
+ */
 import { logger } from '@/utils/logger';
 import type { Work } from '@/store/libraryStore';
 import type { Badge } from '@/types/badge';
 
-// Interfaces matching Firestore data structures
+
 export interface GamificationData {
     level: number;
     xp: number;
-    totalXp: number; // Added
+    totalXp: number;
     xpToNextLevel: number;
     streak: number;
     lastActivityDate: string | null;
@@ -27,17 +31,12 @@ export interface LibraryData {
     version?: number;
 }
 
-/**
- * Safely merges gamification data, ensuring cumulative stats never decrease
- * @param local - Local Zustand state
- * @param cloud - Cloud Firestore data (can be null)
- * @returns Merged data with highest values
- */
+// Safely merges gamification - cumulative stats never decrease
 export function mergeGamificationData(
     local: Partial<GamificationData>,
     cloud: Partial<GamificationData> | null
 ): GamificationData {
-    // If no cloud data, use local
+
     if (!cloud) {
         return {
             level: local.level || 1,
@@ -58,7 +57,7 @@ export function mergeGamificationData(
         };
     }
 
-    // If no local data, use cloud
+
     if (!local || Object.keys(local).length === 0) {
         return {
             ...cloud,
@@ -67,11 +66,10 @@ export function mergeGamificationData(
         } as GamificationData;
     }
 
-    // Both exist - smart merge
-    // For cumulative stats, always take the HIGHER value
+    // Take higher of each stat
     const MAX_LEVEL = 100;
     
-    // Determine which source is "ahead" based on totalXp
+    // XP source: use whichever side has more totalXp
     const localTotalXp = local.totalXp || 0;
     const cloudTotalXp = cloud.totalXp || 0;
     const isLocalAhead = localTotalXp >= cloudTotalXp;
@@ -86,31 +84,31 @@ export function mergeGamificationData(
     const mergedTotalWorks = Math.max(local.totalWorksAdded || 0, cloud.totalWorksAdded || 0);
     const mergedTotalCompleted = Math.max(local.totalWorksCompleted || 0, cloud.totalWorksCompleted || 0);
 
-    // For streak and lastActivityDate, use the most recent data (compare actual dates, not just timestamps)
+    // Streak: use most recent activity
     const localLastActivityTime = local.lastActivityDate ? new Date(local.lastActivityDate).getTime() : 0;
     const cloudLastActivityTime = cloud.lastActivityDate ? new Date(cloud.lastActivityDate).getTime() : 0;
     const useLocalStreak = localLastActivityTime >= cloudLastActivityTime;
     const mergedStreak = useLocalStreak ? (local.streak || 0) : (cloud.streak || 0);
     const mergedLastActivity = useLocalStreak ? local.lastActivityDate : cloud.lastActivityDate;
 
-    // bonusXp: always take the higher value (never lose daily login XP)
+
     const mergedBonusXp = Math.max(local.bonusXp || 0, cloud.bonusXp || 0);
 
-    // Merge badges - union of both sets
+    // Badges: union of both sets, keep earliest unlock
     const localBadges = local.badges || [];
     const cloudBadges = cloud.badges || [];
     const badgeMap = new Map<string, Badge>();
 
     [...cloudBadges, ...localBadges].forEach(badge => {
         const existing = badgeMap.get(badge.id);
-        // Keep the earliest unlock time
+
         if (!existing || (badge.unlockedAt && (!existing.unlockedAt || badge.unlockedAt < existing.unlockedAt))) {
             badgeMap.set(badge.id, badge);
         }
     });
     const mergedBadges = Array.from(badgeMap.values());
 
-    // Calculate xpToNextLevel based on merged level
+
     const LEVEL_BASE = 100;
     const LEVEL_MULTIPLIER = 1.15;
     let xpToNext = LEVEL_BASE;
@@ -146,12 +144,7 @@ export function mergeGamificationData(
     };
 }
 
-/**
- * Safely merges library data, combining works from both sources
- * @param local - Local Zustand works array
- * @param cloud - Cloud Firestore works array (can be null)
- * @returns Merged works array with no duplicates
- */
+// Merges library works - local order preserved, cloud additions appended
 export function mergeLibraryData(
     local: Work[] | undefined,
     cloud: Work[] | null
@@ -164,15 +157,15 @@ export function mergeLibraryData(
         return cloud;
     }
 
-    // Map all works (cloud first, then local updates/overwrites cloud)
+
     const workMap = new Map<number | string, Work>();
     
-    // 1. Load cloud works into map
+
     cloud.forEach(work => {
         workMap.set(work.id, work);
     });
 
-    // 2. Load local works into map (local wins if more recent or same time)
+    // Local wins if same or newer
     local.forEach(work => {
         const existing = workMap.get(work.id);
         if (!existing || (work.lastUpdated || 0) >= (existing.lastUpdated || 0)) {
@@ -180,11 +173,11 @@ export function mergeLibraryData(
         }
     });
 
-    // 3. Construct the merged array respecting LOCAL order
+    // Preserve local order, append cloud-only additions
     const merged: Work[] = [];
     const seenIds = new Set<number | string>();
 
-    // Add local works in their existing order
+
     local.forEach(work => {
         const upToDateWork = workMap.get(work.id);
         if (upToDateWork) {
@@ -193,7 +186,7 @@ export function mergeLibraryData(
         }
     });
 
-    // Append cloud works that aren't in local (likely added from another device)
+
     cloud.forEach(work => {
         if (!seenIds.has(work.id)) {
             const upToDateWork = workMap.get(work.id);
@@ -214,17 +207,14 @@ export function mergeLibraryData(
     return merged;
 }
 
-/**
- * Validates that new gamification data is safe to write
- * Prevents accidental downgrades of cumulative stats
- */
+// Validates gamification writes - prevents accidental downgrades
 export function validateGamificationWrite(
     newData: Partial<GamificationData>,
     existing: Partial<GamificationData> | null
 ): boolean {
-    if (!existing) return true; // No existing data, safe to write
+    if (!existing) return true;
 
-    // 1. Check cumulative stats don't decrease
+
     const checks = [
         { name: 'level', newVal: newData.level, oldVal: existing.level },
         { name: 'totalXp', newVal: newData.totalXp, oldVal: existing.totalXp },
@@ -244,10 +234,9 @@ export function validateGamificationWrite(
         }
     }
 
-    // 2. SECURITY CHECK: Prevent massive jumps (Anti-Cheat)
-    // Relaxed for legitimate syncs/backlogs
+    // Anti-cheat: cap max jump per save
     if (newData.level && existing.level) {
-        // Max 10 level increase per save
+
         if (newData.level > existing.level + 10) {
             logger.warn(`[DataProtection] SECURITY: Prevented suspicious level jump (${existing.level} -> ${newData.level})`);
             return false;
@@ -255,7 +244,7 @@ export function validateGamificationWrite(
     }
 
     if (newData.totalXp !== undefined && existing.totalXp !== undefined) {
-        // Max 25000 totalXp increase per save (anti-cheat on cumulative XP)
+
         if (newData.totalXp > existing.totalXp + 25000) {
             logger.warn(`[DataProtection] SECURITY: Prevented suspicious totalXp jump (+${newData.totalXp - existing.totalXp})`);
             return false;
@@ -265,10 +254,7 @@ export function validateGamificationWrite(
     return true;
 }
 
-/**
- * Creates a simple backup log in console
- * In production, this could write to a separate Firestore collection
- */
+// Stores emergency backup in sessionStorage
 export function logDataBackup(
     userId: string,
     dataType: 'gamification' | 'library',
@@ -286,7 +272,7 @@ export function logDataBackup(
         timestamp: new Date(backup.timestamp).toISOString()
     });
 
-    // Store in sessionStorage as emergency recovery
+
     try {
         const key = `bingeki_backup_${dataType}_${userId}`;
         sessionStorage.setItem(key, JSON.stringify(backup));

@@ -1,3 +1,6 @@
+/**
+ * Firebase Firestore module
+ */
 import { doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, deleteDoc, addDoc, onSnapshot, getAggregateFromServer, count, getCountFromServer, Timestamp, startAfter, type QueryDocumentSnapshot } from 'firebase/firestore';
 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -312,8 +315,7 @@ export async function saveGamificationToFirestore(
         const existingDoc = await getDoc(docRef);
         const existing = existingDoc.exists() ? existingDoc.data() as GamificationData : null;
 
-        // 2. Validate write (prevent downgrades)
-        if (!validateGamificationWrite(data, existing)) {
+                if (!validateGamificationWrite(data, existing)) {
             logger.warn('[Firestore] Gamification write blocked - would cause data downgrade');
             // Use safe merge instead
             const safeData = mergeGamificationData(data, existing);
@@ -325,17 +327,14 @@ export async function saveGamificationToFirestore(
             logDataBackup(userId, 'gamification', existing);
         }
 
-        // 4. Merge with existing data for safety
-        const mergedData = mergeGamificationData(data, existing);
+                const mergedData = mergeGamificationData(data, existing);
 
-        // 5. Save merged data to sub-collection
-        await setDoc(docRef, {
+                await setDoc(docRef, {
             ...mergedData,
             lastUpdated: Date.now()
         });
 
-        // 6. Sync essential stats to root user document for Leaderboards & Profile Viewing
-        // Include lastActivityDate and bonusXp so cross-device streak sync works
+                // Include lastActivityDate and bonusXp so cross-device streak sync works
         const userDocRef = doc(db, 'users', userId);
         await setDoc(userDocRef, {
             xp: mergedData.xp,
@@ -384,15 +383,13 @@ export async function loadGamificationFromFirestore(userId: string): Promise<Omi
 // ADMIN: Manually update user gamification stats
 export async function adminUpdateUserGamification(uid: string, level: number, xp: number): Promise<void> {
     try {
-        // 1. Update root user doc (for leaderboards/UI)
-        const userDocRef = doc(db, 'users', uid);
+                const userDocRef = doc(db, 'users', uid);
         await updateDoc(userDocRef, {
             level,
             xp
         });
 
-        // 2. Update gamification subcollection (for data integrity)
-        const gamificationDocRef = doc(db, 'users', uid, 'data', 'gamification');
+                const gamificationDocRef = doc(db, 'users', uid, 'data', 'gamification');
 
         // Use setDoc with merge to ensure we don't overwrite other fields if they exist,
         // or create the doc if it doesn't exist
@@ -654,8 +651,7 @@ export async function logActivity(_userId: string, _event: Omit<ActivityEvent, '
 // Get activities from friends
 export async function getFriendsActivity(userId: string, limitCount: number = 20, friendsList?: Friend[]): Promise<ActivityEvent[]> {
     try {
-        // 1. Get fundamental friends list (Uids & status)
-        let friends = friendsList;
+                let friends = friendsList;
         if (!friends) {
             friends = await getFriends(userId);
         }
@@ -663,8 +659,7 @@ export async function getFriendsActivity(userId: string, limitCount: number = 20
         const friendIds = friends.filter(f => f.status === 'accepted').map(f => f.uid);
         if (friendIds.length === 0) return [];
 
-        // 2. Fetch activities from friends in batches of 30 (Firestore limit for 'in' query)
-        let allActivities: ActivityEvent[] = [];
+                let allActivities: ActivityEvent[] = [];
         
         // Loop through friends in chunks of 30
         for (let i = 0; i < friendIds.length; i += 30) {
@@ -683,21 +678,18 @@ export async function getFriendsActivity(userId: string, limitCount: number = 20
             });
         }
         
-        // 3. Post-process to merge multiple batches: Sort by time and limit to find global top activities
-        const sortedActivities = allActivities
+                const sortedActivities = allActivities
             .sort((a, b) => b.timestamp - a.timestamp)
             .slice(0, limitCount);
 
-        // 4. Fetch fresh profiles for the active friends in these activities
-        const activeUserIds = Array.from(new Set(sortedActivities.map(a => a.userId)));
+                const activeUserIds = Array.from(new Set(sortedActivities.map(a => a.userId)));
         let freshProfiles: UserProfile[] = [];
         if (activeUserIds.length > 0) {
             freshProfiles = await getUserProfiles(activeUserIds);
         }
 
         const activities: ActivityEvent[] = sortedActivities.map(data => {
-            // Priority: Freshly fetched Profile (most up to date) > Provided list (fallback) > Original activity data
-            const profile = freshProfiles.find(p => p.uid === data.userId);
+                        const profile = freshProfiles.find(p => p.uid === data.userId);
             if (profile) {
                 data.userName = profile.displayName || data.userName;
                 data.userPhoto = profile.photoURL || data.userPhoto;
@@ -928,7 +920,6 @@ export async function toggleCommentLike(commentId: string, userId: string): Prom
 
 // ==================== CHALLENGES SYSTEM ====================
 
-// Create a new challenge
 export async function createChallenge(challenge: Omit<Challenge, 'id'>): Promise<string | null> {
     try {
         const challengeRef = await addDoc(collection(db, 'challenges'), challenge);
@@ -1047,8 +1038,7 @@ export async function getUserWatchParties(userId: string): Promise<WatchParty[]>
 
         const parties: WatchParty[] = hostSnap.docs.map(doc => doc.data() as WatchParty);
 
-        // Also get parties where user is a participant (simplified - would need more complex query in production)
-        const allParties = query(
+                const allParties = query(
             collection(db, 'watchparties'),
             where('status', '==', 'active'),
             orderBy('lastActivity', 'desc'),
@@ -1674,8 +1664,7 @@ export async function getTopContentStats(limitCount = 5, daysCount = 30): Promis
 
     try {
         const startTime = Date.now() - (daysCount * 24 * 60 * 60 * 1000);
-        // We fetch ALL activities in the period and aggregate because we can't filter by multiple fields easily in Firestore
-        // without composite indexes.
+                // without composite indexes.
         const q = query(
             collection(db, 'activities'),
             where('timestamp', '>=', startTime)
@@ -1718,8 +1707,7 @@ export async function getFunnelStats(): Promise<FunnelStep[]> {
 
         // Steps:
         // 1. Registered (Total)
-        // 2. Added at least one work (Check activities or metadata)
-        // 3. Updated progress
+                // 3. Updated progress
         // 4. Social (Friend or Comment)
 
         const activitiesSnap = await getDocs(collection(db, 'activities'));
@@ -1773,8 +1761,7 @@ export async function getHistoricalTrends(daysCount = 30): Promise<HistoricalTre
         // Group by day
         const dailyData: Record<string, { date: string, inscriptions: number, activities: number, activeUsers: number, uniqueUsers: Set<string> }> = {};
 
-        // Initialize days
-        for (let i = daysCount - 1; i >= 0; i--) {
+                for (let i = daysCount - 1; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
             const dateStr = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
@@ -1920,7 +1907,6 @@ export interface TierList {
     }[];
 }
 
-// Create a new tier list
 export async function createTierList(tierList: Omit<TierList, 'id'>): Promise<string> {
     try {
         const docRef = await addDoc(collection(db, 'tierLists'), {

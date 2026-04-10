@@ -1,3 +1,6 @@
+/**
+ * Friend Recommendations component (social)
+ */
 import { logger } from '@/utils/logger';
 import { useState, useEffect, useCallback } from 'react';
 import { Users } from 'lucide-react';

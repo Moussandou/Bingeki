@@ -1,3 +1,6 @@
+/**
+ * Admin Sidebar component (admin)
+ */
 import { NavLink } from '@/components/routing/LocalizedLink';
 import { LayoutDashboard, Users, MessageSquare, ShieldAlert, LogOut, Home, X, Palette, Clipboard, HeartPulse } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';

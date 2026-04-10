@@ -1,3 +1,6 @@
+/**
+ * Create Tier List page
+ */
 import { useState, useRef } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { useAuthStore } from '@/store/authStore';

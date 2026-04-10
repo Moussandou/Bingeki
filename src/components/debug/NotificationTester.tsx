@@ -1,3 +1,6 @@
+/**
+ * Notification Tester component (debug)
+ */
 import { logger } from '@/utils/logger';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -26,8 +29,7 @@ export function NotificationTester() {
                 icon: '/logo.png'
             });
 
-            // 2. Persist to History (Simulate Backend)
-            if (user) {
+                        if (user) {
                 await addDoc(collection(db, 'users', user.uid, 'notifications'), {
                     type: 'system',
                     title: 'Bingeki Test',

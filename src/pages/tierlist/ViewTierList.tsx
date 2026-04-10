@@ -1,3 +1,6 @@
+/**
+ * View Tier List page
+ */
 import { useRef, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';

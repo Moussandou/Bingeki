@@ -1,3 +1,6 @@
+/**
+ * Arc type definitions
+ */
 export interface Arc {
     id: string;
     title: string;

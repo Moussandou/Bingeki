@@ -1,3 +1,6 @@
+/**
+ * Comment type definitions
+ */
 // Comment Types for Work Discussions
 
 export interface Comment {

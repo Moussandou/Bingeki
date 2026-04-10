@@ -1,3 +1,6 @@
+/**
+ * Developer License Card component (profile)
+ */
 import { PenTool, Terminal as TerminalIcon, Book } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 

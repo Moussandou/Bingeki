@@ -1,3 +1,6 @@
+/**
+ * Watchparty type definitions
+ */
 // Watch/Read Party type definition
 
 export interface WatchParty {
