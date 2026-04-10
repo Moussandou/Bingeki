@@ -44,14 +44,15 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/cdn\.myanimelist\.net\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'mal-images',
               expiration: {
                 maxEntries: 500,
                 maxAgeSeconds: 7 * 24 * 60 * 60, // 7 jours
               },
-              cacheableResponse: { statuses: [0, 200] },
+              cacheableResponse: { statuses: [200] },
+              networkTimeoutSeconds: 3,
             },
           },
         ],

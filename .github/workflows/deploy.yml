@@ -33,10 +33,13 @@ jobs:
           VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
         run: npm run build
 
-      - name: Deploy Firebase Rules and Indexes
+      - name: Install Functions Dependencies
+        run: cd functions && npm ci
+
+      - name: Deploy Firebase Rules, Indexes & Functions
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only firestore:rules,firestore:indexes,storage
+          args: deploy --only firestore:rules,firestore:indexes,storage,functions
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BINGEKI }}
 
