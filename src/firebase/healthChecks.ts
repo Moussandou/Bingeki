@@ -405,7 +405,7 @@ export function getApiQueueStats(): ApiQueueStats {
         const status = jikanQueue.status;
         return {
             pending: status.pending,
-            processing: status.processing,
+            processing: status.active > 0,
             checkedAt: Date.now()
         };
     } catch (error) {
