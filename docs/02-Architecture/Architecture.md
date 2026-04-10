@@ -12,7 +12,9 @@ Bingeki uses **React 18** to leverage modern concurrent features while maintaini
 3.  **PWA Compatibility**: React's lifecycle methods and hooks (like `useEffect` and `useSyncExternalStore`) make it ideal for handling offline states and background sync.
 
 ### Pattern: Functional Components & Hooks
-We exclusively use Functional Components with specialized custom hooks for side effects.
+We exclusively use Functional Components with specialized custom hooks for side effects. For a detailed list of system hooks, see the [Hooks Reference](./Hooks.md).
+
+
 ```tsx
 // Example of a data-fetching hook with Jikan API
 export function useAnimeSearch(query: string) {
@@ -64,6 +66,11 @@ const { works } = useLibraryStore();
 // ✅ Good: Only re-renders if works array changes
 const works = useLibraryStore(state => state.works);
 ```
+
+### Data Integrity
+Global state synchronization between local storage and Firestore is managed via a strict merging and validation layer. See [Data Protection & Sync Strategy](./Data-Protection.md) for more details.
+
+
 
 ---
 

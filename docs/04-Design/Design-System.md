@@ -67,6 +67,13 @@ The system is built on a **4px base grid**.
 - **Global Border Width**: `4px` (used for `.manga-panel`).
 - **Corner Radius**: `0px` (Sharp angles are mandatory for the brutalist aesthetic).
 
+### 3.4 Iconography
+We strictly avoid heavy image-based icons. All branding and social icons are implemented as **Pure SVG Components**.
+- **Source**: `src/components/ui/BrandIcons.tsx`
+- **Behavior**: Icons accept `size` and `color` props. They default to `currentColor` to automatically inherit the text color of their parent container.
+- **Available Icons**: Discord, TikTok, Github, Linkedin, Instagram, Youtube, Chrome.
+
+
 ---
 
 ## 4. Signature Components (Visuals)
@@ -108,6 +115,11 @@ Used for high-intensity sections or backgrounds.
 Used for ultra-rare rewards (Legendary status).
 - **Effect**: An animated linear gradient `backround-position` shift across a spectral palette.
 - **Animation**: `holoShine` (3s duration, linear, infinite).
+
+### 5.4 Special Transitions
+- **Page Transitions**: Framer Motion `variants` are defined to stagger entry for all `.manga-panel` elements, ensuring a "reading" flow from top to bottom.
+- **Micro-interactions**: Every `<Button>` triggers a `haptic('light')` call and a subtle `0.95` scale down to provide tactile confirmation.
+
 
 ---
 
@@ -161,6 +173,45 @@ Form primitive with focus and error states.
 | **Normal** | `.input` | 1px glass border, `--color-surface` bg. |
 | **Focus** | `.input:focus` | 2px `--color-primary-glow` shadow, surface hover bg. |
 | **Error** | `.error` | `#ff3333` border color. |
+
+### 7.4 Optimized Image (`<OptimizedImage />`)
+The core engine for all visual media. It follows a multi-stage loading pipeline to ensure 0ms perceived lag.
+
+- **Path**: `src/components/ui/OptimizedImage.tsx`
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `src` | `string` | - | The primary high-resolution image URL. |
+| `lowResSrc` | `string` | - | Used for the blur-up effect or Data Saver mode. |
+| `priority` | `boolean` | `false`| Bypasses lazy loading. Use for Hero assets. |
+| `showSkeleton`| `boolean` | `true` | Toggles the Shimmer animation during fetch. |
+| `objectFit` | `string` | `'cover'`| CSS object-fit property applied to the image. |
+| `fill` | `boolean` | `false`| Sets the image to `position: absolute` inset 0. |
+
+**Loading Lifecycle**:
+1. **Shimmer**: (`.shimmer`) A silver gradient animation.
+2. **Blur-Up**: (`.placeholder`) If `lowResSrc` is present, it's displayed with a `10px` blur.
+3. **Loaded**: (`.imageLoaded`) The final image fades in with a `0.5s` ease-in-out transition.
+
+### 7.5 Carousel (`<Carousel />`)
+A high-energy scrollable container for dense media lists.
+- **Snap Logic**: `x mandatory` CSS scroll-snapping ensures a card always centers on finish.
+- **Props**:
+    - `items`: Array of Jikan results.
+    - `showRank`: Adds an absolute-positioned `#1`, `#2` badge with theme colors.
+    - `priority`: First 4 images are set to `priority` for the `OptimizedImage` engine.
+
+### 7.6 Modal (`<Modal />`)
+The standard overlay primitive.
+- **Blur**: Applies `backdrop-filter: blur(8px)` to the background.
+- **Manga Border**: Uses `4px` black borders and unique corner angles.
+- **Z-Index**: `100` (Overlay Layer).
+
+### 7.7 Error Boundary (`<ErrorBoundary />`)
+Prevents application-wide crashes. 
+- **Visuals**: Displays the `MaintenanceScreen` UI with a "Repair System" button that clears the problematic store part and reloads.
+
+
 
 ---
 
