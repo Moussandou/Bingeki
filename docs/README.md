@@ -4,6 +4,9 @@ Welcome to the central knowledge hub for Bingeki V2. This documentation is organ
 
 ## 🗺️ Documentation Map
 
+### 0. [⚡ Essential Guide (Cheat Sheet)](./00-Essential-Guide.md)
+*   **[Core Commands](./00-Essential-Guide.md)**: Speedrun of dev, build, and deploy.
+
 ### 1. [Onboarding & Standards](./01-Getting-Started/Getting-Started.md)
 *   **[Setup & CLI](./01-Getting-Started/Getting-Started.md)**: Environment setup and local emulation.
 *   **[Contributing](./01-Getting-Started/Contributing.md)**: Coding standards and PR workflow.
