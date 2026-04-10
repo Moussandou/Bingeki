@@ -984,15 +984,21 @@ export default function Library() {
                                                                 </div>
 
                                                                 {/* Info */}
-                                                                <div style={{ padding: '1.25rem', flex: 1, background: 'var(--color-surface)' }}>
+                                                                <div style={{ padding: viewMode === 'grid' ? '0.75rem' : '1.25rem', flex: 1, background: 'var(--color-surface)' }}>
                                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
                                                                         <h3 style={{
                                                                             fontFamily: 'var(--font-heading)',
-                                                                            fontSize: viewMode === 'list' ? '1.5rem' : '1.2rem',
+                                                                            fontSize: viewMode === 'list' ? '1.5rem' : '1rem',
                                                                             fontWeight: 900,
                                                                             lineHeight: 1.1,
                                                                             marginBottom: '0.25rem',
-                                                                            textTransform: 'uppercase'
+                                                                            textTransform: 'uppercase',
+                                                                            ...(viewMode === 'grid' && {
+                                                                                display: '-webkit-box',
+                                                                                WebkitLineClamp: 2,
+                                                                                WebkitBoxOrient: 'vertical',
+                                                                                overflow: 'hidden',
+                                                                            })
                                                                         }}>
                                                                             {work.title}
                                                                         </h3>

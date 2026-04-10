@@ -4,37 +4,133 @@
     gap: 3rem;
 }
 
-.statsHud {
-    display: grid;
-    grid-template-columns: 1fr;
-    /* Stack on mobile */
-    margin-bottom: 3rem;
-    border: none !important;
-    /* Remove outline on mobile */
-    box-shadow: none !important;
-    background: transparent;
-    /* Let items stand alone */
+.heroStats {
+    display: flex;
     gap: 1rem;
-    /* Add spacing between separated items */
+    flex: 1;
+    /* min-width forces a line break before the cards can overflow */
+    min-width: 220px;
 }
 
-.statItem {
-    background: var(--color-surface);
-    padding: 1.5rem;
+.heroStatCard {
+    flex: 1;
+    border: var(--manga-panel-border);
+    box-shadow: 4px 4px 0 var(--color-shadow-solid);
+    padding: 0.75rem 0.875rem;
     display: flex;
     flex-direction: column;
+    gap: 0.4rem;
+    background: var(--color-background, #f5f5f5);
+    min-width: 0;
+    overflow: hidden;
+}
+
+.heroStatLabel {
+    display: flex;
     align-items: center;
-    justify-content: center;
-    text-align: center;
+    gap: 0.4rem;
+    opacity: 0.6;
+    font-weight: 800;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.heroStatValue {
+    font-family: var(--font-heading);
+    font-size: clamp(1rem, 3vw, 1.6rem);
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.heroStatMax {
+    font-size: clamp(0.65rem, 1.5vw, 0.9rem);
+    opacity: 0.4;
+}
+
+.heroStatBar {
+    width: 100%;
+    height: 3px;
+    background: var(--color-border);
+    border-radius: 1px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.heroStatBar > div {
+    height: 100%;
+    background: var(--color-primary);
+    transition: width 0.4s ease;
+}
+
+.heroStatTotals {
+    display: flex;
+    gap: clamp(0.4rem, 1.5vw, 1rem);
+    min-width: 0;
+    overflow: hidden;
+}
+
+.heroStatTotals > div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.heroStatUnit {
+    font-size: 0.55rem;
+    opacity: 0.5;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.progressCard {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
     border: var(--manga-panel-border);
-    border-radius: 0;
     box-shadow: 6px 6px 0 var(--color-shadow-solid);
+    margin-bottom: 0.75rem;
+    background: var(--color-surface-hover);
+}
+
+.progressCardBadge {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+    padding: 1.5rem 0.5rem 0.5rem;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
 }
 
 .recGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 1.5rem;
+}
+
+.recCard {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    border: var(--manga-panel-border);
+    box-shadow: 6px 6px 0 var(--color-shadow-solid);
+    background: var(--color-surface-hover);
+    cursor: pointer;
+}
+
+.recCardOverlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    padding: 2rem 0.5rem 0.5rem;
+    color: #fff;
 }
 
 .recCardImage {
@@ -66,11 +162,6 @@
 @media (min-width: 768px) {
     .dashboardGrid {
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    }
-
-    .statsHud {
-        grid-template-columns: repeat(3, 1fr);
-        border: none;
     }
 
     .progressGrid {
@@ -121,5 +212,12 @@
         align-items: center;
         display: flex;
         flex-direction: column;
+        width: 100%;
+    }
+
+    .heroStats {
+        width: 100%;
+        flex: unset;
+        min-width: unset;
     }
 }

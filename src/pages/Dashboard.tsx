@@ -4,7 +4,7 @@ import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { XPBar } from '@/components/gamification/XPBar';
 import { StreakCounter } from '@/components/gamification/StreakCounter';
-import { Play, Plus, ChevronRight, Target, TrendingUp, BookOpen, Users, Flame, Clock } from 'lucide-react';
+import { Play, Plus, ChevronRight, Target, TrendingUp, BookOpen, Users, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '@/store/authStore';
 import { useGamificationStore } from '@/store/gamificationStore';
@@ -22,7 +22,6 @@ import { Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { AddWorkModal } from '@/components/library/AddWorkModal';
-import { Card } from '@/components/ui/Card';
 import { SEO } from '@/components/layout/SEO';
 import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 import { useTutorialStore } from '@/store/tutorialStore';
@@ -155,6 +154,43 @@ export default function Dashboard() {
                             </div>
                         </div>
 
+                        {/* Inline Stats — fills the empty right space */}
+                        <div className={styles.heroStats}>
+                            <div className={styles.heroStatCard}>
+                                <div className={styles.heroStatLabel}>
+                                    <Target size={14} />
+                                    <span>{t('dashboard.goal')}</span>
+                                </div>
+                                <div className={styles.heroStatValue}>
+                                    {todayProgress}<span className={styles.heroStatMax}>/{dailyGoal}</span>
+                                </div>
+                                <div className={styles.heroStatBar}>
+                                    <div style={{ width: `${(todayProgress / dailyGoal) * 100}%` }} />
+                                </div>
+                            </div>
+
+                            <div className={styles.heroStatCard}>
+                                <div className={styles.heroStatLabel}>
+                                    <TrendingUp size={14} />
+                                    <span>TOTAL</span>
+                                </div>
+                                <div className={styles.heroStatTotals}>
+                                    <div>
+                                        <span className={styles.heroStatValue}>{totalChaptersRead}</span>
+                                        <span className={styles.heroStatUnit}>CHAPS</span>
+                                    </div>
+                                    <div>
+                                        <span className={styles.heroStatValue}>{totalAnimeEpisodesWatched}</span>
+                                        <span className={styles.heroStatUnit}>EPS</span>
+                                    </div>
+                                    <div>
+                                        <span className={styles.heroStatValue}>{totalMoviesWatched}</span>
+                                        <span className={styles.heroStatUnit}>FILMS</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <Link to="/discover">
                                 <Button variant="manga" size="sm" icon={<Plus size={16} />}>{t('dashboard.discover_btn')}</Button>
@@ -164,59 +200,6 @@ export default function Dashboard() {
                             </Link>
                         </div>
                     </motion.section>
-
-                    {/* Stats HUD (Bar Style) */}
-                    <div className={`manga-panel ${styles.statsHud}`}>
-                        {/* Daily Goal */}
-                        <div className={styles.statItem}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', opacity: 0.7 }}>
-                                <Target size={20} />
-                                <span style={{ fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase' }}>{t('dashboard.goal')}</span>
-                            </div>
-                            <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: 'var(--font-heading)', lineHeight: 1 }}>
-                                {todayProgress}<span style={{ fontSize: '1rem', opacity: 0.4 }}>/{dailyGoal}</span>
-                            </div>
-                            <div style={{ width: '60px', height: '4px', background: '#eee', marginTop: '0.5rem', borderRadius: '2px' }}>
-                                <div style={{ width: `${(todayProgress / dailyGoal) * 100}%`, height: '100%', background: 'var(--color-primary)' }} />
-                            </div>
-                        </div>
-
-                        {/* Total Stats */}
-                        <div className={styles.statItem}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', opacity: 0.7 }}>
-                                <TrendingUp size={20} />
-                                <span style={{ fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase' }}>TOTAL</span>
-                            </div>
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ fontSize: '1.2rem', fontWeight: 900, fontFamily: 'var(--font-heading)', lineHeight: 1 }}>{totalChaptersRead}</span>
-                                    <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>CHAPS</span>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ fontSize: '1.2rem', fontWeight: 900, fontFamily: 'var(--font-heading)', lineHeight: 1 }}>{totalAnimeEpisodesWatched}</span>
-                                    <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>EPS</span>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ fontSize: '1.2rem', fontWeight: 900, fontFamily: 'var(--font-heading)', lineHeight: 1 }}>{totalMoviesWatched}</span>
-                                    <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>FILMS</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Streak */}
-                        <div className={styles.statItem} style={{ background: 'var(--color-surface)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', opacity: 0.7 }}>
-                                <Flame size={20} color={streak > 0 ? 'var(--color-primary)' : 'currentColor'} />
-                                <span style={{ fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase' }}>{t('dashboard.streak')}</span>
-                            </div>
-                            <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: 'var(--font-heading)', lineHeight: 1, color: streak > 0 ? 'var(--color-primary)' : 'inherit' }}>
-                                {streak}
-                            </div>
-                            <p style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '0.25rem' }}>{t('dashboard.days')}</p>
-                        </div>
-                    </div>
-
-                    <SocialLinksBanner />
 
                     {/* Two Column Layout */}
                     <div className={styles.dashboardGrid}>
@@ -237,18 +220,17 @@ export default function Dashboard() {
                                             height: '220px',
                                             overflow: 'hidden',
                                             cursor: 'pointer',
-                                            backgroundColor: '#0a0a0b'
+                                            backgroundColor: '#0a0a0b',
+                                            display: 'flex'
                                         }}>
-                                            {/* Background Image - OptimizedImage handles proxy and referrer */}
-                                            <div style={{ position: 'absolute', inset: 0 }}>
-                                                <OptimizedImage 
-                                                    src={lastUpdatedWork.image} 
-                                                    alt="" 
-                                                    fill
-                                                    priority={true}
-                                                    style={{ filter: 'brightness(0.6)' }}
-                                                />
-                                            </div>
+                                            {/* Background Image */}
+                                            <OptimizedImage
+                                                src={lastUpdatedWork.image}
+                                                alt=""
+                                                priority={true}
+                                                containerStyle={{ position: 'absolute', inset: 0 }}
+                                                style={{ filter: 'brightness(0.6)', width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
 
                                             {/* Gradient Overlay */}
                                             <div style={{
@@ -325,31 +307,12 @@ export default function Dashboard() {
                                     inProgressWorks.map((work) => (
                                         <motion.div key={work.id} whileHover={{ y: -5 }}>
                                             <Link to={`/work/${work.id}?type=${work.type}`} style={{ textDecoration: 'none', display: 'block' }}>
-                                                <Card
-                                                    variant="manga"
-                                                    hoverable
-                                                    style={{
-                                                        overflow: 'hidden',
-                                                        marginBottom: '0.75rem',
-                                                        position: 'relative',
-                                                        padding: 0
-                                                    }}
-                                                >
-                                                    <div style={{ paddingTop: '140%', position: 'relative' }}>
-                                                        <OptimizedImage src={work.image} alt="" fill priority={true} />
+                                                <div className={styles.progressCard}>
+                                                    <OptimizedImage src={work.image} alt="" priority={true} />
+                                                    <div className={styles.progressCardBadge}>
+                                                        <span>{work.type === 'anime' ? `Ep.` : `Ch.`} {work.currentChapter}</span>
                                                     </div>
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        bottom: 0,
-                                                        left: 0,
-                                                        right: 0,
-                                                        background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
-                                                        padding: '2rem 0.5rem 0.5rem',
-                                                        color: '#fff'
-                                                    }}>
-                                                        <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>Ch. {work.currentChapter}</span>
-                                                    </div>
-                                                </Card>
+                                                </div>
                                                 <h4 style={{
                                                     fontFamily: 'var(--font-heading)',
                                                     fontSize: '0.9rem',
@@ -455,23 +418,13 @@ export default function Dashboard() {
                                                 onClick={() => handleRecommendationClick(manga)}
                                                 style={{ cursor: 'pointer' }}
                                             >
-                                                <Card variant="manga" hoverable style={{ padding: 0, overflow: 'hidden', height: '100%' }}>
-                                                    <div style={{ position: 'relative', paddingTop: '150%' }}>
+                                                                <div className={styles.recCard}>
                                                         <OptimizedImage
                                                             src={manga.images.jpg.large_image_url || manga.images.jpg.image_url}
                                                             alt={manga.title}
-                                                            fill
                                                             priority={true}
                                                         />
-                                                        <div style={{
-                                                            position: 'absolute',
-                                                            bottom: 0,
-                                                            left: 0,
-                                                            width: '100%',
-                                                            background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
-                                                            padding: '2rem 0.5rem 0.5rem',
-                                                            color: '#fff'
-                                                        }}>
+                                                        <div className={styles.recCardOverlay}>
                                                             <div style={{ fontSize: '0.8rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                                 {manga.title}
                                                             </div>
@@ -480,7 +433,6 @@ export default function Dashboard() {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </Card>
                                             </motion.div>
                                         ))}
                                     </>
@@ -495,6 +447,8 @@ export default function Dashboard() {
                             </div>
                         </div>
                     </div>
+
+                    <SocialLinksBanner />
 
                     {/* Add Work Modal */}
                     {selectedWork && (
