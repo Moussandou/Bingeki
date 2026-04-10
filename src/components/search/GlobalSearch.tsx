@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -26,23 +26,38 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     const [activeTab, setActiveTab] = useState<'all' | 'anime' | 'manga' | 'characters'>('all');
     const [results, setResults] = useState<SearchResults>({ anime: [], manga: [], characters: [] });
     const [loading, setLoading] = useState(false);
+    const searchControllerRef = useRef<AbortController | null>(null);
 
     const performSearch = useCallback(async () => {
+        // Cancel any in-flight search from a previous keystroke
+        searchControllerRef.current?.abort();
+        const controller = new AbortController();
+        searchControllerRef.current = controller;
+        const signal = controller.signal;
+
         setLoading(true);
         try {
             let animeData: JikanResult[] = [];
             let mangaData: JikanResult[] = [];
             let charData: JikanCharacterFull[] = [];
 
-            if (activeTab === 'all' || activeTab === 'anime') {
-                animeData = await searchWorks(query, 'anime', { limit: activeTab === 'all' ? 3 : 10 });
+            const opts = { priority: 'high' as const, signal };
+
+            if (activeTab === 'all') {
+                [animeData, mangaData, charData] = await Promise.all([
+                    searchWorks(query, 'anime', { limit: 3 }, 1, opts),
+                    searchWorks(query, 'manga', { limit: 3 }, 1, opts),
+                    searchCharacters(query, 3, opts),
+                ]);
+            } else if (activeTab === 'anime') {
+                animeData = await searchWorks(query, 'anime', { limit: 10 }, 1, opts);
+            } else if (activeTab === 'manga') {
+                mangaData = await searchWorks(query, 'manga', { limit: 10 }, 1, opts);
+            } else if (activeTab === 'characters') {
+                charData = await searchCharacters(query, 10, opts);
             }
-            if (activeTab === 'all' || activeTab === 'manga') {
-                mangaData = await searchWorks(query, 'manga', { limit: activeTab === 'all' ? 3 : 10 });
-            }
-            if (activeTab === 'all' || activeTab === 'characters') {
-                charData = await searchCharacters(query, activeTab === 'all' ? 3 : 10);
-            }
+
+            if (signal.aborted) return; // stale result — discard
 
             setResults({
                 anime: animeData || [],
@@ -50,9 +65,10 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                 characters: charData || []
             });
         } catch (error) {
+            if (error instanceof Error && error.name === 'AbortError') return; // expected
             console.error('Search error:', error);
         } finally {
-            setLoading(false);
+            if (!signal.aborted) setLoading(false);
         }
     }, [query, activeTab]);
 
@@ -62,7 +78,10 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                 performSearch();
             }
         }, 500);
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            searchControllerRef.current?.abort();
+        };
     }, [query, performSearch, activeTab]);
 
 
