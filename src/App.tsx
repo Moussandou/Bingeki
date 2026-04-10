@@ -1,18 +1,11 @@
 import { logger } from '@/utils/logger';
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation, Outlet } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { MaintenanceScreen } from '@/components/ui/MaintenanceScreen';
 import { useAuthStore } from '@/store/authStore';
-import { useLibraryStore } from '@/store/libraryStore';
-import { useGamificationStore } from '@/store/gamificationStore';
-import { useSettingsStore } from '@/store/settingsStore';
 import { usePWAStore } from '@/store/pwaStore';
-import { useShallow } from 'zustand/react/shallow';
 import {
-  saveLibraryToFirestore,
-  saveGamificationToFirestore,
   subscribeToGlobalConfig
 } from '@/firebase/firestore';
 import { ToastProvider } from '@/context/ToastContext';
@@ -74,6 +67,8 @@ import { useAuthSync } from '@/hooks/useAuthSync';
 import { usePWAHandler } from '@/hooks/usePWAHandler';
 import { useThemeManager } from '@/hooks/useThemeManager';
 import { useMounted } from '@/hooks/useMounted';
+import { useFirestoreSync } from '@/hooks/useFirestoreSync';
+import { useLanguageDetection } from '@/hooks/useLanguageDetection';
 
 // Bot aware suspense to avoid blank screen during hydration for screenshot tools
 const BotAwareSuspense = ({ children }: { children: React.ReactNode }) => {
@@ -95,63 +90,10 @@ const AdminHealth = lazy(() => import('@/pages/admin/Health'));
 
 // Language Manager Component
 const LanguageManager = () => {
-  const { lang } = useParams();
-  const { i18n } = useTranslation();
-  const location = useLocation();
-  const isMounted = useMounted();
+  const { handleLanguageManagerRedirect } = useLanguageDetection();
+  const redirect = handleLanguageManagerRedirect();
 
-  useEffect(() => {
-    if (lang && (lang === 'fr' || lang === 'en')) {
-      if (i18n.language !== lang) {
-        i18n.changeLanguage(lang);
-      }
-    }
-  }, [lang, i18n]);
-
-  // Prevent hydration mismatch: render nothing until mounted
-  if (!isMounted) return null;
-
-  // If language is invalid or missing, redirect to detection
-  if (!lang || !['fr', 'en'].includes(lang)) {
-    const detectedLang = i18n.language || 'fr';
-    let cleanPath = location.pathname;
-
-    // If path already starts with a valid language but LanguageManager matched something else
-    // (e.g. /fr/form but lang parameter was captured as something else, which shouldn't happen
-    // with :lang route but let's be safe), or if it's already prefixed in general.
-    if (cleanPath.startsWith('/fr/') || cleanPath.startsWith('/en/') || cleanPath === '/fr' || cleanPath === '/en') {
-      return (
-        <BotAwareSuspense>
-          <NotFound />
-        </BotAwareSuspense>
-      );
-    }
-
-    if (cleanPath === '/') cleanPath = '';
-    return <Navigate to={`/${detectedLang}${cleanPath}${location.search}`} replace />;
-  }
-
-  return <Outlet />;
-};
-
-const RootRedirect = () => {
-  const { i18n } = useTranslation();
-  const location = useLocation();
-  const isMounted = useMounted();
-
-  // Prevent hydration mismatch
-  if (!isMounted) return null;
-
-  // Prevent redirect loops for static files that fell through
-  if (/\.(xml|txt|json|png|jpg|jpeg|svg|ico)$/i.test(location.pathname)) {
-    return <div className="flex h-screen items-center justify-center">404 - File Not Found</div>;
-  }
-
-  const lang = i18n.language === 'en' ? 'en' : 'fr';
-  const currentPath = location.pathname;
-
-  // If already prefixed, don't re-prefix (this happens if a route falls through)
-  if (currentPath.startsWith('/fr/') || currentPath.startsWith('/en/') || currentPath === '/fr' || currentPath === '/en') {
+  if (redirect === 'not_found') {
     return (
       <BotAwareSuspense>
         <NotFound />
@@ -159,81 +101,47 @@ const RootRedirect = () => {
     );
   }
 
-  return <Navigate to={`/${lang}${currentPath}${location.search}`} replace />;
+  if (redirect) {
+    return <Navigate to={`${redirect.target}${redirect.search}`} replace />;
+  }
+
+  return <Outlet />;
+};
+
+const RootRedirect = () => {
+  const { handleRootRedirect } = useLanguageDetection();
+  const redirect = handleRootRedirect();
+
+  if (redirect === '404') {
+    return <div className="flex h-screen items-center justify-center">404 - File Not Found</div>;
+  }
+
+  if (redirect === 'not_found') {
+    return (
+      <BotAwareSuspense>
+        <NotFound />
+      </BotAwareSuspense>
+    );
+  }
+
+  if (redirect) {
+    return <Navigate to={`${redirect.target}${redirect.search}`} replace />;
+  }
+
+  return null;
 };
 
 function App() {
-  const { user, userProfile, loading, setLoading } = useAuthStore();
+  const { userProfile, loading, setLoading } = useAuthStore();
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
   const { showInstallModal, setShowInstallModal } = usePWAStore();
   
   // Custom Hooks
-  const { isInitialSync } = useAuthSync();
+  useAuthSync();
   usePWAHandler();
   useThemeManager();
-
-  const libraryWorks = useLibraryStore((s) => s.works);
-  const libraryFolders = useLibraryStore((s) => s.folders);
-  const libraryViewMode = useLibraryStore((s) => s.viewMode);
-  const librarySortBy = useLibraryStore((s) => s.sortBy);
-  
-  const gamificationState = useGamificationStore(useShallow((s) => ({
-    level: s.level,
-    xp: s.xp,
-    totalXp: s.totalXp,
-    xpToNextLevel: s.xpToNextLevel,
-    streak: s.streak,
-    lastActivityDate: s.lastActivityDate,
-    badges: s.badges,
-    totalChaptersRead: s.totalChaptersRead,
-    totalWorksAdded: s.totalWorksAdded,
-    totalWorksCompleted: s.totalWorksCompleted,
-    totalAnimeEpisodesWatched: s.totalAnimeEpisodesWatched,
-    totalMoviesWatched: s.totalMoviesWatched,
-    bonusXp: s.bonusXp,
-  })));
-
-  // Sync state from profile changes (e.g. from other devices/admin)
-  const [shouldSaveGamification, setShouldSaveGamification] = useState(false);
-  
-  useEffect(() => {
-    if (!user || userProfile === undefined) return;
-    
-    if (userProfile) {
-      useGamificationStore.getState().syncFromProfile(userProfile);
-      useSettingsStore.getState().syncFromProfile(userProfile);
-      setShouldSaveGamification(false);
-    }
-  }, [userProfile, user]);
-
-  // Set flag to allow saving when gamification state changes, but ONLY after initial sync
-  useEffect(() => {
-    if (!user) return;
-    if (isInitialSync.current) {
-      isInitialSync.current = false;
-      setShouldSaveGamification(false);
-      return;
-    }
-    setShouldSaveGamification(true);
-  }, [gamificationState, user]);
-
-  // Auto-save to Firestore when data changes (debounced)
-  useEffect(() => {
-    if (!user) return;
-    const timeout = setTimeout(() => {
-      saveLibraryToFirestore(user.uid, libraryWorks, libraryFolders, libraryViewMode, librarySortBy);
-    }, 3000);
-    return () => clearTimeout(timeout);
-  }, [libraryWorks, libraryFolders, libraryViewMode, librarySortBy, user]);
-
-  useEffect(() => {
-    if (!user || !shouldSaveGamification) return;
-    const timeout = setTimeout(() => {
-      saveGamificationToFirestore(user.uid, gamificationState);
-    }, 3000);
-    return () => clearTimeout(timeout);
-  }, [gamificationState, user, shouldSaveGamification]);
+  useFirestoreSync(); // Handles debounced sync and profile hydration
 
   // Subscribe to global config for maintenance mode
   useEffect(() => {

@@ -54,9 +54,14 @@ service cloud.firestore {
       // 1. Gamification Data - SERVER-SIDE ONLY
       match /data/gamification {
         allow read: if isAuthenticated();
-        // Update: Allow owners to sync their progress/XP (verified by frontend data protector)
-        // Admin: Full control for maintenance
-        allow update: if isOwner(userId) || isAdmin();
+        // Update: Allow owners to sync their progress/XP 
+        // Logic: Prevent regression and excessive jumps (Anti-Cheat)
+        allow update: if (isOwner(userId) && (
+                           request.resource.data.level >= resource.data.level &&
+                           request.resource.data.level <= resource.data.level + 10 &&
+                           request.resource.data.totalXp >= resource.data.totalXp &&
+                           request.resource.data.totalXp <= resource.data.totalXp + 25000
+                         )) || isAdmin();
         allow delete: if isOwner(userId) || isAdmin();
         
         // Owner Create: Allow initial creation only (first login setup)
