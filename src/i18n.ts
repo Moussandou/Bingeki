@@ -1521,6 +1521,7 @@ const resources = {
                     delete_error: "Erreur lors de la suppression."
                 },
                 health: {
+                    permission_error: "Erreur de permissions. Accès refusé.",
                     title: "Health Dashboard",
                     repair_history: "Historique des réparations",
                     history_title: "Historique Global de Santé",
@@ -3455,6 +3456,7 @@ const resources = {
                     delete_error: "Error while deleting."
                 },
                 health: {
+                    permission_error: "Permission error. Access denied.",
                     title: "Health Dashboard",
                     repair_history: "Repair History",
                     history_title: "Global Health History",
