@@ -36,7 +36,7 @@ jobs:
       - name: Deploy Firebase Rules and Indexes
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only firestore:rules,firestore:indexes,storage:rules
+          args: deploy --only firestore:rules,firestore:indexes,storage
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BINGEKI }}
 
