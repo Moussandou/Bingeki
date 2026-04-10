@@ -19,10 +19,10 @@ export function SocialLinksBanner() {
             name: 'TikTok',
             icon: <TikTokIcon size={24} />,
             url: 'https://www.tiktok.com/@bingeki',
-            color: '#000000',
+            color: '#FE2C55',
             title: t('dashboard.community_tiktok'),
             desc: t('dashboard.community_tiktok_desc'),
-            shadow: '8px 8px 0 rgba(0, 0, 0, 0.3)'
+            shadow: '8px 8px 0 rgba(254, 44, 85, 0.3)'
         },
         {
             name: 'Instagram',

@@ -23,18 +23,12 @@ export const TikTokIcon: React.FC<IconProps> = ({ size = 24, color = 'currentCol
     <svg
         width={size}
         height={size}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        viewBox="0 0 448 512"
+        fill={color}
         xmlns="http://www.w3.org/2000/svg"
         className={className}
     >
-        <path d="M9 12a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
-        <path d="M15 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
-        <path d="M15 2v18a4 4 0 0 1-4 4" />
+        <path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.32h0A122.18,122.18,0,0,0,448,109V209.91Z" />
     </svg>
 );
 
