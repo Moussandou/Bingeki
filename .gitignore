@@ -38,3 +38,16 @@ coverage/
 google-cloud-sdk/
 gcloud/
 .config/gcloud/
+
+# Firebase local cache
+.firebase/
+
+# Test & Lint reports
+playwright-report/
+test-results/
+lint_errors.json
+.lighthouseci/
+
+# AI Metadata
+.claude/
+.gemini/
