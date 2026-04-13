@@ -6,6 +6,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const { TTL_MS, readCache, writeCache, readTranslation, writeTranslation } = require("./cache");
+const { getPathContext, resolveStaticSeo } = require("./seoResolver");
 const { Timestamp, FieldValue } = require("firebase-admin/firestore");
 const { jikanFetch } = require("./jikan");
 const { scrapeFRSynopsis } = require("./scraper");
@@ -340,6 +341,14 @@ app.get('/api/og-image/:type?/:id?', async (req, res) => {
             if (newsDoc.exists) {
                 svg = generateNewsSVG(newsDoc.data(), lang);
             }
+        } else if (type === 'work' || type === 'character' || type === 'person' || type === 'tierlist') {
+            const kindLabel = {
+                work: lang === 'en' ? 'Work Details' : 'Fiche oeuvre',
+                character: lang === 'en' ? 'Character' : 'Personnage',
+                person: lang === 'en' ? 'Person' : 'Personnalite',
+                tierlist: 'Tier List'
+            }[type] || '';
+            svg = generateGenericSVG(kindLabel || title, desc, lang);
         }
         
         if (!svg) {
@@ -363,31 +372,18 @@ app.get('/*', async (req, res) => {
         return res.status(404).send('Not Found');
     }
 
-    // Default values
-    let title = "Bingeki | Votre aventure Manga";
-    let description = "Transformez votre passion manga en quête RPG ! Suivez vos lectures, gagnez de l'XP, débloquez des badges et affrontez vos amis.";
-    let image = "https://bingeki.web.app/bingeki-preview.png";
-
-    // Path parsing
-    const parts = url.split('/').filter(p => p);
-    let lang = 'fr';
-    let profileUid = null;
-    let articleSlug = null;
-
-    if (parts[0] === 'fr' || parts[0] === 'en') {
-        lang = parts[0];
-        if (parts[1] === 'profile' && parts[2]) profileUid = parts[2];
-        if (parts[1] === 'news' && parts[2] === 'article' && parts[3]) articleSlug = parts[3];
-    } else {
-        if (parts[0] === 'profile' && parts[1]) profileUid = parts[1];
-        if (parts[0] === 'news' && parts[1] === 'article' && parts[2]) articleSlug = parts[2];
-    }
-
-    if (lang === 'en') {
-        title = "Bingeki | Your Manga Adventure";
-        description = "Turn your manga passion into an RPG quest! Track your reading, earn XP, unlock badges and compete with friends.";
-        image = "https://bingeki.web.app/bingeki-preview-en.png";
-    }
+    const { lang, localPath } = getPathContext(url);
+    const resolved = resolveStaticSeo(localPath, lang);
+    let title = resolved.title;
+    let description = resolved.description;
+    let image = resolved.image;
+    const parts = localPath.split('/').filter(Boolean);
+    const profileUid = parts[0] === 'profile' && parts[1] ? parts[1] : null;
+    const articleSlug = parts[0] === 'news' && parts[1] === 'article' && parts[2] ? parts[2] : null;
+    const workId = parts[0] === 'work' && parts[1] ? parts[1] : null;
+    const characterId = parts[0] === 'character' && parts[1] ? parts[1] : null;
+    const personId = parts[0] === 'person' && parts[1] ? parts[1] : null;
+    const tierlistId = parts[0] === 'tierlist' && parts[1] && parts[1] !== 'create' ? parts[1] : null;
 
     // Load Data based on Route
     if (profileUid) {
@@ -415,19 +411,12 @@ app.get('/*', async (req, res) => {
             console.error('[SEO] Firestore error (News):', e);
         }
     } else {
-        const pathSuffix = parts[parts.length - 1];
-        if (pathSuffix === 'leaderboard') {
-            title = lang === 'en' ? "Leaderboard | Bingeki" : "Classement | Bingeki";
-            description = lang === 'en' ? "Who are the top hunters? Check the global ranking!" : "Qui sont les meilleurs chasseurs ? Consultez le classement mondial !";
-        } else if (pathSuffix === 'badges') {
-            title = lang === 'en' ? "Badges Gallery | Bingeki" : "Galerie des Badges | Bingeki";
-            description = lang === 'en' ? "Discover all collectable badges and their requirements." : "Découvrez tous les badges à collectionner et comment les obtenir.";
-        } else if (pathSuffix === 'manga' || pathSuffix === 'search') {
-            title = lang === 'en' ? "Search Manga | Bingeki" : "Rechercher un Manga | Bingeki";
-        } else if (pathSuffix === 'survey') {
-            title = lang === 'en' ? "Manga Survey | Bingeki" : "Sondage Manga | Bingeki";
-        }
-        image = `https://bingeki.web.app/api/og-image?title=${encodeURIComponent(title)}&desc=${encodeURIComponent(description)}&lang=${lang}`;
+        let ogType = 'generic';
+        if (workId) ogType = 'work';
+        if (characterId) ogType = 'character';
+        if (personId) ogType = 'person';
+        if (tierlistId) ogType = 'tierlist';
+        image = `https://bingeki.web.app/api/og-image/${ogType}?title=${encodeURIComponent(title)}&desc=${encodeURIComponent(description)}&lang=${lang}`;
     }
 
     const indexFileName = lang === 'en' ? 'index-en.html' : 'index.html';
@@ -447,6 +436,8 @@ app.get('/*', async (req, res) => {
     const finalDesc = escapeHtml(description);
     const finalImage = image;
     const finalUrl = escapeHtml(`https://bingeki.web.app${url}`);
+    const finalLocale = resolved.locale;
+    const finalAlternateLocale = resolved.alternateLocale;
 
     html = html
         .replace(/<title>[^]*?<\/title>/g, `<title>${finalTitle}</title>`)
@@ -456,9 +447,12 @@ app.get('/*', async (req, res) => {
         .replace(/<meta\s+property="og:description"\s+content="[^]*?"\s*\/?>/g, `<meta property="og:description" content="${finalDesc}" />`)
         .replace(/<meta\s+property="og:image"\s+content="[^]*?"\s*\/?>/g, `<meta property="og:image" content="${finalImage}" />`)
         .replace(/<meta\s+property="og:url"\s+content="[^]*?"\s*\/?>/g, `<meta property="og:url" content="${finalUrl}" />`)
+        .replace(/<meta\s+property="og:locale"\s+content="[^]*?"\s*\/?>/g, `<meta property="og:locale" content="${finalLocale}" />`)
+        .replace(/<meta\s+property="og:locale:alternate"\s+content="[^]*?"\s*\/?>/g, `<meta property="og:locale:alternate" content="${finalAlternateLocale}" />`)
         .replace(/<link\s+rel="canonical"\s+href="[^]*?"\s*\/?>/g, `<link rel="canonical" href="${finalUrl}" />`)
         .replace(/<meta\s+name="twitter:title"\s+content="[^]*?"\s*\/?>/g, `<meta name="twitter:title" content="${finalTitle}" />`)
         .replace(/<meta\s+name="twitter:description"\s+content="[^]*?"\s*\/?>/g, `<meta name="twitter:description" content="${finalDesc}" />`)
+        .replace(/<meta\s+name="twitter:url"\s+content="[^]*?"\s*\/?>/g, `<meta name="twitter:url" content="${finalUrl}" />`)
         .replace(/<meta\s+name="twitter:image"\s+content="[^]*?"\s*\/?>/g, `<meta name="twitter:image" content="${finalImage}" />`)
         .replace(/<meta\s+name="twitter:card"\s+content="[^]*?"\s*\/?>/g, `<meta name="twitter:card" content="summary_large_image" />`);
 

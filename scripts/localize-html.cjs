@@ -28,6 +28,7 @@ const enHtml = html
     .replace(/<meta name="twitter:image" content="[^]*?" \/>/, '<meta name="twitter:image" content="https://bingeki.web.app/bingeki-preview-en.png" />')
     // Locale
     .replace(/<meta property="og:locale" content="fr_FR" \/>/, '<meta property="og:locale" content="en_US" />')
+    .replace(/<meta property="og:locale:alternate" content="en_US" \/>/, '<meta property="og:locale:alternate" content="fr_FR" />')
     // JSON-LD
     .replace(/"description": "Transformez[^]*?"/, '"description": "Transform your manga passion into an RPG quest! Track your reading, earn XP, unlock badges, and compete with friends."');
 

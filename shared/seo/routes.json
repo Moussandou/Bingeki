@@ -1,0 +1,156 @@
+{
+  "defaults": {
+    "fr": {
+      "siteTitle": "Bingeki",
+      "title": "Bingeki | Votre aventure Manga",
+      "description": "Transformez votre passion manga en quête RPG ! Suivez vos lectures, gagnez de l'XP, débloquez des badges et affrontez vos amis.",
+      "image": "https://bingeki.web.app/bingeki-preview.png",
+      "locale": "fr_FR",
+      "alternateLocale": "en_US"
+    },
+    "en": {
+      "siteTitle": "Bingeki",
+      "title": "Bingeki | Your Manga Adventure",
+      "description": "Transform your manga passion into an RPG quest! Track your reading, earn XP, unlock badges and compete with friends.",
+      "image": "https://bingeki.web.app/bingeki-preview-en.png",
+      "locale": "en_US",
+      "alternateLocale": "fr_FR"
+    }
+  },
+  "routes": {
+    "/": {
+      "fr": { "title": "Bingeki | Votre aventure Manga", "description": "Découvrez Bingeki, votre aventure manga gamifiée avec progression, badges et défis sociaux." },
+      "en": { "title": "Bingeki | Your Manga Adventure", "description": "Discover Bingeki, your gamified manga adventure with progress, badges, and social challenges." }
+    },
+    "/auth": {
+      "fr": { "title": "Connexion | Bingeki", "description": "Connectez-vous pour commencer votre aventure manga sur Bingeki." },
+      "en": { "title": "Sign In | Bingeki", "description": "Sign in to start your manga adventure on Bingeki." }
+    },
+    "/dashboard": {
+      "fr": { "title": "Tableau de bord | Bingeki", "description": "Retrouvez vos recommandations, votre progression et les nouveautés manga en un seul endroit." },
+      "en": { "title": "Dashboard | Bingeki", "description": "Find your recommendations, progress, and manga updates in one place." }
+    },
+    "/library": {
+      "fr": { "title": "Bibliothèque | Bingeki", "description": "Gérez votre bibliothèque manga et anime, suivez votre progression et atteignez vos objectifs." },
+      "en": { "title": "Library | Bingeki", "description": "Manage your manga and anime library, track progress, and reach your goals." }
+    },
+    "/discover": {
+      "fr": { "title": "Découvrir | Bingeki", "description": "Explorez de nouvelles oeuvres manga et anime à ajouter à votre collection." },
+      "en": { "title": "Discover | Bingeki", "description": "Explore new manga and anime works to add to your collection." }
+    },
+    "/social": {
+      "fr": { "title": "Social | Bingeki", "description": "Suivez l'activité de vos amis, relevez des défis et grimpez au classement." },
+      "en": { "title": "Social | Bingeki", "description": "Follow your friends' activity, complete challenges, and climb the leaderboard." }
+    },
+    "/profile": {
+      "fr": { "title": "Profil Chasseur | Bingeki", "description": "Consultez votre profil chasseur, vos stats et vos badges." },
+      "en": { "title": "Hunter Profile | Bingeki", "description": "View your hunter profile, stats, and badges." }
+    },
+    "/settings": {
+      "fr": { "title": "Paramètres | Bingeki", "description": "Personnalisez votre compte, votre langue et votre expérience sur Bingeki." },
+      "en": { "title": "Settings | Bingeki", "description": "Customize your account, language, and overall Bingeki experience." }
+    },
+    "/notifications": {
+      "fr": { "title": "Notifications | Bingeki", "description": "Consultez vos notifications, interactions et mises à jour importantes." },
+      "en": { "title": "Notifications | Bingeki", "description": "Check your notifications, interactions, and important updates." }
+    },
+    "/schedule": {
+      "fr": { "title": "Planning Anime | Bingeki", "description": "Consultez le planning des sorties anime et ne ratez aucun épisode." },
+      "en": { "title": "Anime Schedule | Bingeki", "description": "Check anime release schedules and never miss an episode." }
+    },
+    "/news": {
+      "fr": { "title": "Actualités Manga | Bingeki", "description": "Suivez les dernières actualités manga et anime sélectionnées pour vous." },
+      "en": { "title": "Manga News | Bingeki", "description": "Stay updated with curated manga and anime news." }
+    },
+    "/tierlist": {
+      "fr": { "title": "Tier Lists | Bingeki", "description": "Découvrez et partagez des tier lists manga et anime avec la communauté." },
+      "en": { "title": "Tier Lists | Bingeki", "description": "Discover and share manga and anime tier lists with the community." }
+    },
+    "/tierlist/create": {
+      "fr": { "title": "Créer une Tier List | Bingeki", "description": "Créez votre tier list manga/anime et partagez-la avec vos amis." },
+      "en": { "title": "Create Tier List | Bingeki", "description": "Create your manga/anime tier list and share it with your friends." }
+    },
+    "/legal": {
+      "fr": { "title": "Mentions légales | Bingeki", "description": "Informations légales, éditeur et responsabilité du service Bingeki." },
+      "en": { "title": "Legal Notice | Bingeki", "description": "Legal information, publisher details, and liability terms for Bingeki." }
+    },
+    "/privacy": {
+      "fr": { "title": "Politique de confidentialité | Bingeki", "description": "Comprenez comment Bingeki collecte, utilise et protège vos données." },
+      "en": { "title": "Privacy Policy | Bingeki", "description": "Understand how Bingeki collects, uses, and protects your data." }
+    },
+    "/terms": {
+      "fr": { "title": "Conditions d'utilisation | Bingeki", "description": "Consultez les conditions d'utilisation de la plateforme Bingeki." },
+      "en": { "title": "Terms of Service | Bingeki", "description": "Read the terms of service for the Bingeki platform." }
+    },
+    "/contact": {
+      "fr": { "title": "Contact | Bingeki", "description": "Contactez l'équipe Bingeki pour toute question ou assistance." },
+      "en": { "title": "Contact | Bingeki", "description": "Contact the Bingeki team for any question or support request." }
+    },
+    "/about": {
+      "fr": { "title": "À propos | Bingeki", "description": "Découvrez la vision de Bingeki et son approche de la gamification manga." },
+      "en": { "title": "About | Bingeki", "description": "Learn about Bingeki's vision and its manga gamification approach." }
+    },
+    "/credits": {
+      "fr": { "title": "Crédits | Bingeki", "description": "Remerciements et crédits des contributeurs et partenaires de Bingeki." },
+      "en": { "title": "Credits | Bingeki", "description": "Acknowledgements and credits for Bingeki contributors and partners." }
+    },
+    "/donors": {
+      "fr": { "title": "Donateurs | Bingeki", "description": "Merci aux donateurs qui soutiennent le développement de Bingeki." },
+      "en": { "title": "Donors | Bingeki", "description": "Thanks to the donors who support Bingeki development." }
+    },
+    "/lens": {
+      "fr": { "title": "Lens | Bingeki", "description": "Analysez et explorez vos oeuvres manga et anime avec Lens." },
+      "en": { "title": "Lens | Bingeki", "description": "Analyze and explore your manga and anime works with Lens." }
+    },
+    "/challenges": {
+      "fr": { "title": "Défis | Bingeki", "description": "Participez à des défis et gagnez des récompenses pour votre progression." },
+      "en": { "title": "Challenges | Bingeki", "description": "Join challenges and earn rewards for your progress." }
+    },
+    "/feedback": {
+      "fr": { "title": "Feedback | Bingeki", "description": "Envoyez vos retours pour améliorer Bingeki avec la communauté." },
+      "en": { "title": "Feedback | Bingeki", "description": "Share feedback to improve Bingeki with the community." }
+    },
+    "/changelog": {
+      "fr": { "title": "Changelog | Bingeki", "description": "Découvrez les dernières mises à jour et nouveautés de Bingeki." },
+      "en": { "title": "Changelog | Bingeki", "description": "See the latest Bingeki updates and new features." }
+    },
+    "/form": {
+      "fr": { "title": "Sondage Manga | Bingeki", "description": "Participez au sondage manga pour aider Bingeki à mieux vous recommander." },
+      "en": { "title": "Manga Survey | Bingeki", "description": "Take the manga survey to help Bingeki improve recommendations." }
+    },
+    "/form/thank-you": {
+      "fr": { "title": "Merci pour votre réponse | Bingeki", "description": "Merci d'avoir participé au sondage Bingeki." },
+      "en": { "title": "Thanks for your response | Bingeki", "description": "Thank you for participating in the Bingeki survey." }
+    },
+    "/admin": {
+      "fr": { "title": "Admin | Bingeki", "description": "Tableau de bord administrateur Bingeki." },
+      "en": { "title": "Admin | Bingeki", "description": "Bingeki administrator dashboard." }
+    }
+  },
+  "dynamic": {
+    "profile": {
+      "fr": { "fallbackTitle": "Profil utilisateur | Bingeki", "fallbackDescription": "Découvrez le profil et la progression d'un utilisateur Bingeki." },
+      "en": { "fallbackTitle": "User Profile | Bingeki", "fallbackDescription": "Discover a Bingeki user's profile and progress." }
+    },
+    "newsArticle": {
+      "fr": { "fallbackTitle": "Article Manga | Bingeki", "fallbackDescription": "Consultez un article d'actualité manga sur Bingeki." },
+      "en": { "fallbackTitle": "Manga Article | Bingeki", "fallbackDescription": "Read a manga news article on Bingeki." }
+    },
+    "work": {
+      "fr": { "fallbackTitle": "Fiche oeuvre | Bingeki", "fallbackDescription": "Consultez les informations détaillées d'une oeuvre manga ou anime." },
+      "en": { "fallbackTitle": "Work Details | Bingeki", "fallbackDescription": "View detailed information about a manga or anime work." }
+    },
+    "character": {
+      "fr": { "fallbackTitle": "Personnage | Bingeki", "fallbackDescription": "Découvrez un personnage manga ou anime et ses informations." },
+      "en": { "fallbackTitle": "Character | Bingeki", "fallbackDescription": "Discover a manga or anime character and related information." }
+    },
+    "person": {
+      "fr": { "fallbackTitle": "Personnalité | Bingeki", "fallbackDescription": "Découvrez une personnalité du monde manga et anime." },
+      "en": { "fallbackTitle": "Person | Bingeki", "fallbackDescription": "Discover a personality from the manga and anime world." }
+    },
+    "tierlistItem": {
+      "fr": { "fallbackTitle": "Tier List | Bingeki", "fallbackDescription": "Découvrez une tier list créée par la communauté Bingeki." },
+      "en": { "fallbackTitle": "Tier List | Bingeki", "fallbackDescription": "Discover a tier list created by the Bingeki community." }
+    }
+  }
+}

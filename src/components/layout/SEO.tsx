@@ -1,8 +1,10 @@
 /**
  * S E O component (layout)
  */
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
+import { resolveSeoFromPath } from '@/seo/resolveSeo';
 
 interface SEOProps {
     title?: string;
@@ -12,15 +14,16 @@ interface SEOProps {
 }
 
 export const SEO = ({ title, description, image, url }: SEOProps) => {
-    const { t, i18n } = useTranslation();
-    const defaultTitle = "Bingeki | Votre aventure Manga";
-    const defaultDescription = t('seo.default_description', "Transformez votre passion manga en quête RPG ! Suivez vos lectures, gagnez de l'XP, débloquez des badges et affrontez vos amis.");
-    const defaultImage = i18n.language === 'en'
-        ? "https://bingeki.web.app/bingeki-preview-en.png"
-        : "https://bingeki.web.app/bingeki-preview.png";
+    const { i18n } = useTranslation();
+    const location = useLocation();
+    const resolved = useMemo(
+        () => resolveSeoFromPath(location.pathname, i18n.language),
+        [location.pathname, i18n.language]
+    );
+    const baseUrl = 'https://bingeki.web.app';
 
     useEffect(() => {
-        const fullTitle = title ? `${title} | Bingeki` : defaultTitle;
+        const fullTitle = title || resolved.title;
         document.title = fullTitle;
 
         const setMeta = (name: string, content: string, attr: 'name' | 'property' = 'name') => {
@@ -33,23 +36,34 @@ export const SEO = ({ title, description, image, url }: SEOProps) => {
             element.setAttribute('content', content);
         };
 
-        const finalDesc = description || defaultDescription;
+        const finalDesc = description || resolved.description;
         setMeta('description', finalDesc);
         setMeta('og:title', fullTitle, 'property');
         setMeta('og:description', finalDesc, 'property');
         setMeta('twitter:title', fullTitle);
         setMeta('twitter:description', finalDesc);
+        setMeta('og:locale', resolved.locale, 'property');
+        setMeta('og:locale:alternate', resolved.alternateLocale, 'property');
+        setMeta('og:type', 'website', 'property');
+        setMeta('twitter:card', 'summary_large_image');
 
-        const finalImage = image || defaultImage;
+        const finalImage = image || resolved.image;
         setMeta('og:image', finalImage, 'property');
         setMeta('twitter:image', finalImage);
 
-        if (url) {
-            setMeta('og:url', url, 'property');
-            const canonical = document.querySelector('link[rel="canonical"]');
-            if (canonical) canonical.setAttribute('href', url);
+        const pathWithSearch = `${location.pathname}${location.search}`;
+        const finalUrl = url || `${baseUrl}${pathWithSearch}`;
+        setMeta('og:url', finalUrl, 'property');
+        setMeta('twitter:url', finalUrl);
+
+        let canonical = document.querySelector('link[rel="canonical"]');
+        if (!canonical) {
+            canonical = document.createElement('link');
+            canonical.setAttribute('rel', 'canonical');
+            document.head.appendChild(canonical);
         }
-    }, [title, description, image, url, defaultDescription, defaultImage, t]);
+        canonical.setAttribute('href', finalUrl);
+    }, [title, description, image, url, resolved, location.pathname, location.search]);
 
     return null;
 };
