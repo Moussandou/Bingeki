@@ -2,7 +2,10 @@
   "hosting": {
     "predeploy": [
       "cp dist/index.html functions/index.html",
-      "cp dist/index-en.html functions/index-en.html"
+      "cp dist/index-en.html functions/index-en.html",
+      "mkdir -p functions/seo && cp shared/seo/routes.json functions/seo/routes.json",
+      "cp public/sitemap-index.xml dist/sitemap-index.xml",
+      "cp public/sitemap.xml dist/sitemap.xml"
     ],
     "site": "bingeki",
     "public": "dist",
@@ -84,7 +87,7 @@
         ]
       },
       {
-        "source": "/sitemap.xml",
+        "source": "/sitemap{,.xml,-index.xml}",
         "headers": [
           {
             "key": "Content-Type",

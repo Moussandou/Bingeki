@@ -1,5 +1,5 @@
 # Sitemap location
-Sitemap: https://bingeki.web.app/sitemap.xml
+Sitemap: https://bingeki.web.app/sitemap-index.xml
 
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *

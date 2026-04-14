@@ -1,4 +1,4 @@
-const routeSeoConfig = require('../shared/seo/routes.json');
+const routeSeoConfig = require('./seo/routes.json');
 
 const dynamicPatterns = [
   { regex: /^\/profile\/[^/]+$/, key: 'profile' },
