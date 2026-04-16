@@ -110,11 +110,17 @@ function generateProfileSVG(userData, lang, base64Avatar = '', base64Banner = ''
             </g>
 
             <!-- Info Area -->
-            <g transform="translate(300, 180)">
-                <text x="0" y="40" class="heading" font-size="60" fill="#000" style="text-shadow: 4px 4px 0 rgba(0,0,0,0.1)">${displayName}</text>
-                <text x="0" y="80" class="heading" font-size="16" fill="${primaryColor}" letter-spacing="4">HUNTER LICENSE #${userData.uid?.substring(0, 8).toUpperCase()}</text>
+            <g transform="translate(300, 150)">
+                <foreignObject x="0" y="0" width="650" height="150">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 56px; color: #000; line-height: 1.0; text-transform: uppercase; text-shadow: 4px 4px 0 rgba(0,0,0,0.1); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        ${displayName}
+                    </div>
+                </foreignObject>
                 
-                <text x="0" y="130" class="body" font-size="22" font-style="italic" fill="#666">${bio ? (bio.length > 60 ? bio.substring(0, 57) + '...' : bio) : ''}</text>
+                <g transform="translate(0, 120)">
+                    <text x="0" y="0" class="heading" font-size="16" fill="${primaryColor}" letter-spacing="4">HUNTER LICENSE #${userData.uid?.substring(0, 8).toUpperCase()}</text>
+                    <text x="0" y="40" class="body" font-size="22" font-style="italic" fill="#666">${bio ? (bio.length > 60 ? bio.substring(0, 57) + '...' : bio) : ''}</text>
+                </g>
             </g>
 
             <!-- Stats Grid -->
@@ -179,10 +185,11 @@ function generateWorkSVG(workData, lang, base64Image = '') {
 
             <!-- Title (Brutalist style) -->
             <g transform="translate(0, 80) rotate(-1.5)">
-                <!-- Shadow -->
-                <text x="6" y="6" class="heading" font-size="80" fill="#000" opacity="1">${title.length > 20 ? title.substring(0, 18).toUpperCase() + '...' : title.toUpperCase()}</text>
-                <!-- Main Text -->
-                <text x="0" y="0" class="heading" font-size="80" fill="#000">${title.length > 20 ? title.substring(0, 18).toUpperCase() + '...' : title.toUpperCase()}</text>
+                <foreignObject x="0" y="0" width="650" height="220">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 72px; color: #000; line-height: 1.0; text-transform: uppercase; text-shadow: 6px 6px 0 rgba(0,0,0,0.1); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                        ${title}
+                    </div>
+                </foreignObject>
             </g>
 
             <!-- Info Area -->
@@ -373,7 +380,11 @@ function generateDiscoverSVG(lang) {
                 <rect width="150" height="40" fill="${primaryColor}" transform="skewX(-15)" stroke="#000" stroke-width="2" />
                 <text x="75" y="28" text-anchor="middle" class="heading" font-size="20" fill="white">${t.featured}</text>
                 
-                <text x="0" y="100" class="heading" font-size="64" fill="#000">SOLO LEVELING</text>
+                <foreignObject x="0" y="60" width="750" height="200">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 64px; color: #000; line-height: 1.0; text-transform: uppercase; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        SOLO LEVELING
+                    </div>
+                </foreignObject>
                 
                 <g transform="translate(0, 180) skewX(-10)">
                     <rect width="240" height="60" fill="${primaryColor}" stroke="#000" stroke-width="3" />
@@ -517,7 +528,11 @@ function generateChallengesSVG(lang) {
                     <rect x="12" y="12" width="1080" height="120" fill="#000" />
                     <rect width="1080" height="120" class="manga-panel" />
                     
-                    <text x="30" y="75" class="heading" font-size="36" fill="#000">${c.icon} ${c.title}</text>
+                    <foreignObject x="30" y="35" width="650" height="60">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 32px; color: #000; line-height: 1.1; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${c.icon} ${c.title}
+                        </div>
+                    </foreignObject>
                     
                     <rect x="700" y="45" width="300" height="30" fill="#eee" stroke="#000" stroke-width="3" />
                     <rect x="700" y="45" width="${c.progress * 3}" height="30" fill="${primaryColor}" />
@@ -552,10 +567,16 @@ function generateGenericSVG(title, description, lang) {
             <rect x="-450" y="-150" width="900" height="300" fill="#fff" stroke="#000" stroke-width="6" rx="4" />
             
             <!-- Title -->
-            <text x="0" y="20" text-anchor="middle" class="heading" font-size="96" fill="#000" style="text-shadow: 6px 6px 0 rgba(0,0,0,0.1)">${cleanTitle}</text>
+            <g transform="translate(-400, -110)">
+                <foreignObject x="0" y="0" width="800" height="220">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 80px; color: #000; line-height: 1.1; text-align: center; text-transform: uppercase; text-shadow: 6px 6px 0 rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; height: 100%;">
+                        ${cleanTitle}
+                    </div>
+                </foreignObject>
+            </g>
             
             <!-- Accent Line -->
-            <rect x="-150" y="70" width="300" height="15" fill="${primaryColor}" />
+            <rect x="-150" y="110" width="300" height="15" fill="${primaryColor}" />
         </g>
         
         <!-- Footer Decoration -->
