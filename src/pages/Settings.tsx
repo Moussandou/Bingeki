@@ -17,7 +17,13 @@ import { useToast } from '@/context/ToastContext';
 import { getLocalStorageSize, exportData, importData, clearImageCache } from '@/utils/storageUtils';
 import { useAuthStore } from '@/store/authStore';
 import { saveLibraryToFirestore, saveGamificationToFirestore, saveUserProfileToFirestore } from '@/firebase/firestore';
-import { deleteUser } from 'firebase/auth';
+import { 
+    deleteUser, 
+    reauthenticateWithPopup, 
+    GoogleAuthProvider, 
+    OAuthProvider 
+} from 'firebase/auth';
+import { auth } from '@/firebase/config';
 import { MALImportModal } from '@/components/library/MALImportModal';
 
 /** Reusable pill-style option selector */
@@ -160,31 +166,64 @@ export default function Settings() {
     const [showConfirmAccountDelete, setShowConfirmAccountDelete] = useState(false);
     const [showMALImportModal, setShowMALImportModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [needsReauth, setNeedsReauth] = useState(false);
+
+    const handleReauthenticate = async () => {
+        if (!user) return;
+        
+        try {
+            setIsDeleting(true);
+            const providerId = user.providerData[0]?.providerId;
+            let provider;
+            
+            if (providerId === 'google.com') {
+                provider = new GoogleAuthProvider();
+            } else if (providerId === 'oidc.discord' || providerId === 'discord') {
+                provider = new OAuthProvider('oidc.discord');
+            } else {
+                // Fallback or generic provider handling
+                addToast(t('settings.toast.relogin_manual', 'Please log out and log back in manually.'), 'info');
+                setIsDeleting(false);
+                return;
+            }
+
+            await reauthenticateWithPopup(user, provider);
+            setNeedsReauth(false);
+            addToast(t('settings.toast.reauth_success', 'Identity verified!'), 'success');
+            // Automatically retry deletion
+            handleDeleteAccount();
+        } catch (error) {
+            console.error('Re-auth error:', error);
+            addToast(t('settings.toast.reauth_error', 'Verification failed. Try again.'), 'error');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     const handleDeleteAccount = async () => {
         if (!user || isDeleting) return;
 
         try {
             setIsDeleting(true);
-            // 1. Firestore rules now block client-side deletion for security.
-            // 2. The 'Delete User Data' extension will handle this server-side.
+            
+            // 1. Attempt Delete Auth Account first
+            await deleteUser(user);
 
-            // 1. Clear Local State IMMEDIATELY for clean feedback
+            // 2. ONLY CLEAR DATA IF SUCCESSFUL
+            // Clear Local State
             useLibraryStore.getState().resetStore();
             useGamificationStore.getState().resetStore();
-            // We use localStorage.clear() ONLY for full account deletion to be absolutely thorough
             localStorage.clear();
-
-            // 2. Delete Auth Account (This triggers the Firebase Extension)
-            await deleteUser(user);
 
             addToast(t('settings.toast.account_deleted', 'Account successfully deleted'), 'success');
             navigate('/');
         } catch (error) {
             console.error('Delete account error:', error);
-            // Handling the case where Firebase requires a fresh login for sensitive actions
-            if ((error as { code?: string }).code === 'auth/requires-recent-login') {
-                addToast(t('settings.toast.relogin_required', 'Please log out and log back in to delete your account.'), 'error');
+            const err = error as { code?: string };
+            
+            if (err.code === 'auth/requires-recent-login') {
+                setNeedsReauth(true);
+                addToast(t('settings.toast.reauth_required', 'Security check required.'), 'info');
             } else {
                 addToast(t('settings.toast.delete_error', 'An error occurred during deletion.'), 'error');
             }
@@ -521,10 +560,20 @@ export default function Settings() {
                                                     {t('settings.data.delete_confirm_desc')}
                                                 </p>
                                                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                                    <Button variant="ghost" size="sm" onClick={() => setShowConfirmAccountDelete(false)} disabled={isDeleting}>{t('settings.data.cancel')}</Button>
-                                                    <Button variant="primary" size="sm" onClick={handleDeleteAccount} style={{ background: '#ef4444' }} disabled={isDeleting}>
-                                                        {isDeleting ? t('settings.data.deleting') : t('settings.data.goodbye')}
-                                                    </Button>
+                                                    <Button variant="ghost" size="sm" onClick={() => {
+                                                        setShowConfirmAccountDelete(false);
+                                                        setNeedsReauth(false);
+                                                    }} disabled={isDeleting}>{t('settings.data.cancel', 'CANCEL')}</Button>
+                                                    
+                                                    {needsReauth ? (
+                                                        <Button variant="primary" size="sm" onClick={handleReauthenticate} style={{ background: 'var(--color-primary)' }} disabled={isDeleting}>
+                                                            {isDeleting ? t('common.loading', 'LOADING...') : t('settings.data.verify_identity', 'VERIFY IDENTITY')}
+                                                        </Button>
+                                                    ) : (
+                                                        <Button variant="primary" size="sm" onClick={handleDeleteAccount} style={{ background: '#ef4444' }} disabled={isDeleting}>
+                                                            {isDeleting ? t('settings.data.deleting') : t('settings.data.goodbye')}
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </div>
                                         )}

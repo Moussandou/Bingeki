@@ -77,7 +77,8 @@ import { useLanguageDetection } from '@/hooks/useLanguageDetection';
 // Skip loading spinners for bots / prerendered pages
 const BotAwareSuspense = ({ children }: { children: React.ReactNode }) => {
   const isMounted = useMounted();
-  const fallback = !isMounted || isBot() ? null : <LoadingScreen />;
+  const isPrerendered = typeof document !== 'undefined' && document.body.classList.contains('is-prerendered');
+  const fallback = !isMounted || isBot() || isPrerendered ? null : <LoadingScreen />;
   return <Suspense fallback={fallback}>{children}</Suspense>;
 };
 
@@ -140,7 +141,7 @@ function App() {
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
   const { showInstallModal, setShowInstallModal } = usePWAStore();
-  
+
 
   useAuthSync();
   usePWAHandler();
@@ -169,7 +170,7 @@ function App() {
   }, [loading, configLoaded, setLoading]);
 
   const isPrerendered = typeof document !== 'undefined' && document.body.classList.contains('is-prerendered');
-  
+
   if ((loading || !configLoaded) && !isBot() && !isPrerendered) {
     return <LoadingScreen />;
   }

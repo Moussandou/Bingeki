@@ -951,7 +951,8 @@ const resources = {
                     delete_confirm_title: "SUPPRIMER DÉFINITIVEMENT ?",
                     delete_confirm_desc: "Cette action supprimera votre compte, votre bibliothèque et toute votre progression. Impossible d'annuler.",
                     goodbye: "ADIEU",
-                    deleting: "Suppression..."
+                    deleting: "Suppression...",
+                    verify_identity: "VÉRIFIER MON IDENTITÉ"
                 },
                 about: {
                     title: "À PROPOS",
@@ -971,7 +972,11 @@ const resources = {
                     import_success: "Données importées avec succès !",
                     import_error: "Échec de l'importation",
                     account_deleted: "Compte supprimé. Sayonara.",
-                    relogin_required: "Veuillez vous reconnecter pour supprimer votre compte",
+                    relogin_required: "Vérification requise pour supprimer votre compte",
+                    reauth_required: "Vérification de sécurité nécessaire",
+                    reauth_success: "Identité vérifiée !",
+                    reauth_error: "Échec de la vérification",
+                    relogin_manual: "Veuillez vous déconnecter et vous reconnecter manuellement.",
                     delete_error: "Erreur lors de la suppression",
                     cache_cleared: "Cache nettoyé (simulation)"
                 }
@@ -2389,7 +2394,8 @@ const resources = {
                     delete_confirm_title: "PERMANENTLY DELETE?",
                     delete_confirm_desc: "This action will delete your account, your library, and all your progress. Cannot be undone.",
                     goodbye: "GOODBYE",
-                    deleting: "Deleting..."
+                    deleting: "Deleting...",
+                    verify_identity: "VERIFY IDENTITY"
                 },
                 about: {
                     title: "ABOUT",
@@ -2409,7 +2415,11 @@ const resources = {
                     import_success: "Data imported successfully!",
                     import_error: "Import failed",
                     account_deleted: "Account deleted. Sayonara.",
-                    relogin_required: "Please log in again to delete your account",
+                    relogin_required: "Verification required to delete your account",
+                    reauth_required: "Security check required",
+                    reauth_success: "Identity verified!",
+                    reauth_error: "Verification failed",
+                    relogin_manual: "Please log out and log back in manually.",
                     delete_error: "Deletion error",
                     cache_cleared: "Cache cleared (simulated)"
                 }
@@ -3952,10 +3962,13 @@ i18n
     .init({
         resources,
         fallbackLng: 'fr',
+        // During hydration, we MUST match the static shell's language (fr)
+        // to avoid React Error #418 mismatch.
+        lng: typeof document !== 'undefined' && document.body.classList.contains('is-prerendered') ? 'fr' : undefined,
         detection: {
             order: ['htmlTag', 'path', 'localStorage', 'navigator'],
             lookupFromPathIndex: 0,
-            htmlTag: document.documentElement
+            htmlTag: typeof document !== 'undefined' ? document.documentElement : undefined
         },
         supportedLngs: ['fr', 'en'],
         interpolation: {
