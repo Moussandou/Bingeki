@@ -23,7 +23,7 @@ import {
     GoogleAuthProvider, 
     OAuthProvider 
 } from 'firebase/auth';
-import { auth } from '@/firebase/config';
+
 import { MALImportModal } from '@/components/library/MALImportModal';
 
 /** Reusable pill-style option selector */
