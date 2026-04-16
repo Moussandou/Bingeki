@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-The following versions of Bingeki V2 are currently being supported with security updates.
+The following versions of Bingeki are currently being supported with security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -12,7 +12,7 @@ The following versions of Bingeki V2 are currently being supported with security
 
 ## Reporting a Vulnerability
 
-We take the security of Bingeki V2 seriously. If you believe you have found a security vulnerability, please report it to us by following these steps:
+We take the security of Bingeki seriously. If you believe you have found a security vulnerability, please report it to us by following these steps:
 
 1. **Email us**: Send a detailed report to **bingeki.official@gmail.com**.
 2. **Details**: Include a description of the vulnerability, the steps to reproduce it, and any potential impact.
