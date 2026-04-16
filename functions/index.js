@@ -69,135 +69,73 @@ function generateProfileSVG(userData, lang, base64Avatar = '', base64Banner = ''
         stats: lang === 'en' ? 'STATS' : 'STATS'
     };
 
-    // Calculate Radar Chart Points (6 points)
-    const centerX = 850;
-    const centerY = 330;
-    const radius = 120;
+    const levelLabels = {
+        fr: { level: 'NIVEAU', xp: 'EXPÉRIENCE', streak: 'SÉRIE', badges: 'BADGES', verified: 'VÉRIFIÉ' },
+        en: { level: 'LEVEL', xp: 'EXPERIENCE', streak: 'STREAK', badges: 'BADGES', verified: 'VERIFIED' }
+    }[lang] || { level: 'LEVEL', xp: 'EXPERIENCE', streak: 'STREAK', badges: 'BADGES', verified: 'VERIFIED' };
 
-    const stats = [
-        { val: Math.min(level * 2, 100), label: lang === 'en' ? 'Level' : 'Niveau' },
-        { val: Math.min(xp / 100, 100), label: lang === 'en' ? 'Passion' : 'Passion' },
-        { val: Math.min(streak, 100), label: lang === 'en' ? 'Diligence' : 'Assiduité' },
-        { val: Math.min((userData.totalWorksAdded || 0) / 2, 100), label: lang === 'en' ? 'Collection' : 'Collection' },
-        { val: Math.min((userData.totalChaptersRead || 0) / 10, 100), label: lang === 'en' ? 'Reading' : 'Lecture' },
-        { val: Math.min((userData.totalWorksCompleted || 0) * 5, 100), label: lang === 'en' ? 'Completion' : 'Succès' }
-    ];
+    // Merge into labels for backwards compatibility in template
+    Object.assign(labels, levelLabels);
 
-    const getPoint = (index, value) => {
-        const angle = (index * 60 - 90) * (Math.PI / 180);
-        const r = (value / 100) * radius;
-        return `${centerX + r * Math.cos(angle)},${centerY + r * Math.sin(angle)}`;
-    };
-
-    const polygonPoints = stats.map((s, i) => getPoint(i, s.val)).join(' ');
-    const gridPoints100 = stats.map((s, i) => getPoint(i, 100)).join(' ');
-    const gridPoints50 = stats.map((s, i) => getPoint(i, 50)).join(' ');
+    const primaryColor = '#FF2E63';
 
     return `
     <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-        <defs>
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@900&amp;family=Inter:wght@400;700&amp;display=swap');
-                .heading { font-family: 'Outfit', sans-serif; font-weight: 900; text-transform: uppercase; }
-                .body { font-family: 'Inter', sans-serif; }
-                .mono { font-family: monospace; }
-            </style>
-            <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:${bgColor}" />
-                <stop offset="100%" style="stop-color:#0a0a0a" />
-            </linearGradient>
-            <pattern id="mangaDots" width="20" height="20" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="1.5" fill="white" fill-opacity="0.05" />
-            </pattern>
-            <pattern id="speedlines" width="100" height="100" patternUnits="userSpaceOnUse">
-                <line x1="0" y1="0" x2="100" y2="100" stroke="white" stroke-width="0.5" opacity="0.1" />
-                <line x1="100" y1="0" x2="0" y2="100" stroke="white" stroke-width="0.5" opacity="0.05" />
-            </pattern>
-            <clipPath id="avatarClip">
-                <rect x="150" y="220" width="160" height="160" rx="4" />
-            </clipPath>
-        </defs>
-        
-        <!-- Background -->
-        <rect width="1200" height="630" fill="#121212" />
+        <defs>${getSharedSVGDefs(primaryColor)}</defs>
+        <rect width="1200" height="630" fill="#f4f4f4" />
         <rect width="1200" height="630" fill="url(#mangaDots)" />
         <rect width="1200" height="630" fill="url(#speedlines)" />
-        
-        <!-- Outer Border (Brutalist Style) -->
-        <rect x="50" y="50" width="1100" height="530" rx="4" fill="none" stroke="${borderColor}" stroke-width="8" />
-        
-        <!-- Main Card Panel (Manga Shadow Style) -->
-        <rect x="56" y="56" width="1100" height="530" rx="4" fill="${borderColor}" opacity="0.5" />
-        <rect x="50" y="50" width="1100" height="530" rx="4" fill="url(#panelGrad)" stroke="${borderColor}" stroke-width="2" />
 
-    <!-- Banner -->
-    <rect x="50" y="50" width="1100" height="140" fill="${primaryColor}" />
-    ${base64Banner ? `<image x="50" y="50" width="1100" height="140" xlink:href="${base64Banner}" preserveAspectRatio="xMidYMid slice" />` : ''}
-    <rect x="50" y="188" width="1100" height="2" fill="${borderColor}" />
+        <text x="600" y="315" text-anchor="middle" class="sfx-text" font-size="280">${labels.verified}</text>
 
-    <!-- Header Strip -->
-    <rect x="50" y="190" width="1100" height="40" fill="${borderColor}" />
-    <text x="75" y="217" class="heading" font-size="20" fill="white" letter-spacing="2">${labels.title}</text>
-    <text x="1125" y="217" text-anchor="end" class="heading" font-size="20" fill="white" letter-spacing="1">ID: ${uid}</text>
+        <!-- Main Card (Manga License) -->
+        <g transform="translate(100, 100) rotate(-1.5)">
+            <!-- Solid Shadow -->
+            <rect x="15" y="15" width="1000" height="430" fill="#000" rx="4" />
+            <!-- Card Body -->
+            <rect width="1000" height="430" class="manga-panel" rx="4" />
+            
+            <!-- Banner Section -->
+            <g transform="translate(10, 10)">
+                <rect width="980" height="150" fill="#1a1a1a" rx="2" />
+                ${base64Banner ? `<image x="0" y="0" width="980" height="150" xlink:href="${base64Banner}" preserveAspectRatio="xMidYMid slice" opacity="0.4" />` : ''}
+                <text x="490" y="90" text-anchor="middle" class="heading" font-size="80" fill="white" opacity="0.1" letter-spacing="20">BINGEKI</text>
+            </g>
 
-    <!-- Avatar Section -->
-    <rect x="145" y="215" width="170" height="170" rx="10" fill="${borderColor}" />
-    ${base64Avatar ? `<image x="150" y="220" width="160" height="160" xlink:href="${base64Avatar}" clip-path="url(#avatarClip)" preserveAspectRatio="xMidYMid slice" />` : ''}
-    
-    <!-- Level Badge -->
-        <rect x="260" y="340" width="90" height="45" fill="${primaryColor}" stroke="${borderColor}" stroke-width="3" transform="rotate(-5, 305, 362)" />
-        <text x="305" y="372" text-anchor="middle" class="heading" font-size="22" fill="white" transform="rotate(-5, 305, 362)">${labels.lvl} ${level}</text>
+            <!-- Avatar -->
+            <g transform="translate(40, 120)">
+                <rect x="8" y="8" width="220" height="220" fill="#000" />
+                <rect width="220" height="220" fill="#fff" stroke="#000" stroke-width="4" />
+                ${base64Avatar ? `<image x="5" y="5" width="210" height="210" xlink:href="${base64Avatar}" preserveAspectRatio="xMidYMid slice" />` : ''}
+            </g>
 
-        <!-- Identity Section -->
-        <g transform="rotate(-1, 360, 290)">
-            <rect x="355" y="245" width="500" height="65" fill="${primaryColor}" opacity="0.1" />
-            <text x="360" y="290" class="heading" font-size="52" fill="${textColor}" style="text-shadow: 4px 4px 0 #000;">${displayName}</text>
+            <!-- Info Area -->
+            <g transform="translate(300, 180)">
+                <text x="0" y="40" class="heading" font-size="60" fill="#000" style="text-shadow: 4px 4px 0 rgba(0,0,0,0.1)">${displayName}</text>
+                <text x="0" y="80" class="heading" font-size="16" fill="${primaryColor}" letter-spacing="4">HUNTER LICENSE #${userData.uid?.substring(0, 8).toUpperCase()}</text>
+                
+                <text x="0" y="130" class="body" font-size="22" font-style="italic" fill="#666">${bio ? (bio.length > 60 ? bio.substring(0, 57) + '...' : bio) : ''}</text>
+            </g>
+
+            <!-- Stats Grid -->
+            <g transform="translate(300, 330)">
+                <rect width="150" height="60" class="manga-panel" />
+                <text x="75" y="25" text-anchor="middle" class="heading" font-size="12" fill="#666">${labels.level}</text>
+                <text x="75" y="50" text-anchor="middle" class="heading" font-size="24">${level}</text>
+
+                <g transform="translate(170, 0)">
+                    <rect width="150" height="60" class="manga-panel" />
+                    <text x="75" y="25" text-anchor="middle" class="heading" font-size="12" fill="#666">${labels.streak}</text>
+                    <text x="75" y="50" text-anchor="middle" class="heading" font-size="24">${streak} 🔥</text>
+                </g>
+                
+                <g transform="translate(340, 0)">
+                    <rect width="150" height="60" class="manga-panel" />
+                    <text x="75" y="25" text-anchor="middle" class="heading" font-size="12" fill="#666">${labels.badges}</text>
+                    <text x="75" y="50" text-anchor="middle" class="heading" font-size="24">${badgeCount} ⭐</text>
+                </g>
+            </g>
         </g>
-        <text x="360" y="325" class="mono" font-size="16" fill="${primaryColor}" opacity="0.8">BINGEKI HUNTER LICENSE VERIFIED</text>
-        
-        <!-- Bio -->
-        ${bio ? `
-        <line x1="360" y1="360" x2="360" y2="440" stroke="${primaryColor}" stroke-width="3" />
-        <text x="375" y="380" class="body" font-size="20" font-style="italic" fill="${textColor}" opacity="0.9">
-            ${bio.length > 50 ? bio.substring(0, 47) + '...' : bio}
-        </text>
-        ` : ''}
-
-        <!-- Radar Chart Side -->
-        <!-- Chart Grid -->
-        <polygon points="${gridPoints100}" fill="none" stroke="${textColor}" stroke-width="1" opacity="0.1" />
-        <polygon points="${gridPoints50}" fill="none" stroke="${textColor}" stroke-width="1" opacity="0.1" />
-        ${stats.map((s, i) => `<line x1="${centerX}" y1="${centerY}" x2="${getPoint(i, 100).split(',')[0]}" y2="${getPoint(i, 100).split(',')[1]}" stroke="${textColor}" stroke-width="1" opacity="0.1" />`).join('')}
-        
-        <!-- The Data Polygon -->
-        <polygon points="${polygonPoints}" fill="${primaryColor}" fill-opacity="0.6" stroke="${primaryColor}" stroke-width="3" />
-        
-        <!-- Chart Labels -->
-        ${stats.map((s, i) => {
-        const p = getPoint(i, 125);
-        const [px, py] = p.split(',');
-        return `<text x="${px}" y="${py}" text-anchor="middle" class="heading" font-size="12" fill="${textColor}" opacity="0.7">${s.label}</text>`;
-    }).join('')}
-
-        <!-- Bottom Stats Bar -->
-        <rect x="145" y="470" width="910" height="80" rx="5" fill="rgba(0,0,0,0.3)" stroke="${borderColor}" stroke-width="2" />
-        
-        <!-- XP Bar Wrapper -->
-        <text x="165" y="500" class="heading" font-size="14" fill="${textColor}" opacity="0.6">${labels.xp}</text>
-        <rect x="165" y="515" width="400" height="12" rx="6" fill="#333" />
-        <rect x="165" y="515" width="${Math.min((xp / xpToNextLevel) * 400, 400)}" height="12" rx="6" fill="${primaryColor}" />
-        <text x="565" y="530" text-anchor="end" class="heading" font-size="14" fill="${textColor}">${xp} / ${xpToNextLevel}</text>
-
-        <!-- Streak -->
-        <text x="650" y="500" class="heading" font-size="14" fill="${textColor}" opacity="0.6">${labels.streak}</text>
-        <text x="650" y="535" class="heading" font-size="32" fill="white">${streak} <tspan font-size="20">🔥</tspan></text>
-
-        <!-- Badges -->
-        <text x="850" y="500" class="heading" font-size="14" fill="${textColor}" opacity="0.6">${labels.badges}</text>
-        <text x="850" y="535" class="heading" font-size="32" fill="white">${badgeCount} <tspan font-size="20">⭐</tspan></text>
-
-        <!-- Footer -->
-        <text x="1150" y="610" text-anchor="end" class="heading" font-size="14" fill="${textColor}" opacity="0.3">BINGEKI.WEB.APP</text>
     </svg>`;
 }
 
@@ -214,75 +152,52 @@ function generateWorkSVG(workData, lang, base64Image = '') {
 
     return `
     <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-        <defs>
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@900&amp;family=Inter:wght@400;700&amp;display=swap');
-                .heading { font-family: 'Outfit', sans-serif; font-weight: 900; text-transform: uppercase; }
-                .body { font-family: 'Inter', sans-serif; }
-            </style>
-            <linearGradient id="workGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style="stop-color:rgba(18,18,18,0.2)" />
-                <stop offset="100%" style="stop-color:rgba(18,18,18,1)" />
-            </linearGradient>
-            <pattern id="mangaDots" width="15" height="15" patternUnits="userSpaceOnUse">
-                <circle cx="1" cy="1" r="1" fill="white" fill-opacity="0.1" />
-            </pattern>
-            <pattern id="diagonalLines" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                <line x1="0" y1="0" x2="0" y2="40" stroke="${primaryColor}" stroke-width="2" opacity="0.1" />
-            </pattern>
-        </defs>
+        <defs>${getSharedSVGDefs(primaryColor)}</defs>
         
-        <!-- Background Layer -->
-        <rect width="1200" height="630" fill="#121212" />
-        
-        ${base64Image ? `
-        <image x="0" y="0" width="1200" height="630" xlink:href="${base64Image}" preserveAspectRatio="xMidYMid slice" opacity="0.3" filter="grayscale(1)" />
-        <rect width="1200" height="630" fill="url(#workGrad)" />
-        ` : ''}
-        
+        <!-- Background -->
+        <rect width="1200" height="630" fill="#f4f4f4" />
         <rect width="1200" height="630" fill="url(#mangaDots)" />
-        <rect width="1200" height="630" fill="url(#diagonalLines)" />
+        <rect width="1200" height="630" fill="url(#speedlines)" />
+        
+        <text x="600" y="315" text-anchor="middle" class="sfx-text" font-size="280">WORK DETAILS</text>
 
         <!-- Manga Shadow for Poster -->
-        <rect x="88" y="88" width="320" height="470" fill="#000" rx="4" />
+        <rect x="85" y="85" width="340" height="490" fill="#000" />
         <!-- Main Poster -->
-        <g transform="translate(80, 80)">
-            <rect x="0" y="0" width="320" height="470" fill="#000" rx="4" />
-            ${base64Image ? `<image x="5" y="5" width="310" height="460" xlink:href="${base64Image}" preserveAspectRatio="xMidYMid slice" clip-path="inset(0% round 4px)" />` : ''}
-            <rect x="0" y="0" width="320" height="470" fill="none" stroke="white" stroke-width="3" rx="4" />
+        <g transform="translate(80, 80) rotate(-1)">
+            <rect width="340" height="490" fill="#fff" stroke="#000" stroke-width="5" />
+            <rect x="10" y="10" width="320" height="470" fill="#1a1a1a" />
+            ${base64Image ? `<image x="10" y="10" width="320" height="470" xlink:href="${base64Image}" preserveAspectRatio="xMidYMid slice" />` : ''}
         </g>
 
         <!-- Content Section -->
-        <g transform="translate(450, 150)">
+        <g transform="translate(480, 120)">
             <!-- Type Badge (Brutalist style) -->
-            <rect x="-10" y="-5" width="120" height="40" fill="#000" transform="skewX(-15)" />
-            <rect x="-15" y="-10" width="120" height="40" fill="${primaryColor}" transform="skewX(-15)" />
-            <text x="45" y="18" text-anchor="middle" class="heading" font-size="20" fill="white">${type}</text>
+            <rect x="10" y="10" width="140" height="50" fill="#000" transform="skewX(-15)" />
+            <rect width="140" height="50" fill="${primaryColor}" stroke="#000" stroke-width="3" transform="skewX(-15)" />
+            <text x="70" y="32" text-anchor="middle" class="heading" font-size="24" fill="white" transform="skewX(15)">${type}</text>
 
-            <!-- Title (Rotated & Shadowed) -->
-            <g transform="rotate(-1.5, 0, 80)">
-                <foreignObject x="0" y="50" width="700" height="220">
-                    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 72px; color: white; line-height: 1.0; text-transform: uppercase; text-shadow: 6px 6px 0px #000;">
-                        ${title}
-                    </div>
-                </foreignObject>
+            <!-- Title (Brutalist style) -->
+            <g transform="translate(0, 80) rotate(-1.5)">
+                <!-- Shadow -->
+                <text x="6" y="6" class="heading" font-size="80" fill="#000" opacity="1">${title.length > 20 ? title.substring(0, 18).toUpperCase() + '...' : title.toUpperCase()}</text>
+                <!-- Main Text -->
+                <text x="0" y="0" class="heading" font-size="80" fill="#000">${title.length > 20 ? title.substring(0, 18).toUpperCase() + '...' : title.toUpperCase()}</text>
             </g>
 
-            <!-- Genres & Status -->
-            <text x="0" y="280" class="heading" font-size="22" fill="${primaryColor}" letter-spacing="2">${genres}</text>
-            <text x="0" y="315" class="body" font-size="20" fill="white" opacity="0.6">${status}</text>
-            
-            <!-- Rating / Score -->
-            <g transform="translate(0, 360)">
-                <rect x="0" y="0" width="180" height="60" fill="none" stroke="white" stroke-width="2" transform="skewX(-10)" />
-                <text x="20" y="40" class="heading" font-size="36" fill="white">★ ${score}</text>
-                <text x="110" y="40" class="body" font-size="14" fill="white" opacity="0.5">/ 10</text>
+            <!-- Info Area -->
+            <g transform="translate(0, 260)">
+                <text x="0" y="0" class="heading" font-size="24" fill="${primaryColor}" letter-spacing="4">${genres}</text>
+                <text x="0" y="40" class="body" font-size="20" font-weight="800" fill="#000" opacity="0.6">${status}</text>
+                
+                <!-- Rating Panel -->
+                <g transform="translate(0, 80) skewX(-10)">
+                    <rect width="200" height="80" fill="#000" />
+                    <rect x="-5" y="-5" width="200" height="80" fill="#fff" stroke="#000" stroke-width="4" />
+                    <text x="100" y="50" text-anchor="middle" class="heading" font-size="48" fill="#000" transform="skewX(10)">★ ${score}</text>
+                </g>
             </g>
         </g>
-
-        <!-- Branding -->
-        <text x="1150" y="580" text-anchor="end" class="heading" font-size="30" fill="white" opacity="0.1" letter-spacing="10">BINGEKI</text>
-        <rect x="1100" y="600" width="50" height="5" fill="${primaryColor}" />
     </svg>`;
 }
 
@@ -299,77 +214,51 @@ function generateNewsSVG(newsData, lang, base64Image = '') {
 
     return `
     <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-        <defs>
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@900&amp;family=Inter:wght@400;700;800&amp;display=swap');
-                .heading { font-family: 'Outfit', sans-serif; font-weight: 900; text-transform: uppercase; }
-                .body { font-family: 'Inter', sans-serif; }
-            </style>
-            <pattern id="mangaDots" width="20" height="20" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="1.5" fill="white" fill-opacity="0.05" />
-            </pattern>
-            <pattern id="diagonalLines" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                <line x1="0" y1="0" x2="0" y2="40" stroke="white" stroke-width="1.5" opacity="0.05" />
-            </pattern>
-        </defs>
+        <defs>${getSharedSVGDefs(primaryColor)}</defs>
         
         <!-- Background -->
         <rect width="1200" height="630" fill="#121212" />
         <rect width="1200" height="630" fill="url(#mangaDots)" />
-        <rect width="1200" height="630" fill="url(#diagonalLines)" />
+        <rect width="1200" height="630" fill="url(#speedlines)" />
         
         <!-- BINGEKI Background Text -->
-        <text x="600" y="350" text-anchor="middle" class="heading" font-size="280" fill="white" opacity="0.02" letter-spacing="-10">BINGEKI</text>
+        <text x="600" y="320" text-anchor="middle" class="sfx-text" font-size="300" fill="white" opacity="0.03" letter-spacing="-10">BINGEKI</text>
 
         <!-- Left Image Section -->
-        <g transform="translate(60, 60)">
-            <!-- Manga Shadow -->
-            <rect x="8" y="8" width="500" height="510" rx="4" fill="#000" />
-            <g clip-path="inset(0% round 4px)">
-                <rect width="500" height="510" fill="#333" />
-                ${base64Image ? `<image width="500" height="510" xlink:href="${base64Image}" preserveAspectRatio="xMidYMid slice" />` : ''}
-                <!-- Bottom Gradient -->
-                <rect y="310" width="500" height="200" fill="rgba(0,0,0,0.8)" />
-            </g>
-            <!-- Border -->
-            <rect width="500" height="510" rx="4" fill="none" stroke="white" stroke-width="3" />
+        <g transform="translate(60, 60) rotate(-1)">
+            <rect x="12" y="12" width="500" height="510" fill="#000" />
+            <rect width="500" height="510" fill="#1a1a1a" stroke="white" stroke-width="5" />
+            ${base64Image ? `<image width="490" x="5" y="5" height="500" xlink:href="${base64Image}" preserveAspectRatio="xMidYMid slice" />` : ''}
             
-            <!-- Floating Tag Badge -->
             <g transform="translate(30, 30)">
-                <rect x="4" y="4" width="140" height="40" fill="#000" rx="2" />
-                <rect width="140" height="40" fill="${primaryColor}" rx="2" />
+                <rect x="5" y="5" width="140" height="40" fill="#000" />
+                <rect width="140" height="40" fill="${primaryColor}" stroke="#000" stroke-width="2" />
                 <text x="70" y="27" text-anchor="middle" class="heading" font-size="20" fill="white">${tag}</text>
             </g>
         </g>
 
         <!-- Right Content Section -->
         <g transform="translate(620, 80)">
-            <!-- Top Header -->
             <text x="0" y="0" class="heading" font-size="20" fill="${primaryColor}" letter-spacing="4">${source} • ${date}</text>
             
-            <!-- Main Title (Rotated & Shadowed) -->
-            <g transform="rotate(-1, 0, 80)">
+            <g transform="rotate(1, 0, 80)">
                 <foreignObject x="0" y="30" width="520" height="200">
-                    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 48px; color: white; line-height: 1.1; text-transform: uppercase; text-shadow: 6px 6px 0px #000;">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 48px; color: white; line-height: 1.1; text-transform: uppercase;">
                         ${title}
                     </div>
                 </foreignObject>
             </g>
 
-            <!-- Orange Summary Box (Replica of site) -->
-            <g transform="translate(0, 260)">
-                <!-- Shadow -->
-                <rect x="8" y="8" width="520" height="230" fill="#000" />
-                <!-- Box -->
-                <rect width="520" height="230" fill="${orangeBoxColor}" stroke="#000" stroke-width="3" />
+            <!-- Orange Summary Box -->
+            <g transform="translate(0, 260) rotate(-1)">
+                <rect x="12" y="12" width="520" height="230" fill="#000" />
+                <rect width="520" height="230" fill="${orangeBoxColor}" stroke="#000" stroke-width="4" />
                 
-                <!-- Badge "CLIN D'OEIL" -->
                 <g transform="translate(20, -15) rotate(-2)">
                     <rect width="160" height="30" fill="#000" />
                     <text x="80" y="22" text-anchor="middle" class="heading" font-size="14" fill="white">EN UN CLIN D'OEIL</text>
                 </g>
 
-                <!-- Summary Text -->
                 <foreignObject x="25" y="40" width="470" height="170">
                     <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 22px; color: #000; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;">
                         ${summary || title}
@@ -377,75 +266,301 @@ function generateNewsSVG(newsData, lang, base64Image = '') {
                 </foreignObject>
             </g>
         </g>
-
-        <!-- Footer Bottom Corner -->
-        <rect x="1150" y="0" width="50" height="630" fill="${primaryColor}" opacity="0.1" />
-        <text x="1100" y="600" text-anchor="end" class="heading" font-size="14" fill="white" opacity="0.3" letter-spacing="5">BINGEKI.WEB.APP</text>
     </svg>`;
 }
 
-// SVG Template for Generic Pages
-function generateGenericSVG(title, description, lang) {
-    const cleanTitle = escapeHtml(title || 'Bingeki');
-    const finalDesc = escapeHtml(description || '');
+// --- MOCKUP UI GENERATORS ---
+
+function getSharedSVGDefs(primaryColor) {
+    return `
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@900&amp;family=Inter:wght@400;700;800&amp;display=swap');
+        .heading { font-family: 'Outfit', sans-serif; font-weight: 900; text-transform: uppercase; }
+        .body { font-family: 'Inter', sans-serif; }
+        .manga-panel { fill: #fff; stroke: #000; stroke-width: 4; }
+        .sfx-text { font-family: 'Outfit', sans-serif; font-weight: 900; text-transform: uppercase; fill: #000; opacity: 0.05; }
+    </style>
+    <pattern id="mangaDots" width="15" height="15" patternUnits="userSpaceOnUse">
+        <circle cx="2" cy="2" r="1.2" fill="black" fill-opacity="0.08" />
+    </pattern>
+    <pattern id="speedlines" width="1000" height="1000" patternUnits="userSpaceOnUse">
+        <g opacity="0.04">
+            ${Array.from({ length: 48 }).map((_, i) => `<line x1="600" y1="315" x2="${600 + 1500 * Math.cos(i * 7.5 * Math.PI / 180)}" y2="${315 + 1500 * Math.sin(i * 7.5 * Math.PI / 180)}" stroke="#000" stroke-width="1.5" />`).join('')}
+        </g>
+    </pattern>
+    `;
+}
+
+function generateHomeSVG(lang) {
+    const primaryColor = '#FF2E63';
+    const t = {
+        fr: { title1: 'VOTRE HISTOIRE', title2: 'COMMENCE', sfx: 'BINGEKI !!' },
+        en: { title1: 'YOUR STORY', title2: 'BEGINS', sfx: 'BINGEKI !!' }
+    }[lang] || { title1: 'YOUR STORY', title2: 'BEGINS', sfx: 'BINGEKI !!' };
 
     return `
     <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@900&amp;family=Inter:wght@400;700&amp;display=swap');
-                .heading { font-family: 'Outfit', sans-serif; font-weight: 900; text-transform: uppercase; }
-                .body { font-family: 'Inter', sans-serif; }
-            </style>
-            <linearGradient id="genBg" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#1a1a1a" />
-                <stop offset="100%" style="stop-color:#080808" />
-            </linearGradient>
-            <pattern id="mangaDots" width="40" height="40" patternUnits="userSpaceOnUse">
-                <circle cx="4" cy="4" r="2" fill="#FF2E63" fill-opacity="0.05" />
-            </pattern>
-            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="15" />
-                <feOffset dx="0" dy="15" result="offsetblur" />
-                <feComponentTransfer>
-                    <feFuncA type="linear" slope="0.5" />
-                </feComponentTransfer>
-                <feMerge>
-                    <feMergeNode />
-                    <feMergeNode in="SourceGraphic" />
-                </feMerge>
-            </filter>
-        </defs>
+        <defs>${getSharedSVGDefs(primaryColor)}</defs>
         
-        <rect width="1200" height="630" fill="url(#genBg)" />
+        <!-- Background -->
+        <rect width="1200" height="630" fill="#f4f4f4" />
+        <rect width="1200" height="630" fill="url(#mangaDots)" />
+        <rect width="1200" height="630" fill="url(#speedlines)" />
+
+        <!-- Floating SFX Background Text -->
+        <text x="600" y="315" text-anchor="middle" class="heading" font-size="280" fill="#000" opacity="0.04" transform="rotate(-5, 600, 315)">${t.sfx}</text>
+        
+        <!-- Hero Title (Brutalist style) -->
+        <g transform="translate(600, 315) rotate(-2)">
+            <!-- Solid Shadow -->
+            <text x="8" y="8" text-anchor="middle" class="heading" font-size="140" fill="#000" opacity="1">${t.title1}</text>
+            <text x="8" y="148" text-anchor="middle" class="heading" font-size="140" fill="#000" opacity="1">${t.title2}</text>
+            
+            <!-- Main Text -->
+            <text x="0" y="0" text-anchor="middle" class="heading" font-size="140" fill="#000">${t.title1}</text>
+            <text x="0" y="140" text-anchor="middle" class="heading" font-size="140" fill="#000">${t.title2}</text>
+            
+            <!-- Red Outline Highlight -->
+            <text x="0" y="0" text-anchor="middle" class="heading" font-size="140" fill="none" stroke="${primaryColor}" stroke-width="2" opacity="0.5">${t.title1}</text>
+        </g>
+
+        <!-- CTA Skewed Box -->
+        <g transform="translate(600, 520) skewX(-15)">
+            <rect x="-160" y="-35" width="320" height="70" fill="#000" />
+            <rect x="-165" y="-40" width="320" height="70" fill="${primaryColor}" stroke="#000" stroke-width="3" />
+            <text x="0" y="8" text-anchor="middle" class="heading" font-size="28" fill="#000" transform="skewX(15)">REJOINDRE</text>
+        </g>
+
+        <!-- Branding -->
+        <text x="60" y="60" class="heading" font-size="30" fill="#000">BINGEKI</text>
+        <text x="1140" y="600" text-anchor="end" class="heading" font-size="16" fill="#000" opacity="0.3">BINGEKI.WEB.APP</text>
+    </svg>`;
+}
+
+function generateDiscoverSVG(lang) {
+    const primaryColor = '#FF2E63';
+    const t = {
+        fr: { title: 'DÉCOUVRIR', search: 'RECHERCHER UN ANIME...', featured: 'À LA UNE', sfx: 'ZOOM !!' },
+        en: { title: 'DISCOVER', search: 'SEARCH ANIME...', featured: 'FEATURED', sfx: 'ZOOM !!' }
+    }[lang] || { title: 'DISCOVER', search: 'SEARCH ANIME...', featured: 'FEATURED', sfx: 'ZOOM !!' };
+
+    return `
+    <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+        <defs>${getSharedSVGDefs(primaryColor)}</defs>
+        <rect width="1200" height="630" fill="#f4f4f4" />
+        <rect width="1200" height="630" fill="url(#mangaDots)" />
+        <rect width="1200" height="630" fill="url(#speedlines)" />
+        
+        <text x="1000" y="550" text-anchor="end" class="sfx-text" font-size="280" transform="rotate(-15, 1000, 550)">${t.sfx}</text>
+
+        <!-- Search Bar Mockup -->
+        <g transform="translate(200, 40)">
+            <rect x="10" y="10" width="800" height="70" fill="#000" rx="4" />
+            <rect width="800" height="70" class="manga-panel" rx="4" />
+            <text x="40" y="45" class="heading" font-size="24" fill="#000" opacity="0.3">${t.search}</text>
+        </g>
+
+        <!-- Hero Section Mockup -->
+        <g transform="translate(60, 140) rotate(-1)">
+            <rect x="12" y="12" width="1080" height="340" fill="#000" rx="4" />
+            <rect width="1080" height="340" fill="#fff" stroke="#000" stroke-width="5" rx="4" />
+            
+            <!-- Poster -->
+            <rect x="30" y="30" width="200" height="280" fill="#222" stroke="#000" stroke-width="3" />
+            
+            <!-- Content -->
+            <g transform="translate(260, 50)">
+                <rect width="150" height="40" fill="${primaryColor}" transform="skewX(-15)" stroke="#000" stroke-width="2" />
+                <text x="75" y="28" text-anchor="middle" class="heading" font-size="20" fill="white">${t.featured}</text>
+                
+                <text x="0" y="100" class="heading" font-size="64" fill="#000">SOLO LEVELING</text>
+                
+                <g transform="translate(0, 180) skewX(-10)">
+                    <rect width="240" height="60" fill="${primaryColor}" stroke="#000" stroke-width="3" />
+                    <text x="120" y="40" text-anchor="middle" class="heading" font-size="24" fill="white">+ MA LISTE</text>
+                </g>
+            </g>
+        </g>
+
+        <!-- Genre Chips -->
+        <g transform="translate(60, 520)">
+            ${['ACTION', 'ADVENTURE', 'COMEDY', 'DRAMA', 'FANTASY'].map((g, i) => `
+                <g transform="translate(${i * 220}, 0) rotate(${i % 2 ? 1 : -1})">
+                    <rect x="5" y="5" width="200" height="55" fill="#000" />
+                    <rect width="200" height="55" class="manga-panel" />
+                    <text x="100" y="35" text-anchor="middle" class="heading" font-size="20">${g}</text>
+                </g>
+            `).join('')}
+        </g>
+    </svg>`;
+}
+
+function generateSocialSVG(lang) {
+    const primaryColor = '#FF2E63';
+    const gold = '#FFD700';
+
+    return `
+    <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+        <defs>${getSharedSVGDefs(primaryColor)}</defs>
+        <rect width="1200" height="630" fill="#f4f4f4" />
         <rect width="1200" height="630" fill="url(#mangaDots)" />
         
-        <!-- Decorative elements -->
-        <circle cx="1100" cy="100" r="200" fill="#FF2E63" fill-opacity="0.03" />
-        <circle cx="100" cy="530" r="150" fill="#FF2E63" fill-opacity="0.05" />
+        <text x="600" y="315" text-anchor="middle" class="sfx-text" font-size="300" opacity="0.03">LEVEL UP</text>
+
+        <text x="600" y="80" text-anchor="middle" class="heading" font-size="70" fill="#000" style="text-shadow: 6px 6px 0 rgba(0,0,0,0.1)">CLASSEMENT</text>
+
+        <!-- Podium Mockup -->
+        <g transform="translate(200, 150)">
+            <!-- 2nd Place -->
+            <g transform="translate(0, 100) rotate(-2)">
+                <rect x="10" y="10" width="200" height="200" fill="#000" />
+                <rect width="200" height="200" class="manga-panel" />
+                <text x="100" y="100" text-anchor="middle" class="heading" font-size="120" fill="#eee" opacity="0.3">2</text>
+                <text x="100" y="160" text-anchor="middle" class="heading" font-size="24">YUMI</text>
+            </g>
+            <!-- 1st Place -->
+            <g transform="translate(250, 0) scale(1.1) rotate(1)">
+                <rect x="12" y="12" width="300" height="300" fill="#000" />
+                <rect width="300" height="300" fill="#fff" stroke="${primaryColor}" stroke-width="8" />
+                <text x="150" y="150" text-anchor="middle" class="heading" font-size="180" fill="${primaryColor}" opacity="0.1">1</text>
+                <text x="150" y="180" text-anchor="middle" class="heading" font-size="32">JIN-WOO</text>
+                <text x="150" y="230" text-anchor="middle" class="heading" font-size="22" fill="${primaryColor}">15,420 XP</text>
+            </g>
+            <!-- 3rd Place -->
+            <g transform="translate(600, 140) rotate(3)">
+                <rect x="10" y="10" width="200" height="160" fill="#000" />
+                <rect width="200" height="160" class="manga-panel" />
+                <text x="100" y="80" text-anchor="middle" class="heading" font-size="100" fill="#eee" opacity="0.3">3</text>
+                <text x="100" y="130" text-anchor="middle" class="heading" font-size="20">TAKUMI</text>
+            </g>
+        </g>
+    </svg>`;
+}
+
+function generateScheduleSVG(lang) {
+    const primaryColor = '#FF2E63';
+    const days = lang === 'en' ? ['MON', 'TUE', 'WED', 'THU', 'FRI'] : ['LUN', 'MAR', 'MER', 'JEU', 'VEN'];
+
+    return `
+    <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+        <defs>${getSharedSVGDefs(primaryColor)}</defs>
+        <rect width="1200" height="630" fill="#f4f4f4" />
+        <rect width="1200" height="630" fill="url(#mangaDots)" />
         
-        <!-- Branding -->
-        <text x="600" y="100" text-anchor="middle" class="heading" font-size="30" fill="white" letter-spacing="15" opacity="0.4">BINGEKI</text>
+        <text x="600" y="315" text-anchor="middle" class="sfx-text" font-size="200" opacity="0.04">PLANNING</text>
         
-        <!-- Main Panel -->
-        <g filter="url(#shadow)">
-            <rect x="200" y="200" width="800" height="250" rx="20" fill="#1e1e1e" stroke="#FF2E63" stroke-width="2" />
+        <g transform="translate(60, 100)">
+            ${days.map((day, i) => `
+                <g transform="translate(${i * 220}, ${i % 2 ? 20 : 0})">
+                    <rect x="8" y="8" width="200" height="480" fill="#000" rx="4" />
+                    <rect width="200" height="480" class="manga-panel" rx="4" />
+                    <rect width="200" height="60" fill="${i === 2 ? primaryColor : '#000'}" rx="4" />
+                    <text x="100" y="40" text-anchor="middle" class="heading" font-size="24" fill="white">${day}</text>
+                    
+                    <g transform="translate(10, 80)">
+                        <rect width="180" height="110" fill="#eee" stroke="#000" stroke-width="2" />
+                        <text x="10" y="30" class="heading" font-size="14" fill="${primaryColor}">18:30</text>
+        <text x="10" y="60" class="heading" font-size="18">JUJUTSU</text>
+                        <text x="10" y="85" class="heading" font-size="18">KAISEN</text>
+                    </g>
+                </g>
+            `).join('')}
+        </g>
+    </svg>`;
+}
+
+function generateLibrarySVG(lang) {
+    const primaryColor = '#FF2E63';
+    return `
+    <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+        <defs>${getSharedSVGDefs(primaryColor)}</defs>
+        <rect width="1200" height="630" fill="#121212" />
+        <rect width="1200" height="630" fill="url(#mangaDots)" />
+        <text x="600" y="315" text-anchor="middle" class="sfx-text" font-size="300" opacity="0.05" fill="white">MANGAS</text>
+
+        <text x="60" y="90" class="heading" font-size="60" fill="white" style="text-shadow: 6px 6px 0 ${primaryColor}">MA MÉDIATHÈQUE</text>
+        
+        <g transform="translate(60, 150)">
+            ${Array.from({ length: 12 }).map((_, i) => {
+                const x = (i % 6) * 185;
+                const y = Math.floor(i / 6) * 220;
+                return `
+                <g transform="translate(${x}, ${y}) rotate(${i % 3 - 1})">
+                    <rect x="6" y="6" width="170" height="200" fill="${primaryColor}" />
+                    <rect width="170" height="200" fill="#222" stroke="white" stroke-width="3" />
+                    <rect y="160" width="170" height="40" fill="rgba(0,0,0,0.9)" />
+                </g>
+                `;
+            }).join('')}
+        </g>
+    </svg>`;
+}
+
+function generateChallengesSVG(lang) {
+    const primaryColor = '#FF2E63';
+    return `
+    <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+        <defs>${getSharedSVGDefs(primaryColor)}</defs>
+        <rect width="1200" height="630" fill="#f4f4f4" />
+        <rect width="1200" height="630" fill="url(#mangaDots)" />
+        <text x="600" y="315" text-anchor="middle" class="sfx-text" font-size="250" opacity="0.03">QUEST !!</text>
+        
+        <text x="60" y="80" class="heading" font-size="60" fill="#000">DÉFIS ACTIFS</text>
+
+        <g transform="translate(60, 150)">
+            ${[
+                { title: 'COURSE AU CHAPITRE 1000', progress: 85, icon: '⚔️' },
+                { title: 'MARATHON SAISONNIER', progress: 40, icon: '🔥' },
+                { title: 'CHALLENGE LECTURE D\'ÉTÉ', progress: 95, icon: '📜' }
+            ].map((c, i) => `
+                <g transform="translate(0, ${i * 150}) rotate(-0.5)">
+                    <rect x="12" y="12" width="1080" height="120" fill="#000" />
+                    <rect width="1080" height="120" class="manga-panel" />
+                    
+                    <text x="30" y="75" class="heading" font-size="36" fill="#000">${c.icon} ${c.title}</text>
+                    
+                    <rect x="700" y="45" width="300" height="30" fill="#eee" stroke="#000" stroke-width="3" />
+                    <rect x="700" y="45" width="${c.progress * 3}" height="30" fill="${primaryColor}" />
+                    <text x="1020" y="75" class="heading" font-size="28">${c.progress}%</text>
+                </g>
+            `).join('')}
+        </g>
+    </svg>`;
+}
+
+function generateGenericSVG(title, description, lang) {
+    const cleanTitle = escapeHtml(title || 'Bingeki');
+    const primaryColor = '#FF2E63';
+
+    return `
+    <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+        <defs>${getSharedSVGDefs(primaryColor)}</defs>
+        
+        <rect width="1200" height="630" fill="#f4f4f4" />
+        <rect width="1200" height="630" fill="url(#mangaDots)" />
+        <rect width="1200" height="630" fill="url(#speedlines)" />
+        
+        <!-- Large SFX Background -->
+        <text x="600" y="350" text-anchor="middle" class="sfx-text" font-size="320" letter-spacing="-10">BINGEKI</text>
+        
+        <!-- Main Panel (Manga Style) -->
+        <g transform="translate(600, 315) rotate(-2)">
+            <!-- Solid Shadow -->
+            <rect x="-440" y="-140" width="900" height="300" fill="#000" rx="4" />
+            
+            <!-- Main Box -->
+            <rect x="-450" y="-150" width="900" height="300" fill="#fff" stroke="#000" stroke-width="6" rx="4" />
             
             <!-- Title -->
-            <text x="600" y="310" text-anchor="middle" class="heading" font-size="70" fill="white">${cleanTitle}</text>
+            <text x="0" y="20" text-anchor="middle" class="heading" font-size="96" fill="#000" style="text-shadow: 6px 6px 0 rgba(0,0,0,0.1)">${cleanTitle}</text>
             
-            <!-- Description -->
-            <foreignObject x="250" y="340" width="700" height="100">
-                <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Inter', sans-serif; font-size: 20px; color: #FF2E63; text-align: center; line-height: 1.4; opacity: 0.9;">
-                    ${finalDesc.length > 120 ? finalDesc.substring(0, 120) + '...' : finalDesc}
-                </div>
-            </foreignObject>
+            <!-- Accent Line -->
+            <rect x="-150" y="70" width="300" height="15" fill="${primaryColor}" />
         </g>
         
         <!-- Footer Decoration -->
-        <rect x="550" y="520" width="100" height="4" rx="2" fill="#FF2E63" />
-        <text x="600" y="580" text-anchor="middle" class="heading" font-size="16" fill="white" opacity="0.3" letter-spacing="5">JOIN THE ADVENTURE</text>
-        <text x="600" y="610" text-anchor="middle" class="heading" font-size="12" fill="white" opacity="0.2">bingeki.web.app</text>
+        <text x="600" y="580" text-anchor="middle" class="heading" font-size="18" fill="#000" opacity="0.4" letter-spacing="10">JOIN THE ADVENTURE</text>
+        <text x="600" y="615" text-anchor="middle" class="heading" font-size="14" fill="#000" opacity="0.3">bingeki.web.app</text>
     </svg>`;
 }
 
@@ -457,6 +572,7 @@ app.get('/api/og-image/:type?/:id?', async (req, res) => {
     const desc = req.query.desc || '';
 
     try {
+        let svg;
         if (type === 'profile' && id) {
             const userDoc = await admin.firestore().collection('users').doc(id).get();
             if (userDoc.exists) {
@@ -496,13 +612,24 @@ app.get('/api/og-image/:type?/:id?', async (req, res) => {
                 }
             }
 
-            if (workData) {
-                const imageUrl = workData.images?.webp?.large_image_url || workData.images?.jpg?.large_image_url;
-                const base64Image = await fetchImageAsBase64(imageUrl);
                 svg = generateWorkSVG(workData, lang, base64Image);
             } else {
                 svg = generateGenericSVG(title, desc, lang);
             }
+        } else if (type === 'home') {
+            svg = generateHomeSVG(lang);
+        } else if (type === 'discover' || type === 'trending') {
+            svg = generateDiscoverSVG(lang);
+        } else if (type === 'social') {
+            svg = generateSocialSVG(lang);
+        } else if (type === 'schedule') {
+            svg = generateScheduleSVG(lang);
+        } else if (type === 'library') {
+            svg = generateLibrarySVG(lang);
+        } else if (type === 'challenges') {
+            svg = generateChallengesSVG(lang);
+        } else if (type === 'newsIndex') {
+            svg = generateGenericSVG(lang === 'en' ? 'LATEST NEWS' : 'DERNIÈRES NEWS', '', lang);
         } else if (type === 'character' || type === 'person' || type === 'tierlist') {
             const kindLabels = {
                 fr: {
@@ -612,10 +739,11 @@ app.get('/*', async (req, res) => {
             console.error('[SEO] Error fetching work data for SEO:', e);
         }
     } else {
-        let ogType = 'generic';
+        let ogType = resolved.pageType || 'generic';
         if (characterId) ogType = 'character';
         if (personId) ogType = 'person';
         if (tierlistId) ogType = 'tierlist';
+        
         image = `https://bingeki.web.app/api/og-image/${ogType}?title=${encodeURIComponent(title)}&desc=${encodeURIComponent(description)}&lang=${lang}`;
     }
 
