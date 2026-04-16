@@ -109,20 +109,26 @@ function generateProfileSVG(userData, lang, base64Avatar = '', base64Banner = ''
             <pattern id="mangaDots" width="20" height="20" patternUnits="userSpaceOnUse">
                 <circle cx="2" cy="2" r="1.5" fill="white" fill-opacity="0.05" />
             </pattern>
+            <pattern id="speedlines" width="100" height="100" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="100" y2="100" stroke="white" stroke-width="0.5" opacity="0.1" />
+                <line x1="100" y1="0" x2="0" y2="100" stroke="white" stroke-width="0.5" opacity="0.05" />
+            </pattern>
             <clipPath id="avatarClip">
-            <rect x="150" y="220" width="160" height="160" rx="8" />
-        </clipPath>
-    </defs>
-    
-    <!-- Background -->
-    <rect width="1200" height="630" fill="#121212" />
-    <rect width="1200" height="630" fill="url(#mangaDots)" />
-    
-    <!-- Outer Border -->
-    <rect x="50" y="50" width="1100" height="530" rx="15" fill="none" stroke="${borderColor}" stroke-width="10" />
-    
-    <!-- Main Card Panel -->
-    <rect x="50" y="50" width="1100" height="530" rx="15" fill="url(#panelGrad)" />
+                <rect x="150" y="220" width="160" height="160" rx="4" />
+            </clipPath>
+        </defs>
+        
+        <!-- Background -->
+        <rect width="1200" height="630" fill="#121212" />
+        <rect width="1200" height="630" fill="url(#mangaDots)" />
+        <rect width="1200" height="630" fill="url(#speedlines)" />
+        
+        <!-- Outer Border (Brutalist Style) -->
+        <rect x="50" y="50" width="1100" height="530" rx="4" fill="none" stroke="${borderColor}" stroke-width="8" />
+        
+        <!-- Main Card Panel (Manga Shadow Style) -->
+        <rect x="56" y="56" width="1100" height="530" rx="4" fill="${borderColor}" opacity="0.5" />
+        <rect x="50" y="50" width="1100" height="530" rx="4" fill="url(#panelGrad)" stroke="${borderColor}" stroke-width="2" />
 
     <!-- Banner -->
     <rect x="50" y="50" width="1100" height="140" fill="${primaryColor}" />
@@ -143,7 +149,10 @@ function generateProfileSVG(userData, lang, base64Avatar = '', base64Banner = ''
         <text x="305" y="372" text-anchor="middle" class="heading" font-size="22" fill="white" transform="rotate(-5, 305, 362)">${labels.lvl} ${level}</text>
 
         <!-- Identity Section -->
-        <text x="360" y="290" class="heading" font-size="52" fill="${textColor}">${displayName}</text>
+        <g transform="rotate(-1, 360, 290)">
+            <rect x="355" y="245" width="500" height="65" fill="${primaryColor}" opacity="0.1" />
+            <text x="360" y="290" class="heading" font-size="52" fill="${textColor}" style="text-shadow: 4px 4px 0 #000;">${displayName}</text>
+        </g>
         <text x="360" y="325" class="mono" font-size="16" fill="${primaryColor}" opacity="0.8">BINGEKI HUNTER LICENSE VERIFIED</text>
         
         <!-- Bio -->
@@ -215,44 +224,49 @@ function generateWorkSVG(workData, lang, base64Image = '') {
                 <stop offset="0%" style="stop-color:rgba(18,18,18,0.2)" />
                 <stop offset="100%" style="stop-color:rgba(18,18,18,1)" />
             </linearGradient>
-            <pattern id="halftone" width="10" height="10" patternUnits="userSpaceOnUse">
+            <pattern id="mangaDots" width="15" height="15" patternUnits="userSpaceOnUse">
                 <circle cx="1" cy="1" r="1" fill="white" fill-opacity="0.1" />
+            </pattern>
+            <pattern id="diagonalLines" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="40" stroke="${primaryColor}" stroke-width="2" opacity="0.1" />
             </pattern>
         </defs>
         
         <!-- Background Layer -->
         <rect width="1200" height="630" fill="#121212" />
         
-        <!-- Poster Background (Full height, blurred or darkened) -->
         ${base64Image ? `
-        <image x="0" y="-100" width="1200" height="1000" xlink:href="${base64Image}" preserveAspectRatio="xMidYMid slice" opacity="0.4" />
+        <image x="0" y="0" width="1200" height="630" xlink:href="${base64Image}" preserveAspectRatio="xMidYMid slice" opacity="0.3" filter="grayscale(1)" />
         <rect width="1200" height="630" fill="url(#workGrad)" />
         ` : ''}
         
-        <rect width="1200" height="630" fill="url(#halftone)" />
+        <rect width="1200" height="630" fill="url(#mangaDots)" />
+        <rect width="1200" height="630" fill="url(#diagonalLines)" />
 
-        <!-- Sidebar Accent -->
-        <rect x="0" y="0" width="15" height="630" fill="${primaryColor}" />
-
+        <!-- Manga Shadow for Poster -->
+        <rect x="88" y="88" width="320" height="470" fill="#000" rx="4" />
         <!-- Main Poster -->
         <g transform="translate(80, 80)">
-            <rect x="0" y="0" width="320" height="470" fill="#000" rx="10" />
-            ${base64Image ? `<image x="5" y="5" width="310" height="460" xlink:href="${base64Image}" preserveAspectRatio="xMidYMid slice" clip-path="inset(0% round 8px)" />` : ''}
-            <rect x="0" y="0" width="320" height="470" fill="none" stroke="${primaryColor}" stroke-width="4" rx="10" />
+            <rect x="0" y="0" width="320" height="470" fill="#000" rx="4" />
+            ${base64Image ? `<image x="5" y="5" width="310" height="460" xlink:href="${base64Image}" preserveAspectRatio="xMidYMid slice" clip-path="inset(0% round 4px)" />` : ''}
+            <rect x="0" y="0" width="320" height="470" fill="none" stroke="white" stroke-width="3" rx="4" />
         </g>
 
         <!-- Content Section -->
         <g transform="translate(450, 150)">
-            <!-- Type Badge -->
-            <rect x="0" y="0" width="100" height="30" fill="${primaryColor}" transform="skewX(-15)" />
-            <text x="50" y="21" text-anchor="middle" class="heading" font-size="16" fill="white">${type}</text>
+            <!-- Type Badge (Brutalist style) -->
+            <rect x="-10" y="-5" width="120" height="40" fill="#000" transform="skewX(-15)" />
+            <rect x="-15" y="-10" width="120" height="40" fill="${primaryColor}" transform="skewX(-15)" />
+            <text x="45" y="18" text-anchor="middle" class="heading" font-size="20" fill="white">${type}</text>
 
-            <!-- Title -->
-            <foreignObject x="0" y="40" width="670" height="220">
-                <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 64px; color: white; line-height: 1.1; text-transform: uppercase;">
-                    ${title}
-                </div>
-            </foreignObject>
+            <!-- Title (Rotated & Shadowed) -->
+            <g transform="rotate(-1.5, 0, 80)">
+                <foreignObject x="0" y="50" width="700" height="220">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 72px; color: white; line-height: 1.0; text-transform: uppercase; text-shadow: 6px 6px 0px #000;">
+                        ${title}
+                    </div>
+                </foreignObject>
+            </g>
 
             <!-- Genres & Status -->
             <text x="0" y="280" class="heading" font-size="22" fill="${primaryColor}" letter-spacing="2">${genres}</text>
@@ -295,51 +309,46 @@ function generateNewsSVG(newsData, lang, base64Image = '') {
             <pattern id="mangaDots" width="30" height="30" patternUnits="userSpaceOnUse">
                 <circle cx="3" cy="3" r="2" fill="white" fill-opacity="0.1" />
             </pattern>
-            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="15" />
-                <feOffset dx="0" dy="15" result="offsetblur" />
-                <feComponentTransfer>
-                    <feFuncA type="linear" slope="0.5" />
-                </feComponentTransfer>
-                <feMerge>
-                    <feMergeNode />
-                    <feMergeNode in="SourceGraphic" />
-                </feMerge>
-            </filter>
+            <pattern id="speedlines" width="200" height="200" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="200" y2="200" stroke="${primaryColor}" stroke-width="1" opacity="0.05" />
+            </pattern>
         </defs>
         
         <!-- Background -->
         <rect width="1200" height="630" fill="#121212" />
         <rect width="1200" height="630" fill="url(#mangaDots)" />
+        <rect width="1200" height="630" fill="url(#speedlines)" />
         
-        <!-- Main Content Card -->
-        <g filter="url(#shadow)">
-            <rect x="100" y="100" width="1000" height="430" rx="20" fill="#1e1e1e" stroke="#000" stroke-width="5" />
+        <!-- Main Content Card (Manga Shadow) -->
+        <rect x="108" y="108" width="1000" height="430" rx="4" fill="#000" />
+        <g>
+            <rect x="100" y="100" width="1000" height="430" rx="4" fill="#1a1a1a" stroke="white" stroke-width="2" />
             
             <!-- News Image (Left side) -->
             <clipPath id="newsImgClip">
-                <rect x="100" y="100" width="400" height="430" rx="20 0 0 20" />
+                <rect x="100" y="100" width="400" height="430" rx="4 0 0 4" />
             </clipPath>
-            <rect x="100" y="100" width="400" height="430" rx="20" fill="#333" />
+            <rect x="100" y="100" width="400" height="430" rx="4" fill="#333" />
             ${base64Image ? `<image x="100" y="100" width="400" height="430" xlink:href="${base64Image}" clip-path="url(#newsImgClip)" preserveAspectRatio="xMidYMid slice" />` : ''}
             
-            <!-- Gradient Overlay for Image -->
-            <rect x="100" y="100" width="400" height="430" fill="rgba(255,46,99,0.1)" clip-path="url(#newsImgClip)" />
+            <!-- Overlay -->
+            <rect x="100" y="100" width="400" height="430" fill="rgba(255,46,99,0.15)" clip-path="url(#newsImgClip)" />
 
-            <!-- Content Section (Right side) -->
-            <rect x="500" y="100" width="600" height="80" rx="0 20 0 0" fill="url(#newsGrad)" />
-            <text x="530" y="150" class="heading" font-size="28" fill="white" letter-spacing="2">BINGEKI NEWS</text>
+            <!-- Content Section -->
+            <rect x="500" y="100" width="600" height="70" rx="0 4 0 0" fill="${primaryColor}" />
+            <text x="530" y="145" class="heading" font-size="24" fill="white" letter-spacing="4">BINGEKI NEWS</text>
 
             <!-- Source & Date -->
-            <rect x="530" y="210" width="540" height="2" fill="#FF2E63" opacity="0.3" />
-            <text x="530" y="245" class="heading" font-size="18" fill="#FF2E63">${source} • ${date}</text>
+            <text x="530" y="210" class="heading" font-size="16" fill="${primaryColor}" opacity="0.8">${source} • ${date}</text>
 
-            <!-- Title -->
-            <foreignObject x="530" y="270" width="540" height="200">
-                <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 36px; color: white; line-height: 1.2; text-transform: uppercase;">
-                    ${title}
-                </div>
-            </foreignObject>
+            <!-- Title (Rotated) -->
+            <g transform="rotate(-1, 800, 300)">
+                <foreignObject x="530" y="240" width="540" height="220">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 42px; color: white; line-height: 1.1; text-transform: uppercase; text-shadow: 4px 4px 0px #000;">
+                        ${title}
+                    </div>
+                </foreignObject>
+            </g>
             
             <!-- Call to action -->
             <text x="1070" y="500" text-anchor="end" class="heading" font-size="20" fill="#FF2E63">LIRE L'ARTICLE ➔</text>
@@ -442,7 +451,8 @@ app.get('/api/og-image/:type?/:id?', async (req, res) => {
             const newsDoc = await admin.firestore().collection('news').doc(id).get();
             if (newsDoc.exists) {
                 const newsData = newsDoc.data();
-                const base64Image = await fetchImageAsBase64(newsData.image);
+                const imageUrl = newsData.imageUrl || newsData.image; // Fix: Support both field names
+                const base64Image = await fetchImageAsBase64(imageUrl);
                 svg = generateNewsSVG(newsData, lang, base64Image);
             }
         } else if (type === 'work' && id) {
