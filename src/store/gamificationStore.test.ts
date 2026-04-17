@@ -32,11 +32,11 @@ describe('Gamification Store', () => {
         expect(state1.level).toBe(2);
         expect(state1.xp).toBe(0);
         expect(state1.totalXp).toBe(100); // 100 from level 1
-        expect(state1.xpToNextLevel).toBe(114); 
+        expect(state1.xpToNextLevel).toBe(105); // Math.floor(100 * 1.05)
 
         // Check if levelUpData is set
         expect(state1.levelUpData?.newLevel).toBe(2);
-        
+
         // Add more XP to not level up
         addXp(50);
         const state2 = useGamificationStore.getState();
@@ -44,13 +44,13 @@ describe('Gamification Store', () => {
         expect(state2.xp).toBe(50);
         expect(state2.totalXp).toBe(150); // 100 + 50
 
-        // Level up again
-        addXp(114); 
+        // Level up again (50 existing + 114 = 164 XP, needs 105, 59 remaining)
+        addXp(114);
         const state3 = useGamificationStore.getState();
         expect(state3.level).toBe(3);
-        expect(state3.xp).toBe(50); 
-        expect(state3.totalXp).toBe(100 + 114 + 50); // Lvl 1 req + Lvl 2 req + current XP
-        expect(state3.xpToNextLevel).toBe(131); 
+        expect(state3.xp).toBe(59);
+        expect(state3.totalXp).toBe(100 + 105 + 59); // Lvl 1 req + Lvl 2 req + current XP
+        expect(state3.xpToNextLevel).toBe(110); // Math.floor(105 * 1.05)
         expect(state3.lastLevel).toBe(2);
     });
 
