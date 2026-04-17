@@ -114,6 +114,8 @@
   },
   "common": {
     "loading": "Chargement...",
+    "translating": "Traduction en cours...",
+    "translating_content": "Traduction du contenu en cours...",
     "error": "Erreur",
     "success": "Succès",
     "cancel": "Annuler",

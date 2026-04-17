@@ -203,6 +203,8 @@
   },
   "common": {
     "loading": "Loading...",
+    "translating": "Translating...",
+    "translating_content": "Translating content...",
     "error": "Error",
     "success": "Success",
     "cancel": "Cancel",
