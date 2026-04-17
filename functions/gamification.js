@@ -112,17 +112,14 @@ function calculateUserStats(libraryWorks, bonusXp = 0) {
                     totalMoviesWatched += (w.status === 'completed' ? 1 : 0);
                     totalXpFromLibrary += (w.status === 'completed' ? XP_REWARDS.UPDATE_PROGRESS : 0);
                 } else {
-                    effectiveProgress = Math.min(progress, MAX_EPISODES);
                     totalAnimeEpisodesWatched += effectiveProgress;
                     totalXpFromLibrary += Math.min(effectiveProgress * XP_REWARDS.UPDATE_PROGRESS, MAX_XP_PER_WORK);
                 }
             } else {
-                effectiveProgress = Math.min(progress, MAX_CHAPTERS);
                 totalChaptersRead += effectiveProgress;
                 totalXpFromLibrary += Math.min(effectiveProgress * XP_REWARDS.UPDATE_PROGRESS, MAX_XP_PER_WORK);
             }
         } else {
-            effectiveProgress = Math.min(progress, MAX_CHAPTERS);
             totalChaptersRead += effectiveProgress;
             totalXpFromLibrary += Math.min(effectiveProgress * XP_REWARDS.UPDATE_PROGRESS, MAX_XP_PER_WORK);
         }
