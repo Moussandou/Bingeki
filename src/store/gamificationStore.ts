@@ -223,8 +223,8 @@ export const useGamificationStore = create<GamificationState>()(
                         calculatedXp += effectiveProgress * XP_REWARDS.UPDATE_PROGRESS;
                     } else if (type === 'anime') {
                         if (w.format === 'Movie') {
-                            movies += progress;
-                            calculatedXp += Math.min(progress, 1) * XP_REWARDS.UPDATE_PROGRESS;
+                            movies += (w.status === 'completed' ? 1 : 0);
+                            calculatedXp += (w.status === 'completed' ? 20 : 0);
                         } else {
                             episodes += progress;
                             calculatedXp += effectiveProgress * XP_REWARDS.UPDATE_PROGRESS;

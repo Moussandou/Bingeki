@@ -110,7 +110,7 @@ function calculateUserStats(libraryWorks, bonusXp = 0) {
             if (type === 'anime') {
                 if (w.format === 'Movie') {
                     totalMoviesWatched += (w.status === 'completed' ? 1 : 0);
-                    totalXpFromLibrary += (w.status === 'completed' ? XP_REWARDS.UPDATE_PROGRESS : 0);
+                    totalXpFromLibrary += (w.status === 'completed' ? 20 : 0);
                 } else {
                     totalAnimeEpisodesWatched += effectiveProgress;
                     totalXpFromLibrary += Math.min(effectiveProgress * XP_REWARDS.UPDATE_PROGRESS, MAX_XP_PER_WORK);
