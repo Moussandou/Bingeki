@@ -17,7 +17,6 @@ export const getAnimeStreamingFn   = httpsCallable<{ id: number }, unknown>(func
 export const getAnimeStaffFn       = httpsCallable<{ id: number }, unknown>(functions, 'getAnimeStaff');
 export const getAnimeThemesFn      = httpsCallable<{ id: number }, unknown>(functions, 'getAnimeThemes');
 export const getWorkReviewsFn      = httpsCallable<{ id: number; type: string }, unknown>(functions, 'getWorkReviews');
-export const getFRTranslationFn    = httpsCallable<{ id: number; type: string; titleFrench?: string; titleRomaji?: string }, string | null>(functions, 'getFRTranslation');
 
 
 export const getTopWorksFn          = httpsCallable<{ type: string; filter?: string; limit?: number; nsfwMode?: boolean }, unknown>(functions, 'getTopWorks');

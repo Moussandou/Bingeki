@@ -187,6 +187,30 @@ export async function uploadProfilePicture(uid: string, file: File): Promise<str
     }
 }
 
+/**
+ * Robust way to get a thumbnail URL using the Firebase SDK.
+ * This handles cases where the thumbnail has a different access token than the original.
+ * @param originalPath The path in Storage (e.g. 'users/123/avatar_456')
+ * @param size The size suffix (default 200x200)
+ */
+export async function getThumbnailDownloadURL(originalPath: string, size: '200x200' | '400x400' = '200x200'): Promise<string> {
+    try {
+        // The extension is configured to put thumbnails in the 'thumbnails' prefix
+        const thumbPath = `thumbnails/${originalPath}_${size}.webp`;
+        const thumbRef = ref(storage, thumbPath);
+        return await getDownloadURL(thumbRef);
+    } catch (error) {
+        // Fallback to original if thumbnail isn't found or still generating
+        try {
+            const originalRef = ref(storage, originalPath);
+            return await getDownloadURL(originalRef);
+        } catch (fallbackError) {
+            logger.error('[Storage] Error fetching original/thumbnail URL:', fallbackError);
+            throw fallbackError;
+        }
+    }
+}
+
 // Save library data to Firestore (with safe merge)
 export async function saveLibraryToFirestore(
     userId: string, 

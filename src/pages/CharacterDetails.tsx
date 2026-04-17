@@ -7,6 +7,7 @@ import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Heart, User, Loader2, Mic } from 'lucide-react';
 import { getCharacterFull, type JikanCharacterFull, type JikanCharacterAnime, type JikanCharacterVoice, type JikanCharacterManga } from '@/services/animeApi'; // Ensure JikanCharacterManga is imported
+import { useTranslationData } from '@/services/translationService';
 import { SEO } from '@/components/layout/SEO';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useLibraryStore } from '@/store/libraryStore';
@@ -24,7 +25,7 @@ type CharacterFullData = JikanCharacterFull & {
 import { useTranslation } from 'react-i18next'; // Added import
 
 export default function CharacterDetails() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { user } = useAuthStore();
@@ -32,6 +33,15 @@ export default function CharacterDetails() {
     const { addToast } = useToast();
     const [character, setCharacter] = useState<CharacterFullData | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // Automated Translation Hook
+    const { translatedText: aiAbout, loading: loadingAbout } = useTranslationData(
+        character?.about,
+        character?.mal_id,
+        'character',
+        'about',
+        i18n.language
+    );
 
     useEffect(() => {
         if (!id) return;
@@ -222,13 +232,32 @@ export default function CharacterDetails() {
                         return { data, description, source };
                     };
 
-                    const { data, description, source } = parseAbout(character.about);
+                    const { data, description, source } = parseAbout(aiAbout || character.about);
 
                     return (
                         <div className={styles.aboutSection}>
                             <h2 className={styles.sectionTitle}>
                                 <User size={20} /> {t('character_details.identity')}
                             </h2>
+
+                            {loadingAbout && (
+                                <div style={{ 
+                                    marginBottom: '1rem',
+                                    fontStyle: 'italic', 
+                                    color: 'var(--color-text-dim)',
+                                    fontSize: '0.9rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '0.5rem 1rem',
+                                    background: 'rgba(var(--color-primary-rgb), 0.1)',
+                                    borderLeft: '4px solid var(--color-primary)',
+                                    borderRadius: '4px'
+                                }}>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    {t('common.translating', 'Traduction en cours...')}
+                                </div>
+                            )}
 
                             {/* Info tags */}
                             {data.length > 0 && (

@@ -8,7 +8,7 @@ import { Layout } from '@/components/layout/Layout';
 import { useLibraryStore, type Work } from '@/store/libraryStore';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal'; // Import Modal
-import { ArrowLeft, Star, BookOpen, Check, Trash2, Tv, FileText, Trophy, AlertTriangle, MessageCircle, Heart, Send, EyeOff, Reply, Video, Calendar, BarChart, Music, Disc, X, ArrowUp, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Star, BookOpen, Check, Trash2, Tv, FileText, Trophy, AlertTriangle, MessageCircle, Heart, Send, EyeOff, Reply, Video, Calendar, BarChart, Music, Disc, X, ArrowUp, ExternalLink, Loader2 } from 'lucide-react';
 import { YoutubeIcon } from '@/components/ui/BrandIcons';
 import { useState, useEffect, useMemo, memo } from 'react';
 
@@ -27,7 +27,7 @@ import {
     getWorkCharacters, getWorkRecommendations, getWorkPictures, getWorkStatistics, type JikanCharacter, type JikanRelation, type JikanRecommendation, type JikanPicture, type JikanTheme, type JikanStatistics, type JikanStreaming,
     getAnimeStaff, type JikanStaff, getWorkReviews, type JikanReview, getWorkFull, ApiError
 } from '../services/animeApi';
-import { getFRTranslationFn } from '@/firebase/functions';
+import { useTranslationData } from '@/services/translationService';
 import { handleProgressUpdateWithXP } from '@/utils/progressUtils';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { SEO } from '@/components/layout/SEO';
@@ -306,7 +306,6 @@ export default function WorkDetails() {
     const [fetchedWork, setFetchedWork] = useState<DetailedWork | null>(null);
     const [isFetchingDetails, setIsFetchingDetails] = useState(false);
     const [fetchError, setFetchError] = useState<{ status: number; message: string } | null>(null);
-    const [synopsisFr, setSynopsisFr] = useState<string | null>(null);
 
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
@@ -342,6 +341,16 @@ export default function WorkDetails() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
     const [isSynopsisExpanded, setIsSynopsisExpanded] = useState(false);
+    
+    // Automated Translation Hook
+    const { translatedText: aiSynopsis, loading: loadingSynopsis } = useTranslationData(
+        work?.synopsis,
+        work?.id,
+        'work',
+        'synopsis',
+        i18n.language
+    );
+
     const [isNotesExpanded, setIsNotesExpanded] = useState(false);
     const [isCommentsExpanded, setIsCommentsExpanded] = useState(false);
 
@@ -454,12 +463,6 @@ export default function WorkDetails() {
                     setFetchedWork(mapped);
                     setFetchError(null);
                     setIsFetchingDetails(false);
-
-                    // Fetch French synopsis from Nautiljon in background
-                    const titleFrench = res.titles?.find((entry: { type: string; title: string }) => entry.type === 'French')?.title;
-                    getFRTranslationFn({ id: res.mal_id, type: internalType === 'manga' ? 'manga' : 'anime', titleFrench, titleRomaji: res.title })
-                        .then(result => { if (result.data) setSynopsisFr(result.data as string); })
-                        .catch(() => {});
                 } catch (err) {
                     if (!isRetry && err instanceof ApiError && err.status === 404) {
                         const nextType = type === 'anime' ? 'manga' : 'anime';
@@ -902,6 +905,7 @@ export default function WorkDetails() {
                                     onPrevPage={() => setEpisodesPage(p => p - 1)}
                                     workTitle={work.title}
                                     workType={work.type === 'manga' ? 'manga' : 'anime'}
+                                    workId={work.id}
                                     readOnly={!libraryWork}
                                     lastPage={work.type === 'manga' ? Math.ceil((work.totalChapters || 100) / 50) : totalEpisodesPage}
                                     onFirstPage={() => setEpisodesPage(1)}
@@ -1039,11 +1043,33 @@ export default function WorkDetails() {
                                             onClick={() => setIsSynopsisExpanded(!isSynopsisExpanded)}
                                             style={{ cursor: 'pointer', position: 'relative' }}
                                         >
+                                            <div style={{ position: 'relative' }}>
+                                                {loadingSynopsis && (
+                                                    <div style={{ 
+                                                        marginBottom: '1rem',
+                                                        fontStyle: 'italic', 
+                                                        color: 'var(--color-text-dim)',
+                                                        fontSize: '0.9rem',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        padding: '0.5rem 1rem',
+                                                        background: 'rgba(var(--color-primary-rgb), 0.1)',
+                                                        borderLeft: '4px solid var(--color-primary)',
+                                                        borderRadius: '4px'
+                                                    }}>
+                                                        <Loader2 size={16} className="animate-spin" />
+                                                        {t('common.translating', 'Traduction en cours...')}
+                                                    </div>
+                                                )}
+                                            </div>
                                             <p className={`${spoilerMode ? 'spoiler-blur' : ''} ${styles.synopsisText}`} style={{
                                                 maxHeight: isSynopsisExpanded ? 'none' : '100px',
                                                 WebkitLineClamp: isSynopsisExpanded ? 'none' : 4,
+                                                opacity: loadingSynopsis ? 0.6 : 1,
+                                                transition: 'opacity 0.3s ease'
                                             }}>
-                                                {synopsisFr && i18n.language.startsWith('fr') ? synopsisFr : work.synopsis}
+                                                {aiSynopsis || work.synopsis}
                                             </p>
                                             {!isSynopsisExpanded && (
                                                 <div style={{

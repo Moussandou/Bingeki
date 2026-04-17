@@ -6,6 +6,7 @@ import { Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Eye, Loa
 
 import logoCrunchyroll from '@/assets/logo_crunchyroll.png';
 import logoADN from '@/assets/logo_adn.png';
+import { useTranslationData } from '@/services/translationService';
 
 
 export interface ContentItem {
@@ -36,6 +37,51 @@ interface ContentListProps {
     workType: 'anime' | 'manga';
     readOnly?: boolean;
     streamingServices?: { name: string; url: string }[];
+    workId: string | number;
+}
+
+function TranslatedSynopsis({ 
+    synopsis, 
+    episodeId, 
+    workId, 
+    targetLang,
+    fallbackText
+}: { 
+    synopsis?: string | null; 
+    episodeId: number; 
+    workId: string | number; 
+    targetLang: string;
+    fallbackText: string;
+}) {
+    const { translatedText, loading } = useTranslationData(
+        synopsis || '',
+        `${workId}_ep_${episodeId}`,
+        'episode',
+        'synopsis',
+        targetLang
+    );
+
+    if (loading) {
+        return (
+            <p className="episode-synopsis" style={{ 
+                fontStyle: 'italic', 
+                color: 'var(--color-text-dim)',
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+            }}>
+                <span className="animate-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-primary)' }} />
+                Traduction en cours...
+            </p>
+        );
+    }
+
+    return (
+        <p style={{ fontSize: '0.9rem', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+            {translatedText || synopsis || fallbackText}
+        </p>
+    );
 }
 
 export function ContentList({
@@ -55,10 +101,11 @@ export function ContentList({
     lastPage,
     workTitle,
     workType,
+    workId,
     readOnly = false,
     streamingServices = []
 }: ContentListProps) {
-    const { t } = useTranslation();
+    const { i18n, t } = useTranslation();
     const [visibleCount, setVisibleCount] = useState(25);
     const [expandedIds, setExpandedIds] = useState<number[]>([]);
     const [loadingIds, setLoadingIds] = useState<number[]>([]);
@@ -241,9 +288,13 @@ export function ContentList({
                                             <Loader2 size={16} className="spin" /> {t('content_list.loading_summary')}
                                         </div>
                                     ) : (
-                                        <p style={{ fontSize: '0.9rem', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
-                                            {item.synopsis ? item.synopsis : t('content_list.no_summary')}
-                                        </p>
+                                        <TranslatedSynopsis 
+                                            synopsis={item.synopsis} 
+                                            episodeId={item.id} 
+                                            workId={workId} 
+                                            targetLang={i18n.language}
+                                            fallbackText={t('content_list.no_summary')}
+                                        />
                                     )}
                                 </div>
                             )}

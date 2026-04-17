@@ -3,6 +3,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
+import { getFirebaseThumbnail } from '@/utils/imageOptimization';
 import { useSettingsStore } from '@/store/settingsStore';
 import styles from './OptimizedImage.module.css';
 
@@ -32,10 +33,19 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     priority = false,
     fill = false,
     style,
-    lowResSrc,
+    lowResSrc: providedLowResSrc,
     ...props
 }) => {
     const { dataSaver } = useSettingsStore();
+
+    // Auto-generate thumbnail for Firebase URLs if not provided
+    const lowResSrc = useMemo(() => {
+        if (providedLowResSrc) return providedLowResSrc;
+        if (src && src.includes('firebasestorage.googleapis.com')) {
+            return getFirebaseThumbnail(src, '200x200');
+        }
+        return undefined;
+    }, [src, providedLowResSrc]);
     
     // Determine if we should apply CORS based on the domain
     const crossOriginValue = useMemo(() => {

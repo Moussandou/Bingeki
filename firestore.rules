@@ -226,10 +226,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // French translations from Nautiljon — same policy
+    // Automated translations collection
     match /translations/{docId} {
       allow read: if true;
-      allow write: if false;
+      allow create, update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
 
     // ==================== LEGACY / ROOT ACCESS ====================

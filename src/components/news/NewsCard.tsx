@@ -7,6 +7,7 @@ import { fr, enUS } from 'date-fns/locale';
 import { Link } from '@/components/routing/LocalizedLink';
 import { Flame } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { useTranslationData } from '@/services/translationService';
 
 interface NewsCardProps {
     title: string;
@@ -21,6 +22,15 @@ interface NewsCardProps {
 export function NewsCard({ title, slug, imageUrl, sourceName, publishedAt, tags = [], featured = false }: NewsCardProps) {
     const { i18n } = useTranslation();
     const dateLocale = i18n.language === 'fr' ? fr : enUS;
+
+    // Automated Translation Hook
+    const { translatedText: aiTitle } = useTranslationData(
+        title,
+        slug,
+        'article',
+        'title',
+        i18n.language
+    );
 
     let timeAgo = '';
     try {
@@ -101,7 +111,7 @@ export function NewsCard({ title, slug, imageUrl, sourceName, publishedAt, tags 
                         lineHeight: 1.3,
                         transition: 'color 0.2s'
                     }}>
-                        {title}
+                        {aiTitle || title}
                     </h3>
 
                     {featured && (

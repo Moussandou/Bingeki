@@ -80,3 +80,50 @@ export async function optimizeUpload(
   const dataUrl = await fileToDataUrl(file);
   return compressImage(dataUrl, options);
 }
+
+/**
+ * Transforms a Firebase Storage original URL into a thumbnail URL via string manipulation.
+ * @important This only works if the thumbnails have the same access token as the original 
+ * or if they are publicly accessible.
+ * 
+ * @param originalUrl The download URL of the original image
+ * @param size The requested thumbnail size (must match extension config)
+ * @returns The transformed thumbnail URL
+ */
+export function getFirebaseThumbnail(
+  originalUrl: string | null | undefined,
+  size: '200x200' | '400x400' = '200x200'
+): string {
+  if (!originalUrl || !originalUrl.includes('firebasestorage.googleapis.com')) {
+    return originalUrl || '';
+  }
+
+  try {
+    // 1. Inject 'thumbnails%2F' into the storage path
+    let thumbUrl = originalUrl.replace('/o/', '/o/thumbnails%2F');
+    
+    // 2. Extract path and remove the token (Solution A: Public Access)
+    const queryIndex = thumbUrl.indexOf('?');
+    if (queryIndex === -1) return thumbUrl;
+
+    const pathPart = thumbUrl.substring(0, queryIndex);
+    
+    // 3. Handle size suffix and force .webp extension
+    const lastDotIndex = pathPart.lastIndexOf('.');
+    const lastSlashIndex = pathPart.lastIndexOf('%2F');
+    
+    let finalPath = '';
+    if (lastDotIndex > lastSlashIndex) {
+      // Replace original extension with size + .webp
+      finalPath = pathPart.substring(0, lastDotIndex) + `_${size}.webp`;
+    } else {
+      // Append size + .webp if no extension
+      finalPath = pathPart + `_${size}.webp`;
+    }
+    
+    // 4. Return the public URL (alt=media is required to view in browser, but token is removed)
+    return `${finalPath}?alt=media`;
+  } catch (error) {
+    return originalUrl;
+  }
+}

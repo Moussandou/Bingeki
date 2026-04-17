@@ -11,12 +11,13 @@ import { Layout } from '@/components/layout/Layout';
 import { SEO } from '@/components/layout/SEO';
 import { Link } from '@/components/routing/LocalizedLink';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, ExternalLink, Calendar, Link as LinkIcon, List, BookOpen, ArrowUp } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Calendar, Link as LinkIcon, List, BookOpen, ArrowUp, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import DOMPurify from 'dompurify';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { isBot } from '@/utils/isBot';
+import { useTranslationData } from '@/services/translationService';
 
 interface NewsItem {
     slug: string;
@@ -44,6 +45,23 @@ export default function NewsArticle() {
     const [error, setError] = useState(false);
     const [headings, setHeadings] = useState<Heading[]>([]);
     const [showBackToTop, setShowBackToTop] = useState(false);
+
+    // Automated Translation Hooks
+    const { translatedText: aiTitle, loading: loadingTitle } = useTranslationData(
+        article?.title,
+        slug,
+        'article',
+        'title',
+        i18n.language
+    );
+
+    const { translatedText: aiContent, loading: loadingContent } = useTranslationData(
+        article?.content,
+        slug,
+        'article',
+        'content',
+        i18n.language
+    );
 
     useEffect(() => {
         async function fetchArticle() {
@@ -169,8 +187,8 @@ export default function NewsArticle() {
     return (
         <Layout>
             <SEO
-                title={`${article.title} - Bingeki News`}
-                description={article.contentSnippet ? article.contentSnippet.substring(0, 150) + '...' : article.title}
+                title={`${aiTitle || article.title} - Bingeki News`}
+                description={article.contentSnippet ? article.contentSnippet.substring(0, 150) + '...' : (aiTitle || article.title)}
                 image={article.imageUrl}
             />
 
@@ -229,7 +247,15 @@ export default function NewsArticle() {
                                 color: 'var(--color-text)',
                                 letterSpacing: '-0.02em'
                             }}>
-                                {article.title}
+                                {loadingTitle && (
+                                    <div style={{ fontSize: '0.9rem', color: 'var(--color-text-dim)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        {t('common.translating', 'Traduction en cours...')}
+                                    </div>
+                                )}
+                                <span style={{ opacity: loadingTitle ? 0.6 : 1, transition: 'opacity 0.3s ease' }}>
+                                    {aiTitle || article.title}
+                                </span>
                             </h1>
 
                             <div style={{
@@ -294,10 +320,30 @@ export default function NewsArticle() {
                                         lineHeight: 1.8,
                                         fontSize: '1.2rem',
                                         color: 'var(--color-text)',
-                                        flex: 1
+                                        flex: 1,
+                                        position: 'relative'
                                     }}
-                                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content) }}
-                                />
+                                >
+                                    {loadingContent && (
+                                        <div style={{ 
+                                            marginBottom: '2rem',
+                                            padding: '1rem',
+                                            background: 'rgba(var(--color-primary-rgb), 0.1)',
+                                            borderLeft: '4px solid var(--color-primary)',
+                                            fontStyle: 'italic',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}>
+                                            <Loader2 size={20} className="animate-spin" />
+                                            {t('common.translating_content', 'Traduction du contenu en cours...')}
+                                        </div>
+                                    )}
+                                    <div 
+                                        style={{ opacity: loadingContent ? 0.6 : 1, transition: 'opacity 0.3s ease' }}
+                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(aiContent || article.content) }} 
+                                    />
+                                </div>
 
                                 {/* Sidebar Sticky TOC */}
                                 {headings.length > 0 && (
