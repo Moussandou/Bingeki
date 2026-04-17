@@ -44,7 +44,7 @@ interface GamificationState {
 }
 
 const LEVEL_BASE = 100;
-const LEVEL_MULTIPLIER = 1.15;
+const LEVEL_MULTIPLIER = 1.05;
 const MAX_LEVEL = 100;
 
 // Must match functions/index.js XP_REWARDS

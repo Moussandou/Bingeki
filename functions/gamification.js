@@ -6,7 +6,7 @@ const { FieldValue, Timestamp } = require("firebase-admin/firestore");
 // --- XP & GAMIFICATION CONSTANTS ---
 
 const LEVEL_BASE = 100;
-const LEVEL_MULTIPLIER = 1.15;
+const LEVEL_MULTIPLIER = 1.05;
 const MAX_LEVEL = 100;
 
 const XP_REWARDS = {
