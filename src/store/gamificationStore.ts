@@ -206,8 +206,8 @@ export const useGamificationStore = create<GamificationState>()(
 
 
                 works.forEach(w => {
-                    const progress = w.currentChapter || 0;
-                    const total = w.totalChapters;
+                    const progress = w.currentChapter || w.currentEpisode || 0;
+                    const total = w.totalChapters || w.totalEpisodes || 0;
                     const type = w.type ? w.type.toLowerCase() : 'manga';
 
                     // Skip progress XP when total is unknown (anti-cheat)

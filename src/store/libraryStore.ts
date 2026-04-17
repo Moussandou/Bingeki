@@ -46,6 +46,8 @@ export interface Work {
     format?: string; // TV, Movie, OVA, Manga, Novel, etc.
     totalChapters?: number | null;
     currentChapter?: number;
+    totalEpisodes?: number | null;
+    currentEpisode?: number;
     status: 'reading' | 'completed' | 'on_hold' | 'dropped' | 'plan_to_read';
     score?: number;
     synopsis?: string;
