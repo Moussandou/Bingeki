@@ -75,8 +75,9 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
     const [isLoaded, setIsLoaded] = useState(false);
     const [hasError, setHasError] = useState(false);
-    const startTimeRef = React.useRef(0);
+    const startTimeRef = React.useRef(Date.now());
     const [placeholderLoaded, setPlaceholderLoaded] = useState(false);
+    const [placeholderError, setPlaceholderError] = useState(false);
     const [isVisible, setIsVisible] = useState(priority);
     const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -118,6 +119,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         setIsLoaded(false);
         setHasError(false);
         setPlaceholderLoaded(false);
+        setPlaceholderError(false);
         if (!priority) setIsVisible(false);
     }
 
@@ -154,7 +156,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
             )}
 
             {/* Low-res placeholder for progressive loading (only if not in data saver) */}
-            {!dataSaver && lowResSrc && !hasError && isVisible && (
+            {!dataSaver && lowResSrc && !hasError && !placeholderError && isVisible && (
                 <img
                     src={isVisible ? lowResSrc : undefined}
                     alt=""
@@ -164,6 +166,9 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
                     crossOrigin={crossOriginValue}
                     onLoad={() => {
                         setPlaceholderLoaded(true);
+                    }}
+                    onError={() => {
+                        setPlaceholderError(true);
                     }}
                 />
             )}

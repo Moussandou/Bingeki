@@ -102,11 +102,9 @@ export function getFirebaseThumbnail(
     // 1. Inject 'thumbnails%2F' into the storage path
     let thumbUrl = originalUrl.replace('/o/', '/o/thumbnails%2F');
     
-    // 2. Extract path and remove the token (Solution A: Public Access)
+    // 2. Extract path and handle the token (Solution A: Public Access)
     const queryIndex = thumbUrl.indexOf('?');
-    if (queryIndex === -1) return thumbUrl;
-
-    const pathPart = thumbUrl.substring(0, queryIndex);
+    const pathPart = queryIndex === -1 ? thumbUrl : thumbUrl.substring(0, queryIndex);
     
     // 3. Handle size suffix and force .webp extension
     const lastDotIndex = pathPart.lastIndexOf('.');
