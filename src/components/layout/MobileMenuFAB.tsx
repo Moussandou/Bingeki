@@ -80,6 +80,7 @@ export function MobileMenuFAB() {
     } as const;
 
     const menuItems = [
+        { to: '/forum', icon: MessageSquare, label: t('header.forum', 'Forum') },
         { to: '/social', icon: MessageSquare, label: t('header.community') },
         { to: '/schedule', icon: Calendar, label: t('header.agenda') },
         { to: '/changelog', icon: HistoryIcon, label: t('header.changelog') },

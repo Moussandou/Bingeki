@@ -222,6 +222,11 @@ export function Header() {
                                 <span className="hidden-tablet">{t('header.library')}</span>
                             </Link>
 
+                            <Link to="/forum" className={`${styles.navLink} ${isActive('/forum') ? styles.activeLink : ''} `}>
+                                <MessageSquare size={18} />
+                                <span className="hidden-tablet">{t('header.forum', 'Forum')}</span>
+                            </Link>
+
                             {/* More Dropdown */}
                             <div className={styles.navLink} style={{ cursor: 'pointer', position: 'relative' }}
                                 onMouseEnter={() => document.getElementById('more-dropdown')?.style.setProperty('display', 'flex')}

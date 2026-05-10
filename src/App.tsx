@@ -25,6 +25,7 @@ const Profile = lazy(() => import('@/pages/Profile'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Discover = lazy(() => import('@/pages/Discover'));
 const Social = lazy(() => import('@/pages/Social'));
+const Forum = lazy(() => import('@/pages/Forum'));
 const Legal = lazy(() => import('@/pages/Legal'));
 const Challenges = lazy(() => import('@/pages/Challenges'));
 const Feedback = lazy(() => import('@/pages/Feedback'));
@@ -209,6 +210,7 @@ function App() {
               <Route path="users/:uid/library" element={<Library />} />
               <Route path="discover" element={<Discover />} />
               <Route path="social" element={<Social />} />
+              <Route path="forum" element={<Forum />} />
               <Route path="work/:id" element={<WorkDetails />} />
               <Route path="profile" element={<Profile />} />
               <Route path="profile/:uid" element={<Profile />} />
