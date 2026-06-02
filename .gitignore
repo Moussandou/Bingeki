@@ -58,3 +58,11 @@ lint_errors.json
 # AI Metadata
 .claude/
 .gemini/
+
+#bmad
+_bmad/
+_bmad-output/
+.agent/
+.agents/
+design-artifacts/
+
