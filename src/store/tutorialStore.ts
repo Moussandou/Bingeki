@@ -7,6 +7,7 @@ import { persist } from 'zustand/middleware';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useAuthStore } from './authStore';
+import { logger } from '@/utils/logger';
 
 interface TutorialState {
     isActive: boolean;
@@ -47,7 +48,7 @@ export const useTutorialStore = create<TutorialState>()(
                     try {
                         await setDoc(doc(db, 'users', user.uid), { hasSeenTutorial: hasSeen }, { merge: true });
                     } catch (e) {
-                        console.error("Failed to sync tutorial state", e);
+                        logger.error("Failed to sync tutorial state", e);
                     }
                 }
             },

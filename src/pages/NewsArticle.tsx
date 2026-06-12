@@ -18,6 +18,7 @@ import DOMPurify from 'dompurify';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { isBot } from '@/utils/isBot';
 import { useTranslationData } from '@/services/translationService';
+import { logger } from '@/utils/logger';
 
 interface NewsItem {
     slug: string;
@@ -125,7 +126,7 @@ export default function NewsArticle() {
                     setError(true);
                 }
             } catch (err) {
-                console.error('Error fetching article:', err);
+                logger.error('Error fetching article:', err);
                 setError(true);
             } finally {
                 setLoading(false);

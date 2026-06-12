@@ -19,6 +19,7 @@ import {
 } from '@/services/malImportService';
 import type { MALEntry } from '@/services/malImportService';
 import styles from './MALImportModal.module.css';
+import { logger } from '@/utils/logger';
 
 interface MALImportModalProps {
     isOpen: boolean;
@@ -83,7 +84,7 @@ export function MALImportModal({ isOpen, onClose }: MALImportModalProps) {
             setDuplicates(conflicts);
             setPhase('preview');
         } catch (error) {
-            console.error('Failed to parse MAL export:', error);
+            logger.error('Failed to parse MAL export:', error);
             addToast(t('mal_import.parse_error'), 'error');
         }
     }, [works, addToast, t]);
@@ -128,7 +129,7 @@ export function MALImportModal({ isOpen, onClose }: MALImportModalProps) {
                 }
                 results.imported++;
             } catch (error) {
-                console.error(`Failed to import ${entry.title}:`, error);
+                logger.error(`Failed to import ${entry.title}:`, error);
                 results.errors++;
             }
 

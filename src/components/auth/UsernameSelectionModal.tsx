@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useTranslation } from 'react-i18next';
 import { User } from 'lucide-react';
 import { updateUserProfile, searchUserByName } from '@/firebase/firestore';
+import { logger } from '@/utils/logger';
 
 export function UsernameSelectionModal() {
     const { t } = useTranslation();
@@ -61,7 +62,7 @@ export function UsernameSelectionModal() {
             await updateUserProfile(user.uid, { displayName: trimmedName });
             setIsOpen(false);
         } catch (err) {
-            console.error(err);
+            logger.error(err);
             setError(t('auth.error_generic'));
         } finally {
             setLoading(false);

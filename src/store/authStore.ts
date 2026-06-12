@@ -5,7 +5,22 @@
 import { logger } from '@/utils/logger';
 import { create } from 'zustand';
 import { type User } from 'firebase/auth';
+import { auth } from '@/firebase/config';
 import { type UserProfile, getUserProfile, subscribeToUserProfile } from '@/firebase/firestore';
+
+/**
+ * Email lives in users/{uid}/private/contact, not on the public profile doc.
+ * For the signed-in owner it is already present in the auth token, so we hydrate
+ * it from there — no extra Firestore read, and it stays out of public profiles.
+ */
+function withOwnEmail(profile: UserProfile | null): UserProfile | null {
+    if (!profile) return null;
+    const authedUser = auth.currentUser;
+    if (authedUser && authedUser.uid === profile.uid && authedUser.email) {
+        return { ...profile, email: authedUser.email };
+    }
+    return profile;
+}
 
 interface AuthState {
     user: User | null;
@@ -31,7 +46,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         try {
             const profile = await getUserProfile(uid);
             if (profile) {
-                set({ userProfile: profile });
+                set({ userProfile: withOwnEmail(profile) });
             }
         } catch (error) {
             logger.error('Error syncing user profile:', error);
@@ -41,7 +56,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
         return subscribeToUserProfile(uid, (profile) => {
             logger.log('[AuthStore] Real-time profile update received:', profile?.isAdmin ? 'Admin' : 'User');
-            set({ userProfile: profile });
+            set({ userProfile: withOwnEmail(profile) });
         });
     }
 }));

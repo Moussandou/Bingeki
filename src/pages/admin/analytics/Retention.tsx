@@ -8,6 +8,7 @@ import { Link } from '@/components/routing/LocalizedLink';
 import { getFunnelStats, getAdminStats, getHistoricalTrends } from '@/firebase/firestore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import { logger } from '@/utils/logger';
 
 interface FunnelEntry {
     name: string;
@@ -52,7 +53,7 @@ export default function RetentionAnalytics() {
                 setStats(basicStats);
                 setTrends(historical);
             } catch (e) {
-                console.error("Failed to load retention analytics", e);
+                logger.error("Failed to load retention analytics", e);
             } finally {
                 setLoading(false);
             }

@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/feedback/StatusBadge';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { logger } from '@/utils/logger';
 
 export default function AdminFeedback() {
     const { t } = useTranslation();
@@ -156,7 +157,7 @@ export default function AdminFeedback() {
             const data = await getAllFeedback();
             setFeedbacks(data);
         } catch {
-            console.error("Failed to load feedback");
+            logger.error("Failed to load feedback");
         } finally {
             setLoading(false);
         }
@@ -225,7 +226,7 @@ export default function AdminFeedback() {
             setResponseText('');
             alert('Réponse envoyée !');
         } catch (e) {
-            console.error("Error sending response:", e);
+            logger.error("Error sending response:", e);
             alert("Erreur lors de l'envoi de la réponse");
         } finally {
             setIsSubmittingResponse(false);

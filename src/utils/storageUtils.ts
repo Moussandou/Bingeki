@@ -40,6 +40,7 @@ export const exportData = () => {
 import { useLibraryStore } from '@/store/libraryStore';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { logger } from '@/utils/logger';
 
 export const importData = (file: File): Promise<boolean> => {
     return new Promise((resolve, reject) => {
@@ -67,7 +68,7 @@ export const importData = (file: File): Promise<boolean> => {
                             useLibraryStore.setState({ works: actualWorks });
                         }
                     } catch (e) {
-                        console.error("Failed to parse library data for store", e);
+                        logger.error("Failed to parse library data for store", e);
                     }
                 }
 
@@ -76,7 +77,7 @@ export const importData = (file: File): Promise<boolean> => {
                         const parsedGam = JSON.parse(data.gamification);
                         const state = parsedGam.state || parsedGam;
                         useGamificationStore.setState(state);
-                    } catch (e) { console.error("Failed to parse gamification", e); }
+                    } catch (e) { logger.error("Failed to parse gamification", e); }
                 }
 
                 if (data.settings) {
@@ -84,12 +85,12 @@ export const importData = (file: File): Promise<boolean> => {
                         const parsedSet = JSON.parse(data.settings);
                         const state = parsedSet.state || parsedSet;
                         useSettingsStore.setState(state);
-                    } catch (e) { console.error("Failed to parse settings", e); }
+                    } catch (e) { logger.error("Failed to parse settings", e); }
                 }
 
                 resolve(true);
             } catch (err) {
-                console.error("Import failed", err);
+                logger.error("Import failed", err);
                 reject(false);
             }
         };

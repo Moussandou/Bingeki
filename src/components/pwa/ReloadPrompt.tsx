@@ -5,6 +5,7 @@ import React from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { RefreshCw, X, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '@/utils/logger';
 
 export const ReloadPrompt: React.FC = () => {
     const {
@@ -14,11 +15,11 @@ export const ReloadPrompt: React.FC = () => {
     } = useRegisterSW({
         onRegistered(r: ServiceWorkerRegistration | undefined) {
              
-            console.log('SW Registered: ' + r);
+            logger.log('SW Registered: ' + r);
         },
         onRegisterError(error: unknown) {
              
-            console.error('SW registration error', error);
+            logger.error('SW registration error', error);
         },
     });
 

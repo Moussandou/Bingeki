@@ -8,6 +8,7 @@ import { Link } from '@/components/routing/LocalizedLink';
 import { getEngagementBreakdown, getTopContentStats } from '@/firebase/firestore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import { logger } from '@/utils/logger';
 
 export default function EngagementAnalytics() {
     const { t } = useTranslation();
@@ -27,7 +28,7 @@ export default function EngagementAnalytics() {
                 setEngagementData(engagement as unknown as Record<string, number>);
                 setTopContent(top);
             } catch (e) {
-                console.error("Failed to load engagement analytics", e);
+                logger.error("Failed to load engagement analytics", e);
             } finally {
                 setLoading(false);
             }

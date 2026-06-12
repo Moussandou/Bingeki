@@ -24,6 +24,7 @@ import { useNavigate } from 'react-router-dom';
 import styles from './Dashboard.module.css';
 import { useMounted } from '@/hooks/useMounted';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { logger } from '@/utils/logger';
 
 interface ChartData {
     name: string;
@@ -114,7 +115,7 @@ export default function AdminDashboard() {
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Erreur inconnue';
             setRecalcError(message);
-            console.error('Recalculate failed:', err);
+            logger.error('Recalculate failed:', err);
         } finally {
             setRecalculating(false);
         }
@@ -143,7 +144,7 @@ export default function AdminDashboard() {
                 setFunnelData(funnel);
 
             } catch (e) {
-                console.error("Dashboard load failed", e);
+                logger.error("Dashboard load failed", e);
             } finally {
                 setLoading(false);
             }

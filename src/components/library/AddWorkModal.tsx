@@ -14,6 +14,7 @@ import { useLibraryStore, type Work } from '@/store/libraryStore';
 import { useGamificationStore } from '@/store/gamificationStore';
 // Activity logging is now handled server-side by onLibraryUpdate trigger
 import { isValidImageSrc } from '@/utils/validation';
+import { logger } from '@/utils/logger';
 
 interface AddWorkModalProps {
     isOpen: boolean;
@@ -128,7 +129,7 @@ export function AddWorkModal({ isOpen, onClose, initialWork }: AddWorkModalProps
                     const data = await searchWorks(query, type);
                     setResults(data);
                 } catch (error) {
-                    console.error("Search error", error);
+                    logger.error("Search error", error);
                 } finally {
                     setLoading(false);
                 }

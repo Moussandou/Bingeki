@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, onSnapshot, doc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useAuthStore } from '@/store/authStore';
+import { logger } from '@/utils/logger';
 
 export interface AppNotification {
     id: string;
@@ -45,7 +46,7 @@ export function useNotifications(limitCount = 20) {
             setUnreadCount(unread);
             setLoading(false);
         }, (error) => {
-            console.error('[Firestore] Error fetching notifications:', error);
+            logger.error('[Firestore] Error fetching notifications:', error);
             setLoading(false);
         });
 

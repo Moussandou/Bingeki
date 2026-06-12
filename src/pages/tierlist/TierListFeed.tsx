@@ -11,6 +11,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './TierListFeed.module.css';
+import { logger } from '@/utils/logger';
 
 export default function TierListFeed() {
     const { t } = useTranslation();
@@ -115,7 +116,7 @@ export default function TierListFeed() {
             setLastVisible(last);
             setHasMore(moreLists.length === 12);
         } catch (error) {
-            console.error(error);
+            logger.error(error);
         } finally {
             setLoadingMore(false);
         }
@@ -148,7 +149,7 @@ export default function TierListFeed() {
                 setLastVisible(last);
                 setHasMore(freshLists.length === 12);
             } catch (error) {
-                console.error(error);
+                logger.error(error);
                 setLists(mockTierLists);
             } finally {
                 setLoading(false);

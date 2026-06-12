@@ -4,6 +4,7 @@
 import { jikanQueue } from '@/utils/apiQueue';
 import type { QueueOptions } from '@/utils/apiQueue';
 import { useSettingsStore } from '@/store/settingsStore';
+import { logger } from '@/utils/logger';
 import {
     getWorkDetailsFn,
     searchWorksFn,
@@ -167,14 +168,14 @@ async function callProxy<T, I = any>(
 ): Promise<T> {
     const sessionCached = getCached<T>(cacheKey, ttl);
     if (sessionCached !== null) {
-        console.debug(`%c[Cache] SESSION HIT`, 'color: #22c55e; font-weight: bold', cacheKey);
+        logger.debug(`%c[Cache] SESSION HIT`, 'color: #22c55e; font-weight: bold', cacheKey);
         return sessionCached;
     }
     if (inflight.has(cacheKey)) {
-        console.debug(`%c[Cache] IN-FLIGHT`, 'color: #a855f7; font-weight: bold', cacheKey);
+        logger.debug(`%c[Cache] IN-FLIGHT`, 'color: #a855f7; font-weight: bold', cacheKey);
         return inflight.get(cacheKey) as Promise<T>;
     }
-    console.debug(`%c[Cache] SESSION MISS — calling Cloud Function`, 'color: #f59e0b; font-weight: bold', cacheKey, args);
+    logger.debug(`%c[Cache] SESSION MISS — calling Cloud Function`, 'color: #f59e0b; font-weight: bold', cacheKey, args);
 
     const promise = jikanQueue.run<T>(
         async () => {
@@ -182,14 +183,14 @@ async function callProxy<T, I = any>(
             const result = await fn(args);
             const data = result.data as T;
             setCache<T>(cacheKey, data);
-            console.debug(`%c[Cloud Function] OK`, 'color: #3b82f6; font-weight: bold', cacheKey, `${Math.round(performance.now() - t0)}ms`);
+            logger.debug(`%c[Cloud Function] OK`, 'color: #3b82f6; font-weight: bold', cacheKey, `${Math.round(performance.now() - t0)}ms`);
             return data;
         },
         options
     ).catch((error: unknown) => {
-        console.error(`%c[Cloud Function] ERROR`, 'color: #ef4444; font-weight: bold', cacheKey, error);
+        logger.error(`%c[Cloud Function] ERROR`, 'color: #ef4444; font-weight: bold', cacheKey, error);
         if (defaultValue !== undefined) {
-            console.warn(`%c[Cloud Function] Falling back to default value for`, 'color: #f97316', cacheKey);
+            logger.warn(`%c[Cloud Function] Falling back to default value for`, 'color: #f97316', cacheKey);
             return defaultValue;
         }
         throw error;
@@ -371,11 +372,11 @@ export const getWorkDetails = async (id: number, type: 'anime' | 'manga'): Promi
     const sessionCached = getCachedDetail<JikanResult>(cacheKey, CACHE_TTL_LONG);
     if (sessionCached === 'NOT_FOUND') throw new ApiError(404, `${type} with ID ${id} not found (cached)`);
     if (sessionCached) {
-        console.debug(`%c[Cache] SESSION HIT`, 'color: #22c55e; font-weight: bold', cacheKey);
+        logger.debug(`%c[Cache] SESSION HIT`, 'color: #22c55e; font-weight: bold', cacheKey);
         return sessionCached;
     }
 
-    console.debug(`%c[Cache] SESSION MISS — calling Cloud Function getWorkDetails`, 'color: #f59e0b; font-weight: bold', { id, type });
+    logger.debug(`%c[Cache] SESSION MISS — calling Cloud Function getWorkDetails`, 'color: #f59e0b; font-weight: bold', { id, type });
     try {
         const t0 = performance.now();
         const result = await getWorkDetailsFn({ id, type });
@@ -385,10 +386,10 @@ export const getWorkDetails = async (id: number, type: 'anime' | 'manga'): Promi
         }
         const data = result.data as JikanResult;
         setCache<JikanResult>(cacheKey, data);
-        console.debug(`%c[Cloud Function] getWorkDetails OK`, 'color: #3b82f6; font-weight: bold', `${Math.round(performance.now() - t0)}ms`);
+        logger.debug(`%c[Cloud Function] getWorkDetails OK`, 'color: #3b82f6; font-weight: bold', `${Math.round(performance.now() - t0)}ms`);
         return data;
     } catch (error) {
-        console.error(`%c[Cloud Function] getWorkDetails ERROR`, 'color: #ef4444; font-weight: bold', error);
+        logger.error(`%c[Cloud Function] getWorkDetails ERROR`, 'color: #ef4444; font-weight: bold', error);
         throw error;
     }
 };
@@ -409,11 +410,11 @@ export const getWorkFull = async (id: number, type: 'anime' | 'manga'): Promise<
     const sessionCached = getCachedDetail<JikanResultFull>(cacheKey, CACHE_TTL_LONG);
     if (sessionCached === 'NOT_FOUND') throw new ApiError(404, `Full ${type} with ID ${id} not found (cached)`);
     if (sessionCached) {
-        console.debug(`%c[Cache] SESSION HIT`, 'color: #22c55e; font-weight: bold', cacheKey);
+        logger.debug(`%c[Cache] SESSION HIT`, 'color: #22c55e; font-weight: bold', cacheKey);
         return sessionCached;
     }
 
-    console.debug(`%c[Cache] SESSION MISS — calling Cloud Function getWorkFull`, 'color: #f59e0b; font-weight: bold', { id, type });
+    logger.debug(`%c[Cache] SESSION MISS — calling Cloud Function getWorkFull`, 'color: #f59e0b; font-weight: bold', { id, type });
     try {
         const t0 = performance.now();
         const result = await getWorkDetailsFn({ id, type });
@@ -423,10 +424,10 @@ export const getWorkFull = async (id: number, type: 'anime' | 'manga'): Promise<
         }
         const data = result.data as JikanResultFull;
         setCache<JikanResultFull>(cacheKey, data);
-        console.debug(`%c[Cloud Function] getWorkFull OK`, 'color: #3b82f6; font-weight: bold', `${Math.round(performance.now() - t0)}ms`);
+        logger.debug(`%c[Cloud Function] getWorkFull OK`, 'color: #3b82f6; font-weight: bold', `${Math.round(performance.now() - t0)}ms`);
         return data;
     } catch (error) {
-        console.error(`%c[Cloud Function] getWorkFull ERROR`, 'color: #ef4444; font-weight: bold', error);
+        logger.error(`%c[Cloud Function] getWorkFull ERROR`, 'color: #ef4444; font-weight: bold', error);
         throw error;
     }
 };

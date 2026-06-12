@@ -633,7 +633,7 @@ export async function getRepairHistory(maxEntries = 10): Promise<RepairSession[]
 // ─── Discord Integration ────────────────────────────────────────────
 
 export async function sendDiscordHealthAlert(webhookUrl: string, report: FullHealthReport, isTest = false): Promise<boolean> {
-    console.log(`[DiscordAlert] Attempting to send ${isTest ? 'TEST ' : ''}alert to Discord...`);
+    logger.log(`[DiscordAlert] Attempting to send ${isTest ? 'TEST ' : ''}alert to Discord...`);
     try {
         const hasDown = report.infrastructure.some(s => s.status === 'down');
         const statusEmoji = hasDown ? '🚨' : (report.overallScore >= 80 ? '✅' : report.overallScore >= 50 ? '⚠️' : '🚨');
@@ -656,7 +656,7 @@ export async function sendDiscordHealthAlert(webhookUrl: string, report: FullHea
             }]
         };
 
-        console.log('[DiscordAlert] Payload:', JSON.stringify(payload, null, 2));
+        logger.log('[DiscordAlert] Payload:', JSON.stringify(payload, null, 2));
 
         const response = await fetch(webhookUrl, {
             method: 'POST',
@@ -665,15 +665,15 @@ export async function sendDiscordHealthAlert(webhookUrl: string, report: FullHea
         });
 
         if (response.ok) {
-            console.log('[DiscordAlert] Successfully sent to Discord.');
+            logger.log('[DiscordAlert] Successfully sent to Discord.');
             return true;
         } else {
             const errorText = await response.text();
-            console.error(`[DiscordAlert] Discord API returned error ${response.status}:`, errorText);
+            logger.error(`[DiscordAlert] Discord API returned error ${response.status}:`, errorText);
             return false;
         }
     } catch (error) {
-        console.error('[DiscordAlert] Fetch failed:', error);
+        logger.error('[DiscordAlert] Fetch failed:', error);
         logger.error('[DiscordAlert] Send failed:', error);
         return false;
     }

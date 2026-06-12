@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ShieldAlert, RefreshCw, History, User } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { getAuditLogs, type AuditLogEntry } from '@/firebase/firestore';
+import { logger } from '@/utils/logger';
 
 export default function AuditLog() {
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
@@ -13,7 +14,7 @@ export default function AuditLog() {
             const data = await getAuditLogs(50);
             setLogs(data);
         } catch (e) {
-            console.error('Failed to fetch audit logs:', e);
+            logger.error('Failed to fetch audit logs:', e);
         } finally {
             setLoading(false);
         }

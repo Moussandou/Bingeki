@@ -42,8 +42,17 @@ service cloud.firestore {
       // 1. Owner can update their profile (bio, theme, etc.)
       // 2. Admin can update ANY profile (for Ban/Promote actions)
       // 3. Prevent Owner from modifying their own 'isAdmin', 'isBanned', or 'createdAt' flags
+      // Server-managed gamification stats: written ONLY by the onLibraryUpdate
+      // Cloud Function (Admin SDK, bypasses these rules) and read by the leaderboard.
+      // Clients must never write them directly, or they could inflate their rank.
       allow update: if (isOwner(userId) &&
-                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isSuperAdmin', 'isBanned', 'createdAt']))
+                        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+                          'isAdmin', 'isSuperAdmin', 'isBanned', 'createdAt',
+                          'level', 'xp', 'totalXp', 'xpToNextLevel', 'streak', 'badges',
+                          'totalChaptersRead', 'totalAnimeEpisodesWatched', 'totalMoviesWatched',
+                          'totalWorksAdded', 'totalWorksCompleted', 'bonusXp',
+                          'lastUpdated', 'lastActivityDate'
+                        ]))
                     || isAdmin();
 
       // Create: Allow users to setup their profile.
@@ -91,6 +100,13 @@ service cloud.firestore {
       // --- Subcollection: Notifications ---
       match /notifications/{notificationId} {
         allow read, write: if isOwner(userId);
+      }
+
+      // --- Subcollection: Private (PII) ---
+      // Holds email and any other personally-identifiable data that must NOT live
+      // on the world-readable profile document. Only the owner or an admin may read it.
+      match /private/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
       }
 
     }

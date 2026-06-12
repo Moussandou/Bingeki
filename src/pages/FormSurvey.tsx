@@ -16,6 +16,7 @@ import { Layout } from '@/components/layout/Layout';
 import { SEO } from '@/components/layout/SEO';
 import { useLocalizedNavigate } from '@/components/routing/LocalizedLink';
 import styles from './FormSurvey.module.css';
+import { logger } from '@/utils/logger';
 
 interface FormData {
   ageRange: string;
@@ -276,7 +277,7 @@ export default function FormSurvey() {
       logEvent(analytics, 'survey_completed');
       localizedNavigate(`/${lang || 'fr'}/form/thank-you`);
     } catch (error) {
-      console.error('Erreur lors de l\'envoi :', error);
+      logger.error('Erreur lors de l\'envoi :', error);
       alert(t('survey.errors.submit'));
     } finally {
       setIsSubmitting(false);

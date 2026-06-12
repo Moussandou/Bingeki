@@ -20,6 +20,7 @@ import { SEO } from '@/components/layout/SEO';
 import { useSettingsStore } from '@/store/settingsStore';
 import { getDisplayTitle } from '@/utils/titleUtils';
 import styles from './Discover.module.css';
+import { logger } from '@/utils/logger';
 
 export default function Discover() {
     const navigate = useNavigate();
@@ -107,7 +108,7 @@ export default function Discover() {
                 setPopularManga(dedup(popM));
                 setTopManga(dedup(topM));
             } catch (error) {
-                console.error("[Discover] ❌ Failed to load discovery data", error);
+                logger.error("[Discover] ❌ Failed to load discovery data", error);
             } finally {
                 setIsLoadingSections(false);
             }
@@ -121,7 +122,7 @@ export default function Discover() {
             const hasActiveFilters = filterStatus || filterRating || filterScore > 0 || filterYear || selectedGenre || filterStudio;
 
             if (searchQuery.length > 2 || hasActiveFilters) {
-                console.time('[Perf] Search Lifecycle');
+                logger.time('[Perf] Search Lifecycle');
                 setLoading(true);
 
                 const filters: SearchFilters = {};
@@ -155,21 +156,21 @@ export default function Discover() {
                     allResults.forEach(item => {
                         const key = `${item.type || 'unknown'}-${item.mal_id}`;
                         if (resultsMap.has(key)) {
-                            console.debug(`[Perf] Duplicate caught: ${key}`);
+                            logger.debug(`[Perf] Duplicate caught: ${key}`);
                         }
                         resultsMap.set(key, item);
                     });
                     
                     const uniqueResults = Array.from(resultsMap.values());
                     
-                    console.info(`[Perf] Search: Found ${allResults.length} total, ${uniqueResults.length} unique items.`);
+                    logger.info(`[Perf] Search: Found ${allResults.length} total, ${uniqueResults.length} unique items.`);
                     if (uniqueResults.length > 0) {
-                        console.table(uniqueResults.slice(0, 5).map(r => ({ id: r.mal_id, type: r.type, title: r.title })));
+                        logger.table(uniqueResults.slice(0, 5).map(r => ({ id: r.mal_id, type: r.type, title: r.title })));
                     }
-                    console.timeEnd('[Perf] Search Lifecycle');
+                    logger.timeEnd('[Perf] Search Lifecycle');
                     setSearchResults(uniqueResults);
                 } catch (err) {
-                    console.error("Search failed", err);
+                    logger.error("Search failed", err);
                     setSearchResults([]);
                 } finally {
                     setLoading(false);
@@ -220,7 +221,7 @@ export default function Discover() {
                 navigate(`/work/${randomWork.mal_id}?type=anime`); // Usually works for anime
             }
         } catch (error) {
-            console.error("Failed to get random anime", error);
+            logger.error("Failed to get random anime", error);
         } finally {
             setLoading(false);
         }

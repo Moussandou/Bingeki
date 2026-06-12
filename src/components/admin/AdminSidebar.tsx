@@ -8,6 +8,7 @@ import { auth } from '@/firebase/config';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './AdminSidebar.module.css';
+import { logger } from '@/utils/logger';
 
 interface AdminSidebarProps {
     isOpen: boolean;
@@ -28,7 +29,7 @@ export function AdminSidebar({ isOpen, onClose, onOpenCommandPalette }: AdminSid
             await auth.signOut();
             logout();
         } catch (error) {
-            console.error('Error signing out:', error);
+            logger.error('Error signing out:', error);
         }
     };
 

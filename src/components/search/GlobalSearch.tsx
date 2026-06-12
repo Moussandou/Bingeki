@@ -10,6 +10,7 @@ import { Modal } from '@/components/ui/Modal';
 import { searchWorks, searchCharacters } from '@/services/animeApi';
 import type { JikanResult, JikanCharacterFull } from '@/services/animeApi';
 import { Loader2, Search, ChevronRight } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface GlobalSearchProps {
     isOpen: boolean;
@@ -69,7 +70,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             });
         } catch (error) {
             if (error instanceof Error && error.name === 'AbortError') return; // expected
-            console.error('Search error:', error);
+            logger.error('Search error:', error);
         } finally {
             if (!signal.aborted) setLoading(false);
         }

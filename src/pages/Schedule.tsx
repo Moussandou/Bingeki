@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { SEO } from '@/components/layout/SEO';
 import styles from './Schedule.module.css';
+import { logger } from '@/utils/logger';
 
 const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 
@@ -33,7 +34,7 @@ export default function Schedule() {
                 const uniqueData = Array.from(new Map(data.map(item => [item.mal_id, item])).values());
                 setAnimeList(uniqueData);
             } catch (error) {
-                console.error("Failed to fetch schedule", error);
+                logger.error("Failed to fetch schedule", error);
             } finally {
                 setLoading(false);
             }

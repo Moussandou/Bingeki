@@ -25,6 +25,17 @@ export default defineConfig([
         varsIgnorePattern: '^_',
         destructuredArrayIgnorePattern: '^_',
       }],
+      // App code must route through src/utils/logger (silenced in production).
+      // Raw console.* would leak logs to end users' devtools in prod.
+      'no-console': 'error',
+    },
+  },
+  {
+    // The logger wrapper is the single sanctioned place to touch console,
+    // and CLI scripts run in Node where console output is the intended UX.
+    files: ['src/utils/logger.ts', 'scripts/**/*.{ts,tsx}'],
+    rules: {
+      'no-console': 'off',
     },
   },
 ])

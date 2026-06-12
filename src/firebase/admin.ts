@@ -2,6 +2,7 @@ import { doc, getDoc, collection, query, where, getDocs, orderBy, limit, updateD
 import { db } from './config';
 import { logger } from '@/utils/logger';
 import type { UserProfile } from './users';
+import { getUserEmails } from './users';
 
 // ==================== FEEDBACK SYSTEM ====================
 
@@ -247,7 +248,12 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     try {
         const q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'), limit(50));
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
+        const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
+
+        // Email is no longer on the public doc — hydrate it from the private
+        // subcollection for the admin panel (admins may read it per Firestore rules).
+        const emails = await getUserEmails(users.map(u => u.uid));
+        return users.map(u => ({ ...u, email: emails[u.uid] ?? u.email ?? null }));
     } catch (error) {
         logger.error('[Firestore] Error getting all users:', error);
         return [];
@@ -315,7 +321,7 @@ export async function deleteFeedback(id: string): Promise<void> {
         await deleteDoc(doc(db, 'feedback', id));
     } catch (error) {
         // use logger if imported, else console.error
-        console.error('[Firestore] Error deleting feedback:', error);
+        logger.error('[Firestore] Error deleting feedback:', error);
         throw error;
     }
 }

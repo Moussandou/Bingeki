@@ -27,6 +27,7 @@ import styles from './SurveyDashboard.module.css';
 import { Link } from '@/components/routing/LocalizedLink';
 import { useMounted } from '@/hooks/useMounted';
 import { useToast } from '@/context/ToastContext';
+import { logger } from '@/utils/logger';
 
 const COLORS = ['#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#6366f1'];
 
@@ -44,7 +45,7 @@ export default function SurveyDashboard() {
             const data = await getSurveyResponses();
             setResponses(data);
         } catch (err) {
-            console.error("Failed to load survey responses:", err);
+            logger.error("Failed to load survey responses:", err);
         } finally {
             setLoading(false);
         }

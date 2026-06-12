@@ -52,6 +52,7 @@ interface SearchResult {
 
 import { getTopWorks } from '@/services/animeApi';
 import type { UserProfile } from '@/firebase/firestore';
+import { logger } from '@/utils/logger';
 
 export default function Opening() {
     const { t } = useTranslation();
@@ -141,7 +142,7 @@ export default function Opening() {
                     dataFetched.current = true;
                 }
             } catch (e) {
-                console.error("Failed to fetch top manga", e);
+                logger.error("Failed to fetch top manga", e);
             }
 
             // Static "Top" results to ensure reliable display

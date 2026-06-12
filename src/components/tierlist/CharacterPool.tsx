@@ -13,6 +13,7 @@ import { searchCharacters, getWorkCharacters, searchWorks, getTopWorks } from '@
 import type { JikanCharacter, JikanResult } from '@/services/animeApi';
 import { useToast } from '@/context/ToastContext';
 import styles from './CharacterPool.module.css';
+import { logger } from '@/utils/logger';
 
 // Types
 export interface PoolCharacter {
@@ -107,7 +108,7 @@ export function useCharacterPool(): CharacterPoolState {
             const results = await getTopWorks(type, 'bypopularity', 24);
             setWorks(results);
         } catch (error) {
-            console.error(error);
+            logger.error(error);
         } finally {
             setIsLoading(false);
         }
@@ -185,7 +186,7 @@ export function useCharacterPool(): CharacterPoolState {
                 }
             }
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             if (error instanceof Error && error.message.includes('504')) {
                 addToast(t('tierlist.jikan_busy'), 'error');
             }
@@ -209,7 +210,7 @@ export function useCharacterPool(): CharacterPoolState {
             const unique = Array.from(new Map(formatted.map(i => [i.mal_id, i])).values());
             setCharacters(unique);
         } catch (error) {
-            console.error(error);
+            logger.error(error);
         } finally {
             setIsLoading(false);
         }
@@ -246,7 +247,7 @@ export function useCharacterPool(): CharacterPoolState {
                 setWorks(await searchWorks(query, 'manga', baseFilters));
             }
         } catch (error) {
-            console.error(error);
+            logger.error(error);
         } finally {
             setIsLoading(false);
         }
@@ -276,7 +277,7 @@ export function useCharacterPool(): CharacterPoolState {
                 setQuery(s.label);
             }
         } catch (error) {
-            console.error(error);
+            logger.error(error);
         } finally {
             setIsLoading(false);
         }

@@ -13,6 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { logger } from '@/utils/logger';
 
 export default function AdminUsers() {
     const { t } = useTranslation();
@@ -99,7 +100,7 @@ export default function AdminUsers() {
                 const data = await getAllUsers();
                 setUsers(data as UserProfile[]);
             } catch (e) {
-                console.error("Failed to load users", e);
+                logger.error("Failed to load users", e);
             } finally {
                 setLoading(false);
             }
@@ -197,7 +198,7 @@ export default function AdminUsers() {
             setModalType(null);
             alert("User stats updated successfully!");
         } catch (e) {
-            console.error(e);
+            logger.error(e);
             alert("Failed to update user stats.");
         }
     };
@@ -210,7 +211,7 @@ export default function AdminUsers() {
             setUsers(prev => prev.filter(u => u.uid !== uid));
             alert(t('admin.users.delete_success'));
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             alert(t('admin.users.delete_error'));
         }
     };

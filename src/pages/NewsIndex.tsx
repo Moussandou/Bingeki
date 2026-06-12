@@ -11,6 +11,7 @@ import { SEO } from '@/components/layout/SEO';
 import { useTranslation } from 'react-i18next';
 import { Newspaper, Flame, Search, Filter, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '@/utils/logger';
 
 interface NewsItem {
     slug: string;
@@ -40,7 +41,7 @@ export default function NewsIndex() {
                 });
                 setNews(fetchedNews);
             } catch (error) {
-                console.error('Error fetching news:', error);
+                logger.error('Error fetching news:', error);
             } finally {
                 setLoading(false);
             }

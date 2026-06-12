@@ -59,8 +59,11 @@ export async function saveUserProfileToFirestore(user: Partial<UserProfile>, for
             dataToSave.createdAt = Date.now();
         }
 
+        // NOTE: 'email' is intentionally NOT in this list. It is PII and the profile
+        // document is world-readable (public profiles / SEO / leaderboards). Email is
+        // stored separately in users/{uid}/private/contact — see writeUserEmail below.
         const allowedFields: (keyof UserProfile)[] = [
-            'uid', 'email', 'displayName', 'photoURL', 'banner', 'bannerPosition', 'bio',
+            'uid', 'displayName', 'photoURL', 'banner', 'bannerPosition', 'bio',
             'themeColor', 'cardBgColor', 'borderColor',
             'favoriteManga', 'top3Favorites', 'featuredBadge',
             'favoriteCharacters', 'isAdmin', 'isSuperAdmin',
@@ -79,6 +82,12 @@ export async function saveUserProfileToFirestore(user: Partial<UserProfile>, for
         });
 
         await setDoc(docRef, dataToSave, { merge: true });
+
+        // Persist email to the private subcollection (never to the public profile).
+        if (user.email) {
+            await writeUserEmail(user.uid, user.email);
+        }
+
         logger.log('[Firestore] User profile saved:', dataToSave);
     } catch (error) {
         logger.error('[Firestore] Error saving user profile:', error);
@@ -175,19 +184,49 @@ export function subscribeToUserProfile(uid: string, callback: (profile: UserProf
     });
 }
 
-export async function searchUserByEmail(email: string): Promise<UserProfile | null> {
+/**
+ * Stores a user's email in the private subcollection (PII — never on the public doc).
+ * Only the owner or an admin can read it back (enforced by Firestore rules).
+ */
+export async function writeUserEmail(uid: string, email: string): Promise<void> {
     try {
-        const q = query(collection(db, 'users'), where('email', '==', email), limit(1));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            const doc = querySnapshot.docs[0];
-            return { uid: doc.id, ...doc.data() } as UserProfile;
-        }
-        return null;
+        await setDoc(
+            doc(db, 'users', uid, 'private', 'contact'),
+            { email, updatedAt: Date.now() },
+            { merge: true }
+        );
     } catch (error) {
-        logger.error('[Firestore] Error searching user:', error);
+        logger.error('[Firestore] Error writing private email:', error);
+    }
+}
+
+/**
+ * Reads a single user's email from the private subcollection.
+ * Returns null if missing or not permitted (owner/admin only).
+ */
+export async function getUserEmail(uid: string): Promise<string | null> {
+    try {
+        const snap = await getDoc(doc(db, 'users', uid, 'private', 'contact'));
+        return snap.exists() ? (snap.data().email as string) ?? null : null;
+    } catch (error) {
+        logger.error('[Firestore] Error reading private email:', error);
         return null;
     }
+}
+
+/**
+ * Batch-reads emails for several users (admin tooling). Returns a uid→email map.
+ * Each lookup is permission-checked individually; unreadable entries are skipped.
+ */
+export async function getUserEmails(uids: string[]): Promise<Record<string, string>> {
+    const entries = await Promise.all(
+        uids.map(async (uid) => [uid, await getUserEmail(uid)] as const)
+    );
+    const map: Record<string, string> = {};
+    for (const [uid, email] of entries) {
+        if (email) map[uid] = email;
+    }
+    return map;
 }
 
 export async function searchUserByName(name: string): Promise<UserProfile | null> {

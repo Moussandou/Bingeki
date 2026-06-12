@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getCommentsWithReplies, addComment, toggleCommentLike } from '@/firebase/firestore';
 import type { CommentWithReplies } from '@/types/comment';
+import { logger } from '@/utils/logger';
 
 export interface UseWorkCommentsResult {
     comments: CommentWithReplies[];
@@ -53,7 +54,7 @@ export function useWorkComments(
             const data = await getCommentsWithReplies(workId);
             setComments(data);
         } catch (err) {
-            console.error('Error loading comments:', err);
+            logger.error('Error loading comments:', err);
             const error = err as { code?: string; message?: string };
             if (error.code === 'permission-denied' || error.message?.includes('Missing or insufficient permissions')) {
                 setError(t('work_details.comments.permission_error'));
@@ -92,7 +93,7 @@ export function useWorkComments(
             await loadComments();
             return true;
         } catch (err) {
-            console.error('Error adding comment:', err);
+            logger.error('Error adding comment:', err);
             return false;
         }
     }, [newComment, isSpoiler, loadComments]);
@@ -109,7 +110,7 @@ export function useWorkComments(
             return c;
         }));
 
-        toggleCommentLike(commentId, userId).catch(console.error);
+        toggleCommentLike(commentId, userId).catch(logger.error);
     }, []);
 
 
@@ -137,7 +138,7 @@ export function useWorkComments(
             await loadComments();
             return true;
         } catch (err) {
-            console.error('Error adding reply:', err);
+            logger.error('Error adding reply:', err);
             return false;
         }
     }, [replyText, loadComments]);

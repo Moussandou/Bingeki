@@ -8,6 +8,7 @@ import { Link } from '@/components/routing/LocalizedLink';
 import { getHistoricalTrends, getAdminStats } from '@/firebase/firestore';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import { logger } from '@/utils/logger';
 
 export default function GrowthAnalytics() {
     const { t } = useTranslation();
@@ -25,7 +26,7 @@ export default function GrowthAnalytics() {
                 setStats(basicStats);
                 setTrends(historicalData.map(d => ({ date: d.date, newUsers: d.inscriptions, totalUsers: d.activeUsers })));
             } catch (e) {
-                console.error("Failed to load growth analytics", e);
+                logger.error("Failed to load growth analytics", e);
             } finally {
                 setLoading(false);
             }

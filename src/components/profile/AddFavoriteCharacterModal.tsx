@@ -16,6 +16,7 @@ import { useAuthStore } from '@/store/authStore';
 import { saveUserProfileToFirestore } from '@/firebase/firestore';
 import { useToast } from '@/context/ToastContext';
 import { useLibraryStore } from '@/store/libraryStore';
+import { logger } from '@/utils/logger';
 
 interface AddFavoriteCharacterModalProps {
     isOpen: boolean;
@@ -67,7 +68,7 @@ export function AddFavoriteCharacterModal({ isOpen, onClose, currentFavorites, o
                 const data = await searchCharacters(debouncedQuery);
                 setResults(data);
             } catch (error) {
-                console.error(error);
+                logger.error(error);
             } finally {
                 setLoading(false);
             }
@@ -124,7 +125,7 @@ export function AddFavoriteCharacterModal({ isOpen, onClose, currentFavorites, o
             addToast(`${safeNewChars.length} personnage(s) ajouté(s) !`, 'success');
             onClose();
         } catch (error) {
-            console.error(error);
+            logger.error(error);
             addToast(t('profile.toast.save_error'), 'error');
         }
     };

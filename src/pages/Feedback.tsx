@@ -20,6 +20,7 @@ import { StatusBadge } from '@/components/feedback/StatusBadge';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { TicketCard } from '@/components/feedback/TicketCard';
 import styles from './Feedback.module.css';
+import { logger } from '@/utils/logger';
 
 type Tab = 'submit' | 'tickets';
 
@@ -72,7 +73,7 @@ export default function Feedback() {
             setLoadingTickets(true);
             getUserFeedback(user.uid)
                 .then(setTickets)
-                .catch(err => console.error("Error loading tickets", err))
+                .catch(err => logger.error("Error loading tickets", err))
                 .finally(() => setLoadingTickets(false));
         }
     }, [activeTab, user, selectedTicketId]);
@@ -97,7 +98,7 @@ export default function Feedback() {
                     setSelectedTicket(detail);
                 }
             } catch (error) {
-                console.error('Error loading feedback detail:', error);
+                logger.error('Error loading feedback detail:', error);
                 addToast(t('feedback.error_loading_detail'), 'error');
             } finally {
                 setLoadingDetail(false);
@@ -158,7 +159,7 @@ export default function Feedback() {
                 if (!user) setEmail('');
             }
         } catch (error) {
-            console.error('[Feedback] Submission error:', error);
+            logger.error('[Feedback] Submission error:', error);
             addToast(t('feedback.toast_unexpected'), 'error');
         } finally {
             setIsSubmitting(false);

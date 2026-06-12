@@ -22,6 +22,7 @@ import {
 } from '@/firebase/healthChecks';
 import { useAuthStore } from '@/store/authStore';
 import styles from './Health.module.css';
+import { logger } from '@/utils/logger';
 
 const STATUS_LABELS: Record<ServiceStatus, string> = {
     operational: 'OK',
@@ -205,7 +206,7 @@ export default function AdminHealth() {
                 }
             }
         } catch (error: unknown) {
-            console.error('[Health] Failed to fetch health data:', error);
+            logger.error('[Health] Failed to fetch health data:', error);
             const err = error as { code?: string; message?: string };
             if (err?.code === 'permission-denied' || err?.message?.includes('permissions')) {
                 setHasPermissionError(true);
@@ -231,7 +232,7 @@ export default function AdminHealth() {
             alert(`Repair complete! Fixed ${result.repaired} issues, encountered ${result.errors} errors.`);
             fetchData(true);
         } catch (e) {
-            console.error('[Health] Manual repair failed:', e);
+            logger.error('[Health] Manual repair failed:', e);
             alert("Repair failed. Check console.");
         } finally {
             setRepairing(false);
@@ -255,20 +256,20 @@ export default function AdminHealth() {
 
         setIsTestingDiscord(true);
         setTestStatus(null);
-        console.log('[AdminHealth] Starting Discord test...');
+        logger.log('[AdminHealth] Starting Discord test...');
 
         try {
             const success = await sendDiscordHealthAlert(discordConfig.webhookUrl, report!, true);
             if (success) {
                 setTestStatus({ success: true, message: "Test message sent!" });
-                console.log('[AdminHealth] Test message success.');
+                logger.log('[AdminHealth] Test message success.');
             } else {
                 setTestStatus({ success: false, message: "Failed to send message (check console/URL)" });
-                console.error('[AdminHealth] Test message failed.');
+                logger.error('[AdminHealth] Test message failed.');
             }
         } catch (error) {
             setTestStatus({ success: false, message: "Error during test" });
-            console.error('[AdminHealth] Test error:', error);
+            logger.error('[AdminHealth] Test error:', error);
         } finally {
             setIsTestingDiscord(false);
         }

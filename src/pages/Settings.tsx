@@ -25,6 +25,7 @@ import {
 } from 'firebase/auth';
 
 import { MALImportModal } from '@/components/library/MALImportModal';
+import { logger } from '@/utils/logger';
 
 /** Reusable pill-style option selector */
 function OptionSelector<T extends string>({ options, value, onChange }: {
@@ -147,7 +148,7 @@ export default function Settings() {
             setTimeout(() => window.location.reload(), 1000);
         } catch (error) {
             addToast(t('settings.toast.reset_error'), 'error');
-            console.error('Cloud Reset Error:', error);
+            logger.error('Cloud Reset Error:', error);
         }
     };
 
@@ -193,7 +194,7 @@ export default function Settings() {
             // Automatically retry deletion
             handleDeleteAccount();
         } catch (error) {
-            console.error('Re-auth error:', error);
+            logger.error('Re-auth error:', error);
             addToast(t('settings.toast.reauth_error', 'Verification failed. Try again.'), 'error');
         } finally {
             setIsDeleting(false);
@@ -218,7 +219,7 @@ export default function Settings() {
             addToast(t('settings.toast.account_deleted', 'Account successfully deleted'), 'success');
             navigate('/');
         } catch (error) {
-            console.error('Delete account error:', error);
+            logger.error('Delete account error:', error);
             const err = error as { code?: string };
             
             if (err.code === 'auth/requires-recent-login') {
@@ -361,7 +362,7 @@ export default function Settings() {
                                             setTitleLanguage(v);
                                             if (user) {
                                                 saveUserProfileToFirestore({ uid: user.uid, titlePriority: v }, true)
-                                                    .catch(err => console.error('Failed to sync title language:', err));
+                                                    .catch(err => logger.error('Failed to sync title language:', err));
                                             }
                                         }}
                                     />
@@ -378,7 +379,7 @@ export default function Settings() {
                                         toggleHideScores();
                                         if (user) {
                                             saveUserProfileToFirestore({ uid: user.uid, hideScores: newValue }, true)
-                                                .catch(err => console.error('Failed to sync hide scores:', err));
+                                                .catch(err => logger.error('Failed to sync hide scores:', err));
                                         }
                                         addToast(newValue ? t('settings.content.hide_scores_enabled') : t('settings.content.hide_scores_disabled'), 'info');
                                     }}
@@ -401,7 +402,7 @@ export default function Settings() {
                                                 toggleDataSaver();
                                                 if (user) {
                                                     saveUserProfileToFirestore({ uid: user.uid, dataSaver: newValue }, true)
-                                                        .catch(err => console.error('Failed to sync data saver:', err));
+                                                        .catch(err => logger.error('Failed to sync data saver:', err));
                                                 }
                                                 addToast(newValue ? t('settings.content.data_saver_enabled') : t('settings.content.data_saver_disabled'), 'info');
                                             }}
@@ -433,7 +434,7 @@ export default function Settings() {
                                             setProfileVisibility(v);
                                             if (user) {
                                                 saveUserProfileToFirestore({ uid: user.uid, profileVisibility: v }, true)
-                                                    .catch(err => console.error('Failed to sync visibility:', err));
+                                                    .catch(err => logger.error('Failed to sync visibility:', err));
                                             }
                                         }}
                                     />
@@ -451,7 +452,7 @@ export default function Settings() {
                                         toggleActivityStatus();
                                         if (user) {
                                             saveUserProfileToFirestore({ uid: user.uid, showActivityStatus: newValue }, true)
-                                                .catch(err => console.error('Failed to sync activity status:', err));
+                                                .catch(err => logger.error('Failed to sync activity status:', err));
                                         }
                                         addToast(newValue ? t('settings.privacy.activity_status_enabled') : t('settings.privacy.activity_status_disabled'), 'info');
                                     }}

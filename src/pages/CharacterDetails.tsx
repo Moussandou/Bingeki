@@ -23,6 +23,7 @@ type CharacterFullData = JikanCharacterFull & {
 };
 
 import { useTranslation } from 'react-i18next'; // Added import
+import { logger } from '@/utils/logger';
 
 export default function CharacterDetails() {
     const { t, i18n } = useTranslation();
@@ -53,7 +54,7 @@ export default function CharacterDetails() {
                 const data = await getCharacterFull(Number(id));
                 if (active) setCharacter(data);
             } catch (err) {
-                console.error(err);
+                logger.error(err);
             } finally {
                 if (active) setLoading(false);
             }

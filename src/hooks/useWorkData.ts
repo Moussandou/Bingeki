@@ -3,6 +3,7 @@
  * Merges API responses with local library state
  */
 import { useState, useEffect } from 'react';
+import { logger } from '@/utils/logger';
 import {
     getWorkDetails,
     getWorkCharacters,
@@ -166,7 +167,7 @@ export function useWorkData(
                 const mapped: DetailedWork = mapJikanToDetailedWork(res, internalType);
                 setFetchedWork(mapped);
             } catch (error) {
-                console.error('Error fetching work details:', error);
+                logger.error('Error fetching work details:', error);
             } finally {
                 setIsLoading(false);
             }
@@ -220,7 +221,7 @@ export function useWorkData(
                 const revs = await getWorkReviews(Number(id), type);
                 setReviews(revs);
             } catch (error) {
-                console.error('Error fetching related data:', error);
+                logger.error('Error fetching related data:', error);
             }
         };
 

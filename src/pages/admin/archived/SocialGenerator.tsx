@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import styles from './SocialGenerator.module.css';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { logger } from '@/utils/logger';
 
 type FormatData = {
     id: string;
@@ -187,7 +188,7 @@ export default function SocialGenerator() {
             const data = await res.json();
             setSearchResults(data.data || []);
         } catch (e) {
-            console.error("Jikan Search failed", e);
+            logger.error("Jikan Search failed", e);
         } finally {
             setIsSearching(false);
         }
@@ -284,7 +285,7 @@ export default function SocialGenerator() {
             link.click();
             
         } catch (error) {
-            console.error('Failed to generate image:', error);
+            logger.error('Failed to generate image:', error);
             alert('Images from Jikan API might block download due to strict CORS rules on external images. Try local images if this fails persistently.');
         } finally {
             setIsGenerating(false);

@@ -104,7 +104,7 @@ export function useTranslationData(
                 // First request the translation if missing
                 await requestTranslation(text, sourceId, sourceType, sourceField);
                 
-                console.log(`%c[Translation] Subscribing to: ${docId}`, 'color: #3b82f6; font-weight: bold');
+                logger.log(`%c[Translation] Subscribing to: ${docId}`, 'color: #3b82f6; font-weight: bold');
                 
                 unsubscribe = onSnapshot(docRef, (snap) => {
                     if (snap.exists()) {
@@ -112,19 +112,19 @@ export function useTranslationData(
                         const translated = data.translated?.[langCode];
                         
                         if (translated) {
-                            console.log(`%c[Translation] Received "${langCode}" for ${docId}`, 'color: #10b981; font-weight: bold');
+                            logger.log(`%c[Translation] Received "${langCode}" for ${docId}`, 'color: #10b981; font-weight: bold');
                             setTranslatedText(translated);
                             setLoading(false);
                         } else {
-                            console.log(`%c[Translation] Waiting for "${langCode}" for ${docId}...`, 'color: #f59e0b; font-weight: bold');
+                            logger.log(`%c[Translation] Waiting for "${langCode}" for ${docId}...`, 'color: #f59e0b; font-weight: bold');
                             // We stay in loading state as the document exists but the target language is not yet ready
                         }
                     } else {
-                        console.log(`%c[Translation] Doc ${docId} not found, requesting translation...`, 'color: #ef4444');
+                        logger.log(`%c[Translation] Doc ${docId} not found, requesting translation...`, 'color: #ef4444');
                         // We stay in loading state while waiting for the extension to create and translate
                     }
                 }, (err) => {
-                    console.error(`[Translation] Snapshot error for ${docId}:`, err);
+                    logger.error(`[Translation] Snapshot error for ${docId}:`, err);
                     setLoading(false);
                 });
             } catch (err) {

@@ -45,6 +45,7 @@ import {
     useSortable 
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { logger } from '@/utils/logger';
 
 // Sortable wrapper for library items
 function SortableWorkItem({ id, children, disabled }: { id: string | number; children: React.ReactNode; disabled: boolean }) {
@@ -212,7 +213,7 @@ export default function Library() {
                         setFriendFolders([]);
                     }
                 } catch (error) {
-                    console.error("Failed to load friend library", error);
+                    logger.error("Failed to load friend library", error);
                     addToast(t('library.load_error'), 'error');
                 } finally {
                     setIsLoadingFriend(false);

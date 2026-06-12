@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocalizedNavigate } from '@/components/routing/LocalizedLink';
 import { SEO } from '@/components/layout/SEO';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { logger } from '@/utils/logger';
 
 export default function Auth() {
     const { t } = useTranslation();
@@ -87,7 +88,7 @@ export default function Auth() {
                 navigate('/dashboard');
             }
         } catch (err) {
-            console.error('[Auth] Discord login error:', err);
+            logger.error('[Auth] Discord login error:', err);
             const firebaseError = err as { code?: string };
             // Don't show error if user just closed the popup
             if (firebaseError.code !== 'auth/popup-closed-by-user' && firebaseError.code !== 'auth/cancelled-popup-request') {
@@ -116,7 +117,7 @@ export default function Auth() {
                 navigate('/dashboard');
             }
         } catch (err) {
-            console.error('[Auth] Google login error:', err);
+            logger.error('[Auth] Google login error:', err);
             const firebaseError = err as { code?: string };
             // Don't show error if user just closed the popup
             if (firebaseError.code !== 'auth/popup-closed-by-user' && firebaseError.code !== 'auth/cancelled-popup-request') {

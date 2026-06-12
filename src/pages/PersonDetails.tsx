@@ -11,6 +11,7 @@ import { getPersonFull, type JikanPersonFull, type JikanPersonVoice } from '@/se
 import { SEO } from '@/components/layout/SEO';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import styles from './PersonDetails.module.css';
+import { logger } from '@/utils/logger';
 
 type PersonFullData = JikanPersonFull & {
     voices: JikanPersonVoice[];
@@ -33,7 +34,7 @@ export default function PersonDetails() {
                 const data = await getPersonFull(Number(id));
                 setPerson(data);
             } catch (error) {
-                console.error("Failed to load person", error);
+                logger.error("Failed to load person", error);
             } finally {
                 setLoading(false);
             }
