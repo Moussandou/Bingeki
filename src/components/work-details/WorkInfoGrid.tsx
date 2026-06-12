@@ -4,7 +4,10 @@ import styles from '@/pages/WorkDetails.module.css';
 import type { Work } from '@/store/libraryStore';
 
 interface WorkInfoGridProps {
-    work: Work;
+    work: Omit<Work, 'status'> & {
+        status?: string;
+        studios?: { name: string }[];
+    };
 }
 
 export function WorkInfoGrid({ work }: WorkInfoGridProps) {

@@ -9,7 +9,7 @@ import type { Work } from '@/store/libraryStore';
 import type { JikanStreaming } from '@/services/animeApi';
 
 interface WorkMainHeaderProps {
-    work: Work;
+    work: Omit<Work, 'status'> & { status?: string };
     titleLanguage: 'default' | 'romaji' | 'native' | 'english';
     hideScores: boolean;
     streaming: JikanStreaming[];

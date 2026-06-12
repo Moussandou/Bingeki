@@ -2,8 +2,8 @@ import { useTranslation } from 'react-i18next';
 import styles from '@/pages/WorkDetails.module.css';
 
 interface WorkTabsProps {
-    activeTab: string;
-    setActiveTab: (tab: string) => void;
+    activeTab: 'info' | 'episodes' | 'gallery' | 'themes' | 'stats' | 'reviews';
+    setActiveTab: (tab: 'info' | 'episodes' | 'gallery' | 'themes' | 'stats' | 'reviews') => void;
     workType: string | undefined;
 }
 

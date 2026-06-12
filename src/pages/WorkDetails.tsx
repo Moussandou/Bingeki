@@ -550,7 +550,7 @@ export default function WorkDetails() {
 
                                 {/* DETAILED INFO & TRAILER SECTION */}
                                 <div style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                    <WorkInfoGrid work={work as Work} />
+                                    <WorkInfoGrid work={work} />
 
                                     {/* Trailer - Theater Mode */}
                                     {work.trailer && work.trailer.embed_url && (

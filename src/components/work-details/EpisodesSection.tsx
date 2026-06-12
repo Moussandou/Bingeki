@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { ContentList } from '@/components/library/ContentList';
+import { ContentList, type ContentItem } from '@/components/library/ContentList';
 import type { Work } from '@/store/libraryStore';
-import type { JikanEpisode, JikanStreaming } from '@/services/animeApi';
+import type { JikanStreaming } from '@/services/animeApi';
 
 interface EpisodesSectionProps {
-    work: Work;
-    episodes: JikanEpisode[];
+    work: Omit<Work, 'status'> & { status?: string };
+    episodes: ContentItem[];
     handleEpisodeSelect: (number: number) => void;
     handleExpandEpisode: (number: number) => void;
     isLoadingEpisodes: boolean;
