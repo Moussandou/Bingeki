@@ -55,13 +55,19 @@ test.describe('Auth & Settings', () => {
         await expect(page).toHaveURL(/.*auth/);
 
         // 1. Check "No account? Sign up" toggle works
-        // Using structural locator (last button in panel) to avoid translation regex issues
-        const toggleToRegister = page.locator('button').last();
+        // Filter by text 'compte' or 'account' to uniquely select the toggle button
+        const toggleToRegister = page.locator('button').filter({ hasText: /compte|account/i });
         await expect(toggleToRegister).toBeVisible({ timeout: 10000 });
+        await page.waitForTimeout(1000); // Hydration buffer
         await toggleToRegister.click();
 
         // 2. Verify Register fields appear
         const pseudoInput = page.locator('input[placeholder*="Pseudo" i], input[placeholder*="Username" i]');
+        
+        // Fallback retry click if hydration swallowed the first click
+        if (!(await pseudoInput.isVisible({ timeout: 2000 }).catch(() => false))) {
+            await toggleToRegister.click();
+        }
         await expect(pseudoInput).toBeVisible();
 
         // 3. Toggle back to Login

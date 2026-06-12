@@ -15,12 +15,17 @@ test.describe('Library Management', () => {
         await page.goto('/auth');
 
         // Register
-        const toggleToRegister = page.locator('button').filter({ hasText: /inscrire|Sign up/i }).last();
-        if (await toggleToRegister.isVisible()) {
+        const toggleToRegister = page.locator('button').filter({ hasText: /compte|account/i });
+        await expect(toggleToRegister).toBeVisible({ timeout: 10000 });
+        await page.waitForTimeout(1000); // Hydration buffer
+        await toggleToRegister.click();
+
+        const pseudoInput = page.locator('input[placeholder*="Pseudo" i], input[placeholder*="Username" i]');
+        if (!(await pseudoInput.isVisible({ timeout: 2000 }).catch(() => false))) {
             await toggleToRegister.click();
         }
-
-        await page.fill('input[placeholder*="Pseudo" i], input[placeholder*="Username" i]', pseudo);
+        await expect(pseudoInput).toBeVisible({ timeout: 5000 });
+        await pseudoInput.fill(pseudo);
         await page.fill('input[type="email"]', email);
         await page.fill('input[type="password"]', password);
         await page.locator('button[type="submit"]').filter({ hasText: /inscrire|Sign up/i }).click();
@@ -50,29 +55,25 @@ test.describe('Library Management', () => {
         await expect(workCard).toBeVisible();
 
         // 2. Navigate to Details
-        await workCard.click();
+        // Click with force: true since dnd-kit SortableWorkItem wrapper sets aria-disabled="true" when not sorting
+        await workCard.click({ force: true });
         await expect(page).toHaveURL(/.*work\/\d+/);
 
-        // 3. Update Status
-        // Status buttons: "Reading", "Completed", etc.
-        // Let's click "Completed" / "Terminé"
-        const completedBtn = page.locator('button').filter({ hasText: /Terminé|Completed/i }).first();
-        await expect(completedBtn).toBeVisible();
-        await completedBtn.click();
-
-        // Verify active state (class check or just visual feedback if possible)
-        // In WorkDetails.tsx: `${styles.statusButton} ${work.status === s ? styles.statusButtonActive : ''}`
-        // We can check if class attribute contains 'Active' or similar if we knew the hashed class name.
-        // Safer: Check if the button has a distinct style or if we can re-verify status in library.
-
-        // 4. Update Progress
-        // Click +1 button
+        // 3. Update Progress (+1)
+        // Increment progress first to avoid any completion confirmation modal blocking the UI
         const plusOneBtn = page.locator('button', { hasText: '+1' }).first();
+        await expect(plusOneBtn).toBeVisible();
         await plusOneBtn.click();
 
-        // Verify display updates (e.g., "1 / ?")
-        const progressDisplay = page.locator('span').filter({ hasText: /\d+\s*\/\s*\?/ }).first();
+        // Verify display updates (can be "1 / ?" or "1 / 366" depending on whether total is known)
+        const progressDisplay = page.locator('span').filter({ hasText: /\d+\s*\/\s*(\d+|\?)/ }).first();
         await expect(progressDisplay).toBeVisible();
+
+        // 4. Update Status
+        // Click "Dropped" / "Abandonné" which updates status immediately without opening a confirmation modal
+        const droppedBtn = page.locator('button').filter({ hasText: /Abandonné|Dropped/i }).first();
+        await expect(droppedBtn).toBeVisible();
+        await droppedBtn.click();
         // Ideally check text content contains "1 /"
 
         // 5. Remove Work
@@ -85,18 +86,20 @@ test.describe('Library Management', () => {
         // In Library.tsx, the delete button is absolute positioned on the card.
 
         // We need to trigger hover for the button to appear visibly, or just force click.
-        // The delete button has `title={t('library.delete_work')}`
-        // Let's try to find it by title.
         const deleteButton = page.locator('button[title*="Delete"], button[title*="Supprimer"]').first();
-
-        // Force visibility or hover
-        await workCard.hover();
-        await expect(deleteButton).toBeVisible();
-        await deleteButton.click();
+        await expect(deleteButton).toBeVisible({ timeout: 10000 });
+        await page.waitForTimeout(1000); // Hydration buffer
+        
+        // Force click the delete button since it is inside the aria-disabled dnd-kit wrapper
+        await deleteButton.click({ force: true });
 
         // 6. Confirm Deletion
-        // Modal appears. Click "Supprimer" / "Delete" (red button)
-        const confirmDeleteBtn = page.locator('div[role="dialog"] button').filter({ hasText: /Supprimer|Delete/i }).last();
+        // Modal appears. Click "SUPPRIMER" / "DELETE" (red button)
+        const confirmDeleteBtn = page.locator('button').filter({ hasText: /^SUPPRIMER$|^DELETE$/i });
+        if (!(await confirmDeleteBtn.isVisible({ timeout: 2000 }).catch(() => false))) {
+            await deleteButton.click({ force: true });
+        }
+        await expect(confirmDeleteBtn).toBeVisible({ timeout: 5000 });
         await confirmDeleteBtn.click();
 
         // 7. Verify Removal

@@ -42,8 +42,8 @@ service cloud.firestore {
       // 1. Owner can update their profile (bio, theme, etc.)
       // 2. Admin can update ANY profile (for Ban/Promote actions)
       // 3. Prevent Owner from modifying their own 'isAdmin', 'isBanned', or 'createdAt' flags
-      allow update: if (isOwner(userId) && 
-                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isBanned', 'createdAt'])) 
+      allow update: if (isOwner(userId) &&
+                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isSuperAdmin', 'isBanned', 'createdAt']))
                     || isAdmin();
 
       // Create: Allow users to setup their profile.
@@ -226,10 +226,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Automated translations collection
+    // Automated translations collection.
+    // Clients may REQUEST a translation (write input/source metadata) but must never
+    // write the `translated` payload — that is rendered to every visitor and is filled
+    // server-side by a Cloud Function (Admin SDK bypasses these rules).
     match /translations/{docId} {
       allow read: if true;
-      allow create, update: if isAuthenticated();
+      allow create: if isAuthenticated()
+                    && !request.resource.data.keys().hasAny(['translated']);
+      allow update: if isAuthenticated()
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['translated']);
       allow delete: if isAdmin();
     }
 

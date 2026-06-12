@@ -18,11 +18,13 @@ export default defineConfig({
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
             include: ['src/utils/**', 'src/store/**', 'src/hooks/**'],
+            // Ratchet: set just under current actual coverage so the suite cannot
+            // regress. Raise these as coverage improves — do not lower them.
             thresholds: {
-                lines: 15,
-                functions: 10,
-                branches: 10,
-                statements: 15,
+                lines: 18,
+                functions: 12,
+                branches: 12,
+                statements: 18,
             },
         },
     },

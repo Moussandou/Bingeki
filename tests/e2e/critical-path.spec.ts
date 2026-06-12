@@ -15,14 +15,24 @@ test.describe('Critical Path', () => {
         const cta = page.locator('button').filter({ hasText: /Commencer|START/i }).first();
         await cta.click();
 
+        // Wait for page transition to /auth to allow hydration to complete
+        await expect(page).toHaveURL(/.*auth/, { timeout: 10000 });
+
         // 3. Navigate to Register mode
-        // The toggle link/button. FR: "Pas encore de compte ? S'inscrire" | EN: "No account yet? Sign up"
-        const toggleToRegister = page.locator('button').filter({ hasText: /inscrire|Sign up/i }).last();
+        // Filter by 'compte' or 'account' to uniquely select the toggle button
+        const toggleToRegister = page.locator('button').filter({ hasText: /compte|account/i });
+        await expect(toggleToRegister).toBeVisible({ timeout: 10000 });
+        await page.waitForTimeout(1000); // Hydration buffer
         await toggleToRegister.click();
 
         // 4. Fill Signup Form
         // Wait for the pseudo field to appear (ensures we are in register mode)
         const pseudoInput = page.locator('input[placeholder*="Pseudo" i], input[placeholder*="Username" i]');
+        
+        // Fallback retry click if hydration swallowed the first click
+        if (!(await pseudoInput.isVisible({ timeout: 2000 }).catch(() => false))) {
+            await toggleToRegister.click();
+        }
         await expect(pseudoInput).toBeVisible({ timeout: 5000 });
 
         await pseudoInput.fill(pseudo);
@@ -76,8 +86,8 @@ test.describe('Critical Path', () => {
         await expect(logoutBtn).toBeVisible();
         await logoutBtn.click();
 
-        // Verify Home reached and 'Start' button visible
-        await expect(page).toHaveURL('/');
+        // Verify Home reached (can be language-prefixed like /fr or /en) and 'Start' button visible
+        await expect(page).toHaveURL(/\/([a-z]{2})?$/);
         await expect(cta).toBeVisible();
     });
 });

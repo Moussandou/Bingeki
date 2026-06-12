@@ -61,15 +61,22 @@ jobs:
           cache: 'npm'
       - run: npm ci
 
-      - name: Audit Dependencies
-        run: npm audit --audit-level=high || true
-        continue-on-error: true
+      - name: Audit Dependencies (root)
+        run: npm audit --audit-level=high
+
+      - name: Audit Dependencies (functions)
+        run: npm audit --audit-level=high
+        working-directory: functions
 
       - name: Secrets & Dangerous Patterns
         run: |
           echo "🔍 Scanning for secrets and dangerous patterns..."
-          # Combine existing checks here or use specialized tools
-          grep -rE "(api[_-]?key|secret[_-]?key|password)" src/ 2>/dev/null | grep -v "process.env" || true
+          # Fail the build if a hardcoded Discord/Slack webhook or private key leaks in.
+          if grep -rEn "discord(app)?\.com/api/webhooks/[0-9]+/|-----BEGIN [A-Z ]*PRIVATE KEY-----" src functions --include="*.ts" --include="*.tsx" --include="*.js" 2>/dev/null; then
+            echo "❌ Hardcoded webhook or private key detected"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets found"
 
   build:
     name: Build & Bundle Analysis
