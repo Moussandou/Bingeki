@@ -40,7 +40,14 @@ export default defineConfig({
         // instead of the SW returning a cached empty app shell
         navigateFallback: undefined,
         navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/],
-        globIgnores: ['**/sitemap.xml', '**/robots.txt'],
+        globIgnores: [
+          '**/sitemap.xml',
+          '**/robots.txt',
+          '**/assets/Dashboard-*.js',
+          '**/assets/SystemLogs-*.js',
+          '**/assets/Health-*.js',
+          '**/assets/vendor-charts-*.js',
+        ],
         runtimeCaching: [
           {
             // MAL cover URLs are immutable: serve from cache instantly

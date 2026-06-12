@@ -19,7 +19,7 @@ export function CommentsSection({ workId }: CommentsSectionProps) {
     const { addToast } = useToast();
 
     const [comments, setComments] = useState<CommentWithReplies[]>([]);
-    const [isLoadingComments, setIsLoadingComments] = useState(false);
+    const [isLoadingComments, setIsLoadingComments] = useState(true);
     const [commentError, setCommentError] = useState<string | null>(null);
 
     const [isCommentsExpanded, setIsCommentsExpanded] = useState(false);
@@ -30,7 +30,6 @@ export function CommentsSection({ workId }: CommentsSectionProps) {
     const [replyText, setReplyText] = useState('');
 
     useEffect(() => {
-        setIsLoadingComments(true);
         getCommentsWithReplies(workId)
             .then(data => {
                 setComments(data);

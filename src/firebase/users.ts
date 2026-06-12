@@ -116,7 +116,7 @@ export async function getThumbnailDownloadURL(originalPath: string, size: '200x2
         const thumbPath = `thumbnails/${originalPath}_${size}.webp`;
         const thumbRef = ref(storage, thumbPath);
         return await getDownloadURL(thumbRef);
-    } catch (error) {
+    } catch {
         try {
             const originalRef = ref(storage, originalPath);
             return await getDownloadURL(originalRef);

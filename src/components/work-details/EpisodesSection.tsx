@@ -1,20 +1,22 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { ContentList } from '@/components/library/ContentList';
+import type { Work } from '@/store/libraryStore';
+import type { JikanEpisode, JikanStreaming } from '@/services/animeApi';
 
 interface EpisodesSectionProps {
-    work: any;
-    episodes: any[];
+    work: Work;
+    episodes: JikanEpisode[];
     handleEpisodeSelect: (number: number) => void;
     handleExpandEpisode: (number: number) => void;
     isLoadingEpisodes: boolean;
     episodesPage: number;
     hasMoreEpisodes: boolean;
-    streaming: any[];
-    setEpisodesPage: (page: any) => void;
-    libraryWork: any;
+    streaming: JikanStreaming[];
+    setEpisodesPage: (page: number | ((p: number) => number)) => void;
+    libraryWork: Work | undefined;
     totalEpisodesPage: number;
-    updateWorkDetails: (id: string | number, details: any) => void;
+    updateWorkDetails: (id: string | number, details: Partial<Work>) => void;
 }
 
 export function EpisodesSection({

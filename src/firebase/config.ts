@@ -28,6 +28,7 @@ export const db = initializeFirestore(app, {
 export const storage = getStorage(app);
 
 // Safe Analytics initialization
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export let analytics: any;
 if (typeof window !== 'undefined') {
     import('firebase/analytics').then(({ getAnalytics, isSupported }) => {
@@ -35,7 +36,7 @@ if (typeof window !== 'undefined') {
             if (supported) {
                 try {
                     analytics = getAnalytics(app);
-                } catch (e) {
+                } catch {
                     // Silently fail if blocked by ad-blocker
                 }
             }

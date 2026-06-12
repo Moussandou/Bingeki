@@ -1,9 +1,10 @@
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { getDisplayTitle } from '@/utils/titleUtils';
 import styles from '@/pages/WorkDetails.module.css';
+import type { Work } from '@/store/libraryStore';
 
 interface WorkCoverSectionProps {
-    work: any;
+    work: Work;
     titleLanguage: 'default' | 'romaji' | 'native' | 'english';
 }
 

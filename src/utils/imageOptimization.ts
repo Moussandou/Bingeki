@@ -126,7 +126,7 @@ export function getFirebaseThumbnail(
     
     // 4. Return the public URL (alt=media is required to view in browser, but token is removed)
     return `${finalPath}?alt=media`;
-  } catch (error) {
+  } catch {
     return originalUrl;
   }
 }

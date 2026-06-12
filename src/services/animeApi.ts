@@ -155,6 +155,7 @@ const setCache = <T>(key: string, data: T, isError: boolean = false) => {
 const inflight = new Map<string, Promise<unknown>>();
 
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function callProxy<T, I = any>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     fn: any,

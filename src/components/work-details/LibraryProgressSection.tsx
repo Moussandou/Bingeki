@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import styles from '@/pages/WorkDetails.module.css';
 import type { Work } from '@/store/libraryStore';
+import type { User } from 'firebase/auth';
 
 interface LibraryProgressSectionProps {
-    user: any;
+    user: User | null;
     libraryWork: Work | undefined;
     fetchedWork: Work | null;
     work: Work;

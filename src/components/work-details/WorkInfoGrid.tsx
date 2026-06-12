@@ -1,9 +1,10 @@
 import { Calendar, Video, Trophy, BarChart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import styles from '@/pages/WorkDetails.module.css';
+import type { Work } from '@/store/libraryStore';
 
 interface WorkInfoGridProps {
-    work: any;
+    work: Work;
 }
 
 export function WorkInfoGrid({ work }: WorkInfoGridProps) {

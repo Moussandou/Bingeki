@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, ArrowLeft } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import type { JikanPicture } from '@/services/animeApi';
 import styles from '@/pages/WorkDetails.module.css';
 
 interface GallerySectionProps {
-    pictures: any[];
+    pictures: JikanPicture[];
 }
 
 export function GallerySection({ pictures }: GallerySectionProps) {

@@ -5,13 +5,15 @@ import { getDisplayTitle } from '@/utils/titleUtils';
 import styles from '@/pages/WorkDetails.module.css';
 import logoCrunchyroll from '@/assets/logo_crunchyroll.png';
 import logoADN from '@/assets/logo_adn.png';
+import type { Work } from '@/store/libraryStore';
+import type { JikanStreaming } from '@/services/animeApi';
 
 interface WorkMainHeaderProps {
-    work: any;
+    work: Work;
     titleLanguage: 'default' | 'romaji' | 'native' | 'english';
     hideScores: boolean;
-    streaming: any[];
-    updateWorkDetails: (id: string | number, details: any) => void;
+    streaming: JikanStreaming[];
+    updateWorkDetails: (id: string | number, details: Partial<Work>) => void;
     handleEpisodeSelect: (number: number) => void;
 }
 

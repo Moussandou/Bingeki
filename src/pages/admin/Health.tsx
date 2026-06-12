@@ -204,7 +204,8 @@ export default function AdminHealth() {
             }
         } catch (error: unknown) {
             console.error('[Health] Failed to fetch health data:', error);
-            if ((error as any)?.code === 'permission-denied' || (error as any)?.message?.includes('permissions')) {
+            const err = error as { code?: string; message?: string };
+            if (err?.code === 'permission-denied' || err?.message?.includes('permissions')) {
                 setHasPermissionError(true);
             }
         } finally {
@@ -1011,26 +1012,34 @@ export default function AdminHealth() {
                             <div className={styles.emptyLog}>No health history recorded yet.</div>
                         ) : (
                             <div className={styles.historyTimeline}>
-                                {[...scoreHistory].reverse().map((entry, index) => (
-                                    <div key={(entry as any).id || index} className={styles.snapshotCard}>
+                                {[...scoreHistory].reverse().map((entry, index) => {
+                                    const id = (entry as Record<string, unknown>).id as string | undefined;
+                                    const ts = entry.timestamp;
+                                    const tsMs = typeof ts === 'object' && ts !== null && 'seconds' in ts
+                                        ? (ts as { seconds: number }).seconds * 1000
+                                        : typeof ts === 'number' ? ts : new Date(ts as string | Date).getTime();
+                                    const summary = (entry as Record<string, unknown>).summary as
+                                        { infraStatus?: string; users?: number; issues?: number } | undefined;
+                                    return (
+                                    <div key={id || index} className={styles.snapshotCard}>
                                         <div className={styles.snapshotInfo}>
                                             <span className={styles.snapshotDate}>
-                                                {new Date((entry.timestamp as any).seconds ? (entry.timestamp as any).seconds * 1000 : entry.timestamp as number).toLocaleString()}
+                                                {new Date(tsMs).toLocaleString()}
                                             </span>
                                             <div className={styles.snapshotSummary}>
                                                 <div className={styles.summaryItem}>
                                                     <div className={`${styles.statusIndicator} ${
-                                                        (entry as any).summary?.infraStatus === 'operational' 
+                                                        summary?.infraStatus === 'operational' 
                                                             ? styles.statusOperational 
                                                             : styles.statusDegraded
                                                     }`} />
-                                                    {(entry as any).summary?.infraStatus === 'operational' ? 'Infra OK' : 'Degraded'}
+                                                    {summary?.infraStatus === 'operational' ? 'Infra OK' : 'Degraded'}
                                                 </div>
                                                 <div className={styles.summaryItem}>
-                                                    <UserCheck size={12} /> {(entry as any).summary?.users || 0} users
+                                                    <UserCheck size={12} /> {summary?.users || 0} users
                                                 </div>
                                                 <div className={styles.summaryItem}>
-                                                    <AlertTriangle size={12} /> {(entry as any).summary?.issues || 0} issues
+                                                    <AlertTriangle size={12} /> {summary?.issues || 0} issues
                                                 </div>
                                             </div>
                                         </div>
@@ -1044,7 +1053,8 @@ export default function AdminHealth() {
                                             </div>
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

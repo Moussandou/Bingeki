@@ -3,7 +3,7 @@ import styles from '@/pages/WorkDetails.module.css';
 
 interface WorkTabsProps {
     activeTab: string;
-    setActiveTab: (tab: any) => void;
+    setActiveTab: (tab: string) => void;
     workType: string | undefined;
 }
 

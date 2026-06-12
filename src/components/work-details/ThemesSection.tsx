@@ -1,9 +1,10 @@
 import { Music, Disc } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { JikanTheme } from '@/services/animeApi';
 import styles from '@/pages/WorkDetails.module.css';
 
 interface ThemesSectionProps {
-    themes: any;
+    themes: JikanTheme | null;
     workTitle: string;
 }
 

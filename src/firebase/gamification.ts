@@ -70,7 +70,7 @@ export async function loadGamificationFromFirestore(userId: string): Promise<Omi
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            const { lastUpdated: _ignored, ...data } = docSnap.data() as GamificationData;
+            const { lastUpdated: _lastUpdated, ...data } = docSnap.data() as GamificationData;
             logger.log('[Firestore] Gamification loaded');
             return data;
         }
@@ -126,7 +126,7 @@ export async function syncLocalDataToFirestore(
 export type LeaderboardPeriod = 'week' | 'month' | 'all';
 export type LeaderboardCategory = 'xp' | 'chapters' | 'streak';
 
-export const getLeaderboard = async (limitCount = 10, _period: 'week' | 'month' | 'all-time' = 'all-time'): Promise<UserProfile[]> => {
+export const getLeaderboard = async (limitCount = 10, _period?: 'week' | 'month' | 'all-time'): Promise<UserProfile[]> => {
     try {
         const q = query(
             collection(db, 'users'),
@@ -147,7 +147,7 @@ export const getLeaderboard = async (limitCount = 10, _period: 'week' | 'month' 
 
 export async function getFilteredLeaderboard(
     category: LeaderboardCategory = 'xp',
-    _period: LeaderboardPeriod = 'all',
+    _period?: LeaderboardPeriod,
     limitCount: number = 10
 ): Promise<UserProfile[]> {
     try {

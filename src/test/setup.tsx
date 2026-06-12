@@ -66,6 +66,33 @@ vi.mock('firebase/firestore', () => ({
     limit: vi.fn(),
 }));
 
+// In-memory Web Storage: Node >= 22 defines an experimental global
+// localStorage that is undefined without --localstorage-file and shadows
+// jsdom's implementation, breaking zustand/persist in tests
+const createMemoryStorage = (): Storage => {
+    const store = new Map<string, string>();
+    return {
+        get length() { return store.size; },
+        clear: () => { store.clear(); },
+        getItem: (key: string) => store.has(key) ? store.get(key)! : null,
+        key: (index: number) => [...store.keys()][index] ?? null,
+        removeItem: (key: string) => { store.delete(key); },
+        setItem: (key: string, value: string) => { store.set(key, String(value)); },
+    };
+};
+for (const target of [window, globalThis]) {
+    Object.defineProperty(target, 'localStorage', {
+        writable: true,
+        configurable: true,
+        value: createMemoryStorage(),
+    });
+    Object.defineProperty(target, 'sessionStorage', {
+        writable: true,
+        configurable: true,
+        value: createMemoryStorage(),
+    });
+}
+
 // Mock matchMedia (for responsive components)
 Object.defineProperty(window, 'matchMedia', {
     writable: true,

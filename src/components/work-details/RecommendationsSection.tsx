@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import type { JikanRecommendation } from '@/services/animeApi';
 
 interface RecommendationsSectionProps {
-    recommendations: any[];
+    recommendations: JikanRecommendation[];
     workType: string;
 }
 

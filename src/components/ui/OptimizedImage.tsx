@@ -75,7 +75,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
     const [isLoaded, setIsLoaded] = useState(false);
     const [hasError, setHasError] = useState(false);
-    const startTimeRef = React.useRef(Date.now());
+    const startTimeRef = React.useRef(0);
     const [, setPlaceholderLoaded] = useState(false);
     const [placeholderError, setPlaceholderError] = useState(false);
     const [isVisible, setIsVisible] = useState(priority);
