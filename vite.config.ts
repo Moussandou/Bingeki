@@ -43,16 +43,40 @@ export default defineConfig({
         globIgnores: ['**/sitemap.xml', '**/robots.txt'],
         runtimeCaching: [
           {
+            // MAL cover URLs are immutable: serve from cache instantly
             urlPattern: /^https:\/\/cdn\.myanimelist\.net\/.*/i,
-            handler: 'NetworkFirst',
+            handler: 'CacheFirst',
             options: {
               cacheName: 'mal-images',
               expiration: {
                 maxEntries: 500,
-                maxAgeSeconds: 7 * 24 * 60 * 60, // 7 jours
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 jours
               },
-              cacheableResponse: { statuses: [200] },
-              networkTimeoutSeconds: 3,
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/api\.dicebear\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'dicebear-avatars',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 30 * 24 * 60 * 60,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/firebasestorage\.googleapis\.com\/.*\.(png|jpe?g|webp|gif|avif)(\?.*)?$/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'firebase-images',
+              expiration: {
+                maxEntries: 300,
+                maxAgeSeconds: 7 * 24 * 60 * 60,
+              },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],

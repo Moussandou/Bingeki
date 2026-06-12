@@ -3,7 +3,6 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { Download, Layout, Type, Search, Plus, Trash2, Settings, Moon, Sun, Image as ImageIcon } from 'lucide-react';
-import html2canvas from 'html2canvas';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -268,6 +267,7 @@ export default function SocialGenerator() {
         await new Promise(r => setTimeout(r, 50)); 
         
         try {
+            const { default: html2canvas } = await import('html2canvas');
             const canvas = await html2canvas(canvasRef.current, {
                 scale: 1, 
                 useCORS: true,

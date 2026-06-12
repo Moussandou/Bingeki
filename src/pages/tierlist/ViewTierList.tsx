@@ -10,7 +10,6 @@ import type { TierList } from '@/firebase/firestore';
 import { TierRow } from '@/components/tierlist/TierRow';
 import { Button } from '@/components/ui/Button';
 import { Download, Copy, User, Calendar, Heart, Trash2, ArrowLeft } from 'lucide-react';
-import html2canvas from 'html2canvas';
 import { useToast } from '@/context/ToastContext';
 import { useAuthStore } from '@/store/authStore';
 import { logger } from '@/utils/logger';
@@ -47,6 +46,7 @@ export default function ViewTierList() {
     const handleExportImage = async () => {
         if (!tiersRef.current || !tierList) return;
         try {
+            const { default: html2canvas } = await import('html2canvas');
             const canvas = await html2canvas(tiersRef.current, {
                 backgroundColor: '#111',
                 scale: 2,

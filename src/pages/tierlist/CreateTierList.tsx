@@ -27,7 +27,6 @@ import { Save, Download, Trash2, Plus, Upload, FileCode } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { createTierList, type TierList } from '@/firebase/firestore';
 import { useNavigate, useParams } from 'react-router-dom';
-import html2canvas from 'html2canvas';
 import { Modal } from '@/components/ui/Modal';
 
 import { TierRow } from '@/components/tierlist/TierRow';
@@ -297,6 +296,7 @@ export default function CreateTierList() {
     const handleExportImage = async () => {
         if (!tiersRef.current) return;
         try {
+            const { default: html2canvas } = await import('html2canvas');
             const canvas = await html2canvas(tiersRef.current, {
                 backgroundColor: '#111',
                 scale: 2,

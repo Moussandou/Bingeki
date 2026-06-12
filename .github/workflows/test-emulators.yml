@@ -1,0 +1,63 @@
+name: Tests — Firebase Emulators
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 2 * * *'  # Nightly à 02h00
+
+jobs:
+  emulator-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Java (requis par Firebase Emulators)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Cache Firebase Emulators
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-${{ hashFiles('firebase.json') }}
+          restore-keys: firebase-emulators-${{ runner.os }}-
+
+      - name: Rendre le script exécutable
+        run: chmod +x scripts/start-emulators.sh
+
+      - name: Lancer les tests avec émulateurs
+        run: bash scripts/start-emulators.sh "npm run test:emulator"
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          FIREBASE_STORAGE_EMULATOR_HOST: localhost:9199
+          FUNCTIONS_EMULATOR_HOST: localhost:5001
+
+      - name: Upload rapport Vitest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-test-results
+          path: |
+            coverage/
+            test-results/
+          retention-days: 7

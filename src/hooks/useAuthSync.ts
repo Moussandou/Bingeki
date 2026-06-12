@@ -2,7 +2,7 @@
  * Syncs Firebase auth state with local stores on login/logout
  * Merges cloud + local data to avoid overwrites
  */
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/firebase/config';
 import { useAuthStore } from '@/store/authStore';
@@ -15,10 +15,10 @@ import {
 } from '@/firebase/firestore';
 import { mergeLibraryData, mergeGamificationData } from '@/utils/dataProtection';
 import { logger } from '@/utils/logger';
+import { syncFlags } from './syncFlags';
 
 export function useAuthSync() {
     const { setUser, setUserProfile, setLoading } = useAuthStore();
-    const isInitialSyncRef = useRef(false);
 
     useEffect(() => {
         let profileUnsubscribe: (() => void) | undefined;
@@ -56,14 +56,19 @@ export function useAuthSync() {
                     );
 
 
-                    isInitialSyncRef.current = true;
-                    useLibraryStore.setState({ 
+                    useLibraryStore.setState({
                         works: mergedLibrary,
                         folders: cloudLibraryData?.folders || useLibraryStore.getState().folders,
                         viewMode: cloudLibraryData?.viewMode || useLibraryStore.getState().viewMode,
                         sortBy: cloudLibraryData?.sortBy || useLibraryStore.getState().sortBy
                     });
-                    useGamificationStore.setState(mergedGamification);
+                    // Initial sync hydration: must not be written back to Firestore
+                    syncFlags.skipGamificationSave = true;
+                    try {
+                        useGamificationStore.setState(mergedGamification);
+                    } finally {
+                        syncFlags.skipGamificationSave = false;
+                    }
 
                     logger.log('[AuthSync] Data merged successfully');
                 } catch (error) {
@@ -88,6 +93,4 @@ export function useAuthSync() {
             if (profileUnsubscribe) profileUnsubscribe();
         };
     }, [setUser, setLoading, setUserProfile]);
-
-    return { isInitialSync: isInitialSyncRef };
 }

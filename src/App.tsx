@@ -138,10 +138,15 @@ const RootRedirect = () => {
 };
 
 function App() {
-  const { userProfile, loading, setLoading } = useAuthStore();
+  // Narrow selectors: the profile document changes on every XP save,
+  // subscribing to the whole store would re-render the entire app
+  const isSuperAdmin = useAuthStore((s) => s.userProfile?.isSuperAdmin === true);
+  const loading = useAuthStore((s) => s.loading);
+  const setLoading = useAuthStore((s) => s.setLoading);
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
-  const { showInstallModal, setShowInstallModal } = usePWAStore();
+  const showInstallModal = usePWAStore((s) => s.showInstallModal);
+  const setShowInstallModal = usePWAStore((s) => s.setShowInstallModal);
 
 
   useAuthSync();
@@ -177,7 +182,7 @@ function App() {
   }
 
   const isAuthPage = window.location.pathname.includes('/auth');
-  if (isMaintenance && userProfile?.isSuperAdmin !== true && !isAuthPage) {
+  if (isMaintenance && !isSuperAdmin && !isAuthPage) {
     return <MaintenanceScreen />;
   }
 

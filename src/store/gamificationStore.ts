@@ -8,7 +8,7 @@ import { persist } from 'zustand/middleware';
 import { type Badge, MOCK_BADGES } from '@/types/badge';
 import { type Work } from './libraryStore';
 
-interface GamificationState {
+export interface GamificationState {
     level: number;
     xp: number;
     totalXp: number;
