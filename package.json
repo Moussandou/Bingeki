@@ -13,7 +13,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:emulator": "vitest run --reporter=verbose --testPathPattern='emulator'",
+    "test:emulator": "vitest run --reporter=verbose",
     "test:seo": "node scripts/test-seo.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
