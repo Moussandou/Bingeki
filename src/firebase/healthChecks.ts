@@ -175,15 +175,17 @@ export async function checkFirestore(): Promise<ServiceHealthResult> {
     }
 }
 
-/** Check Firebase Storage connectivity */
 export async function checkStorage(): Promise<ServiceHealthResult> {
     const start = performance.now();
     try {
-        const rootRef = ref(storage);
+        const currentUser = auth.currentUser;
+        // Use user-specific path to avoid throwing a 403 Forbidden in the browser console.
+        const checkRef = currentUser 
+            ? ref(storage, `users/${currentUser.uid}`) 
+            : ref(storage);
+            
         try {
-            // Attempt a listing to check connectivity. 
-            // This may fail with 403 if the user is not an admin, which is expected.
-            await list(rootRef, { maxResults: 1 });
+            await list(checkRef, { maxResults: 1 });
         } catch (innerError) {
             const err = innerError as { code?: string; message?: string };
             // Handle expected permission errors gracefully

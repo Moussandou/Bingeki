@@ -16,9 +16,14 @@ service cloud.firestore {
 
     // Check if the user is an Admin
     function isAdmin() {
-      // Security: Relies solely on database role. Ensure your user doc has isAdmin: true.
       return isAuthenticated() && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Check if the user is a Super Admin (PO)
+    function isSuperAdmin() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isSuperAdmin == true;
     }
 
     // Check if the requester can view the target user's private/protected content
@@ -234,6 +239,12 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ADMIN AUDIT LOG
+    match /adminAuditLog/{logId} {
+      // Only admins can read/write admin audit logs
+      allow read, write: if isAdmin();
+    }
+
     // ==================== API CACHE (Cloud Functions only) ====================
 
     // Shared Jikan API cache — readable by all, writable only by Cloud Functions (Admin SDK)
@@ -253,6 +264,23 @@ service cloud.firestore {
       allow update: if isAuthenticated()
                     && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['translated']);
       allow delete: if isAdmin();
+    }
+
+    // ==================== ORGA (INTERNAL TEAM MANAGEMENT) ====================
+
+    // Sprints: read by any admin, managed by superAdmin
+    match /orga_sprints/{id} {
+      allow read: if isAdmin();
+      allow write: if isSuperAdmin();
+    }
+
+    // Tasks: read/create by any admin, update by owner or superAdmin, delete by superAdmin
+    match /orga_tasks/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isSuperAdmin()
+        || (isAdmin() && resource.data.assigneeUid == request.auth.uid);
+      allow delete: if isSuperAdmin();
     }
 
     // ==================== LEGACY / ROOT ACCESS ====================

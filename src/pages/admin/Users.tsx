@@ -6,7 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Search, Shield, Ban, ExternalLink, Edit, Eye, Trash2, Clock, Circle, ArrowUpDown, LayoutGrid, List, Download, Copy, Check, Database } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Switch } from '@/components/ui/Switch';
-import { getAllUsers, toggleUserBan, toggleUserAdmin, adminUpdateUserGamification, deleteUserData, type UserProfile } from '@/firebase/firestore';
+import { getAllUsers, toggleUserBan, toggleUserAdmin, adminUpdateUserGamification, deleteUserData, logAdminAction, type UserProfile } from '@/firebase/firestore';
 import { Link } from '@/components/routing/LocalizedLink';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -14,9 +14,11 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { logger } from '@/utils/logger';
+import { useAuthStore } from '@/store/authStore';
 
 export default function AdminUsers() {
     const { t } = useTranslation();
+    const { userProfile: currentAdmin } = useAuthStore();
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
@@ -157,6 +159,20 @@ export default function AdminUsers() {
 
         try {
             await toggleUserBan(uid, !currentStatus);
+            
+            const targetUser = users.find(u => u.uid === uid);
+            const targetName = targetUser?.displayName || targetUser?.email || uid;
+            if (currentAdmin) {
+                await logAdminAction({
+                    action: !currentStatus ? 'user_ban' : 'user_unban',
+                    adminId: currentAdmin.uid,
+                    adminName: currentAdmin.displayName || currentAdmin.email?.split('@')[0] || 'Admin',
+                    adminEmail: currentAdmin.email || undefined,
+                    targetId: uid,
+                    targetName,
+                    details: `Set ban status to ${!currentStatus}`
+                });
+            }
         } catch {
             alert(t('admin.users.update_error'));
             // Revert
@@ -172,6 +188,20 @@ export default function AdminUsers() {
 
         try {
             await toggleUserAdmin(uid, !currentStatus);
+            
+            const targetUser = users.find(u => u.uid === uid);
+            const targetName = targetUser?.displayName || targetUser?.email || uid;
+            if (currentAdmin) {
+                await logAdminAction({
+                    action: !currentStatus ? 'user_make_admin' : 'user_remove_admin',
+                    adminId: currentAdmin.uid,
+                    adminName: currentAdmin.displayName || currentAdmin.email?.split('@')[0] || 'Admin',
+                    adminEmail: currentAdmin.email || undefined,
+                    targetId: uid,
+                    targetName,
+                    details: `Set admin status to ${!currentStatus}`
+                });
+            }
         } catch {
             alert(t('admin.users.update_error'));
             setUsers(prev => prev.map(u => u.uid === uid ? { ...u, isAdmin: currentStatus } : u));
@@ -194,6 +224,19 @@ export default function AdminUsers() {
         if (!selectedUser) return;
         try {
             await adminUpdateUserGamification(selectedUser.uid, Number(editLevel), Number(editXp));
+            
+            if (currentAdmin) {
+                await logAdminAction({
+                    action: 'user_update_stats',
+                    adminId: currentAdmin.uid,
+                    adminName: currentAdmin.displayName || currentAdmin.email?.split('@')[0] || 'Admin',
+                    adminEmail: currentAdmin.email || undefined,
+                    targetId: selectedUser.uid,
+                    targetName: selectedUser.displayName || selectedUser.email || selectedUser.uid,
+                    details: `Updated Level from ${selectedUser.level || 1} to ${editLevel}, XP from ${selectedUser.xp || 0} to ${editXp}`
+                });
+            }
+
             setUsers(prev => prev.map(u => u.uid === selectedUser.uid ? { ...u, level: Number(editLevel), xp: Number(editXp) } : u));
             setModalType(null);
             alert("User stats updated successfully!");
@@ -208,6 +251,19 @@ export default function AdminUsers() {
 
         try {
             await deleteUserData(uid);
+            
+            if (currentAdmin) {
+                await logAdminAction({
+                    action: 'user_delete',
+                    adminId: currentAdmin.uid,
+                    adminName: currentAdmin.displayName || currentAdmin.email?.split('@')[0] || 'Admin',
+                    adminEmail: currentAdmin.email || undefined,
+                    targetId: uid,
+                    targetName: name,
+                    details: `Deleted user account and all associated data`
+                });
+            }
+
             setUsers(prev => prev.filter(u => u.uid !== uid));
             alert(t('admin.users.delete_success'));
         } catch (error) {

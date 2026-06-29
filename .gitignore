@@ -66,3 +66,5 @@ _bmad-output/
 .agents/
 design-artifacts/
 
+#superpowers
+.superpowers/

@@ -86,13 +86,12 @@ const BotAwareSuspense = ({ children }: { children: React.ReactNode }) => {
 const AdminDashboard = lazy(() => import('@/pages/admin/Dashboard'));
 const AdminUsers = lazy(() => import('@/pages/admin/Users'));
 const AdminFeedback = lazy(() => import('@/pages/admin/FeedbackAdmin'));
-const AdminSystem = lazy(() => import('@/pages/admin/SystemLogs'));
 const AdminSurvey = lazy(() => import('@/pages/admin/SurveyDashboard'));
 const AdminGrowthAnalytics = lazy(() => import('@/pages/admin/analytics/Growth'));
 const AdminEngagementAnalytics = lazy(() => import('@/pages/admin/analytics/Engagement'));
 const AdminRetentionAnalytics = lazy(() => import('@/pages/admin/analytics/Retention'));
 const AdminHealth = lazy(() => import('@/pages/admin/Health'));
-const AdminAuditLog = lazy(() => import('@/pages/admin/AuditLog'));
+const AdminOrga = lazy(() => import('@/pages/admin/orga/OrgaPage'));
 
 
 const LanguageManager = () => {
@@ -247,14 +246,15 @@ function App() {
                 <Route index element={<AdminDashboard />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="feedback" element={<AdminFeedback />} />
-                <Route path="system" element={<AdminSystem />} />
+                <Route path="system" element={<Navigate to="../health?tab=system" replace />} />
                 <Route path="survey" element={<AdminSurvey />} />
                 <Route path="assets" element={<Assets />} />
                 <Route path="analytics/growth" element={<AdminGrowthAnalytics />} />
                 <Route path="analytics/engagement" element={<AdminEngagementAnalytics />} />
                 <Route path="analytics/retention" element={<AdminRetentionAnalytics />} />
                 <Route path="health" element={<AdminHealth />} />
-                <Route path="audit" element={<AdminAuditLog />} />
+                <Route path="audit" element={<Navigate to="../health?tab=audit" replace />} />
+                <Route path="orga" element={<AdminOrga />} />
               </Route>
 
 

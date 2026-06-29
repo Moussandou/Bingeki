@@ -5,8 +5,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Search, LayoutDashboard, Users, MessageSquare, Shield,
-    Activity, Settings, User, Zap, History
+    Search, LayoutDashboard, Users, MessageSquare,
+    Activity, Settings, User, Zap
 } from 'lucide-react';
 import { searchUsersByPrefix, type UserProfile } from '@/firebase/firestore';
 import styles from './CommandPalette.module.css';
@@ -43,10 +43,8 @@ export function CommandPalette({ isOpen, onClose }: Props) {
         { id: 'dashboard', label: 'Dashboard', hint: '/admin', icon: <LayoutDashboard size={16} />, action: () => go('/admin'), section: 'navigation' },
         { id: 'users', label: 'Utilisateurs', hint: '/admin/users', icon: <Users size={16} />, action: () => go('/admin/users'), section: 'navigation' },
         { id: 'feedback', label: 'Feedback', hint: '/admin/feedback', icon: <MessageSquare size={16} />, action: () => go('/admin/feedback'), section: 'navigation' },
-        { id: 'system', label: 'Console Système', hint: '/admin/system', icon: <Shield size={16} />, action: () => go('/admin/system'), section: 'navigation' },
-        { id: 'health', label: 'Santé Projet', hint: '/admin/health', icon: <Activity size={16} />, action: () => go('/admin/health'), section: 'navigation' },
+        { id: 'health', label: 'Système & Santé', hint: '/admin/health', icon: <Activity size={16} />, action: () => go('/admin/health'), section: 'navigation' },
         { id: 'survey', label: 'Survey Dashboard', hint: '/admin/survey', icon: <Settings size={16} />, action: () => go('/admin/survey'), section: 'navigation' },
-        { id: 'audit', label: 'Audit Log', hint: '/admin/audit', icon: <History size={16} />, action: () => go('/admin/audit'), section: 'navigation' },
         { id: 'migrations', label: 'Migrations', hint: '/admin/migrations', icon: <Zap size={16} />, action: () => go('/admin/migrations'), section: 'navigation' },
         { id: 'analytics-growth', label: 'Analytics: Growth', hint: '/admin/analytics/growth', icon: <Activity size={16} />, action: () => go('/admin/analytics/growth'), section: 'navigation' },
         { id: 'analytics-retention', label: 'Analytics: Rétention', hint: '/admin/analytics/retention', icon: <Activity size={16} />, action: () => go('/admin/analytics/retention'), section: 'navigation' },
