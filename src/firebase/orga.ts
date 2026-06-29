@@ -5,7 +5,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { logger } from '@/utils/logger';
-import type { OrgaSprint, OrgaTask, TaskStatus } from '@/types/orga';
+import type { OrgaSprint, OrgaTask, TaskStatus, OrgaEvent } from '@/types/orga';
 import type { UserProfile } from './users';
 
 // ==================== SPRINTS ====================
@@ -232,5 +232,49 @@ export async function getTasksForSprint(sprintId: string): Promise<OrgaTask[]> {
         logger.error('[Orga] Error fetching sprint tasks:', error);
         return [];
     }
+}
+
+// ==================== EVENTS ====================
+
+export function subscribeToEvents(
+    callback: (events: OrgaEvent[]) => void
+): () => void {
+    const q = query(
+        collection(db, 'orga_events'),
+        orderBy('date', 'asc'),
+        orderBy('startTime', 'asc')
+    );
+    return onSnapshot(q, (snapshot) => {
+        const events = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as OrgaEvent));
+        callback(events);
+    });
+}
+
+export async function createEvent(data: {
+    title: string;
+    description?: string;
+    date: Date;
+    startTime: string;
+    endTime: string;
+    type: OrgaEvent['type'];
+    createdBy: string;
+}): Promise<string> {
+    const eventData: Record<string, unknown> = {
+        title: data.title,
+        date: Timestamp.fromDate(data.date),
+        startTime: data.startTime,
+        endTime: data.endTime,
+        type: data.type,
+        createdBy: data.createdBy,
+        createdAt: serverTimestamp(),
+    };
+    if (data.description) eventData.description = data.description;
+
+    const ref = await addDoc(collection(db, 'orga_events'), eventData);
+    return ref.id;
+}
+
+export async function deleteEvent(eventId: string): Promise<void> {
+    await deleteDoc(doc(db, 'orga_events', eventId));
 }
 

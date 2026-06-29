@@ -11,6 +11,7 @@ import { MemberFilter } from './MemberFilter';
 import { WhoDoesWhat } from './WhoDoesWhat';
 import { SprintReportModal } from './SprintReportModal';
 import { RepoStats } from './RepoStats';
+import { CalendarView } from './CalendarView';
 import styles from './Orga.module.css';
 
 export default function OrgaPage() {
@@ -29,7 +30,7 @@ export default function OrgaPage() {
     const [editingTask, setEditingTask] = useState<OrgaTask | null>(null);
     const [editSprint, setEditSprint] = useState(false);
 
-    const [activeTab, setActiveTab] = useState<'board' | 'history' | 'repo'>('board');
+    const [activeTab, setActiveTab] = useState<'board' | 'history' | 'repo' | 'calendar'>('board');
     const [sprintsList, setSprintsList] = useState<any[]>([]);
     const [sprintsLoading, setSprintsLoading] = useState(false);
     const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -47,7 +48,7 @@ export default function OrgaPage() {
         }
     }, [orga]);
 
-    const handleTabChange = useCallback((tab: 'board' | 'history' | 'repo') => {
+    const handleTabChange = useCallback((tab: 'board' | 'history' | 'repo' | 'calendar') => {
         setActiveTab(tab);
         if (tab === 'history') {
             loadHistory();
@@ -179,6 +180,12 @@ export default function OrgaPage() {
                     onClick={() => handleTabChange('repo')}
                 >
                     💻 Repo Git
+                </button>
+                <button
+                    className={`${styles.tabButton} ${activeTab === 'calendar' ? styles.tabButtonActive : ''}`}
+                    onClick={() => handleTabChange('calendar')}
+                >
+                    📅 Calendrier
                 </button>
             </div>
 
@@ -317,6 +324,17 @@ export default function OrgaPage() {
             {activeTab === 'repo' && (
                 <div className={styles.orgaContent}>
                     <RepoStats />
+                </div>
+            )}
+
+            {activeTab === 'calendar' && (
+                <div className={styles.orgaContent}>
+                    <CalendarView
+                        events={orga.events}
+                        isSuperAdmin={orga.isSuperAdmin}
+                        onCreateEvent={orga.createEvent}
+                        onDeleteEvent={orga.deleteEvent}
+                    />
                 </div>
             )}
 

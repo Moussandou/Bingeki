@@ -7,14 +7,16 @@ import {
     createTask, updateTask, deleteTask,
     getAdminMembers, updateMemberRole, updateMemberName, getLastSprint,
     getAllSprints, getTasksForSprint,
+    subscribeToEvents, createEvent as dbCreateEvent, deleteEvent as dbDeleteEvent
 } from '@/firebase/orga';
-import type { OrgaSprint, OrgaTask, TaskStatus } from '@/types/orga';
+import type { OrgaSprint, OrgaTask, TaskStatus, OrgaEvent } from '@/types/orga';
 import type { UserProfile } from '@/firebase/users';
 
 interface OrgaState {
     sprint: OrgaSprint | null;
     tasks: OrgaTask[];
     members: UserProfile[];
+    events: OrgaEvent[];
     loading: boolean;
     filter: string | null;
 }
@@ -27,6 +29,7 @@ export function useOrga() {
         sprint: null,
         tasks: [],
         members: [],
+        events: [],
         loading: true,
         filter: null,
     });
@@ -60,6 +63,14 @@ export function useOrga() {
         });
         return unsub;
     }, [state.sprint?.id]);
+
+    // Subscribe to events
+    useEffect(() => {
+        const unsub = subscribeToEvents((events) => {
+            setState(s => ({ ...s, events }));
+        });
+        return unsub;
+    }, []);
 
     // Filtered tasks
     const filteredTasks = useMemo(() => {
@@ -186,11 +197,34 @@ export function useOrga() {
         }
     }, [addToast]);
 
+    const handleCreateEvent = useCallback(async (data: {
+        title: string; description?: string;
+        date: Date; startTime: string; endTime: string;
+        type: OrgaEvent['type'];
+    }) => {
+        try {
+            await dbCreateEvent({ ...data, createdBy: currentUid });
+            addToast('Événement créé', 'success');
+        } catch {
+            addToast('Erreur lors de la création de l\'événement', 'error');
+        }
+    }, [currentUid, addToast]);
+
+    const handleDeleteEvent = useCallback(async (eventId: string) => {
+        try {
+            await dbDeleteEvent(eventId);
+            addToast('Événement supprimé', 'success');
+        } catch {
+            addToast('Erreur lors de la suppression', 'error');
+        }
+    }, [addToast]);
+
     return {
         sprint: state.sprint,
         tasks: filteredTasks,
         allTasks: state.tasks,
         members: state.members,
+        events: state.events,
         loading: state.loading,
         filter: state.filter,
         stats,
@@ -209,5 +243,7 @@ export function useOrga() {
         getLastSprint,
         getAllSprints,
         getTasksForSprint,
+        createEvent: handleCreateEvent,
+        deleteEvent: handleDeleteEvent,
     };
 }

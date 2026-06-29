@@ -283,6 +283,12 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
+    // Events: read by any admin, managed by superAdmin
+    match /orga_events/{id} {
+      allow read: if isAdmin();
+      allow write: if isSuperAdmin();
+    }
+
     // ==================== LEGACY / ROOT ACCESS ====================
     // DELETED: Legacy root collections removed for security.
     // All data must go through users/{userId}/data/ subcollections.
