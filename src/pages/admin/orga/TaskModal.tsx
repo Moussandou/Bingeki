@@ -4,7 +4,7 @@ import type { OrgaTask, TaskStatus, TaskPriority } from '@/types/orga';
 import { TASK_STATUSES, TASK_PRIORITIES, getMemberColor } from '@/types/orga';
 import type { UserProfile } from '@/firebase/users';
 import styles from './Orga.module.css';
-import { Trash2, Paperclip, Image as ImageIcon, GitBranch } from 'lucide-react';
+import { Trash2, Image as ImageIcon, GitBranch } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage, auth } from '@/firebase/config';
 import { MangaSelect } from '@/components/ui/MangaSelect';

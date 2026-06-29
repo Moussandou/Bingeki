@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Plus, Trash2, Clock, MapPin, AlertCircle } from 'lucide-react';
+import { Calendar, Plus, Trash2, Clock, AlertCircle } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { MangaSelect } from '@/components/ui/MangaSelect';
 import type { OrgaEvent } from '@/types/orga';
