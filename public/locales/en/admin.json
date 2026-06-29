@@ -8,6 +8,7 @@
       "system": "System",
       "survey": "Survey",
       "health": "Health",
+      "system_health": "System & Health",
       "back_to_site": "Back to site",
       "exit": "Exit"
     },
@@ -132,6 +133,9 @@
     },
     "health": {
       "permission_error": "Permission error. Access denied.",
+      "tab_health": "Health & Performance",
+      "tab_system": "Console & Configuration",
+      "tab_audit": "Audit Log",
       "title": "Health Dashboard",
       "repair_history": "Repair History",
       "history_title": "Global Health History",

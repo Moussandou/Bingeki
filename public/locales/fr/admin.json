@@ -8,6 +8,7 @@
       "system": "Système",
       "survey": "Questionnaire",
       "health": "Health",
+      "system_health": "Système & Santé",
       "back_to_site": "Retour au site",
       "exit": "Exit"
     },
@@ -132,6 +133,9 @@
     },
     "health": {
       "permission_error": "Erreur de permissions. Accès refusé.",
+      "tab_health": "Santé & Performance",
+      "tab_system": "Console & Configuration",
+      "tab_audit": "Journal d'Audit",
       "title": "Health Dashboard",
       "repair_history": "Historique des réparations",
       "history_title": "Historique Global de Santé",
