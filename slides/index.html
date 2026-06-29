@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bingeki — Organisation Année à l'étranger</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #FF2E63;        /* hot pink */
+      --secondary: #08D9D6;      /* cyan */
+      --yellow: #facc15;
+      --purple: #7c3aed;
+      --bg: #f5f5f5;             /* off-white paper */
+      --surface: #ffffff;
+      --ink: #000000;
+      --text: #1a1a1a;
+      --dim: #666666;
+      --hairline: #e5e5e5;
+      --font-head: 'Outfit', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --gradient-primary: linear-gradient(135deg, #FF2E63 0%, #FF0844 100%);
+      --shadow-hard: 6px 6px 0 var(--ink);
+      --shadow-hard-sm: 4px 4px 0 var(--ink);
+    }
+
+    .reveal { font-family: var(--font-body); font-size: 30px; color: var(--text); }
+
+    .reveal-viewport { background: var(--bg); }
+    /* Halftone manga dots */
+    .reveal-viewport::after {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(#000 2px, transparent 2.5px);
+      background-size: 20px 20px; opacity: 0.08;
+    }
+    .reveal .slides { text-align: left; }
+    .reveal .slides section { z-index: 1; }
+
+    .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+      font-family: var(--font-head);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      line-height: 1.05;
+      color: var(--ink);
+      margin: 0 0 0.4em 0;
+    }
+    .reveal h1 { font-size: 2.6em; letter-spacing: -0.02em; }
+    .reveal h2 { font-size: 1.8em; }
+    .reveal h3 { font-size: 1.05em; }
+    .reveal p, .reveal li { line-height: 1.45; color: var(--text); }
+
+    .pink { color: var(--primary); }
+    .cyan { color: #06a6a3; }
+    .dim  { color: var(--dim); }
+    .grad {
+      background: var(--gradient-primary);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .ul-pink { box-shadow: inset 0 -0.35em 0 var(--primary); }
+
+    /* Kicker / caption */
+    .kicker {
+      font-family: var(--font-head); font-weight: 900;
+      font-size: 0.5em; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--ink); background: var(--secondary);
+      padding: 0.35rem 0.7rem; display: inline-block; margin-bottom: 1rem;
+      box-shadow: var(--shadow-hard-sm);
+    }
+
+    /* Manga panel / card */
+    .panel {
+      background: var(--surface);
+      border: 4px solid var(--ink);
+      box-shadow: var(--shadow-hard);
+      padding: 1.2rem 1.4rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 3px solid var(--ink);
+      box-shadow: var(--shadow-hard-sm);
+      padding: 1rem 1.1rem;
+    }
+    .card h3 { margin-bottom: 0.25rem; }
+    .card .ico { font-size: 1.7em; display:block; margin-bottom: 0.35rem; }
+    .card p { font-size: 0.7em; color: var(--dim); margin: 0; text-transform: none; font-family: var(--font-body); }
+
+    .grid { display: grid; gap: 1.1rem; }
+    .g2 { grid-template-columns: 1fr 1fr; }
+    .g3 { grid-template-columns: repeat(3, 1fr); }
+    .g4 { grid-template-columns: repeat(4, 1fr); }
+
+    /* Chips */
+    .chips { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-top: 1.1rem; }
+    .chip {
+      font-family: var(--font-head); font-weight: 900; text-transform: uppercase;
+      font-size: 0.95em; letter-spacing: 0.02em;
+      padding: 0.5rem 1.1rem; background: var(--surface); color: var(--ink);
+      border: 3px solid var(--ink); box-shadow: var(--shadow-hard-sm);
+    }
+    .chip.p { background: var(--primary); color: #fff; }
+    .chip.c { background: var(--secondary); color: #052b2b; }
+
+    /* Badge: cut-corner (clip-path) like product */
+    .badge {
+      font-family: var(--font-head); font-weight: 900; text-transform: uppercase;
+      font-size: 0.55em; letter-spacing: 0.05em; color: #fff; background: var(--primary);
+      padding: 0.3rem 0.7rem; display: inline-block;
+      clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    }
+    .badge.new { background: var(--yellow); color:#000; border:2px solid #000; box-shadow:3px 3px 0 #000; clip-path:none; transform: rotate(-2deg); }
+    .badge.ink { background: var(--ink); transform: rotate(-2deg); clip-path:none; padding:0.3rem 0.8rem;}
+
+    /* Checklist */
+    ul.clean { list-style: none; margin: 0; padding: 0; }
+    ul.clean li { padding: 0.4rem 0 0.4rem 2rem; position: relative; font-size: 0.82em; text-transform: none; }
+    ul.clean li::before {
+      content: "✓"; position: absolute; left: 0; top: 0.42rem;
+      color: #fff; background: var(--primary); width: 1.3rem; height: 1.3rem;
+      display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.8em;
+    }
+
+    /* Flow */
+    .flow { display:flex; align-items:center; gap: 0.6rem; flex-wrap: wrap; }
+    .flow .step {
+      background: var(--surface); border:3px solid var(--ink); box-shadow: var(--shadow-hard-sm);
+      padding: 0.55rem 0.9rem; font-size: 0.7em; font-family: var(--font-head); font-weight: 800; text-transform: uppercase;
+    }
+    .flow .arrow { color: var(--primary); font-weight: 900; font-size: 1.4em; }
+
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+    /* Cover */
+    .cover-logo {
+      font-family: var(--font-head); font-weight: 900; text-transform: uppercase;
+      font-size: 5em; line-height: 0.85; letter-spacing: -0.04em; color: var(--ink);
+      text-shadow: 6px 6px 0 var(--primary);
+    }
+    .cover-sub { font-size: 1.05em; color: var(--text); margin-top: 1.3rem; text-transform:none; }
+
+    /* Roles */
+    .role { text-align:center; padding: 1.2rem 0.7rem; }
+    .role .ava {
+      width: 66px; height: 66px; margin: 0 auto 0.7rem;
+      display:flex; align-items:center; justify-content:center;
+      font-family: var(--font-head); font-weight: 900; font-size: 1.6em; color:#fff;
+      border: 3px solid var(--ink); box-shadow: var(--shadow-hard-sm);
+    }
+    .role h3 { font-size: 1.05em; }
+    .role .tag { display:inline-block; margin-top:0.25rem; font-size:0.58em; color:#fff; background:var(--ink); font-weight:900; font-family: var(--font-head); text-transform: uppercase; letter-spacing: 0.05em; padding: 0.2rem 0.5rem; }
+    .role .assign { margin-top: 0.6rem; font-size: 0.58em; color: var(--dim); border-top: 2px solid var(--hairline); padding-top: 0.5rem; text-transform:none; font-family: var(--font-body); }
+
+    big.stat { font-family: var(--font-head); font-weight: 900; font-size: 2.6em; color: var(--primary); display:block; line-height:0.9; }
+
+    /* ============ ORGA MOCKUP — real product screen ============ */
+    .orga {
+      background: var(--surface); border: 4px solid var(--ink); box-shadow: var(--shadow-hard);
+      padding: 0; overflow: hidden; font-size: 0.6em;
+    }
+    .orga-bar { display:flex; align-items:center; gap:0.7rem; background: var(--ink); color:#fff; padding: 0.55rem 0.9rem; }
+    .orga-bar .dotbtn { width:11px;height:11px;border-radius:50%; background:#444; }
+    .orga-bar .dotbtn.r{background:var(--primary)} .orga-bar .dotbtn.y{background:var(--yellow)} .orga-bar .dotbtn.g{background:var(--secondary)}
+    .orga-bar .crumb { font-family:var(--font-head); font-weight:800; text-transform:uppercase; letter-spacing:0.08em; font-size:1em; margin-left:0.4rem; }
+    .orga-bar .crumb .pink { color: var(--primary); }
+    .orga-body { padding: 0.9rem 1rem 1rem; }
+
+    .sprint-head { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:0.8rem; }
+    .sprint-head .obj { font-family:var(--font-head); font-weight:900; text-transform:uppercase; color:var(--ink); font-size:1.5em; line-height:1; }
+    .sprint-head .meta { color:var(--dim); font-size:1em; margin-top:0.3rem; }
+    .sprint-head .right { text-align:right; }
+    .xpbar { height: 13px; width: 200px; background: var(--bg); border:2px solid var(--ink); overflow:hidden; position:relative; }
+    .xpbar > i { display:block; height:100%; width:62%; background: var(--primary); position:relative; overflow:hidden; }
+    .xpbar > i::after { content:""; position:absolute; inset:0; width:40%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent); animation:slide 2s linear infinite; }
+    @keyframes slide { 0%{transform:translateX(-100%)} 100%{transform:translateX(320%)} }
+    .sprint-head .count { font-family:var(--font-head); font-weight:900; color:var(--ink); font-size:1.1em; margin-top:0.35rem; }
+
+    .kanban { display:grid; grid-template-columns: repeat(4,1fr); gap: 0.6rem; }
+    .col-h { font-family:var(--font-head); font-weight:900; text-transform:uppercase; letter-spacing:0.05em; font-size:0.95em; color:var(--ink); display:flex; justify-content:space-between; align-items:center; margin-bottom:0.45rem; padding-bottom:0.3rem; border-bottom:3px solid var(--ink); }
+    .col-h .n { background:var(--ink); color:#fff; font-size:0.85em; padding:0 0.4rem; }
+    .tk { background:var(--surface); border:2px solid var(--ink); box-shadow:3px 3px 0 var(--ink); padding:0.5rem 0.55rem; margin-bottom:0.5rem; }
+    .tk .t { font-family:var(--font-head); font-weight:800; text-transform:uppercase; color:var(--ink); font-size:1em; line-height:1.1; }
+    .tk .foot { display:flex; align-items:center; justify-content:space-between; margin-top:0.5rem; }
+    .tk .who { display:flex; align-items:center; gap:0.3rem; color:var(--dim); font-weight:700; }
+    .tk .who .dot { width:13px;height:13px;border-radius:50%; border:1.5px solid var(--ink); }
+    .prio { font-family:var(--font-head); font-weight:900; text-transform:uppercase; font-size:0.78em; padding:0.1rem 0.4rem; }
+    .prio.h { background:var(--primary); color:#fff; }
+    .prio.m { background:var(--yellow); color:#000; }
+    .prio.l { background:var(--bg); color:var(--dim); border:1px solid var(--hairline); }
+    .tk.done .t { color: var(--dim); text-decoration: line-through; }
+
+    .reveal .footer {
+      position: fixed; bottom: 12px; left: 22px; right: 22px;
+      display:flex; justify-content: space-between; font-size: 13px; color: var(--dim);
+      font-family: var(--font-head); font-weight:700; letter-spacing: 0.08em; z-index: 5; text-transform:uppercase;
+    }
+    .reveal .footer .b { color: var(--ink); font-weight: 900; }
+    .reveal .progress { color: var(--primary); height: 5px; }
+    .reveal .controls { color: var(--primary); }
+    .reveal .slide-number { background: var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- 1. COVER -->
+      <section>
+        <div class="cover-logo">BINGEKI</div>
+        <div class="cover-sub">Organisation &amp; bonnes pratiques — <span class="pink">année à l'étranger</span></div>
+        <div style="margin-top:1.4rem;"><span class="badge ink" style="font-size:0.7em;">Réunion d'équipe · PGE 4 / EIP</span></div>
+        <div style="margin-top:2rem; font-size:0.7em; color:var(--dim); text-transform:none;">Moussandou · Maxime · Hugo · Yanis</div>
+      </section>
+
+      <!-- 2. ENJEU -->
+      <section>
+        <span class="kicker">Le vrai enjeu</span>
+        <h2>Le problème n°1,<br>c'est pas le <span class="grad">code</span>.</h2>
+        <div class="chips">
+          <span class="chip p">Traçabilité</span>
+          <span class="chip c">Autonomie</span>
+          <span class="chip">Responsabilisation</span>
+        </div>
+        <p class="dim" style="margin-top:1.6rem; font-size:0.78em; text-transform:none;">Équipe distribuée à l'étranger + suivi péda + vraie ambition produit.<br>L'info doit circuler <span class="pink">sans passer par une seule personne</span>.</p>
+      </section>
+
+      <!-- 3. VISION -->
+      <section>
+        <span class="kicker">La vision</span>
+        <h1>Pas un projet<br>scolaire.</h1>
+        <h1 class="grad" style="margin-top:0.2rem;">Une petite startup.</h1>
+        <p class="dim" style="font-size:0.82em; margin-top:1.2rem; text-transform:none;">Bien organisé, l'EIP devient un <span class="cyan">side project chill</span> — pas une charge.</p>
+      </section>
+
+      <!-- 4. PEDA -->
+      <section>
+        <span class="kicker">Ce que la péda regarde</span>
+        <h2>Tout est noté. 👆🏾</h2>
+        <div class="grid g3" style="margin-top:1.2rem;">
+          <div class="card"><span class="ico">🗂️</span><h3>Qui fait quoi</h3><p>Les actions de chaque membre dans le projet</p></div>
+          <div class="card"><span class="ico">⚙️</span><h3>Comment on bosse</h3><p>Notre organisation et nos pratiques</p></div>
+          <div class="card"><span class="ico">🎤</span><h3>Comment on pitch</h3><p>Chacun sait présenter le projet</p></div>
+        </div>
+      </section>
+
+      <!-- 5. SPRINTS -->
+      <section>
+        <span class="kicker">Agile léger</span>
+        <h2>Des sprints de <span class="ul-pink">2 semaines</span>.</h2>
+        <div class="flow" style="margin-top:1.5rem;">
+          <span class="step">🎯 Planif 30min</span><span class="arrow">→</span>
+          <span class="step">💻 On code</span><span class="arrow">→</span>
+          <span class="step">🔁 PR &amp; review</span><span class="arrow">→</span>
+          <span class="step">🔍 Sprint review</span>
+        </div>
+        <p class="dim" style="margin-top:1.6rem; font-size:0.78em; text-transform:none;">Chaque semaine a un <span class="pink">objectif</span> — pas juste « racontez ce que vous avez fait ».</p>
+      </section>
+
+      <!-- 6. ROLES -->
+      <section>
+        <span class="kicker">À assigner ce soir</span>
+        <h2>Les rôles.</h2>
+        <div class="grid g4" style="margin-top:1rem;">
+          <div class="card role">
+            <div class="ava" style="background:var(--primary)">M</div>
+            <h3>Moussandou</h3><span class="tag">PO · Tech Lead</span>
+            <div class="assign">Vision · archi · priorisation · validation</div>
+          </div>
+          <div class="card role">
+            <div class="ava" style="background:var(--secondary); color:#052b2b">Mx</div>
+            <h3>Maxime</h3><span class="tag">QA · Maquettes</span>
+            <div class="assign">Teste les features · réalise les maquettes</div>
+          </div>
+          <div class="card role">
+            <div class="ava" style="background:var(--purple)">H</div>
+            <h3>Hugo</h3><span class="tag">Lead Frontend</span>
+            <div class="assign">UI · composants · responsive</div>
+          </div>
+          <div class="card role">
+            <div class="ava" style="background:var(--yellow); color:#1a1a1a">Y</div>
+            <h3>Yanis</h3><span class="tag">Comm · Idéation</span>
+            <div class="assign">Réseaux &amp; communauté · propose des idées</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. DEFINITION OF DONE -->
+      <section>
+        <span class="kicker">Definition of Done</span>
+        <h2>« Ça compile » <span class="pink">≠</span> terminé.</h2>
+        <div class="grid g2" style="margin-top:0.6rem;">
+          <ul class="clean">
+            <li>Code poussé + branche dédiée</li>
+            <li>Pull Request ouverte</li>
+            <li>Review effectuée</li>
+          </ul>
+          <ul class="clean">
+            <li>Tests réalisés</li>
+            <li>Documentation ajoutée</li>
+            <li>Dispo en local / déployé</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 8. GIT -->
+      <section>
+        <span class="kicker">Organisation Git</span>
+        <h2>Une feature = une branche.</h2>
+        <div class="grid g2" style="margin-top:0.8rem; align-items:start;">
+          <div class="panel">
+            <div class="mono" style="font-size:0.6em; line-height:1.7; text-transform:none;">
+              main<br>
+              └─ develop<br>
+              &nbsp;&nbsp;&nbsp;├─ <span class="pink">feature/</span>xp-ranking<br>
+              &nbsp;&nbsp;&nbsp;├─ <span class="pink">feature/</span>profile-system<br>
+              &nbsp;&nbsp;&nbsp;└─ <span class="pink">fix/</span>navbar-mobile
+            </div>
+          </div>
+          <div>
+            <ul class="clean">
+              <li>Commit à chaque modif (pas +5000 lignes)</li>
+              <li>PR à la main → review → merge</li>
+              <li class="mono"><span class="pink">feat:</span> / <span class="pink">fix:</span> / <span class="pink">docs:</span></li>
+            </ul>
+            <p class="dim" style="font-size:0.68em; margin-top:0.5rem; text-transform:none;">1 repo Mobile · 1 repo Web + Back</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. RITUELS -->
+      <section>
+        <span class="kicker">Les rituels</span>
+        <h2>Cadence d'équipe.</h2>
+        <div class="grid g2" style="margin-top:0.8rem;">
+          <div class="card">
+            <h3 class="pink">Weekly · 30 min</h3>
+            <ul class="clean" style="margin-top:0.3rem;">
+              <li>Ce que j'ai terminé</li>
+              <li>Ce que je fais cette semaine</li>
+              <li>Mes blocages</li>
+            </ul>
+            <p style="font-size:0.64em; text-transform:none; color:var(--dim);">Max 2 min/pers. Seul moment où on troll pas 😎</p>
+          </div>
+          <div class="card">
+            <h3 class="cyan">Product Review · mensuelle</h3>
+            <ul class="clean" style="margin-top:0.3rem;">
+              <li>Où en est Bingeki ?</li>
+              <li>Qu'a-t-on appris des users ?</li>
+              <li>Prochain objectif ?</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10. REGLE D'OR -->
+      <section>
+        <span class="kicker">Règle d'or</span>
+        <h1>Zéro info critique<br>en <span class="grad">privé</span>.</h1>
+        <div class="chips" style="margin-top:1.5rem;">
+          <span class="chip">❌ « Je t'ai DM ça »</span>
+          <span class="chip c">✅ « C'est documenté »</span>
+        </div>
+      </section>
+
+      <!-- 11. ORGA PAGE (le moment fort) -->
+      <section>
+        <span class="kicker">Notre arme secrète</span>
+        <h2 style="font-size:1.5em;">L'orga <span class="pink">dans Bingeki</span>. Zéro Notion.</h2>
+        <div class="orga" style="margin-top:0.5rem;">
+          <div class="orga-bar">
+            <span class="dotbtn r"></span><span class="dotbtn y"></span><span class="dotbtn g"></span>
+            <span class="crumb">bingeki.app / admin / <span class="pink">orga</span></span>
+          </div>
+          <div class="orga-body">
+            <div class="sprint-head">
+              <div>
+                <span class="badge ink" style="font-size:0.85em;">SPRINT 01</span>
+                <div class="obj" style="margin-top:0.4rem;">UX Dashboard</div>
+                <div class="meta">15 → 29 sept 2026</div>
+              </div>
+              <div class="right">
+                <div class="xpbar"><i></i></div>
+                <div class="count">8 / 13 <span class="dim" style="font-weight:400;">tâches</span></div>
+              </div>
+            </div>
+            <div class="kanban">
+              <div class="col">
+                <div class="col-h">À faire <span class="n">2</span></div>
+                <div class="tk"><div class="t">Système XP</div><div class="foot"><span class="who"><span class="dot" style="background:var(--secondary)"></span>Maxime</span><span class="prio h">High</span></div></div>
+                <div class="tk"><div class="t">Page Découvrir</div><div class="foot"><span class="who"><span class="dot" style="background:var(--purple)"></span>Hugo</span><span class="prio l">Low</span></div></div>
+              </div>
+              <div class="col">
+                <div class="col-h">En cours <span class="n">2</span></div>
+                <div class="tk"><div class="t">Refonte Dashboard</div><div class="foot"><span class="who"><span class="dot" style="background:var(--purple)"></span>Hugo</span><span class="prio h">High</span></div></div>
+                <div class="tk"><div class="t">Maquettes profil</div><div class="foot"><span class="who"><span class="dot" style="background:var(--secondary)"></span>Maxime</span><span class="prio m">Med</span></div></div>
+              </div>
+              <div class="col">
+                <div class="col-h">Review <span class="n">1</span></div>
+                <div class="tk"><div class="t">API progression</div><div class="foot"><span class="who"><span class="dot" style="background:var(--secondary)"></span>Maxime</span><span class="prio h">High</span></div></div>
+              </div>
+              <div class="col">
+                <div class="col-h">Terminé <span class="n">8</span></div>
+                <div class="tk done"><div class="t">Comm LinkedIn</div><div class="foot"><span class="who"><span class="dot" style="background:var(--yellow)"></span>Yanis</span><span class="prio m">Med</span></div></div>
+                <div class="tk done"><div class="t">Auth Google</div><div class="foot"><span class="who"><span class="dot" style="background:var(--primary)"></span>Mouss</span><span class="prio h">High</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="dim" style="font-size:0.6em; margin-top:0.6rem; text-transform:none;">On <span class="pink">dogfoode</span> notre produit · chaque membre gère ses tâches · seul le PO édite le sprint.</p>
+      </section>
+
+      <!-- 12. RAPPORT EIP AUTO -->
+      <section>
+        <span class="kicker">Bonus suivi péda</span>
+        <h2>Le rapport EIP… <span class="cyan">automatique</span>.</h2>
+        <div class="grid g3" style="margin-top:1.2rem; text-align:center;">
+          <div class="card"><big class="stat">35</big><p style="margin-top:0.5rem;">tâches réalisées</p></div>
+          <div class="card"><big class="stat" style="color:#06a6a3">12</big><p style="margin-top:0.5rem;">PR mergées</p></div>
+          <div class="card"><big class="stat">4</big><p style="margin-top:0.5rem;">réunions / mois</p></div>
+        </div>
+        <p class="dim" style="font-size:0.72em; margin-top:1.2rem; text-transform:none;">Généré depuis la page orga → plus jamais à courir après l'info pour la péda.</p>
+      </section>
+
+      <!-- 13. CLOSING -->
+      <section>
+        <span class="kicker">On s'engage</span>
+        <h1>Bien organisé,<br>tout devient <span class="grad">chill</span>.</h1>
+        <div class="flow" style="margin-top:1.5rem;">
+          <span class="step">1 · Valider les rôles</span><span class="arrow">→</span>
+          <span class="step">2 · Lancer Sprint 01</span><span class="arrow">→</span>
+          <span class="step">3 · Page orga en ligne</span>
+        </div>
+        <p class="dim" style="margin-top:1.7rem; font-size:0.8em; text-transform:none;">« Nous construisons l'expérience fan de demain. » 🔥</p>
+      </section>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="b">BINGEKI</span>
+    <span>Organisation — Année à l'étranger</span>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true, transition: 'slide', transitionSpeed: 'fast',
+      backgroundTransition: 'fade', controls: true, progress: true,
+      slideNumber: 'c/t', width: 1280, height: 720, margin: 0.06,
+    });
+  </script>
+</body>
+</html>
