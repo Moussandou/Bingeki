@@ -211,56 +211,37 @@
       <!-- 1. COVER -->
       <section>
         <div class="cover-logo">BINGEKI</div>
-        <div class="cover-sub">Organisation &amp; bonnes pratiques — <span class="pink">année à l'étranger</span></div>
-        <div style="margin-top:1.4rem;"><span class="badge ink" style="font-size:0.7em;">Réunion d'équipe · PGE 4 / EIP</span></div>
-        <div style="margin-top:2rem; font-size:0.7em; color:var(--dim); text-transform:none;">Moussandou · Maxime · Hugo · Yanis</div>
+        <div class="cover-sub">Comment on s'organise — <span class="pink">année à l'étranger</span></div>
+        <div style="margin-top:1.4rem;"><span class="badge ink" style="font-size:0.7em;">Mouss · Maxime · Hugo · Yanis</span></div>
       </section>
 
-      <!-- 2. ENJEU -->
+      <!-- 2. VISION -->
       <section>
-        <span class="kicker">Le vrai enjeu</span>
-        <h2>Le problème n°1,<br>c'est pas le <span class="grad">code</span>.</h2>
-        <div class="chips">
+        <span class="kicker">L'état d'esprit</span>
+        <h1>Pas un projet scolaire.</h1>
+        <h1 class="grad" style="margin-top:0.2rem;">Une petite startup.</h1>
+        <div class="chips" style="margin-top:1.3rem;">
           <span class="chip p">Traçabilité</span>
           <span class="chip c">Autonomie</span>
-          <span class="chip">Responsabilisation</span>
+          <span class="chip">Responsabilité</span>
         </div>
-        <p class="dim" style="margin-top:1.6rem; font-size:0.78em; text-transform:none;">Équipe distribuée à l'étranger + suivi péda + vraie ambition produit.<br>L'info doit circuler <span class="pink">sans passer par une seule personne</span>.</p>
+        <p class="dim" style="font-size:0.78em; margin-top:1.2rem; text-transform:none;">Bien organisé = l'EIP devient un <span class="cyan">side project chill</span>.</p>
       </section>
 
-      <!-- 3. VISION -->
+      <!-- 3. SPRINTS -->
       <section>
-        <span class="kicker">La vision</span>
-        <h1>Pas un projet<br>scolaire.</h1>
-        <h1 class="grad" style="margin-top:0.2rem;">Une petite startup.</h1>
-        <p class="dim" style="font-size:0.82em; margin-top:1.2rem; text-transform:none;">Bien organisé, l'EIP devient un <span class="cyan">side project chill</span> — pas une charge.</p>
-      </section>
-
-      <!-- 4. PEDA -->
-      <section>
-        <span class="kicker">Ce que la péda regarde</span>
-        <h2>Tout est noté. 👆🏾</h2>
-        <div class="grid g3" style="margin-top:1.2rem;">
-          <div class="card"><span class="ico">🗂️</span><h3>Qui fait quoi</h3><p>Les actions de chaque membre dans le projet</p></div>
-          <div class="card"><span class="ico">⚙️</span><h3>Comment on bosse</h3><p>Notre organisation et nos pratiques</p></div>
-          <div class="card"><span class="ico">🎤</span><h3>Comment on pitch</h3><p>Chacun sait présenter le projet</p></div>
-        </div>
-      </section>
-
-      <!-- 5. SPRINTS -->
-      <section>
-        <span class="kicker">Agile léger</span>
-        <h2>Des sprints de <span class="ul-pink">2 semaines</span>.</h2>
+        <span class="kicker">Le rythme</span>
+        <h2>Sprints de <span class="ul-pink">2 semaines</span>.</h2>
         <div class="flow" style="margin-top:1.5rem;">
           <span class="step">🎯 Planif 30min</span><span class="arrow">→</span>
           <span class="step">💻 On code</span><span class="arrow">→</span>
           <span class="step">🔁 PR &amp; review</span><span class="arrow">→</span>
-          <span class="step">🔍 Sprint review</span>
+          <span class="step">🔍 Review</span>
         </div>
-        <p class="dim" style="margin-top:1.6rem; font-size:0.78em; text-transform:none;">Chaque semaine a un <span class="pink">objectif</span> — pas juste « racontez ce que vous avez fait ».</p>
+        <p class="dim" style="margin-top:1.5rem; font-size:0.78em; text-transform:none;">Chaque sprint a un <span class="pink">objectif</span> + un weekly de 30 min (fait / en cours / blocages).</p>
       </section>
 
-      <!-- 6. ROLES -->
+      <!-- 4. ROLES -->
       <section>
         <span class="kicker">À assigner ce soir</span>
         <h2>Les rôles.</h2>
@@ -288,85 +269,36 @@
         </div>
       </section>
 
-      <!-- 7. DEFINITION OF DONE -->
+      <!-- 5. LES REGLES (Git + DoD) -->
       <section>
-        <span class="kicker">Definition of Done</span>
-        <h2>« Ça compile » <span class="pink">≠</span> terminé.</h2>
-        <div class="grid g2" style="margin-top:0.6rem;">
-          <ul class="clean">
-            <li>Code poussé + branche dédiée</li>
-            <li>Pull Request ouverte</li>
-            <li>Review effectuée</li>
-          </ul>
-          <ul class="clean">
-            <li>Tests réalisés</li>
-            <li>Documentation ajoutée</li>
-            <li>Dispo en local / déployé</li>
-          </ul>
-        </div>
-      </section>
-
-      <!-- 8. GIT -->
-      <section>
-        <span class="kicker">Organisation Git</span>
-        <h2>Une feature = une branche.</h2>
-        <div class="grid g2" style="margin-top:0.8rem; align-items:start;">
+        <span class="kicker">Les règles</span>
+        <h2>Git <span class="pink">propre</span>, feature finie pour de vrai.</h2>
+        <div class="grid g2" style="margin-top:0.7rem; align-items:start;">
           <div class="panel">
-            <div class="mono" style="font-size:0.6em; line-height:1.7; text-transform:none;">
-              main<br>
-              └─ develop<br>
-              &nbsp;&nbsp;&nbsp;├─ <span class="pink">feature/</span>xp-ranking<br>
-              &nbsp;&nbsp;&nbsp;├─ <span class="pink">feature/</span>profile-system<br>
-              &nbsp;&nbsp;&nbsp;└─ <span class="pink">fix/</span>navbar-mobile
+            <div class="mono" style="font-size:0.58em; line-height:1.7; text-transform:none;">
+              main └─ develop<br>
+              &nbsp;&nbsp;├─ <span class="pink">feature/</span>xp-ranking<br>
+              &nbsp;&nbsp;└─ <span class="pink">fix/</span>navbar-mobile
             </div>
+            <ul class="clean" style="margin-top:0.5rem;">
+              <li>1 feature = 1 branche · PR → review → merge</li>
+              <li>Commit souvent (pas +5000 lignes)</li>
+            </ul>
           </div>
           <div>
-            <ul class="clean">
-              <li>Commit à chaque modif (pas +5000 lignes)</li>
-              <li>PR à la main → review → merge</li>
-              <li class="mono"><span class="pink">feat:</span> / <span class="pink">fix:</span> / <span class="pink">docs:</span></li>
-            </ul>
-            <p class="dim" style="font-size:0.68em; margin-top:0.5rem; text-transform:none;">1 repo Mobile · 1 repo Web + Back</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- 9. RITUELS -->
-      <section>
-        <span class="kicker">Les rituels</span>
-        <h2>Cadence d'équipe.</h2>
-        <div class="grid g2" style="margin-top:0.8rem;">
-          <div class="card">
-            <h3 class="pink">Weekly · 30 min</h3>
+            <h3 style="font-size:0.85em;">Une feature finie =</h3>
             <ul class="clean" style="margin-top:0.3rem;">
-              <li>Ce que j'ai terminé</li>
-              <li>Ce que je fais cette semaine</li>
-              <li>Mes blocages</li>
-            </ul>
-            <p style="font-size:0.64em; text-transform:none; color:var(--dim);">Max 2 min/pers. Seul moment où on troll pas 😎</p>
-          </div>
-          <div class="card">
-            <h3 class="cyan">Product Review · mensuelle</h3>
-            <ul class="clean" style="margin-top:0.3rem;">
-              <li>Où en est Bingeki ?</li>
-              <li>Qu'a-t-on appris des users ?</li>
-              <li>Prochain objectif ?</li>
+              <li>PR + review OK</li>
+              <li>Testée</li>
+              <li>Documentée</li>
+              <li>Dispo (local / déployé)</li>
             </ul>
           </div>
         </div>
+        <p class="dim" style="font-size:0.66em; margin-top:0.6rem; text-transform:none;">Règle d'or : <span class="pink">zéro info critique en DM</span> → c'est documenté ou ça n'existe pas.</p>
       </section>
 
-      <!-- 10. REGLE D'OR -->
-      <section>
-        <span class="kicker">Règle d'or</span>
-        <h1>Zéro info critique<br>en <span class="grad">privé</span>.</h1>
-        <div class="chips" style="margin-top:1.5rem;">
-          <span class="chip">❌ « Je t'ai DM ça »</span>
-          <span class="chip c">✅ « C'est documenté »</span>
-        </div>
-      </section>
-
-      <!-- 11. ORGA PAGE (le moment fort) -->
+      <!-- 6. ORGA PAGE (le moment fort) -->
       <section>
         <span class="kicker">Notre arme secrète</span>
         <h2 style="font-size:1.5em;">L'orga <span class="pink">dans Bingeki</span>. Zéro Notion.</h2>
@@ -413,19 +345,7 @@
         <p class="dim" style="font-size:0.6em; margin-top:0.6rem; text-transform:none;">On <span class="pink">dogfoode</span> notre produit · chaque membre gère ses tâches · seul le PO édite le sprint.</p>
       </section>
 
-      <!-- 12. RAPPORT EIP AUTO -->
-      <section>
-        <span class="kicker">Bonus suivi péda</span>
-        <h2>Le rapport EIP… <span class="cyan">automatique</span>.</h2>
-        <div class="grid g3" style="margin-top:1.2rem; text-align:center;">
-          <div class="card"><big class="stat">35</big><p style="margin-top:0.5rem;">tâches réalisées</p></div>
-          <div class="card"><big class="stat" style="color:#06a6a3">12</big><p style="margin-top:0.5rem;">PR mergées</p></div>
-          <div class="card"><big class="stat">4</big><p style="margin-top:0.5rem;">réunions / mois</p></div>
-        </div>
-        <p class="dim" style="font-size:0.72em; margin-top:1.2rem; text-transform:none;">Généré depuis la page orga → plus jamais à courir après l'info pour la péda.</p>
-      </section>
-
-      <!-- 13. CLOSING -->
+      <!-- 7. CLOSING -->
       <section>
         <span class="kicker">On s'engage</span>
         <h1>Bien organisé,<br>tout devient <span class="grad">chill</span>.</h1>

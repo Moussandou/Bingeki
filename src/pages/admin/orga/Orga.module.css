@@ -569,6 +569,7 @@
 
 .tabsContainer {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-sm);
     border-bottom: 4px solid #000;
     padding-bottom: var(--space-sm);
