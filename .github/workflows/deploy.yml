@@ -44,9 +44,27 @@ jobs:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BINGEKI }}
 
       - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_BINGEKI }}'
-          channelId: live
-          projectId: bingeki
+        env:
+          FIREBASE_SERVICE_ACCOUNT_BINGEKI: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BINGEKI }}
+        run: |
+          # Auth via service account
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_BINGEKI" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+
+          # Deploy, capturing output so we can detect the flaky retry false-negative
+          set +e
+          out=$(npx -y firebase-tools@latest deploy --only hosting --project bingeki --non-interactive 2>&1)
+          code=$?
+          set -e
+          echo "$out"
+
+          if [ "$code" -ne 0 ]; then
+            # Network "premature close" makes the CLI retry; the first attempt already
+            # published, so the retry returns 400 "current active version". Not a real failure.
+            if echo "$out" | grep -q "is the current active version"; then
+              echo "::warning::Hosting already at the deployed version (retry false-negative) — treating as success."
+              exit 0
+            fi
+            echo "::error::Firebase Hosting deploy failed."
+            exit "$code"
+          fi
