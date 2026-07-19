@@ -81,7 +81,12 @@ exports.searchWorks = onCall({ cors: true }, async (request) => {
     const qs = params.toString();
     const hash = require('crypto').createHash('md5').update(qs).digest('hex').slice(0, 16);
     const key = `search_${type}_${hash}`;
-    return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/${type}?${qs}`, true));
+    try {
+        return await cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/${type}?${qs}`, true));
+    } catch (err) {
+        console.warn(`[searchWorks] Jikan unavailable for ${key}: ${err.message}`);
+        return { data: [], pagination: {} };
+    }
 });
 
 exports.getWorkCharacters = onCall({ cors: true }, async (request) => {
