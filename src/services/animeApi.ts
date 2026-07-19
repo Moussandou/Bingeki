@@ -21,12 +21,9 @@ import {
     getTopWorksFn,
     getSeasonalAnimeFn,
     getAnimeScheduleFn,
-    getCharacterByIdFn,
     getCharacterFullFn,
     searchCharactersFn,
-    getPersonByIdFn,
     getPersonFullFn,
-    searchPeopleFn,
     getAnimeEpisodeDetailsFn,
     getRandomAnimeFn,
     getJikanStatusFn,
@@ -670,18 +667,6 @@ export interface JikanCharacterVoice {
     };
 }
 
-export const getCharacterById = async (id: number, options?: CallOptions) => {
-    const cacheKey = `character_${id}`;
-    return callProxy<JikanCharacterFull | null>(
-        getCharacterByIdFn,
-        { id },
-        cacheKey,
-        CACHE_TTL_LONG,
-        null,
-        options
-    );
-};
-
 export interface JikanCharacterManga {
     role: string;
     manga: {
@@ -738,18 +723,6 @@ export interface JikanPersonVoice {
     };
 }
 
-export const getPersonById = async (id: number, options?: CallOptions) => {
-    const cacheKey = `person_${id}`;
-    return callProxy<JikanPersonFull | null>(
-        getPersonByIdFn,
-        { id },
-        cacheKey,
-        CACHE_TTL_LONG,
-        null,
-        options
-    );
-};
-
 export const getPersonFull = async (id: number, options?: CallOptions) => {
     const cacheKey = `person_full_${id}`;
     return callProxy<(JikanPersonFull & {
@@ -769,18 +742,6 @@ export const searchCharacters = async (query: string, limit: number = 25, option
     const cacheKey = `search_chars_${query}_${limit}`;
     return callProxy<JikanCharacterFull[]>(
         searchCharactersFn,
-        { query, limit },
-        cacheKey,
-        CACHE_TTL_SHORT,
-        [],
-        options
-    );
-};
-
-export const searchPeople = async (query: string, limit: number = 15, options?: CallOptions): Promise<JikanPersonFull[]> => {
-    const cacheKey = `search_people_${query}_${limit}`;
-    return callProxy<JikanPersonFull[]>(
-        searchPeopleFn,
         { query, limit },
         cacheKey,
         CACHE_TTL_SHORT,

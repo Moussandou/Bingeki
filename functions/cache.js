@@ -8,8 +8,6 @@ const TTL_MS = {
   STREAMING: 24 * 60 * 60 * 1000,            // 24h
   DETAILS: 24 * 60 * 60 * 1000,              // 24h
   SECONDARY: 48 * 60 * 60 * 1000,            // 48h (characters, relations, pics, stats, staff, themes)
-  TRANSLATION: 30 * 24 * 60 * 60 * 1000,    // 30 days
-  NOT_FOUND: 7 * 24 * 60 * 60 * 1000,       // 7 days (negative cache)
 };
 
 /**
@@ -46,31 +44,4 @@ async function writeCache(key, data) {
   });
 }
 
-/**
- * Read a FR translation entry.
- * Returns { hit, synopsis, notFound } or { hit: false }.
- */
-async function readTranslation(key) {
-  const doc = await admin.firestore().collection('translations').doc(key).get();
-  if (!doc.exists) return { hit: false };
-
-  const entry = doc.data();
-  const age = Date.now() - entry.fetchedAt.toMillis();
-
-  if (entry.notFound) {
-    return age < TTL_MS.NOT_FOUND ? { hit: true, notFound: true } : { hit: false };
-  }
-  return age < TTL_MS.TRANSLATION ? { hit: true, synopsis: entry.synopsis } : { hit: false };
-}
-
-/**
- * Write a FR translation entry (or a negative cache entry if notFound).
- */
-async function writeTranslation(key, synopsis) {
-  const entry = synopsis
-    ? { synopsis, notFound: false, fetchedAt: Timestamp.now() }
-    : { notFound: true, fetchedAt: Timestamp.now() };
-  await admin.firestore().collection('translations').doc(key).set(entry);
-}
-
-module.exports = { TTL_MS, readCache, writeCache, readTranslation, writeTranslation };
+module.exports = { TTL_MS, readCache, writeCache };

@@ -2,9 +2,8 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const { Timestamp } = require("firebase-admin/firestore");
-const { TTL_MS, readCache, writeCache, readTranslation, writeTranslation } = require("./cache");
+const { TTL_MS, readCache, writeCache } = require("./cache");
 const { jikanFetch } = require("./jikan");
-const { scrapeFRSynopsis } = require("./scraper");
 
 // --- CACHED FETCH HELPER ---
 
@@ -152,20 +151,6 @@ exports.getWorkReviews = onCall({ cors: true }, async (request) => {
     return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/${type}/${id}/reviews?spoilers=false&preliminary=false`));
 });
 
-exports.getFRTranslation = onCall({ cors: true }, async (request) => {
-    const { id, type, titleFrench, titleRomaji } = request.data;
-    if (!id || !type) throw new HttpsError('invalid-argument', 'id and type are required');
-    const key = `fr_${type}_${id}`;
-    const cached = await readTranslation(key);
-    if (cached.hit) {
-        if (cached.notFound) return null;
-        return cached.synopsis;
-    }
-    const synopsis = await scrapeFRSynopsis(titleFrench, titleRomaji, type);
-    await writeTranslation(key, synopsis);
-    return synopsis;
-});
-
 exports.getTopWorks = onCall({ cors: true }, async (request) => {
     const { type, filter = 'bypopularity', limit = 24 } = request.data;
     if (!type) throw new HttpsError('invalid-argument', 'type is required');
@@ -189,13 +174,6 @@ exports.getAnimeSchedule = onCall({ cors: true }, async (request) => {
     return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(url));
 });
 
-exports.getCharacterById = onCall({ cors: true }, async (request) => {
-    const { id } = request.data;
-    if (!id) throw new HttpsError('invalid-argument', 'id is required');
-    const key = `character_${id}`;
-    return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/characters/${id}`));
-});
-
 exports.getCharacterFull = onCall({ cors: true }, async (request) => {
     const { id } = request.data;
     if (!id) throw new HttpsError('invalid-argument', 'id is required');
@@ -210,25 +188,11 @@ exports.searchCharacters = onCall({ cors: true }, async (request) => {
     return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/characters?q=${encodeURIComponent(query)}&limit=${limit}`));
 });
 
-exports.getPersonById = onCall({ cors: true }, async (request) => {
-    const { id } = request.data;
-    if (!id) throw new HttpsError('invalid-argument', 'id is required');
-    const key = `person_${id}`;
-    return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/people/${id}`));
-});
-
 exports.getPersonFull = onCall({ cors: true }, async (request) => {
     const { id } = request.data;
     if (!id) throw new HttpsError('invalid-argument', 'id is required');
     const key = `person_full_${id}`;
     return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/people/${id}/full`));
-});
-
-exports.searchPeople = onCall({ cors: true }, async (request) => {
-    const { query, limit = 15 } = request.data;
-    if (!query) throw new HttpsError('invalid-argument', 'query is required');
-    const key = `search_people_${Buffer.from(query).toString('base64').slice(0, 40)}_${limit}`;
-    return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/people?q=${encodeURIComponent(query)}&limit=${limit}`));
 });
 
 exports.getAnimeEpisodeDetails = onCall({ cors: true }, async (request) => {
