@@ -92,6 +92,7 @@ export const useSettingsStore = create<SettingsState>()(
                     dataSaver: profile.dataSaver !== undefined ? (profile.dataSaver as boolean) : state.dataSaver,
                     profileVisibility: (profile.profileVisibility as ProfileVisibility) || state.profileVisibility,
                     showActivityStatus: profile.showActivityStatus !== undefined ? (profile.showActivityStatus as boolean) : state.showActivityStatus,
+                    nsfwMode: profile.nsfwMode !== undefined ? (profile.nsfwMode as boolean) : state.nsfwMode,
                 }));
             },
         }),

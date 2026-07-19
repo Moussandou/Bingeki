@@ -295,19 +295,6 @@ export async function toggleUserAdmin(uid: string, isAdmin: boolean): Promise<vo
     }
 }
 
-export async function deleteUserAccountAdmin(uid: string): Promise<void> {
-    try {
-        const { httpsCallable } = await import('firebase/functions');
-        const { functions } = await import('./config');
-        const deleteFn = httpsCallable(functions, 'deleteUserAccountFn');
-        await deleteFn({ targetUid: uid });
-        logger.log(`[Firestore] Cloud function triggered to delete user ${uid}`);
-    } catch (error) {
-        logger.error('[Firestore] Error requesting user deletion:', error);
-        throw error;
-    }
-}
-
 export async function updateFeedbackStatus(id: string, status: 'resolved' | 'open'): Promise<void> {
     await updateFeedbackDetails(id, { status: status === 'resolved' ? 'resolved' : 'open' });
 }

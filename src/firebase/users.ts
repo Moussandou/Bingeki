@@ -35,6 +35,7 @@ export interface UserProfile {
     titlePriority?: 'romaji' | 'native' | 'english';
     hideScores?: boolean;
     dataSaver?: boolean;
+    nsfwMode?: boolean;
     featuredBadge?: string;
     isAdmin?: boolean;
     isSuperAdmin?: boolean;
@@ -62,12 +63,14 @@ export async function saveUserProfileToFirestore(user: Partial<UserProfile>, for
         // NOTE: 'email' is intentionally NOT in this list. It is PII and the profile
         // document is world-readable (public profiles / SEO / leaderboards). Email is
         // stored separately in users/{uid}/private/contact — see writeUserEmail below.
+        // isAdmin/isSuperAdmin excluded: promotions go through toggleUserAdmin only
         const allowedFields: (keyof UserProfile)[] = [
             'uid', 'displayName', 'photoURL', 'banner', 'bannerPosition', 'bio',
             'themeColor', 'cardBgColor', 'borderColor',
             'favoriteManga', 'top3Favorites', 'featuredBadge',
-            'favoriteCharacters', 'isAdmin', 'isSuperAdmin',
-            'profileVisibility', 'showActivityStatus'
+            'favoriteCharacters',
+            'profileVisibility', 'showActivityStatus',
+            'titlePriority', 'hideScores', 'dataSaver', 'nsfwMode'
         ];
 
         allowedFields.forEach(field => {

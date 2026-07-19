@@ -321,8 +321,13 @@ export default function Settings() {
                                     label={t('settings.appearance.nsfw_mode')}
                                     isOn={nsfwMode}
                                     onToggle={() => {
+                                        const newValue = !nsfwMode;
                                         toggleNsfwMode();
-                                        addToast(!nsfwMode ? t('settings.appearance.nsfw_enabled') : t('settings.appearance.nsfw_disabled'), 'info');
+                                        if (user) {
+                                            saveUserProfileToFirestore({ uid: user.uid, nsfwMode: newValue }, true)
+                                                .catch(err => logger.error('Failed to sync nsfw mode:', err));
+                                        }
+                                        addToast(newValue ? t('settings.appearance.nsfw_enabled') : t('settings.appearance.nsfw_disabled'), 'info');
                                     }}
                                 />
                                 <p style={{ fontSize: '0.85rem', opacity: 0.6, marginTop: '0.5rem' }}>

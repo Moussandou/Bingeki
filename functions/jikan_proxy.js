@@ -42,6 +42,20 @@ async function cachedFetch(cacheKey, ttl, fetchFn) {
     return data;
 }
 
+/** NSFW must be enabled in the user's Firestore profile — the client claim alone is not trusted. */
+async function resolveNsfw(request) {
+    if (request.data?.nsfwMode !== true) return false;
+    const uid = request.auth?.uid;
+    if (!uid) return false;
+    try {
+        const snap = await admin.firestore().collection('users').doc(uid).get();
+        return snap.exists && snap.data().nsfwMode === true;
+    } catch (err) {
+        console.warn(`[resolveNsfw] Profile read failed for ${uid}:`, err.message);
+        return false;
+    }
+}
+
 // --- JIKAN PROXY FUNCTIONS ---
 
 exports.getWorkDetails = onCall({ cors: true }, async (request) => {
@@ -54,8 +68,9 @@ exports.getWorkDetails = onCall({ cors: true }, async (request) => {
 const SEARCH_FILTER_KEYS = ['min_score', 'status', 'genres', 'order_by', 'sort', 'rating', 'start_date', 'end_date', 'producers', 'limit'];
 
 exports.searchWorks = onCall({ cors: true }, async (request) => {
-    const { query, type, page = 1, filters = {}, nsfwMode = false } = request.data;
+    const { query, type, page = 1, filters = {} } = request.data;
     if (!query || !type) throw new HttpsError('invalid-argument', 'query and type are required');
+    const nsfwMode = await resolveNsfw(request);
     const params = new URLSearchParams({ q: query, page: String(page), sfw: String(!nsfwMode) });
     for (const k of SEARCH_FILTER_KEYS) {
         const v = filters?.[k];
@@ -152,20 +167,23 @@ exports.getFRTranslation = onCall({ cors: true }, async (request) => {
 });
 
 exports.getTopWorks = onCall({ cors: true }, async (request) => {
-    const { type, filter = 'bypopularity', limit = 24, nsfwMode = false } = request.data;
+    const { type, filter = 'bypopularity', limit = 24 } = request.data;
     if (!type) throw new HttpsError('invalid-argument', 'type is required');
+    const nsfwMode = await resolveNsfw(request);
     const key = `top_${type}_${filter}_${limit}_nsfw_${nsfwMode}`;
     return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/top/${type}?filter=${filter}&limit=${limit}&sfw=${!nsfwMode}`));
 });
 
 exports.getSeasonalAnime = onCall({ cors: true }, async (request) => {
-    const { limit = 24, nsfwMode = false } = request.data;
+    const { limit = 24 } = request.data;
+    const nsfwMode = await resolveNsfw(request);
     const key = `seasonal_${limit}_nsfw_${nsfwMode}`;
     return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/seasons/now?limit=${limit}&sfw=${!nsfwMode}`));
 });
 
 exports.getAnimeSchedule = onCall({ cors: true }, async (request) => {
-    const { filter, nsfwMode = false } = request.data;
+    const { filter } = request.data;
+    const nsfwMode = await resolveNsfw(request);
     const key = `schedule_${filter || 'all'}_nsfw_${nsfwMode}`;
     const url = filter ? `/schedules?filter=${filter}&sfw=${!nsfwMode}` : `/schedules?sfw=${!nsfwMode}`;
     return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(url));
@@ -221,7 +239,7 @@ exports.getAnimeEpisodeDetails = onCall({ cors: true }, async (request) => {
 });
 
 exports.getRandomAnime = onCall({ cors: true }, async (request) => {
-    const { nsfwMode = false } = request.data;
+    const nsfwMode = await resolveNsfw(request);
     return jikanFetch(`/random/anime?sfw=${!nsfwMode}`);
 });
 

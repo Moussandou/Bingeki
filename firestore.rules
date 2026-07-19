@@ -60,9 +60,15 @@ service cloud.firestore {
                         ]))
                     || isAdmin();
 
-      // Create: Allow users to setup their profile.
+      // Create: same protected-fields list as update (no self-granted isAdmin/XP).
       // Delete: Blocked for clients to ensure full cleanup via Auth Extension or Admin SDK.
-      allow create: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+                    !request.resource.data.keys().hasAny([
+                      'isAdmin', 'isSuperAdmin', 'isBanned',
+                      'level', 'xp', 'totalXp', 'xpToNextLevel', 'streak', 'badges',
+                      'totalChaptersRead', 'totalAnimeEpisodesWatched', 'totalMoviesWatched',
+                      'totalWorksAdded', 'totalWorksCompleted', 'bonusXp'
+                    ]);
       allow delete: if isAdmin();
       
       // --- Subcollection: Data (Library & Gamification) ---
