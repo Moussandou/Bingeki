@@ -31,6 +31,11 @@ async function jikanFetch(path, returnFull = false) {
     }
 
     if (res.status === 404) return null;
+    if (res.status >= 500) {
+      if (attempt === maxRetries - 1) throw new Error(`Jikan HTTP ${res.status} for ${path}`);
+      await sleep(1000 * (attempt + 1));
+      continue;
+    }
     if (!res.ok) throw new Error(`Jikan HTTP ${res.status} for ${path}`);
 
     const json = await res.json();

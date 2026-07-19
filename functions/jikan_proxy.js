@@ -27,7 +27,16 @@ async function cachedFetch(cacheKey, ttl, fetchFn) {
     }
     console.log(`[cachedFetch] Calling Jikan for: ${cacheKey}`);
     const t0 = Date.now();
-    const data = await fetchFn();
+    let data;
+    try {
+        data = await fetchFn();
+    } catch (err) {
+        if (cached.expiredData !== undefined) {
+            console.warn(`[cachedFetch] Jikan failed (${err.message}) — serving expired cache for: ${cacheKey}`);
+            return cached.expiredData;
+        }
+        throw err;
+    }
     console.log(`[cachedFetch] Jikan responded in ${Date.now() - t0}ms for: ${cacheKey}`);
     if (data !== null) await writeCache(cacheKey, data);
     return data;

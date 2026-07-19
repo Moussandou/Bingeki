@@ -32,7 +32,7 @@ async function readCache(key, ttl) {
     return { hit: true, data, stale };
   }
   console.log(`[Cache] EXPIRED — ${key} (age: ${Math.round(age / 1000 / 60)}min)`);
-  return { hit: false };
+  return { hit: false, expiredData: data };
 }
 
 /**
