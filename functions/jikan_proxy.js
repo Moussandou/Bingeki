@@ -68,9 +68,12 @@ const SEARCH_FILTER_KEYS = ['min_score', 'status', 'genres', 'order_by', 'sort',
 
 exports.searchWorks = onCall({ cors: true }, async (request) => {
     const { query, type, page = 1, filters = {} } = request.data;
-    if (!query || !type) throw new HttpsError('invalid-argument', 'query and type are required');
+    const hasFilters = filters && Object.keys(filters).some(k => SEARCH_FILTER_KEYS.includes(k) && filters[k] !== undefined && filters[k] !== null && filters[k] !== '');
+    if (!type) throw new HttpsError('invalid-argument', 'type is required');
+    if (!query && !hasFilters) throw new HttpsError('invalid-argument', 'query or filters are required');
     const nsfwMode = await resolveNsfw(request);
-    const params = new URLSearchParams({ q: query, page: String(page), sfw: String(!nsfwMode) });
+    const params = new URLSearchParams({ page: String(page), sfw: String(!nsfwMode) });
+    if (query) params.set('q', query);
     for (const k of SEARCH_FILTER_KEYS) {
         const v = filters?.[k];
         if (v !== undefined && v !== null && v !== '') params.set(k, String(v));

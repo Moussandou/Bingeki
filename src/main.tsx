@@ -18,7 +18,9 @@ window.addEventListener('vite:preloadError', (event) => {
 });
 
 const container = document.getElementById('root')!;
-const isPrerendered = document.body.classList.contains('is-prerendered');
+const isPrerendered = document.body.classList.contains('is-prerendered')
+  && container.children.length > 0
+  && container.innerHTML.length > 100;
 
 const rootElement = (
   <StrictMode>
@@ -31,7 +33,12 @@ const rootElement = (
 );
 
 if (isPrerendered) {
-  hydrateRoot(container, rootElement);
+  try {
+    hydrateRoot(container, rootElement);
+  } catch {
+    container.innerHTML = '';
+    createRoot(container).render(rootElement);
+  }
 } else {
   createRoot(container).render(rootElement);
 }
