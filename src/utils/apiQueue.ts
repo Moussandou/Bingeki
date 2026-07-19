@@ -105,8 +105,13 @@ export class PriorityQueue {
                 typeof (error as { status: unknown }).status === 'number' &&
                 (error as { status: number }).status >= 400 &&
                 (error as { status: number }).status < 500;
+            // FirebaseError codes that will never succeed on retry
+            const fbCode = (error as { code?: unknown })?.code;
+            const isNonRetryableFb =
+                typeof fbCode === 'string' &&
+                ['functions/invalid-argument', 'functions/not-found', 'functions/permission-denied', 'functions/unauthenticated', 'functions/failed-precondition'].includes(fbCode);
 
-            if (isAbort || is4xx || task.retries >= MAX_RETRIES) {
+            if (isAbort || is4xx || isNonRetryableFb || task.retries >= MAX_RETRIES) {
                 task.reject(error);
                 return;
             }

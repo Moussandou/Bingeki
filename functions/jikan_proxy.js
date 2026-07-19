@@ -51,11 +51,20 @@ exports.getWorkDetails = onCall({ cors: true }, async (request) => {
     return cachedFetch(key, TTL_MS.DETAILS, () => jikanFetch(`/${type}/${id}/full`));
 });
 
+const SEARCH_FILTER_KEYS = ['min_score', 'status', 'genres', 'order_by', 'sort', 'rating', 'start_date', 'end_date', 'producers', 'limit'];
+
 exports.searchWorks = onCall({ cors: true }, async (request) => {
-    const { query, type, page = 1 } = request.data;
+    const { query, type, page = 1, filters = {}, nsfwMode = false } = request.data;
     if (!query || !type) throw new HttpsError('invalid-argument', 'query and type are required');
-    const key = `search_${type}_${Buffer.from(`${query}_p${page}`).toString('base64').slice(0, 40)}`;
-    return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/${type}?q=${encodeURIComponent(query)}&page=${page}&sfw=true`, true));
+    const params = new URLSearchParams({ q: query, page: String(page), sfw: String(!nsfwMode) });
+    for (const k of SEARCH_FILTER_KEYS) {
+        const v = filters?.[k];
+        if (v !== undefined && v !== null && v !== '') params.set(k, String(v));
+    }
+    const qs = params.toString();
+    const hash = require('crypto').createHash('md5').update(qs).digest('hex').slice(0, 16);
+    const key = `search_${type}_${hash}`;
+    return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/${type}?${qs}`, true));
 });
 
 exports.getWorkCharacters = onCall({ cors: true }, async (request) => {

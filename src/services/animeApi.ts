@@ -182,7 +182,7 @@ async function callProxy<T, I = any>(
             const t0 = performance.now();
             const result = await fn(args);
             const data = result.data as T;
-            setCache<T>(cacheKey, data);
+            if (ttl > 0) setCache<T>(cacheKey, data);
             logger.debug(`%c[Cloud Function] OK`, 'color: #3b82f6; font-weight: bold', cacheKey, `${Math.round(performance.now() - t0)}ms`);
             return data;
         },
@@ -406,7 +406,8 @@ export interface JikanResultFull extends JikanResult {
 }
 
 export const getWorkFull = async (id: number, type: 'anime' | 'manga'): Promise<JikanResultFull> => {
-    const cacheKey = `${type}_${id}_full`;
+    // Same backend endpoint as getWorkDetails (/full) — share the cache key to avoid double fetches
+    const cacheKey = `${type}_${id}_details`;
     const sessionCached = getCachedDetail<JikanResultFull>(cacheKey, CACHE_TTL_LONG);
     if (sessionCached === 'NOT_FOUND') throw new ApiError(404, `Full ${type} with ID ${id} not found (cached)`);
     if (sessionCached) {
@@ -533,8 +534,8 @@ export interface JikanStatistics {
     }[];
 }
 
-export const getWorkStatistics = async (id: number, type: 'anime' | 'manga'): Promise<JikanStatistics> => {
-    return callProxy(getWorkStatisticsFn, { id, type }, `${type}_${id}_statistics`, CACHE_TTL_MEDIUM);
+export const getWorkStatistics = async (id: number, type: 'anime' | 'manga'): Promise<JikanStatistics | null> => {
+    return callProxy(getWorkStatisticsFn, { id, type }, `${type}_${id}_statistics`, CACHE_TTL_MEDIUM, null);
 };
 
 export interface JikanStreaming {
