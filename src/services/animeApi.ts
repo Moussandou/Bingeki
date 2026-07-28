@@ -177,8 +177,10 @@ const setCache = <T>(key: string, data: T, isError: boolean = false) => {
 /** In-flight requests — prevents duplicate concurrent calls (e.g. React StrictMode double-mount) */
 const inflight = new Map<string, Promise<unknown>>();
 
-// --- Direct Jikan calls : 3-6x plus rapides que le proxy (CDN + cache navigateur), proxy en fallback ---
-const JIKAN_BASE = 'https://api.jikan.moe/v4';
+// --- Appels directs : 3-6x plus rapides que le proxy (CDN + cache navigateur), proxy en fallback ---
+// Tenrai suit le schéma Jikan v4 (mêmes chemins) et renvoie `Cache-Control: max-age=14400`,
+// donc le navigateur cache 4 h nativement. Jikan ferme le 2026-10-01.
+const JIKAN_BASE = 'https://api.tenrai.org/v1';
 // Désactivé en test : jsdom tenterait de vrais appels réseau
 const DIRECT_ENABLED = typeof window !== 'undefined' && import.meta.env.MODE !== 'test';
 
