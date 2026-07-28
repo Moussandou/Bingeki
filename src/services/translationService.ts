@@ -2,6 +2,7 @@ import { doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useState, useEffect } from 'react';
 import { logger } from '@/utils/logger';
+import { getAuth } from 'firebase/auth';
 
 export interface TranslationData {
     input: string;
@@ -47,6 +48,9 @@ export async function requestTranslation(
     const docRef = doc(db, 'translations', docId);
     
     try {
+        const auth = getAuth();
+        if (!auth.currentUser) return docId;
+
         const snap = await getDoc(docRef);
         const data = snap.exists() ? snap.data() : null;
         
@@ -86,58 +90,37 @@ export function useTranslationData(
         const langCode = targetLang ? targetLang.split('-')[0].toLowerCase() : '';
         
         if (!text || !sourceId || !langCode || langCode === 'en') {
-            setTimeout(() => {
-                setTranslatedText(null);
-                setLoading(false);
-            }, 0);
+            setTranslatedText(null);
+            setLoading(false);
             return;
         }
 
         const docId = getTranslationDocId(sourceType, sourceId, sourceField);
         const docRef = doc(db, 'translations', docId);
 
-        let unsubscribe: (() => void) | undefined;
+        setLoading(true);
+        const unsubscribe = onSnapshot(docRef, async (snap) => {
+            const data = snap.exists() ? (snap.data() as TranslationData) : null;
 
-        const init = async () => {
-            setLoading(true);
-            try {
-                // First request the translation if missing
+            if (!data || data.input !== text) {
                 await requestTranslation(text, sourceId, sourceType, sourceField);
-                
-                logger.log(`%c[Translation] Subscribing to: ${docId}`, 'color: #3b82f6; font-weight: bold');
-                
-                unsubscribe = onSnapshot(docRef, (snap) => {
-                    if (snap.exists()) {
-                        const data = snap.data() as TranslationData;
-                        const translated = data.translated?.[langCode];
-                        
-                        if (translated) {
-                            logger.log(`%c[Translation] Received "${langCode}" for ${docId}`, 'color: #10b981; font-weight: bold');
-                            setTranslatedText(translated);
-                            setLoading(false);
-                        } else {
-                            logger.log(`%c[Translation] Waiting for "${langCode}" for ${docId}...`, 'color: #f59e0b; font-weight: bold');
-                            // We stay in loading state as the document exists but the target language is not yet ready
-                        }
-                    } else {
-                        logger.log(`%c[Translation] Doc ${docId} not found, requesting translation...`, 'color: #ef4444');
-                        // We stay in loading state while waiting for the extension to create and translate
-                    }
-                }, (err) => {
-                    logger.error(`[Translation] Snapshot error for ${docId}:`, err);
-                    setLoading(false);
-                });
-            } catch (err) {
-                logger.error(`[Translation] Error in useTranslationData for ${docId}:`, err);
-                setLoading(false);
+                return; // Let the next snapshot trigger the UI update
             }
-        };
 
-        init();
+            const translated = data.translated?.[langCode];
+            if (translated) {
+                logger.log(`%c[Translation] Received "${langCode}" for ${docId}`, 'color: #10b981; font-weight: bold');
+                setTranslatedText(translated);
+            } else {
+                logger.log(`%c[Translation] Waiting for "${langCode}" for ${docId}...`, 'color: #f59e0b; font-weight: bold');
+            }
+            setLoading(false);
+        }, (err) => {
+            logger.error(`[Translation] Snapshot error for ${docId}:`, err);
+            setLoading(false);
+        });
 
-        return () => {
-            if (unsubscribe) unsubscribe();
-        };
+        return () => unsubscribe();
     }, [text, sourceId, sourceType, sourceField, targetLang]);
 
     return { translatedText, loading };

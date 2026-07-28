@@ -94,6 +94,26 @@ function generateSlug(title: string): string {
         .replace(/(^-|-$)+/g, '');
 }
 
+/**
+ * Checks that an image URL is usable: absolute, not a bingeki.web.app path, and reachable.
+ */
+async function isImageUrlValid(url: string | null): Promise<boolean> {
+    if (!url) return false;
+
+    // Must be a full URL
+    if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+
+    // Skip internal hosting paths — these often 404 after content changes
+    if (url.includes('bingeki.web.app') || url.includes('bingeki.firebaseapp.com')) return false;
+
+    try {
+        const res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+        return res.ok;
+    } catch {
+        return false;
+    }
+}
+
 async function processItem(item: RSSItem, feedConfig: FeedConfig, forceUpdate: boolean): Promise<void> {
     if (!item.title || !item.link) return;
 
@@ -276,6 +296,12 @@ async function processItem(item: RSSItem, feedConfig: FeedConfig, forceUpdate: b
     const tags = item.categories || [];
     if (tags.length === 0) tags.push('News');
 
+    // Validate image before storing — avoids persisting broken or internal URLs
+    const validatedImageUrl = await isImageUrlValid(imageUrl) ? imageUrl : null;
+    if (imageUrl && !validatedImageUrl) {
+        console.log(`     ! Image URL invalid or unreachable, skipping: ${imageUrl}`);
+    }
+
     const articleData: ArticleData = {
         title: item.title || 'Untitled',
         slug: slug,
@@ -285,7 +311,7 @@ async function processItem(item: RSSItem, feedConfig: FeedConfig, forceUpdate: b
         sourceName: feedConfig.name,
         publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
         tags: tags,
-        imageUrl: imageUrl,
+        imageUrl: validatedImageUrl,
         createdAt: docSnap.exists ? (docSnap.data() as ArticleData)?.createdAt || new Date().toISOString() : new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
