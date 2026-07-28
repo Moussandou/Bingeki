@@ -4,6 +4,7 @@ const admin = require("firebase-admin");
 const { Timestamp } = require("firebase-admin/firestore");
 const { TTL_MS, readCache, writeCache } = require("./cache");
 const { jikanFetch } = require("./jikan");
+const { CALLABLE_REGIONS } = require("./regions");
 
 // --- CACHED FETCH HELPER ---
 
@@ -74,7 +75,7 @@ async function resolveNsfw(request) {
 
 // --- JIKAN PROXY FUNCTIONS ---
 
-exports.getWorkDetails = onCall({ cors: true }, async (request) => {
+exports.getWorkDetails = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id, type } = request.data;
     if (!id || !type) throw new HttpsError('invalid-argument', 'id and type are required');
     const key = `${type}_details_${id}`;
@@ -83,7 +84,7 @@ exports.getWorkDetails = onCall({ cors: true }, async (request) => {
 
 const SEARCH_FILTER_KEYS = ['min_score', 'status', 'genres', 'order_by', 'sort', 'rating', 'start_date', 'end_date', 'producers', 'limit'];
 
-exports.searchWorks = onCall({ cors: true }, async (request) => {
+exports.searchWorks = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { query, type, page = 1, filters = {} } = request.data;
     const hasFilters = filters && Object.keys(filters).some(k => SEARCH_FILTER_KEYS.includes(k) && filters[k] !== undefined && filters[k] !== null && filters[k] !== '');
     if (!type) throw new HttpsError('invalid-argument', 'type is required');
@@ -107,77 +108,77 @@ exports.searchWorks = onCall({ cors: true }, async (request) => {
     }
 });
 
-exports.getWorkCharacters = onCall({ cors: true }, async (request) => {
+exports.getWorkCharacters = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id, type } = request.data;
     if (!id || !type) throw new HttpsError('invalid-argument', 'id and type are required');
     const key = `${type}_characters_${id}`;
     return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/${type}/${id}/characters`));
 });
 
-exports.getWorkRelations = onCall({ cors: true }, async (request) => {
+exports.getWorkRelations = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id, type } = request.data;
     if (!id || !type) throw new HttpsError('invalid-argument', 'id and type are required');
     const key = `${type}_relations_${id}`;
     return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/${type}/${id}/relations`));
 });
 
-exports.getWorkPictures = onCall({ cors: true }, async (request) => {
+exports.getWorkPictures = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id, type } = request.data;
     if (!id || !type) throw new HttpsError('invalid-argument', 'id and type are required');
     const key = `${type}_pictures_${id}`;
     return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/${type}/${id}/pictures`));
 });
 
-exports.getWorkStatistics = onCall({ cors: true }, async (request) => {
+exports.getWorkStatistics = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id, type } = request.data;
     if (!id || !type) throw new HttpsError('invalid-argument', 'id and type are required');
     const key = `${type}_stats_${id}`;
     return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/${type}/${id}/statistics`));
 });
 
-exports.getWorkRecommendations = onCall({ cors: true }, async (request) => {
+exports.getWorkRecommendations = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id, type } = request.data;
     if (!id || !type) throw new HttpsError('invalid-argument', 'id and type are required');
     const key = `${type}_recs_${id}`;
     return cachedFetch(key, TTL_MS.RECOMMENDATIONS, () => jikanFetch(`/${type}/${id}/recommendations`));
 });
 
-exports.getAnimeEpisodes = onCall({ cors: true }, async (request) => {
+exports.getAnimeEpisodes = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id, page = 1 } = request.data;
     if (!id) throw new HttpsError('invalid-argument', 'id is required');
     const key = `anime_episodes_${id}_p${page}`;
     return cachedFetch(key, TTL_MS.EPISODES, () => jikanFetch(`/anime/${id}/episodes?page=${page}`, true));
 });
 
-exports.getAnimeStreaming = onCall({ cors: true }, async (request) => {
+exports.getAnimeStreaming = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id } = request.data;
     if (!id) throw new HttpsError('invalid-argument', 'id is required');
     const key = `anime_streaming_${id}`;
     return cachedFetch(key, TTL_MS.STREAMING, () => jikanFetch(`/anime/${id}/streaming`));
 });
 
-exports.getAnimeStaff = onCall({ cors: true }, async (request) => {
+exports.getAnimeStaff = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id } = request.data;
     if (!id) throw new HttpsError('invalid-argument', 'id is required');
     const key = `anime_staff_${id}`;
     return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/anime/${id}/staff`));
 });
 
-exports.getAnimeThemes = onCall({ cors: true }, async (request) => {
+exports.getAnimeThemes = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id } = request.data;
     if (!id) throw new HttpsError('invalid-argument', 'id is required');
     const key = `anime_themes_${id}`;
     return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/anime/${id}/themes`));
 });
 
-exports.getWorkReviews = onCall({ cors: true }, async (request) => {
+exports.getWorkReviews = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id, type } = request.data;
     if (!id || !type) throw new HttpsError('invalid-argument', 'id and type are required');
     const key = `${type}_reviews_${id}`;
     return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/${type}/${id}/reviews?spoilers=false&preliminary=false`));
 });
 
-exports.getTopWorks = onCall({ cors: true }, async (request) => {
+exports.getTopWorks = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { type, filter = 'bypopularity', limit = 24 } = request.data;
     if (!type) throw new HttpsError('invalid-argument', 'type is required');
     const nsfwMode = await resolveNsfw(request);
@@ -185,14 +186,14 @@ exports.getTopWorks = onCall({ cors: true }, async (request) => {
     return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/top/${type}?filter=${filter}&limit=${limit}&sfw=${!nsfwMode}`));
 });
 
-exports.getSeasonalAnime = onCall({ cors: true }, async (request) => {
+exports.getSeasonalAnime = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { limit = 24 } = request.data;
     const nsfwMode = await resolveNsfw(request);
     const key = `seasonal_${limit}_nsfw_${nsfwMode}`;
     return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/seasons/now?limit=${limit}&sfw=${!nsfwMode}`));
 });
 
-exports.getAnimeSchedule = onCall({ cors: true }, async (request) => {
+exports.getAnimeSchedule = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { filter } = request.data;
     const nsfwMode = await resolveNsfw(request);
     const key = `schedule_${filter || 'all'}_nsfw_${nsfwMode}`;
@@ -200,40 +201,40 @@ exports.getAnimeSchedule = onCall({ cors: true }, async (request) => {
     return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(url));
 });
 
-exports.getCharacterFull = onCall({ cors: true }, async (request) => {
+exports.getCharacterFull = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id } = request.data;
     if (!id) throw new HttpsError('invalid-argument', 'id is required');
     const key = `character_full_${id}`;
     return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/characters/${id}/full`));
 });
 
-exports.searchCharacters = onCall({ cors: true }, async (request) => {
+exports.searchCharacters = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { query, limit = 25 } = request.data;
     if (!query) throw new HttpsError('invalid-argument', 'query is required');
     const key = `search_chars_${Buffer.from(query).toString('base64').slice(0, 40)}_${limit}`;
     return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/characters?q=${encodeURIComponent(query)}&limit=${limit}`));
 });
 
-exports.getPersonFull = onCall({ cors: true }, async (request) => {
+exports.getPersonFull = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id } = request.data;
     if (!id) throw new HttpsError('invalid-argument', 'id is required');
     const key = `person_full_${id}`;
     return cachedFetch(key, TTL_MS.SECONDARY, () => jikanFetch(`/people/${id}/full`));
 });
 
-exports.getAnimeEpisodeDetails = onCall({ cors: true }, async (request) => {
+exports.getAnimeEpisodeDetails = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const { id, episodeId } = request.data;
     if (!id || !episodeId) throw new HttpsError('invalid-argument', 'id and episodeId are required');
     const key = `anime_episode_detail_${id}_${episodeId}`;
     return cachedFetch(key, TTL_MS.EPISODES, () => jikanFetch(`/anime/${id}/episodes/${episodeId}`));
 });
 
-exports.getRandomAnime = onCall({ cors: true }, async (request) => {
+exports.getRandomAnime = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     const nsfwMode = await resolveNsfw(request);
     return jikanFetch(`/random/anime?sfw=${!nsfwMode}`);
 });
 
-exports.getJikanStatus = onCall({ cors: true }, async () => {
+exports.getJikanStatus = onCall({ cors: true, region: CALLABLE_REGIONS },async () => {
     const startTime = Date.now();
     try {
         await jikanFetch('/anime/1');

@@ -1,9 +1,15 @@
 const admin = require("firebase-admin");
+const { setGlobalOptions } = require("firebase-functions/v2");
 
 // Initialize Firebase Admin once at the root
 if (admin.apps.length === 0) {
     admin.initializeApp();
 }
+
+// Co-localisé avec Firestore (europe-west9) : supprime un aller-retour transatlantique
+// par lecture/écriture de cache, et rapproche les callables des utilisateurs FR.
+// Doit être appelé avant le require des modules qui définissent les fonctions.
+setGlobalOptions({ region: "europe-west9" });
 
 /**
  * Bingeki V2 Cloud Functions

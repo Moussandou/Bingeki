@@ -1,10 +1,11 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
+const { CALLABLE_REGIONS } = require("./regions");
 
 /**
  * Send a friend request. Creates entries in both users' friend subcollections atomically.
  */
-exports.sendFriendRequestFn = onCall({ cors: true }, async (request) => {
+exports.sendFriendRequestFn = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in.');
     }
@@ -67,7 +68,7 @@ exports.sendFriendRequestFn = onCall({ cors: true }, async (request) => {
 /**
  * Accept a friend request. Updates both entries atomically.
  */
-exports.acceptFriendRequestFn = onCall({ cors: true }, async (request) => {
+exports.acceptFriendRequestFn = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in.');
     }
@@ -105,7 +106,7 @@ exports.acceptFriendRequestFn = onCall({ cors: true }, async (request) => {
 /**
  * Reject or remove a friend. Deletes both entries atomically.
  */
-exports.rejectFriendRequestFn = onCall({ cors: true }, async (request) => {
+exports.rejectFriendRequestFn = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Must be logged in.');
     }

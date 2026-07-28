@@ -2,6 +2,7 @@ const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const { FieldValue, Timestamp } = require("firebase-admin/firestore");
+const { CALLABLE_REGIONS } = require("./regions");
 
 // --- XP & GAMIFICATION CONSTANTS ---
 
@@ -275,7 +276,8 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
 exports.recalculateAllUserStats = onCall({
     timeoutSeconds: 540,
     memory: '1GiB',
-    cors: true
+    cors: true,
+    region: CALLABLE_REGIONS
 }, async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in.');
 
@@ -330,7 +332,7 @@ exports.recalculateAllUserStats = onCall({
     return results;
 });
 
-exports.getLeaderboard = onCall({ cors: true }, async (request) => {
+exports.getLeaderboard = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {
     const data = request.data || {};
     const category = data.category || 'xp';
     const limitCount = Math.min(data.limit || 20, 100);

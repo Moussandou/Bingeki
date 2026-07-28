@@ -6,6 +6,7 @@ const path = require("path");
 const { Timestamp } = require("firebase-admin/firestore");
 const { escapeHtml } = require("./utils");
 const { getPathContext, resolveStaticSeo } = require("./seoResolver");
+const { CALLABLE_REGIONS } = require("./regions");
 
 // ==================== SVG GENERATORS ====================
 
@@ -577,4 +578,4 @@ app.get('/*', async (req, res) => {
     res.send(html);
 });
 
-exports.seoHandler = onRequest(app);
+exports.seoHandler = onRequest({ region: CALLABLE_REGIONS }, app);

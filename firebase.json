@@ -17,11 +17,17 @@
     "rewrites": [
       {
         "source": "/api/og-image/**",
-        "function": "seoHandler"
+        "function": {
+          "functionId": "seoHandler",
+          "region": "europe-west9"
+        }
       },
       {
         "source": "**",
-        "function": "seoHandler"
+        "function": {
+          "functionId": "seoHandler",
+          "region": "europe-west9"
+        }
       }
     ],
     "headers": [

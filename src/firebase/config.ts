@@ -60,7 +60,9 @@ if (typeof window !== 'undefined') {
 }
 
 export const messaging = getMessaging(app);
-export const functions = getFunctions(app);
+// Doit rester aligné sur setGlobalOptions() dans functions/index.js
+export const FUNCTIONS_REGION = 'europe-west9';
+export const functions = getFunctions(app, FUNCTIONS_REGION);
 
 if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true') {
     connectFunctionsEmulator(functions, 'localhost', 5001);
