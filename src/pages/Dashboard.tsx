@@ -38,8 +38,8 @@ export default function Dashboard() {
     const navigate = useLocalizedNavigate();
     const isMounted = useMounted();
     const { user, userProfile } = useAuthStore();
-    const { level, xp, totalXp, xpToNextLevel, streak, totalChaptersRead, totalAnimeEpisodesWatched, totalMoviesWatched, recalculateStats } = useGamificationStore();
-    const { works } = useLibraryStore();
+    const { level, xp, xpToNextLevel, streak, totalChaptersRead, totalAnimeEpisodesWatched, totalMoviesWatched, recalculateStats } = useGamificationStore();
+    const works = useLibraryStore(state => state.works);
 
     const [friendsActivity, setFriendsActivity] = useState<ActivityEvent[]>([]);
     const [isLoadingActivity, setIsLoadingActivity] = useState(true);
@@ -84,13 +84,15 @@ export default function Dashboard() {
             }
 
             // Force recalculation if totalXp is missing but works exist (Migration & Validation)
-            if (works.length > 0 && totalXp === 0) {
+            // Lus via getState pour ne pas refetcher l'activité/les recos à chaque mutation de la bibliothèque
+            const currentWorks = useLibraryStore.getState().works;
+            if (currentWorks.length > 0 && useGamificationStore.getState().totalXp === 0) {
                 logger.log('[Dashboard] Forcing stat recalculation (Missing totalXp)');
-                recalculateStats(works);
+                recalculateStats(currentWorks);
             }
         }
         loadRecommendations();
-    }, [user, loadFriendsActivity, loadRecommendations, works, totalXp, recalculateStats]);
+    }, [user, loadFriendsActivity, loadRecommendations, recalculateStats]);
 
     const handleRecommendationClick = (work: JikanResult) => {
         setSelectedWork(work);

@@ -1,7 +1,7 @@
 /**
  * Discover page
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
@@ -25,12 +25,13 @@ import { logger } from '@/utils/logger';
 export default function Discover() {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { user } = useAuthStore();
+    const user = useAuthStore(state => state.user);
     const [searchParams] = useSearchParams();
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
     const [searchResults, setSearchResults] = useState<JikanResult[]>([]);
     const [loading, setLoading] = useState(false);
-    const { titleLanguage, hideScores } = useSettingsStore();
+    const titleLanguage = useSettingsStore(state => state.titleLanguage);
+    const hideScores = useSettingsStore(state => state.hideScores);
 
     // Filter States
     const [showFilters, setShowFilters] = useState(false);
@@ -49,8 +50,8 @@ export default function Discover() {
     const [isLoadingSections, setIsLoadingSections] = useState(true);
     const [selectedWork, setSelectedWork] = useState<JikanResult | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { works } = useLibraryStore();
-    const libraryIds = new Set(works.map(w => w.id));
+    const works = useLibraryStore(state => state.works);
+    const libraryIds = useMemo(() => new Set<string | number>(works.map(w => w.id)), [works]);
 
     const dataFetched = useRef(false);
 
@@ -118,8 +119,11 @@ export default function Discover() {
 
     // Search Logic with Filters
     useEffect(() => {
+        const abortController = new AbortController();
         const delayDebounceFn = setTimeout(async () => {
-            const hasActiveFilters = filterStatus || filterRating || filterScore > 0 || filterYear || selectedGenre || filterStudio;
+            // Année partielle ("2", "20"…) ignorée : elle déclenchait des recherches start_date invalides
+            const validYear = filterYear.length === 4 ? filterYear : '';
+            const hasActiveFilters = filterStatus || filterRating || filterScore > 0 || validYear || selectedGenre || filterStudio;
 
             if (searchQuery.length > 2 || hasActiveFilters) {
                 logger.time('[Perf] Search Lifecycle');
@@ -129,24 +133,27 @@ export default function Discover() {
                 if (filterStatus) filters.status = filterStatus;
                 if (filterRating) filters.rating = filterRating as SearchFilters['rating'];
                 if (filterScore > 0) filters.min_score = filterScore;
-                if (filterYear) filters.start_date = `${filterYear}-01-01`;
+                if (validYear) filters.start_date = `${validYear}-01-01`;
                 if (selectedGenre) filters.genres = selectedGenre.toString();
                 if (filterStudio) filters.producers = filterStudio;
+
+                const searchOptions = { priority: 'high' as const, signal: abortController.signal };
 
                 try {
                     // Perform search for Anime and default to searching both if technically possible
                     // If filterStudio is set, it typically applies well to Anime.
 
                     const promises = [
-                        searchWorks(searchQuery, 'anime', filters)
+                        searchWorks(searchQuery, 'anime', filters, 1, searchOptions)
                     ];
 
                     // Only search manga if we aren't filtering by strictly Anime-only fields
                     if (!filterStudio) {
-                        promises.push(searchWorks(searchQuery, 'manga', filters));
+                        promises.push(searchWorks(searchQuery, 'manga', filters, 1, searchOptions));
                     }
 
                     const [animeResults, mangaResults = []] = await Promise.all(promises);
+                    if (abortController.signal.aborted) return;
 
                     // Concat: Anime first (primary), then Manga.
                     const allResults = [...animeResults, ...mangaResults];
@@ -170,17 +177,23 @@ export default function Discover() {
                     logger.timeEnd('[Perf] Search Lifecycle');
                     setSearchResults(uniqueResults);
                 } catch (err) {
-                    logger.error("Search failed", err);
-                    setSearchResults([]);
+                    // Une recherche annulée par la suivante ne doit pas écraser son état
+                    if (!abortController.signal.aborted) {
+                        logger.error("Search failed", err);
+                        setSearchResults([]);
+                    }
                 } finally {
-                    setLoading(false);
+                    if (!abortController.signal.aborted) setLoading(false);
                 }
             } else {
                 setSearchResults([]);
             }
         }, 500);
 
-        return () => clearTimeout(delayDebounceFn);
+        return () => {
+            clearTimeout(delayDebounceFn);
+            abortController.abort();
+        };
     }, [searchQuery, selectedGenre, filterStatus, filterRating, filterScore, filterYear, filterStudio]);
 
     const handleGenreClick = (id: number) => {
@@ -625,10 +638,9 @@ export default function Discover() {
                                                     onClick={() => handleWorkClick(work)}
                                                 >
                                                     <div style={{ position: 'relative', aspectRatio: '2/3', borderBottom: '2px solid var(--color-border-heavy)', flexShrink: 0 }}>
-                                                        <OptimizedImage 
-                                                            src={work.images.jpg.image_url} 
-                                                            lowResSrc={work.images.jpg.small_image_url}
-                                                            alt={getDisplayTitle(work, titleLanguage)} 
+                                                        <OptimizedImage
+                                                            src={work.images.jpg.image_url}
+                                                            alt={getDisplayTitle(work, titleLanguage)}
                                                             priority={index < 4}
                                                         />
                                                         {isOwned && (
@@ -734,7 +746,6 @@ export default function Discover() {
                                 onAdd={handleQuickAdd}
                                 loading={isLoadingSections}
                                 showRank
-                                priority={true}
                             />
 
                             <Carousel

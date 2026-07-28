@@ -141,6 +141,37 @@ describe('PriorityQueue', () => {
             await expect(queue.run(fn)).rejects.toMatchObject({ name: 'AbortError' });
             expect(fn).toHaveBeenCalledTimes(1);
         });
+
+        it('does not retry on rate limiting (backend already retried)', async () => {
+            const queue = new PriorityQueue(0);
+            const fn = vi.fn().mockRejectedValue(
+                Object.assign(new Error('Rate limited'), { code: 'functions/resource-exhausted' })
+            );
+
+            await expect(queue.run(fn)).rejects.toMatchObject({ code: 'functions/resource-exhausted' });
+            expect(fn).toHaveBeenCalledTimes(1);
+        });
+
+        it('frees the concurrency slot during the retry backoff', async () => {
+            const queue = new PriorityQueue(50, 1); // single slot, 50ms backoff
+            const order: string[] = [];
+            let hasFailed = false;
+
+            const a = queue.run(async () => {
+                if (!hasFailed) {
+                    hasFailed = true;
+                    order.push('a-fail');
+                    throw new Error('temporary');
+                }
+                order.push('a-retry');
+            });
+            const b = queue.run(async () => { order.push('b'); });
+
+            await Promise.all([a, b]);
+
+            // b must run during a's backoff, not after it
+            expect(order).toEqual(['a-fail', 'b', 'a-retry']);
+        });
     });
 
     describe('status', () => {

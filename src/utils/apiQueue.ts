@@ -105,11 +105,11 @@ export class PriorityQueue {
                 typeof (error as { status: unknown }).status === 'number' &&
                 (error as { status: number }).status >= 400 &&
                 (error as { status: number }).status < 500;
-            // FirebaseError codes that will never succeed on retry
+            // FirebaseError codes that will never succeed on retry (backend already retried 429/5xx)
             const fbCode = (error as { code?: unknown })?.code;
             const isNonRetryableFb =
                 typeof fbCode === 'string' &&
-                ['functions/invalid-argument', 'functions/not-found', 'functions/permission-denied', 'functions/unauthenticated', 'functions/failed-precondition'].includes(fbCode);
+                ['functions/invalid-argument', 'functions/not-found', 'functions/permission-denied', 'functions/unauthenticated', 'functions/failed-precondition', 'functions/resource-exhausted', 'functions/unavailable'].includes(fbCode);
 
             if (isAbort || is4xx || isNonRetryableFb || task.retries >= MAX_RETRIES) {
                 task.reject(error);
@@ -119,9 +119,11 @@ export class PriorityQueue {
             task.retries++;
             const delay = this.baseRetryDelay * Math.pow(2, task.retries - 1);
             logger.warn(`[PriorityQueue] Retry ${task.retries}/${MAX_RETRIES} in ${delay}ms`);
-            await new Promise(r => setTimeout(r, delay));
-            // Re-queue at front for retry
-            this.queues[task.priority].unshift(task);
+            // Deferred re-queue: frees the concurrency slot during the backoff
+            setTimeout(() => {
+                this.queues[task.priority].unshift(task);
+                this.drain();
+            }, delay);
         }
     }
 

@@ -178,7 +178,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
                     }}
                     loading={priority ? 'eager' : 'lazy'}
                     fetchPriority={priority ? 'high' : 'auto'}
-                    decoding={priority ? 'sync' : 'async'}
+                    decoding="async"
                     referrerPolicy="no-referrer"
                     crossOrigin={crossOriginValue}
                     {...props}

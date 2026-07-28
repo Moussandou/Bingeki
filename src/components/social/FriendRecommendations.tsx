@@ -18,15 +18,31 @@ interface RecommendedWork {
     friendsWatching: { name: string; photo: string }[];
 }
 
+// Cache de session : évite de rejouer le waterfall Firestore (amis + bibliothèques) à chaque montage
+let recsSessionCache: { uid: string; ts: number; data: RecommendedWork[] } | null = null;
+const RECS_CACHE_TTL = 5 * 60 * 1000;
+
+const getFreshRecsCache = (uid: string | undefined): RecommendedWork[] | null => {
+    if (!uid || !recsSessionCache) return null;
+    if (recsSessionCache.uid !== uid || Date.now() - recsSessionCache.ts > RECS_CACHE_TTL) return null;
+    return recsSessionCache.data;
+};
+
 export function FriendRecommendations() {
-    const { user } = useAuthStore();
+    const user = useAuthStore(state => state.user);
     const navigate = useNavigate();
 
-    const [recommendations, setRecommendations] = useState<RecommendedWork[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [recommendations, setRecommendations] = useState<RecommendedWork[]>(() => getFreshRecsCache(user?.uid) ?? []);
+    const [isLoading, setIsLoading] = useState(() => getFreshRecsCache(user?.uid) === null);
 
     const loadRecommendations = useCallback(async () => {
         if (!user) return;
+        const cached = getFreshRecsCache(user.uid);
+        if (cached) {
+            setRecommendations(cached);
+            setIsLoading(false);
+            return;
+        }
         setIsLoading(true);
 
         try {
@@ -35,6 +51,7 @@ export function FriendRecommendations() {
             const acceptedFriends = friends.filter(f => f.status === 'accepted');
 
             if (acceptedFriends.length === 0) {
+                recsSessionCache = { uid: user.uid, ts: Date.now(), data: [] };
                 setRecommendations([]);
                 setIsLoading(false);
                 return;
@@ -83,6 +100,7 @@ export function FriendRecommendations() {
                     friendsWatching: data.friends
                 }));
 
+            recsSessionCache = { uid: user.uid, ts: Date.now(), data: sortedWorks };
             setRecommendations(sortedWorks);
         } catch (error) {
             logger.error('Error loading recommendations:', error);

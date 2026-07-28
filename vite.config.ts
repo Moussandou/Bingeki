@@ -51,13 +51,15 @@ export default defineConfig({
         runtimeCaching: [
           {
             // MAL cover URLs are immutable: serve from cache instantly
+            // maxEntries réduit : les réponses opaques comptent ~7 Mo de quota chacune sous Chromium
             urlPattern: /^https:\/\/cdn\.myanimelist\.net\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'mal-images',
               expiration: {
-                maxEntries: 500,
+                maxEntries: 300,
                 maxAgeSeconds: 30 * 24 * 60 * 60, // 30 jours
+                purgeOnQuotaError: true,
               },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -70,6 +72,7 @@ export default defineConfig({
               expiration: {
                 maxEntries: 200,
                 maxAgeSeconds: 30 * 24 * 60 * 60,
+                purgeOnQuotaError: true,
               },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -82,6 +85,7 @@ export default defineConfig({
               expiration: {
                 maxEntries: 300,
                 maxAgeSeconds: 7 * 24 * 60 * 60,
+                purgeOnQuotaError: true,
               },
               cacheableResponse: { statuses: [0, 200] },
             },

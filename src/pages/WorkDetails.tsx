@@ -173,10 +173,18 @@ export default function WorkDetails() {
     const [showScrollTop, setShowScrollTop] = useState(false);
 
 
+    // Reset fetch state when navigating to another work
+    useEffect(() => {
+        setFetchedWork(null);
+        setFetchError(null);
+        setIsFetchingDetails(false);
+    }, [id]);
+
     // Initial Fetch for non-library items
     useEffect(() => {
         // Fetch details if we don't have them in state (fetchedWork), even if we have the library work (which might be stale/minimal)
-        if (id && !fetchedWork && !isFetchingDetails) {
+        // !fetchError: sans cette garde, un échec relançait le fetch en boucle infinie
+        if (id && !fetchedWork && !isFetchingDetails && !fetchError) {
             setIsFetchingDetails(true);
             let typeToFetch: 'anime' | 'manga' = 'anime';
             // 1. Priority: check library
@@ -264,7 +272,7 @@ export default function WorkDetails() {
 
             loadWork(typeToFetch);
         }
-    }, [id, libraryWork, fetchedWork, typeParam, isFetchingDetails]);
+    }, [id, libraryWork, fetchedWork, typeParam, isFetchingDetails, fetchError]);
 
     // Fetch Characters, Relations, Recommendations, Pictures
     // Fetch Characters, Relations, Recommendations, Pictures
@@ -289,18 +297,7 @@ export default function WorkDetails() {
                 setRecommendations(recs);
                 setPictures(pics);
 
-                // Fetch other data only if we are in the respective tab or section is expanded
-                // This will be handled by specific tab activation later or if we just want to avoid hitting the API too much on mount
-                // For now, let's keep statistics, staff, and reviews delayed or concurrent
-                
-                // Statistics
-                getWorkStatistics(Number(id), type).then(setStatistics);
-                
-                if (type === 'anime') {
-                    getAnimeStaff(Number(id)).then(setStaff);
-                }
-                
-                getWorkReviews(Number(id), type).then(setReviews);
+                // Statistics, staff et reviews sont fetchés à l'ouverture de leur onglet
 
             } catch (error) {
                 logger.error('Error fetching details:', error);
@@ -390,6 +387,21 @@ export default function WorkDetails() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [work?.id, work?.type, work?.totalChapters, activeTab, episodesPage]);
+
+    // Stats & staff fetched only when the tab is opened
+    useEffect(() => {
+        if (activeTab !== 'stats' || !work?.type || statistics) return;
+        const type = work.type === 'manga' ? 'manga' : 'anime';
+        getWorkStatistics(Number(id), type).then(setStatistics);
+        if (type === 'anime') getAnimeStaff(Number(id)).then(setStaff);
+    }, [activeTab, work?.type, id, statistics]);
+
+    // Reviews fetched only when the tab is opened
+    useEffect(() => {
+        if (activeTab !== 'reviews' || !work?.type || reviews.length > 0) return;
+        const type = work.type === 'manga' ? 'manga' : 'anime';
+        getWorkReviews(Number(id), type).then(setReviews);
+    }, [activeTab, work?.type, id, reviews.length]);
 
     // Load friends reading when work changes
     useEffect(() => {

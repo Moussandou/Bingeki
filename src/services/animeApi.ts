@@ -70,14 +70,42 @@ interface CacheEntry<T> {
 const API_CACHE = new Map<string, CacheEntry<unknown>>();
 
 // Different TTLs for different content stability
-const CACHE_TTL_SHORT = 10 * 60 * 1000;   // 10 min — search results, trending
+const CACHE_TTL_SHORT = 30 * 60 * 1000;   // 30 min — search results
 const CACHE_TTL_MEDIUM = 60 * 60 * 1000;  // 1 hour — reviews, stats, staff
 const CACHE_TTL_LONG = 4 * 60 * 60 * 1000; // 4 hours — anime details, characters, episodes
+const CACHE_TTL_LISTS = 6 * 60 * 60 * 1000; // 6 hours — top/seasonal/schedule (Jikan les cache 24 h en amont)
+const CACHE_STALE_MAX = 7 * 24 * 60 * 60 * 1000; // au-delà, une entrée expirée n'est plus servie en stale
 
 const LS_PREFIX = 'bgk_c_';
 
+/** One-shot cleanup des clés jetables persistées par les anciens builds (saturaient le quota) */
+let lsPurged = false;
+const purgeLegacyLS = (): void => {
+    if (lsPurged) return;
+    lsPurged = true;
+    try {
+        const now = Date.now();
+        for (const k of Object.keys(localStorage)) {
+            if (!k.startsWith(LS_PREFIX)) continue;
+            if (k.startsWith(`${LS_PREFIX}jikan_status_`) || k.startsWith(`${LS_PREFIX}random_anime_`)) {
+                localStorage.removeItem(k);
+                continue;
+            }
+            try {
+                const e = JSON.parse(localStorage.getItem(k) || '') as CacheEntry<unknown>;
+                if (!e || typeof e.timestamp !== 'number' || now - e.timestamp > CACHE_STALE_MAX) {
+                    localStorage.removeItem(k);
+                }
+            } catch {
+                localStorage.removeItem(k);
+            }
+        }
+    } catch { /* localStorage unavailable — ignore */ }
+};
+
 /** Read from localStorage into the in-memory map (lazy, on first access per key). */
 const hydrateFromLS = (key: string): void => {
+    purgeLegacyLS();
     if (API_CACHE.has(key)) return;
     try {
         const raw = localStorage.getItem(LS_PREFIX + key);
@@ -95,52 +123,49 @@ const persistToLS = (key: string, entry: CacheEntry<unknown>): void => {
     try {
         localStorage.setItem(LS_PREFIX + key, JSON.stringify(entry));
     } catch {
-        // Quota exceeded — remove oldest bgk_c_ entries and retry once
+        // Quota exceeded — evict the oldest ~25% of bgk_c_ entries and retry once
         try {
             const lsKeys = Object.keys(localStorage).filter(k => k.startsWith(LS_PREFIX));
             if (lsKeys.length > 0) {
-                // Remove the one with the oldest timestamp
-                let oldest = lsKeys[0];
-                let oldestTs = Infinity;
-                for (const k of lsKeys) {
+                const dated = lsKeys.map(k => {
                     try {
-                        const e = JSON.parse(localStorage.getItem(k) || '{}') as CacheEntry<unknown>;
-                        if (e.timestamp < oldestTs) { oldestTs = e.timestamp; oldest = k; }
-                    } catch { /* skip */ }
-                }
-                localStorage.removeItem(oldest);
+                        return { k, ts: (JSON.parse(localStorage.getItem(k) || '{}') as CacheEntry<unknown>).timestamp ?? 0 };
+                    } catch {
+                        return { k, ts: 0 };
+                    }
+                }).sort((a, b) => a.ts - b.ts);
+                const evictCount = Math.max(1, Math.ceil(dated.length / 4));
+                for (const { k } of dated.slice(0, evictCount)) localStorage.removeItem(k);
                 localStorage.setItem(LS_PREFIX + key, JSON.stringify(entry));
             }
         } catch { /* still no space — skip silently */ }
     }
 };
 
-const getCached = <T>(key: string, ttl: number = CACHE_TTL_SHORT): T | null => {
+interface CachedLookup<T> {
+    data: T;
+    isStale: boolean;
+    isError?: boolean;
+}
+
+/** Fraîche → isStale:false ; expirée < CACHE_STALE_MAX → isStale:true (servie pendant le refresh) ; au-delà → null */
+const getCachedEntry = <T>(key: string, ttl: number): CachedLookup<T> | null => {
     hydrateFromLS(key);
     const cached = API_CACHE.get(key) as CacheEntry<T> | undefined;
-    if (cached && Date.now() - cached.timestamp < ttl) {
-        if (cached.isError) return null;
-        return cached.data;
-    }
-    if (cached) {
-        API_CACHE.delete(key);
-        try { localStorage.removeItem(LS_PREFIX + key); } catch { /* ignore */ }
-    }
+    if (!cached) return null;
+    const age = Date.now() - cached.timestamp;
+    if (age < ttl) return { data: cached.data, isStale: false, isError: cached.isError };
+    if (age < CACHE_STALE_MAX && !cached.isError) return { data: cached.data, isStale: true };
+    API_CACHE.delete(key);
+    try { localStorage.removeItem(LS_PREFIX + key); } catch { /* ignore */ }
     return null;
 };
 
 const getCachedDetail = <T>(key: string, ttl: number = CACHE_TTL_LONG): T | 'NOT_FOUND' | null => {
-    hydrateFromLS(key);
-    const cached = API_CACHE.get(key) as CacheEntry<T> | undefined;
-    if (cached && Date.now() - cached.timestamp < ttl) {
-        if (cached.isError) return 'NOT_FOUND';
-        return cached.data;
-    }
-    if (cached) {
-        API_CACHE.delete(key);
-        try { localStorage.removeItem(LS_PREFIX + key); } catch { /* ignore */ }
-    }
-    return null;
+    const cached = getCachedEntry<T>(key, ttl);
+    if (!cached || cached.isStale) return null;
+    if (cached.isError) return 'NOT_FOUND';
+    return cached.data;
 };
 
 const setCache = <T>(key: string, data: T, isError: boolean = false) => {
@@ -152,6 +177,26 @@ const setCache = <T>(key: string, data: T, isError: boolean = false) => {
 /** In-flight requests — prevents duplicate concurrent calls (e.g. React StrictMode double-mount) */
 const inflight = new Map<string, Promise<unknown>>();
 
+// --- Direct Jikan calls : 3-6x plus rapides que le proxy (CDN + cache navigateur), proxy en fallback ---
+const JIKAN_BASE = 'https://api.jikan.moe/v4';
+// Désactivé en test : jsdom tenterait de vrais appels réseau
+const DIRECT_ENABLED = typeof window !== 'undefined' && import.meta.env.MODE !== 'test';
+
+interface DirectCall {
+    path: string;
+    /** true : renvoie le JSON complet ({ data, pagination }) comme les endpoints paginés du proxy */
+    full?: boolean;
+}
+
+async function jikanDirect(path: string, returnFull: boolean): Promise<unknown> {
+    const res = await fetch(`${JIKAN_BASE}${path}`, {
+        signal: AbortSignal.timeout(10000),
+        headers: { 'Accept': 'application/json' },
+    });
+    if (!res.ok) throw new ApiError(res.status, `Jikan HTTP ${res.status} for ${path}`);
+    const json = await res.json();
+    return returnFull ? json : json.data;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function callProxy<T, I = any>(
@@ -161,33 +206,57 @@ async function callProxy<T, I = any>(
     cacheKey: string,
     ttl: number,
     defaultValue?: T,
-    options?: CallOptions
+    options?: CallOptions,
+    direct?: DirectCall
 ): Promise<T> {
-    const sessionCached = getCached<T>(cacheKey, ttl);
-    if (sessionCached !== null) {
+    const cached = ttl > 0 ? getCachedEntry<T>(cacheKey, ttl) : null;
+    if (cached && !cached.isError && !cached.isStale) {
         logger.debug(`%c[Cache] SESSION HIT`, 'color: #22c55e; font-weight: bold', cacheKey);
-        return sessionCached;
+        return cached.data;
     }
+    const staleData = cached && !cached.isError && cached.isStale ? cached.data : undefined;
+
     if (inflight.has(cacheKey)) {
         logger.debug(`%c[Cache] IN-FLIGHT`, 'color: #a855f7; font-weight: bold', cacheKey);
+        if (staleData !== undefined) return staleData;
         return inflight.get(cacheKey) as Promise<T>;
     }
-    logger.debug(`%c[Cache] SESSION MISS — calling Cloud Function`, 'color: #f59e0b; font-weight: bold', cacheKey, args);
+    logger.debug(`%c[Cache] SESSION MISS${staleData !== undefined ? ' (stale servie)' : ''}`, 'color: #f59e0b; font-weight: bold', cacheKey, args);
 
     const promise = jikanQueue.run<T>(
         async () => {
             const t0 = performance.now();
-            const result = await fn(args);
-            const data = result.data as T;
+            let data: T;
+            if (direct && DIRECT_ENABLED) {
+                try {
+                    data = await jikanDirect(direct.path, direct.full === true) as T;
+                    logger.debug(`%c[Jikan direct] OK`, 'color: #10b981; font-weight: bold', cacheKey, `${Math.round(performance.now() - t0)}ms`);
+                } catch (directError) {
+                    // 4xx direct (hors 429) : le proxy renverrait la même chose — inutile de rejouer
+                    if (directError instanceof ApiError && directError.status >= 400 && directError.status < 500 && directError.status !== 429) {
+                        throw directError;
+                    }
+                    logger.debug(`%c[Jikan direct] fallback proxy`, 'color: #f97316', cacheKey, directError);
+                    const result = await fn(args);
+                    data = result.data as T;
+                }
+            } else {
+                const result = await fn(args);
+                data = result.data as T;
+            }
             if (ttl > 0) setCache<T>(cacheKey, data);
-            logger.debug(`%c[Cloud Function] OK`, 'color: #3b82f6; font-weight: bold', cacheKey, `${Math.round(performance.now() - t0)}ms`);
+            logger.debug(`%c[API] OK`, 'color: #3b82f6; font-weight: bold', cacheKey, `${Math.round(performance.now() - t0)}ms`);
             return data;
         },
         options
     ).catch((error: unknown) => {
-        logger.error(`%c[Cloud Function] ERROR`, 'color: #ef4444; font-weight: bold', cacheKey, error);
+        logger.error(`%c[API] ERROR`, 'color: #ef4444; font-weight: bold', cacheKey, error);
+        if (staleData !== undefined) {
+            logger.warn(`%c[API] Refresh échoué — on garde la valeur stale`, 'color: #f97316', cacheKey);
+            return staleData;
+        }
         if (defaultValue !== undefined) {
-            logger.warn(`%c[Cloud Function] Falling back to default value for`, 'color: #f97316', cacheKey);
+            logger.warn(`%c[API] Falling back to default value for`, 'color: #f97316', cacheKey);
             return defaultValue;
         }
         throw error;
@@ -195,6 +264,11 @@ async function callProxy<T, I = any>(
 
     inflight.set(cacheKey, promise);
     promise.finally(() => inflight.delete(cacheKey));
+
+    if (staleData !== undefined) {
+        // Stale-while-revalidate : on sert l'ancienne valeur, le refresh met le cache à jour
+        return staleData;
+    }
     return promise;
 }
 
@@ -273,6 +347,8 @@ export interface SearchFilters {
     limit?: number;
 }
 
+const SEARCH_FILTER_KEYS: (keyof SearchFilters)[] = ['min_score', 'status', 'genres', 'order_by', 'sort', 'rating', 'start_date', 'end_date', 'producers', 'limit'];
+
 export const searchWorks = async (
     query: string,
     type: 'anime' | 'manga' = 'manga',
@@ -282,16 +358,31 @@ export const searchWorks = async (
 ): Promise<JikanResult[]> => {
     const { nsfwMode } = useSettingsStore.getState();
     const cacheKey = `search_${type}_${query}_${JSON.stringify(filters || {})}_nsfw_${nsfwMode}_p${page}`;
+    // Miroir de la query string construite par le backend (searchWorks, jikan_proxy.js)
+    let direct: DirectCall | undefined;
+    if (!nsfwMode) {
+        const params = new URLSearchParams({ page: String(page), sfw: 'true' });
+        if (query) params.set('q', query);
+        for (const k of SEARCH_FILTER_KEYS) {
+            const v = filters?.[k];
+            if (v !== undefined && v !== null && v !== '') params.set(k, String(v));
+        }
+        direct = { path: `/${type}?${params.toString()}`, full: true };
+    }
     const result = await callProxy<{ data: JikanResult[] }>(
         searchWorksFn,
         { query, type, page, filters, nsfwMode },
         cacheKey,
         CACHE_TTL_SHORT,
         { data: [] },
-        options
+        options,
+        direct
     );
     return result?.data ?? [];
 };
+
+// Toujours fetché avec limit=24 sous une clé unique puis slicé — évite 3 fetchs des mêmes tops
+const TOP_FETCH_LIMIT = 24;
 
 export const getTopWorks = async (
     type: 'anime' | 'manga' = 'manga',
@@ -300,27 +391,36 @@ export const getTopWorks = async (
     options?: CallOptions
 ): Promise<JikanResult[]> => {
     const { nsfwMode } = useSettingsStore.getState();
-    const cacheKey = `top_${type}_${filter}_${limit}_nsfw_${nsfwMode}`;
-    return callProxy<JikanResult[]>(
+    const cacheKey = `top_${type}_${filter}_${TOP_FETCH_LIMIT}_nsfw_${nsfwMode}`;
+    const direct: DirectCall | undefined = nsfwMode
+        ? undefined
+        : { path: `/top/${type}?filter=${filter}&limit=${TOP_FETCH_LIMIT}&sfw=true` };
+    const data = await callProxy<JikanResult[]>(
         getTopWorksFn,
-        { type, filter, limit, nsfwMode },
+        { type, filter, limit: TOP_FETCH_LIMIT, nsfwMode },
         cacheKey,
-        CACHE_TTL_SHORT,
+        CACHE_TTL_LISTS,
         [],
-        options
+        options,
+        direct
     );
+    return (data ?? []).slice(0, limit);
 };
 
 export const getSeasonalAnime = async (limit: number = 24, options?: CallOptions): Promise<JikanResult[]> => {
     const { nsfwMode } = useSettingsStore.getState();
     const cacheKey = `seasonal_${limit}_nsfw_${nsfwMode}`;
+    const direct: DirectCall | undefined = nsfwMode
+        ? undefined
+        : { path: `/seasons/now?limit=${limit}&sfw=true` };
     return callProxy<JikanResult[]>(
         getSeasonalAnimeFn,
         { limit, nsfwMode },
         cacheKey,
-        CACHE_TTL_SHORT,
+        CACHE_TTL_LISTS,
         [],
-        options
+        options,
+        direct
     );
 };
 
@@ -344,7 +444,9 @@ export const getAnimeEpisodes = async (id: number, page: number = 1): Promise<{ 
         { id, page },
         cacheKey,
         CACHE_TTL_LONG,
-        { data: [], pagination: { has_next_page: false, last_visible_page: 1 } }
+        { data: [], pagination: { has_next_page: false, last_visible_page: 1 } },
+        undefined,
+        { path: `/anime/${id}/episodes?page=${page}`, full: true }
     );
 };
 
@@ -360,35 +462,44 @@ export const getAnimeEpisodeDetails = async (
         cacheKey,
         CACHE_TTL_LONG,
         null,
-        options
+        options,
+        { path: `/anime/${id}/episodes/${episodeId}` }
     );
 };
 
-export const getWorkDetails = async (id: number, type: 'anime' | 'manga'): Promise<JikanResult> => {
+/** Chemin commun getWorkDetails/getWorkFull : callProxy (file + inflight + direct) avec cache d'erreur 404 */
+const fetchWorkFullCore = async <T extends JikanResult>(id: number, type: 'anime' | 'manga'): Promise<T> => {
     const cacheKey = `${type}_${id}_details`;
-    const sessionCached = getCachedDetail<JikanResult>(cacheKey, CACHE_TTL_LONG);
+    const sessionCached = getCachedDetail<T>(cacheKey, CACHE_TTL_LONG);
     if (sessionCached === 'NOT_FOUND') throw new ApiError(404, `${type} with ID ${id} not found (cached)`);
     if (sessionCached) {
         logger.debug(`%c[Cache] SESSION HIT`, 'color: #22c55e; font-weight: bold', cacheKey);
         return sessionCached;
     }
 
-    logger.debug(`%c[Cache] SESSION MISS — calling Cloud Function getWorkDetails`, 'color: #f59e0b; font-weight: bold', { id, type });
     try {
-        const t0 = performance.now();
-        const result = await getWorkDetailsFn({ id, type });
-        if (!result.data) {
+        const data = await callProxy<T | null>(
+            getWorkDetailsFn,
+            { id, type },
+            cacheKey,
+            CACHE_TTL_LONG,
+            undefined,
+            { priority: 'high' },
+            { path: `/${type}/${id}/full` }
+        );
+        if (!data) {
             setCache(cacheKey, null, true);
             throw new ApiError(404, `${type} with ID ${id} not found`);
         }
-        const data = result.data as JikanResult;
-        setCache<JikanResult>(cacheKey, data);
-        logger.debug(`%c[Cloud Function] getWorkDetails OK`, 'color: #3b82f6; font-weight: bold', `${Math.round(performance.now() - t0)}ms`);
         return data;
     } catch (error) {
-        logger.error(`%c[Cloud Function] getWorkDetails ERROR`, 'color: #ef4444; font-weight: bold', error);
+        if (error instanceof ApiError && error.status === 404) setCache(cacheKey, null, true);
         throw error;
     }
+};
+
+export const getWorkDetails = async (id: number, type: 'anime' | 'manga'): Promise<JikanResult> => {
+    return fetchWorkFullCore<JikanResult>(id, type);
 };
 
 /**
@@ -404,30 +515,7 @@ export interface JikanResultFull extends JikanResult {
 
 export const getWorkFull = async (id: number, type: 'anime' | 'manga'): Promise<JikanResultFull> => {
     // Same backend endpoint as getWorkDetails (/full) — share the cache key to avoid double fetches
-    const cacheKey = `${type}_${id}_details`;
-    const sessionCached = getCachedDetail<JikanResultFull>(cacheKey, CACHE_TTL_LONG);
-    if (sessionCached === 'NOT_FOUND') throw new ApiError(404, `Full ${type} with ID ${id} not found (cached)`);
-    if (sessionCached) {
-        logger.debug(`%c[Cache] SESSION HIT`, 'color: #22c55e; font-weight: bold', cacheKey);
-        return sessionCached;
-    }
-
-    logger.debug(`%c[Cache] SESSION MISS — calling Cloud Function getWorkFull`, 'color: #f59e0b; font-weight: bold', { id, type });
-    try {
-        const t0 = performance.now();
-        const result = await getWorkDetailsFn({ id, type });
-        if (!result.data) {
-            setCache(cacheKey, null, true);
-            throw new ApiError(404, `Full ${type} with ID ${id} not found`);
-        }
-        const data = result.data as JikanResultFull;
-        setCache<JikanResultFull>(cacheKey, data);
-        logger.debug(`%c[Cloud Function] getWorkFull OK`, 'color: #3b82f6; font-weight: bold', `${Math.round(performance.now() - t0)}ms`);
-        return data;
-    } catch (error) {
-        logger.error(`%c[Cloud Function] getWorkFull ERROR`, 'color: #ef4444; font-weight: bold', error);
-        throw error;
-    }
+    return fetchWorkFullCore<JikanResultFull>(id, type);
 };
 
 export interface JikanVoiceActor {
@@ -461,7 +549,7 @@ export interface JikanCharacter {
 }
 
 export const getWorkCharacters = async (id: number, type: 'anime' | 'manga'): Promise<JikanCharacter[]> => {
-    return callProxy(getWorkCharactersFn, { id, type }, `${type}_${id}_characters`, CACHE_TTL_LONG, []);
+    return callProxy(getWorkCharactersFn, { id, type }, `${type}_${id}_characters`, CACHE_TTL_LONG, [], undefined, { path: `/${type}/${id}/characters` });
 };
 
 export interface JikanRelation {
@@ -475,7 +563,7 @@ export interface JikanRelation {
 }
 
 export const getWorkRelations = async (id: number, type: 'anime' | 'manga'): Promise<JikanRelation[]> => {
-    return callProxy(getWorkRelationsFn, { id, type }, `${type}_${id}_relations`, CACHE_TTL_LONG, []);
+    return callProxy(getWorkRelationsFn, { id, type }, `${type}_${id}_relations`, CACHE_TTL_LONG, [], undefined, { path: `/${type}/${id}/relations` });
 };
 
 export interface JikanRecommendation {
@@ -494,7 +582,7 @@ export interface JikanRecommendation {
 }
 
 export const getWorkRecommendations = async (id: number, type: 'anime' | 'manga'): Promise<JikanRecommendation[]> => {
-    return callProxy(getWorkRecommendationsFn, { id, type }, `${type}_${id}_recommendations`, CACHE_TTL_MEDIUM, []);
+    return callProxy(getWorkRecommendationsFn, { id, type }, `${type}_${id}_recommendations`, CACHE_TTL_MEDIUM, [], undefined, { path: `/${type}/${id}/recommendations` });
 };
 
 export interface JikanPicture {
@@ -505,7 +593,7 @@ export interface JikanPicture {
 }
 
 export const getWorkPictures = async (id: number, type: 'anime' | 'manga'): Promise<JikanPicture[]> => {
-    return callProxy(getWorkPicturesFn, { id, type }, `${type}_${id}_pictures`, CACHE_TTL_LONG, []);
+    return callProxy(getWorkPicturesFn, { id, type }, `${type}_${id}_pictures`, CACHE_TTL_LONG, [], undefined, { path: `/${type}/${id}/pictures` });
 };
 
 export interface JikanTheme {
@@ -514,7 +602,7 @@ export interface JikanTheme {
 }
 
 export const getWorkThemes = async (id: number): Promise<JikanTheme> => {
-    return callProxy(getAnimeThemesFn, { id }, `anime_${id}_themes`, CACHE_TTL_LONG, { openings: [], endings: [] });
+    return callProxy(getAnimeThemesFn, { id }, `anime_${id}_themes`, CACHE_TTL_LONG, { openings: [], endings: [] }, undefined, { path: `/anime/${id}/themes` });
 };
 
 export interface JikanStatistics {
@@ -532,7 +620,7 @@ export interface JikanStatistics {
 }
 
 export const getWorkStatistics = async (id: number, type: 'anime' | 'manga'): Promise<JikanStatistics | null> => {
-    return callProxy(getWorkStatisticsFn, { id, type }, `${type}_${id}_statistics`, CACHE_TTL_MEDIUM, null);
+    return callProxy(getWorkStatisticsFn, { id, type }, `${type}_${id}_statistics`, CACHE_TTL_MEDIUM, null, undefined, { path: `/${type}/${id}/statistics` });
 };
 
 export interface JikanStreaming {
@@ -541,7 +629,7 @@ export interface JikanStreaming {
 }
 
 export const getAnimeStreaming = async (id: number): Promise<JikanStreaming[]> => {
-    return callProxy(getAnimeStreamingFn, { id }, `anime_${id}_streaming`, CACHE_TTL_LONG, []);
+    return callProxy(getAnimeStreamingFn, { id }, `anime_${id}_streaming`, CACHE_TTL_LONG, [], undefined, { path: `/anime/${id}/streaming` });
 };
 
 export interface JikanStaff {
@@ -560,19 +648,23 @@ export interface JikanStaff {
 
 
 export const getAnimeStaff = async (id: number): Promise<JikanStaff[]> => {
-    return callProxy(getAnimeStaffFn, { id }, `anime_${id}_staff`, CACHE_TTL_LONG, []);
+    return callProxy(getAnimeStaffFn, { id }, `anime_${id}_staff`, CACHE_TTL_LONG, [], undefined, { path: `/anime/${id}/staff` });
 };
 
 export const getAnimeSchedule = async (filter?: string, options?: CallOptions): Promise<JikanResult[]> => {
     const { nsfwMode } = useSettingsStore.getState();
     const cacheKey = `schedule_${filter || 'all'}_nsfw_${nsfwMode}`;
+    const direct: DirectCall | undefined = nsfwMode
+        ? undefined
+        : { path: filter ? `/schedules?filter=${filter}&sfw=true` : '/schedules?sfw=true' };
     return callProxy<JikanResult[]>(
         getAnimeScheduleFn,
         { filter, nsfwMode },
         cacheKey,
-        CACHE_TTL_SHORT,
+        CACHE_TTL_LISTS,
         [],
-        options
+        options,
+        direct
     );
 };
 
@@ -580,13 +672,15 @@ export const getRandomAnime = async (options?: CallOptions): Promise<JikanResult
     const { nsfwMode } = useSettingsStore.getState();
     // No caching — random by nature. Use a throwaway key that never hits cache.
     const cacheKey = `random_anime_${Date.now()}`;
+    const direct: DirectCall | undefined = nsfwMode ? undefined : { path: '/random/anime?sfw=true' };
     return callProxy<JikanResult | null>(
         getRandomAnimeFn,
         { nsfwMode },
         cacheKey,
         0, // TTL 0 = never cache
         null,
-        options
+        options,
+        direct
     );
 };
 
@@ -627,7 +721,9 @@ export const getWorkReviews = async (id: number, type: 'anime' | 'manga') => {
         { id, type },
         `${type}_${id}_reviews`,
         CACHE_TTL_MEDIUM,
-        []
+        [],
+        undefined,
+        { path: `/${type}/${id}/reviews?spoilers=false&preliminary=false` }
     );
 };
 
@@ -689,7 +785,8 @@ export const getCharacterFull = async (id: number, options?: CallOptions) => {
         cacheKey,
         CACHE_TTL_LONG,
         null,
-        options
+        options,
+        { path: `/characters/${id}/full` }
     );
 };
 
@@ -734,7 +831,8 @@ export const getPersonFull = async (id: number, options?: CallOptions) => {
         cacheKey,
         CACHE_TTL_LONG,
         null,
-        options
+        options,
+        { path: `/people/${id}/full` }
     );
 };
 
@@ -746,6 +844,7 @@ export const searchCharacters = async (query: string, limit: number = 25, option
         cacheKey,
         CACHE_TTL_SHORT,
         [],
-        options
+        options,
+        { path: `/characters?q=${encodeURIComponent(query)}&limit=${limit}` }
     );
 };

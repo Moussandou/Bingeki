@@ -5,37 +5,36 @@ function sleep(ms) {
 }
 
 /**
- * Fetch from Jikan API with retry and exponential backoff on 429.
+ * Fetch from Jikan API with a single capped retry.
  * Returns parsed response.data (or full response for paginated endpoints).
+ * Échec rapide voulu : les retries longs bloquaient le callable 9-60s,
+ * cachedFetch sert le cache expiré en cas d'échec.
  */
 async function jikanFetch(path, returnFull = false) {
-  const maxRetries = 3;
+  const maxRetries = 2;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     let res;
     try {
       res = await fetch(`${JIKAN_BASE}${path}`, {
-        signal: AbortSignal.timeout(12000),
+        signal: AbortSignal.timeout(8000),
         headers: { 'Accept': 'application/json' },
       });
     } catch (err) {
       if (attempt === maxRetries - 1) throw err;
-      await sleep(1000 * (attempt + 1));
+      await sleep(1000);
       continue;
     }
 
     if (res.status === 429) {
-      const retryAfter = parseInt(res.headers.get('Retry-After') || '2', 10);
-      await sleep((retryAfter + attempt) * 1000);
+      if (attempt === maxRetries - 1) throw new Error(`Jikan HTTP 429 for ${path}`);
+      // Retry-After plafonné : Jikan peut annoncer des valeurs très longues
+      const retryAfter = Math.min(parseInt(res.headers.get('Retry-After') || '1', 10) || 1, 3);
+      await sleep(retryAfter * 1000);
       continue;
     }
 
     if (res.status === 404) return null;
-    if (res.status >= 500) {
-      if (attempt === maxRetries - 1) throw new Error(`Jikan HTTP ${res.status} for ${path}`);
-      await sleep(1000 * (attempt + 1));
-      continue;
-    }
     if (!res.ok) throw new Error(`Jikan HTTP ${res.status} for ${path}`);
 
     const json = await res.json();

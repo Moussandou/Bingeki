@@ -571,7 +571,9 @@ app.get('/*', async (req, res) => {
     res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), browsing-topics=()');
     res.set('X-SEO-Handler', 'true');
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    // s-maxage : le CDN Firebase Hosting cache le HTML par URL (purgé à chaque déploiement),
+    // sinon chaque chargement dur paie un aller-retour Cloud Function
+    res.set('Cache-Control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
     res.send(html);
 });
 

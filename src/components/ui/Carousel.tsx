@@ -24,7 +24,8 @@ interface CarouselProps {
 
 export function Carousel({ title, items, onItemClick, libraryIds, onAdd, loading, showRank, priority }: CarouselProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const { titleLanguage, hideScores } = useSettingsStore();
+    const titleLanguage = useSettingsStore(state => state.titleLanguage);
+    const hideScores = useSettingsStore(state => state.hideScores);
 
     const scroll = (direction: 'left' | 'right') => {
         if (scrollRef.current) {
@@ -125,7 +126,6 @@ export function Carousel({ title, items, onItemClick, libraryIds, onAdd, loading
                                     <div style={{ position: 'relative', aspectRatio: '2/3', borderBottom: '2px solid var(--color-border)' }}>
                                         <OptimizedImage
                                             src={work.images.jpg.image_url}
-                                            lowResSrc={work.images.jpg.small_image_url}
                                             alt={getDisplayTitle(work, titleLanguage)}
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                             priority={priority && index < 4}

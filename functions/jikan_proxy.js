@@ -7,6 +7,9 @@ const { jikanFetch } = require("./jikan");
 
 // --- CACHED FETCH HELPER ---
 
+// Déduplication par instance : N appels concurrents sur la même clé = 1 seul fetch Jikan
+const inflightFetches = new Map();
+
 /**
  * Helper: cache-first fetch pattern with optional background refresh.
  * @param {string} cacheKey   Firestore document ID in apiCache collection
@@ -16,29 +19,43 @@ const { jikanFetch } = require("./jikan");
 async function cachedFetch(cacheKey, ttl, fetchFn) {
     const cached = await readCache(cacheKey, ttl);
     if (cached.hit) {
-        if (cached.stale) {
+        if (cached.stale && !inflightFetches.has(cacheKey)) {
             console.log(`[cachedFetch] Stale — refreshing in background: ${cacheKey}`);
-            fetchFn().then((data) => data !== null && writeCache(cacheKey, data)).catch((err) => {
-                console.warn(`[cachedFetch] Background refresh failed for ${cacheKey}:`, err.message);
-            });
+            const refresh = fetchFn()
+                .then((data) => {
+                    if (data !== null) writeCache(cacheKey, data).catch(() => {});
+                    return data !== null ? data : cached.data;
+                })
+                .catch((err) => {
+                    console.warn(`[cachedFetch] Background refresh failed for ${cacheKey}:`, err.message);
+                    return cached.data;
+                });
+            inflightFetches.set(cacheKey, refresh);
+            refresh.finally(() => inflightFetches.delete(cacheKey));
         }
         return cached.data;
     }
+    if (inflightFetches.has(cacheKey)) return inflightFetches.get(cacheKey);
     console.log(`[cachedFetch] Calling Jikan for: ${cacheKey}`);
     const t0 = Date.now();
-    let data;
-    try {
-        data = await fetchFn();
-    } catch (err) {
-        if (cached.expiredData !== undefined) {
-            console.warn(`[cachedFetch] Jikan failed (${err.message}) — serving expired cache for: ${cacheKey}`);
-            return cached.expiredData;
+    const promise = (async () => {
+        let data;
+        try {
+            data = await fetchFn();
+        } catch (err) {
+            if (cached.expiredData !== undefined) {
+                console.warn(`[cachedFetch] Jikan failed (${err.message}) — serving expired cache for: ${cacheKey}`);
+                return cached.expiredData;
+            }
+            throw err;
         }
-        throw err;
-    }
-    console.log(`[cachedFetch] Jikan responded in ${Date.now() - t0}ms for: ${cacheKey}`);
-    if (data !== null) await writeCache(cacheKey, data);
-    return data;
+        console.log(`[cachedFetch] Jikan responded in ${Date.now() - t0}ms for: ${cacheKey}`);
+        if (data !== null) await writeCache(cacheKey, data);
+        return data;
+    })();
+    inflightFetches.set(cacheKey, promise);
+    promise.catch(() => {}).finally(() => inflightFetches.delete(cacheKey));
+    return promise;
 }
 
 /** NSFW must be enabled in the user's Firestore profile — the client claim alone is not trusted. */
@@ -84,8 +101,9 @@ exports.searchWorks = onCall({ cors: true }, async (request) => {
     try {
         return await cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/${type}?${qs}`, true));
     } catch (err) {
+        // Erreur franche plutôt qu'un succès vide : le client cachait 10 min des "aucun résultat" mensongers
         console.warn(`[searchWorks] Jikan unavailable for ${key}: ${err.message}`);
-        return { data: [], pagination: {} };
+        throw new HttpsError('unavailable', `Jikan unavailable: ${err.message}`);
     }
 });
 
@@ -230,18 +248,22 @@ exports.syncStaleCache = onSchedule('0 3 * * *', async () => {
     const now = Date.now();
     const staleThreshold = Timestamp.fromMillis(now - 20 * 60 * 60 * 1000);
     const snapshot = await db.collection('apiCache').where('fetchedAt', '<', staleThreshold).limit(50).get();
-    const refreshPromises = snapshot.docs.map(async (doc) => {
-        const key = doc.id;
-        const match = key.match(/^(anime|manga)_details_(\d+)$/);
-        if (!match) return;
-        const [, type, id] = match;
-        try {
-            const data = await jikanFetch(`/${type}/${id}/full`);
-            if (data) await writeCache(key, data);
-        } catch (err) {
-            console.warn(`[SyncStale] Failed to refresh ${key}:`, err.message);
-        }
-    });
-    await Promise.allSettled(refreshPromises);
-    console.log(`[SyncStale] Refreshed ${snapshot.docs.length} entries`);
+    // Lots de 3 espacés : Jikan limite à 3 req/s, 50 fetchs parallèles = 429 garantis
+    const docs = snapshot.docs;
+    for (let i = 0; i < docs.length; i += 3) {
+        await Promise.allSettled(docs.slice(i, i + 3).map(async (doc) => {
+            const key = doc.id;
+            const match = key.match(/^(anime|manga)_details_(\d+)$/);
+            if (!match) return;
+            const [, type, id] = match;
+            try {
+                const data = await jikanFetch(`/${type}/${id}/full`);
+                if (data) await writeCache(key, data);
+            } catch (err) {
+                console.warn(`[SyncStale] Failed to refresh ${key}:`, err.message);
+            }
+        }));
+        if (i + 3 < docs.length) await new Promise((r) => setTimeout(r, 1500));
+    }
+    console.log(`[SyncStale] Refreshed ${docs.length} entries`);
 });
