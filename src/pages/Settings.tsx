@@ -152,8 +152,12 @@ export default function Settings() {
         try {
             await importData(file);
             addToast(t('settings.toast.import_success'), 'success');
-        } catch {
-            addToast(t('settings.toast.import_error'), 'error');
+        } catch (err) {
+            if (err instanceof Error && err.message === 'mal_xml') {
+                addToast(t('mal_import.use_mal_button'), 'error');
+            } else {
+                addToast(t('settings.toast.import_error'), 'error');
+            }
         }
     };
 
