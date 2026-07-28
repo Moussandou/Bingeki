@@ -48,7 +48,9 @@ async function cachedFetch(cacheKey, ttl, fetchFn) {
                 console.warn(`[cachedFetch] Jikan failed (${err.message}) — serving expired cache for: ${cacheKey}`);
                 return cached.expiredData;
             }
-            throw err;
+            // 'unavailable' et non 'internal' : le client sait que c'est une panne amont
+            // et ne réessaie pas — sinon chaque carrousel multiplie les appels par 4.
+            throw new HttpsError('unavailable', `Jikan unavailable: ${err.message}`);
         }
         console.log(`[cachedFetch] Jikan responded in ${Date.now() - t0}ms for: ${cacheKey}`);
         if (data !== null) await writeCache(cacheKey, data);
@@ -99,13 +101,9 @@ exports.searchWorks = onCall({ cors: true, region: CALLABLE_REGIONS },async (req
     const qs = params.toString();
     const hash = require('crypto').createHash('md5').update(qs).digest('hex').slice(0, 16);
     const key = `search_${type}_${hash}`;
-    try {
-        return await cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/${type}?${qs}`, true));
-    } catch (err) {
-        // Erreur franche plutôt qu'un succès vide : le client cachait 10 min des "aucun résultat" mensongers
-        console.warn(`[searchWorks] Jikan unavailable for ${key}: ${err.message}`);
-        throw new HttpsError('unavailable', `Jikan unavailable: ${err.message}`);
-    }
+    // cachedFetch lève déjà 'unavailable' en cas de panne Jikan — pas de succès vide
+    // qui serait mis en cache 10 min côté client comme un "aucun résultat" valide.
+    return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/${type}?${qs}`, true));
 });
 
 exports.getWorkCharacters = onCall({ cors: true, region: CALLABLE_REGIONS },async (request) => {

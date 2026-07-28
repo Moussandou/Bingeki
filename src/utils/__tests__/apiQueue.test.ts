@@ -142,13 +142,15 @@ describe('PriorityQueue', () => {
             expect(fn).toHaveBeenCalledTimes(1);
         });
 
-        it('does not retry on rate limiting (backend already retried)', async () => {
+        it.each([
+            'functions/resource-exhausted',
+            'functions/unavailable',
+            'functions/internal',
+        ])('does not retry on %s (backend already retried)', async (code) => {
             const queue = new PriorityQueue(0);
-            const fn = vi.fn().mockRejectedValue(
-                Object.assign(new Error('Rate limited'), { code: 'functions/resource-exhausted' })
-            );
+            const fn = vi.fn().mockRejectedValue(Object.assign(new Error('upstream down'), { code }));
 
-            await expect(queue.run(fn)).rejects.toMatchObject({ code: 'functions/resource-exhausted' });
+            await expect(queue.run(fn)).rejects.toMatchObject({ code });
             expect(fn).toHaveBeenCalledTimes(1);
         });
 
