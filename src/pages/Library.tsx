@@ -759,7 +759,13 @@ export default function Library() {
                                                     if (file) {
                                                         importData(file).then(() => {
                                                             addToast(t('library.data_imported'), 'success');
-                                                        }).catch(() => addToast(t('library.error'), 'error'));
+                                                        }).catch((err: unknown) => {
+                                                            if (err instanceof Error && err.message === 'mal_xml') {
+                                                                addToast(t('mal_import.use_mal_button'), 'error');
+                                                            } else {
+                                                                addToast(t('library.error'), 'error');
+                                                            }
+                                                        });
                                                     }
                                                 }}
                                                 style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 10 }}

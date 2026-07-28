@@ -447,11 +447,12 @@
   "mal_import": {
     "title": "IMPORT FROM MAL",
     "drop_file": "Drop your file here",
-    "file_types": ".xml or .xml.gz files from MyAnimeList",
+    "file_types": ".xml, .xml.gz or .json files from MyAnimeList",
     "parsing": "Parsing file...",
     "no_entries": "No entries found in file",
     "parse_error": "Error parsing file",
     "invalid_file": "Invalid file format",
+    "use_mal_button": "This is a MAL XML file. Use the MAL import button instead.",
     "entries_found": "entries found",
     "duplicates": "duplicates detected",
     "resolve_duplicates": "Resolve duplicates",

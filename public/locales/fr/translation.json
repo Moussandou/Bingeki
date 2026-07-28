@@ -801,11 +801,12 @@
   "mal_import": {
     "title": "IMPORTER DEPUIS MAL",
     "drop_file": "Déposez votre fichier ici",
-    "file_types": "Fichiers .xml ou .xml.gz de MyAnimeList",
+    "file_types": "Fichiers .xml, .xml.gz ou .json de MyAnimeList",
     "parsing": "Analyse du fichier...",
     "no_entries": "Aucune entrée trouvée dans le fichier",
     "parse_error": "Erreur lors de l'analyse du fichier",
     "invalid_file": "Format de fichier invalide",
+    "use_mal_button": "Ce fichier est un export MAL XML. Utilisez le bouton d'import MAL à la place.",
     "entries_found": "entrées trouvées",
     "duplicates": "doublons détectés",
     "resolve_duplicates": "Résoudre les doublons",

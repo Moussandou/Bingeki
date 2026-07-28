@@ -48,6 +48,12 @@ export const importData = (file: File): Promise<boolean> => {
         reader.onload = (e) => {
             try {
                 const content = e.target?.result as string;
+
+                if (content.trimStart().startsWith('<?xml') || content.trimStart().startsWith('<myanimelist')) {
+                    reject(new Error('mal_xml'));
+                    return;
+                }
+
                 const data = JSON.parse(content);
 
 
@@ -91,7 +97,7 @@ export const importData = (file: File): Promise<boolean> => {
                 resolve(true);
             } catch (err) {
                 logger.error("Import failed", err);
-                reject(false);
+                reject(err);
             }
         };
         reader.readAsText(file);
