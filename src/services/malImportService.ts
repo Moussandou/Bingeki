@@ -1,12 +1,9 @@
 /**
- * Mal Import Service service layer
- */
-import { logger } from '@/utils/logger';
-/**
  * MyAnimeList Import Service
- * Handles parsing MAL XML exports and converting them to Bingeki Work format
+ * Handles parsing MAL exports (XML or JSON) and converting them to Bingeki Work format
  */
 
+import { logger } from '@/utils/logger';
 import type { Work } from '@/store/libraryStore';
 import { getWorkDetails } from '@/services/animeApi';
 import pako from 'pako';
@@ -59,12 +56,96 @@ const STATUS_MAP: Record<string, Work['status']> = {
 };
 
 /**
- * Parse a MAL XML export file (supports .xml and .xml.gz)
+ * Parse a MAL export file — supports XML (.xml, .xml.gz) and JSON (.json)
  */
 export async function parseMALExport(file: File): Promise<MALEntry[]> {
+    if (file.name.endsWith('.json')) {
+        return parseMALJsonExport(file);
+    }
+    return parseMALXmlExport(file);
+}
+
+/**
+ * Parse a MAL JSON export (load.json format)
+ * Fields: anime_id / manga_id, anime_title / manga_title, status, score,
+ *         num_watched_episodes / num_read_chapters, num_episodes / num_chapters
+ */
+async function parseMALJsonExport(file: File): Promise<MALEntry[]> {
+    const text = await file.text();
+    let raw: unknown;
+
+    try {
+        raw = JSON.parse(text);
+    } catch {
+        throw new Error('Invalid JSON file');
+    }
+
+    // Accept both a bare array and { anime: [], manga: [] } wrappers
+    const items: unknown[] = Array.isArray(raw)
+        ? (raw as unknown[])
+        : [
+              ...((raw as Record<string, unknown[]>).anime ?? []),
+              ...((raw as Record<string, unknown[]>).manga ?? []),
+          ];
+
+    const entries: MALEntry[] = [];
+
+    for (const item of items) {
+        const obj = item as Record<string, unknown>;
+
+        const isAnime = 'anime_id' in obj || 'num_watched_episodes' in obj;
+        const isManga = 'manga_id' in obj || 'num_read_chapters' in obj;
+        const type: 'anime' | 'manga' = isAnime && !isManga ? 'anime' : 'manga';
+
+        const malId = Number(obj.anime_id ?? obj.manga_id ?? 0);
+        const title = String(obj.anime_title ?? obj.manga_title ?? obj.title ?? '');
+
+        if (!malId || !title) continue;
+
+        const rawStatus = String(obj.status ?? '');
+        const currentProgress = Number(
+            type === 'anime' ? (obj.num_watched_episodes ?? 0) : (obj.num_read_chapters ?? 0)
+        );
+        const totalProgress =
+            type === 'anime'
+                ? parseIntOrNull(String(obj.num_episodes ?? obj.anime_num_episodes ?? ''))
+                : parseIntOrNull(String(obj.num_chapters ?? obj.manga_num_chapters ?? ''));
+
+        entries.push({
+            malId,
+            title,
+            type,
+            currentProgress,
+            totalProgress,
+            status: mapRawJsonStatus(rawStatus, type),
+            score: Number(obj.score ?? 0),
+        });
+    }
+
+    return entries;
+}
+
+/** Map numeric or string status from MAL JSON to a readable label used by STATUS_MAP */
+function mapRawJsonStatus(raw: string, type: 'anime' | 'manga'): string {
+    const num = parseInt(raw, 10);
+    if (!isNaN(num)) {
+        const animeMap: Record<number, string> = {
+            1: 'Watching', 2: 'Completed', 3: 'On-Hold', 4: 'Dropped', 6: 'Plan to Watch',
+        };
+        const mangaMap: Record<number, string> = {
+            1: 'Reading', 2: 'Completed', 3: 'On-Hold', 4: 'Dropped', 6: 'Plan to Read',
+        };
+        return (type === 'anime' ? animeMap : mangaMap)[num] ?? (type === 'anime' ? 'Plan to Watch' : 'Plan to Read');
+    }
+    return raw;
+}
+
+/**
+ * Parse a MAL XML export file (supports .xml and .xml.gz)
+ */
+async function parseMALXmlExport(file: File): Promise<MALEntry[]> {
     let xmlContent: string;
 
-    // Handle gzipped files
     if (file.name.endsWith('.gz')) {
         const arrayBuffer = await file.arrayBuffer();
         const decompressed = pako.ungzip(new Uint8Array(arrayBuffer));
@@ -76,7 +157,6 @@ export async function parseMALExport(file: File): Promise<MALEntry[]> {
     const parser = new DOMParser();
     const doc = parser.parseFromString(xmlContent, 'text/xml');
 
-    // Check for parse errors
     const parseError = doc.querySelector('parsererror');
     if (parseError) {
         throw new Error('Invalid XML file: ' + parseError.textContent);
@@ -84,16 +164,12 @@ export async function parseMALExport(file: File): Promise<MALEntry[]> {
 
     const entries: MALEntry[] = [];
 
-    // Parse anime entries
-    const animeNodes = doc.querySelectorAll('anime');
-    animeNodes.forEach((node) => {
+    doc.querySelectorAll('anime').forEach((node) => {
         const entry = parseAnimeNode(node);
         if (entry) entries.push(entry);
     });
 
-    // Parse manga entries
-    const mangaNodes = doc.querySelectorAll('manga');
-    mangaNodes.forEach((node) => {
+    doc.querySelectorAll('manga').forEach((node) => {
         const entry = parseMangaNode(node);
         if (entry) entries.push(entry);
     });

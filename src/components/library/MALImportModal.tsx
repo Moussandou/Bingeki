@@ -95,7 +95,7 @@ export function MALImportModal({ isOpen, onClose }: MALImportModalProps) {
         setIsDragging(false);
 
         const file = e.dataTransfer.files[0];
-        if (file && (file.name.endsWith('.xml') || file.name.endsWith('.gz'))) {
+        if (file && (file.name.endsWith('.xml') || file.name.endsWith('.gz') || file.name.endsWith('.json'))) {
             handleFileSelect(file);
         } else {
             addToast(t('mal_import.invalid_file'), 'error');
@@ -212,7 +212,7 @@ export function MALImportModal({ isOpen, onClose }: MALImportModalProps) {
                         <input
                             ref={fileInputRef}
                             type="file"
-                            accept=".xml,.gz"
+                            accept=".xml,.gz,.json"
                             hidden
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
