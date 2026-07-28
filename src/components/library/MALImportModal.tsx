@@ -3,7 +3,7 @@
  * Provides UI for importing MyAnimeList exports
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { X, Upload, FileText, AlertCircle, Check, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -24,6 +24,7 @@ import { logger } from '@/utils/logger';
 interface MALImportModalProps {
     isOpen: boolean;
     onClose: () => void;
+    initialFile?: File | null;
 }
 
 type ImportPhase = 'upload' | 'preview' | 'duplicates' | 'importing' | 'complete';
@@ -33,7 +34,7 @@ interface DuplicateConflict {
     existingWork: Work;
 }
 
-export function MALImportModal({ isOpen, onClose }: MALImportModalProps) {
+export function MALImportModal({ isOpen, onClose, initialFile }: MALImportModalProps) {
     const { t } = useTranslation();
     const { works, addWork, updateWorkDetails } = useLibraryStore();
     const { addToast } = useToast();
@@ -88,6 +89,14 @@ export function MALImportModal({ isOpen, onClose }: MALImportModalProps) {
             addToast(t('mal_import.parse_error'), 'error');
         }
     }, [works, addToast, t]);
+
+    // Auto-process initialFile when the modal opens with a pre-selected file
+    useEffect(() => {
+        if (isOpen && initialFile && phase === 'upload') {
+            handleFileSelect(initialFile);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, initialFile]);
 
     // Handle drop
     const handleDrop = useCallback((e: React.DragEvent) => {

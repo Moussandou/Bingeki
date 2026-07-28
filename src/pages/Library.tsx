@@ -235,6 +235,7 @@ export default function Library() {
     const [filterStatus, setFilterStatus] = useState<'all' | 'reading' | 'completed' | 'plan_to_read'>('all');
     const [sortOpen, setSortOpen] = useState(false);
     const [showMALImportModal, setShowMALImportModal] = useState(false);
+    const [malInitialFile, setMalInitialFile] = useState<File | null>(null);
     const [showFolderModal, setShowFolderModal] = useState(false);
     const [activeFolder, setActiveFolder] = useState<string | null>(searchParams.get('folder'));
     const [folderMenuOpen, setFolderMenuOpen] = useState(false);
@@ -753,20 +754,25 @@ export default function Library() {
                                         <div className={styles.uploadWrapper}>
                                             <input
                                                 type="file"
-                                                accept=".json"
+                                                accept=".json,.xml,.gz"
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        importData(file).then(() => {
-                                                            addToast(t('library.data_imported'), 'success');
-                                                        }).catch((err: unknown) => {
-                                                            if (err instanceof Error && err.message === 'mal_xml') {
-                                                                addToast(t('mal_import.use_mal_button'), 'error');
-                                                            } else {
-                                                                addToast(t('library.error'), 'error');
-                                                            }
-                                                        });
+                                                    if (!file) return;
+                                                    const name = file.name.toLowerCase();
+                                                    if (name.endsWith('.xml') || name.endsWith('.gz')) {
+                                                        setMalInitialFile(file);
+                                                        setShowMALImportModal(true);
+                                                        return;
                                                     }
+                                                    importData(file).then(() => {
+                                                        addToast(t('library.data_imported'), 'success');
+                                                    }).catch((err: unknown) => {
+                                                        if (err instanceof Error && err.message === 'mal_xml') {
+                                                            addToast(t('mal_import.use_mal_button'), 'error');
+                                                        } else {
+                                                            addToast(t('library.error'), 'error');
+                                                        }
+                                                    });
                                                 }}
                                                 style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', zIndex: 10 }}
                                             />
@@ -1148,7 +1154,11 @@ export default function Library() {
             </Modal>
         </div>
     </div>
-            <MALImportModal isOpen={showMALImportModal} onClose={() => setShowMALImportModal(false)} />
+            <MALImportModal
+                isOpen={showMALImportModal}
+                onClose={() => { setShowMALImportModal(false); setMalInitialFile(null); }}
+                initialFile={malInitialFile}
+            />
             <FolderModal
                 isOpen={showFolderModal}
                 onClose={() => setShowFolderModal(false)}
