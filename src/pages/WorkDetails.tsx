@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Trash2, ArrowUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { getAnimeEpisodes, getAnimeEpisodeDetails } from '@/services/animeApi';
+import { getAnimeEpisodes, getAnimeEpisodeDetails, getWorkNews, type JikanNewsItem } from '@/services/animeApi';
 import { getFriendsReadingWork, type UserProfile } from '@/firebase/firestore';
 import { useAuthStore } from '@/store/authStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -37,6 +37,7 @@ import { StatsSection } from '@/components/work-details/StatsSection';
 import { LibraryProgressSection } from '@/components/work-details/LibraryProgressSection';
 import { RatingAndNotesSection } from '@/components/work-details/RatingAndNotesSection';
 import { ReviewsSection } from '@/components/work-details/ReviewsSection';
+import { WorkNewsSection } from '@/components/work-details/WorkNewsSection';
 import { GallerySection } from '@/components/work-details/GallerySection';
 import { ThemesSection } from '@/components/work-details/ThemesSection';
 import { RecommendationsSection } from '@/components/work-details/RecommendationsSection';
@@ -145,7 +146,7 @@ export default function WorkDetails() {
     const [isNotesExpanded, setIsNotesExpanded] = useState(false);
 
     // Tab & Episodes State
-    const [activeTab, setActiveTab] = useState<'info' | 'episodes' | 'gallery' | 'themes' | 'stats' | 'reviews'>('info');
+    const [activeTab, setActiveTab] = useState<'info' | 'episodes' | 'gallery' | 'themes' | 'stats' | 'reviews' | 'news'>('info');
     const [episodes, setEpisodes] = useState<ContentItem[]>([]);
     const [episodesPage, setEpisodesPage] = useState(1);
     const [hasMoreEpisodes, setHasMoreEpisodes] = useState(false);
@@ -166,6 +167,8 @@ export default function WorkDetails() {
     const [streaming, setStreaming] = useState<JikanStreaming[]>([]);
     const [reviews, setReviews] = useState<JikanReview[]>([]);
     const [staff, setStaff] = useState<JikanStaff[]>([]);
+    const [workNews, setWorkNews] = useState<JikanNewsItem[]>([]);
+    const [isLoadingNews, setIsLoadingNews] = useState(false);
     const [expandedRelations, setExpandedRelations] = useState<Record<number, boolean>>({});
 
     // Pagination & UI State
@@ -402,6 +405,17 @@ export default function WorkDetails() {
         const type = work.type === 'manga' ? 'manga' : 'anime';
         getWorkReviews(Number(id), type).then(setReviews);
     }, [activeTab, work?.type, id, reviews.length]);
+
+    // News fetched only when the tab is opened
+    useEffect(() => {
+        if (activeTab !== 'news' || !work?.type || workNews.length > 0) return;
+        const type = work.type === 'manga' ? 'manga' : 'anime';
+        setIsLoadingNews(true);
+        getWorkNews(Number(id), type)
+            .then(setWorkNews)
+            .catch(err => logger.error('[WorkDetails] news', err))
+            .finally(() => setIsLoadingNews(false));
+    }, [activeTab, work?.type, id, workNews.length]);
 
     // Load friends reading when work changes
     useEffect(() => {
@@ -668,6 +682,10 @@ export default function WorkDetails() {
                         )}
 
 
+
+                        {activeTab === 'news' && (
+                            <WorkNewsSection news={workNews} loading={isLoadingNews} />
+                        )}
 
                         {activeTab === 'reviews' && (
                             <ReviewsSection reviews={reviews} hideScores={hideScores} />

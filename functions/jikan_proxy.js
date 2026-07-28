@@ -232,6 +232,68 @@ exports.getRandomAnime = onCall({ cors: true, region: CALLABLE_REGIONS },async (
     return jikanFetch(`/random/anime?sfw=${!nsfwMode}`);
 });
 
+exports.getRandomManga = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {
+    const nsfwMode = await resolveNsfw(request);
+    return jikanFetch(`/random/manga?sfw=${!nsfwMode}`);
+});
+
+// --- TAXONOMIES (quasi immuables : TTL 30 jours) ---
+
+exports.getGenres = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {
+    const { type = 'anime' } = request.data || {};
+    if (type !== 'anime' && type !== 'manga') throw new HttpsError('invalid-argument', 'type must be anime or manga');
+    return cachedFetch(`genres_${type}`, TTL_MS.TAXONOMY, () => jikanFetch(`/genres/${type}`));
+});
+
+exports.getProducers = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {
+    const { limit = 25, page = 1, query } = request.data || {};
+    const params = new URLSearchParams({ page: String(page), limit: String(limit), order_by: 'favorites', sort: 'desc' });
+    if (query) params.set('q', query);
+    const qs = params.toString();
+    const hash = require('crypto').createHash('md5').update(qs).digest('hex').slice(0, 16);
+    return cachedFetch(`producers_${hash}`, TTL_MS.TAXONOMY, () => jikanFetch(`/producers?${qs}`, true));
+});
+
+exports.getSeasonsList = onCall({ cors: true, region: CALLABLE_REGIONS }, async () => {
+    return cachedFetch('seasons_list', TTL_MS.TAXONOMY, () => jikanFetch('/seasons'));
+});
+
+// --- DÉCOUVERTE ---
+
+exports.getUpcomingAnime = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {
+    const { limit = 24 } = request.data || {};
+    const nsfwMode = await resolveNsfw(request);
+    const key = `upcoming_${limit}_nsfw_${nsfwMode}`;
+    return cachedFetch(key, TTL_MS.SEARCH, () => jikanFetch(`/seasons/upcoming?limit=${limit}&sfw=${!nsfwMode}`));
+});
+
+exports.getSeasonAnime = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {
+    const { year, season, limit = 24, page = 1 } = request.data || {};
+    if (!year || !season) throw new HttpsError('invalid-argument', 'year and season are required');
+    const nsfwMode = await resolveNsfw(request);
+    const key = `season_${year}_${season}_${limit}_p${page}_nsfw_${nsfwMode}`;
+    return cachedFetch(key, TTL_MS.DETAILS, () => jikanFetch(`/seasons/${year}/${season}?limit=${limit}&page=${page}&sfw=${!nsfwMode}`, true));
+});
+
+exports.getRecentRecommendations = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {
+    const { type = 'anime', limit = 12 } = request.data || {};
+    if (type !== 'anime' && type !== 'manga') throw new HttpsError('invalid-argument', 'type must be anime or manga');
+    const nsfwMode = await resolveNsfw(request);
+    const key = `recent_recs_${type}_${limit}_nsfw_${nsfwMode}`;
+    return cachedFetch(key, TTL_MS.RECOMMENDATIONS, () => jikanFetch(`/recommendations/${type}?limit=${limit}&sfw=${!nsfwMode}`));
+});
+
+exports.getTopCharacters = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {
+    const { limit = 25, page = 1 } = request.data || {};
+    return cachedFetch(`top_characters_${limit}_p${page}`, TTL_MS.SECONDARY, () => jikanFetch(`/top/characters?limit=${limit}&page=${page}`));
+});
+
+exports.getWorkNews = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {
+    const { id, type } = request.data || {};
+    if (!id || !type) throw new HttpsError('invalid-argument', 'id and type are required');
+    return cachedFetch(`${type}_news_${id}`, TTL_MS.NEWS, () => jikanFetch(`/${type}/${id}/news`));
+});
+
 exports.getJikanStatus = onCall({ cors: true, region: CALLABLE_REGIONS },async () => {
     const startTime = Date.now();
     try {

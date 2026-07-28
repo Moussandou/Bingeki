@@ -2,7 +2,7 @@ import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './config';
 import { logger } from '@/utils/logger';
 import { mergeLibraryData, logDataBackup } from '@/utils/dataProtection';
-import type { Work, Folder } from '@/store/libraryStore';
+import type { Work, Folder, Tombstone } from '@/store/libraryStore';
 
 export interface LibraryData {
     works: Work[];
@@ -18,12 +18,20 @@ export interface LibraryData {
     };
 }
 
+export interface SaveLibraryOptions {
+    /** Deletions made on this device, so the cloud copy cannot resurrect them. */
+    tombstones?: Tombstone[];
+    /** Skips the merge entirely. Only for an explicit user-requested wipe. */
+    replace?: boolean;
+}
+
 export async function saveLibraryToFirestore(
     userId: string,
     works: Work[],
     folders?: Folder[],
     viewMode?: 'grid' | 'list',
-    sortBy?: string
+    sortBy?: string,
+    options: SaveLibraryOptions = {}
 ): Promise<void> {
     try {
         const docRef = doc(db, 'users', userId, 'data', 'library');
@@ -35,7 +43,9 @@ export async function saveLibraryToFirestore(
             logDataBackup(userId, 'library', existing);
         }
 
-        const mergedWorks = mergeLibraryData(works, existing?.works || null);
+        const mergedWorks = options.replace
+            ? works
+            : mergeLibraryData(works, existing?.works || null, options.tombstones);
 
         await setDoc(docRef, {
             works: mergedWorks,

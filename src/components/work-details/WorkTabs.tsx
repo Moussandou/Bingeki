@@ -2,8 +2,8 @@ import { useTranslation } from 'react-i18next';
 import styles from '@/pages/WorkDetails.module.css';
 
 interface WorkTabsProps {
-    activeTab: 'info' | 'episodes' | 'gallery' | 'themes' | 'stats' | 'reviews';
-    setActiveTab: (tab: 'info' | 'episodes' | 'gallery' | 'themes' | 'stats' | 'reviews') => void;
+    activeTab: 'info' | 'episodes' | 'gallery' | 'themes' | 'stats' | 'reviews' | 'news';
+    setActiveTab: (tab: 'info' | 'episodes' | 'gallery' | 'themes' | 'stats' | 'reviews' | 'news') => void;
     workType: string | undefined;
 }
 
@@ -39,6 +39,12 @@ export function WorkTabs({ activeTab, setActiveTab, workType }: WorkTabsProps) {
                 className={`${styles.tabButton} ${activeTab === 'reviews' ? styles.activeTab : ''}`}
             >
                 {t('work_details.tabs.reviews')}
+            </button>
+            <button
+                onClick={() => setActiveTab('news')}
+                className={`${styles.tabButton} ${activeTab === 'news' ? styles.activeTab : ''}`}
+            >
+                {t('work_details.tabs.news')}
             </button>
             <button
                 onClick={() => setActiveTab('gallery')}

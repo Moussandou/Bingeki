@@ -120,22 +120,15 @@ export default function Settings() {
             useGamificationStore.getState().resetStore();
 
             // 2. Clear Cloud Data in Firestore (Wipe collections)
+            // `replace` skips the merge, otherwise the cloud copy is restored as-is.
+            // Only the client-owned fields are sent: the trigger recomputes the rest
+            // from the now-empty library, which zeroes every derived stat.
             if (user) {
-                await saveLibraryToFirestore(user.uid, []);
+                await saveLibraryToFirestore(user.uid, [], [], 'grid', 'updated', { replace: true });
                 await saveGamificationToFirestore(user.uid, {
-                    level: 1,
-                    xp: 0,
-                    totalXp: 0,
-                    xpToNextLevel: 100,
+                    bonusXp: 0,
                     streak: 0,
-                    lastActivityDate: null,
-                    badges: [],
-                    totalChaptersRead: 0,
-                    totalWorksAdded: 0,
-                    totalWorksCompleted: 0,
-                    totalAnimeEpisodesWatched: 0,
-                    totalMoviesWatched: 0,
-                    bonusXp: 0
+                    lastActivityDate: null
                 });
             }
 

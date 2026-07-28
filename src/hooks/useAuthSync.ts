@@ -46,7 +46,11 @@ export function useAuthSync() {
                     const cloudWorks = cloudLibraryData?.works || null;
 
                     // Smart merge: prefer latest data from either side
-                    const mergedLibrary = mergeLibraryData(localLibrary, cloudWorks);
+                    const mergedLibrary = mergeLibraryData(
+                        localLibrary,
+                        cloudWorks,
+                        useLibraryStore.getState().deletedWorks
+                    );
                     const mergedGamification = mergeGamificationData(
                         {
                             ...localGamification,
@@ -60,18 +64,26 @@ export function useAuthSync() {
                         works: mergedLibrary,
                         folders: cloudLibraryData?.folders || useLibraryStore.getState().folders,
                         viewMode: cloudLibraryData?.viewMode || useLibraryStore.getState().viewMode,
-                        sortBy: cloudLibraryData?.sortBy || useLibraryStore.getState().sortBy
+                        sortBy: cloudLibraryData?.sortBy || useLibraryStore.getState().sortBy,
+                        hydrated: true
                     });
                     // Initial sync hydration: must not be written back to Firestore
                     syncFlags.skipGamificationSave = true;
                     try {
                         useGamificationStore.setState(mergedGamification);
+                        // The merged library may differ from what the server last saw;
+                        // re-derive now so the UI is right before the trigger catches up.
+                        useGamificationStore.getState().recalculateStats(mergedLibrary);
                     } finally {
                         syncFlags.skipGamificationSave = false;
                     }
 
+                    // Daily login streak, independent of any library change.
+                    useGamificationStore.getState().recordActivity();
+
                     logger.log('[AuthSync] Data merged successfully');
                 } catch (error) {
+                    useLibraryStore.getState().setHydrated(true);
                     logger.error('[AuthSync] Error during initial data sync:', error);
                 }
             } else {
@@ -82,6 +94,8 @@ export function useAuthSync() {
                 }
                 useLibraryStore.getState().resetStore();
                 useGamificationStore.getState().resetStore();
+                // Logged-out mode is local-only: nothing to wait for.
+                useLibraryStore.getState().setHydrated(true);
                 setUserProfile(null);
             }
 

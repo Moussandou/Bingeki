@@ -1,159 +1,149 @@
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
-const { FieldValue, Timestamp } = require("firebase-admin/firestore");
+const { FieldValue } = require("firebase-admin/firestore");
 const { CALLABLE_REGIONS } = require("./regions");
+const {
+    calculateUserStats,
+    calculateBadges,
+    clampBonusXp,
+    clampClaimedStreak,
+} = require("./gamificationCore");
 
-// --- XP & GAMIFICATION CONSTANTS ---
-
-const LEVEL_BASE = 100;
-const LEVEL_MULTIPLIER = 1.05;
-const MAX_LEVEL = 100;
-
-const XP_REWARDS = {
-    ADD_WORK: 15,
-    UPDATE_PROGRESS: 5,
-    COMPLETE_WORK: 50,
-    WATCH_MOVIE: 20,
-};
-
-const MAX_EPISODES = 2500;
-const MAX_CHAPTERS = 5000;
-const MAX_XP_PER_WORK = 15000;
-
-const BADGE_DEFINITIONS = [
-    { id: 'first_steps', name: 'Premiers Pas', description: 'Créer un compte Bingeki', icon: 'flag', rarity: 'common' },
-    { id: 'first_work', name: 'Bibliophile', description: 'Ajouter votre première œuvre', icon: 'book', rarity: 'common' },
-    { id: 'reader_5', name: 'Lecteur Assidu', description: 'Lire 5 chapitres', icon: 'book-open', rarity: 'common' },
-    { id: 'reader_25', name: 'Dévoreur', description: 'Lire 25 chapitres', icon: 'flame', rarity: 'rare' },
-    { id: 'reader_100', name: 'Binge Reader', description: 'Lire 100 chapitres', icon: 'zap', rarity: 'epic' },
-    { id: 'collector_5', name: 'Collectionneur', description: 'Ajouter 5 œuvres', icon: 'library', rarity: 'common' },
-    { id: 'collector_10', name: 'Amateur', description: 'Ajouter 10 œuvres', icon: 'layers', rarity: 'rare' },
-    { id: 'collector_25', name: 'Otaku', description: 'Ajouter 25 œuvres', icon: 'database', rarity: 'epic' },
-    { id: 'streak_3', name: 'Régulier', description: 'Maintenir un streak de 3 jours', icon: 'timer', rarity: 'common' },
-    { id: 'streak_7', name: 'Motivé', description: 'Maintenir un streak de 7 jours', icon: 'calendar-check', rarity: 'rare' },
-    { id: 'streak_30', name: 'Inarrêtable', description: 'Maintenir un streak de 30 jours', icon: 'crown', rarity: 'legendary' },
-    { id: 'first_complete', name: 'Finisher', description: 'Terminer votre première œuvre', icon: 'check-circle', rarity: 'common' },
-    { id: 'complete_5', name: 'Complétiste', description: 'Terminer 5 œuvres', icon: 'target', rarity: 'rare' },
-    { id: 'level_5', name: 'Novice', description: 'Atteindre le niveau 5', icon: 'star', rarity: 'common' },
-    { id: 'level_10', name: 'Apprenti', description: 'Atteindre le niveau 10', icon: 'medal', rarity: 'rare' },
-    { id: 'level_25', name: 'Expert', description: 'Atteindre le niveau 25', icon: 'award', rarity: 'epic' },
-    { id: 'level_50', name: 'Légende', description: 'Atteindre le niveau 50', icon: 'trophy', rarity: 'legendary' },
+// Fields the server owns. Clients never write these; the rules enforce it.
+const SERVER_OWNED_FIELDS = [
+    'level', 'xp', 'totalXp', 'xpToNextLevel',
+    'totalChaptersRead', 'totalAnimeEpisodesWatched', 'totalMoviesWatched',
+    'totalWorksAdded', 'totalWorksCompleted', 'badges', 'streak',
 ];
 
-// --- LOGIC HELPERS ---
+const MAX_ACTIVITIES_PER_WRITE = 5;
+const ACTIVITY_PROGRESS_THRESHOLD = 5;
 
-function calculateBadges(stats, streak, existingBadges = []) {
-    const existingMap = {};
-    existingBadges.forEach(b => { existingMap[b.id] = b; });
-
-    const earnedIds = new Set();
-    if (stats.totalWorksAdded >= 1) earnedIds.add('first_work');
-    if (stats.totalWorksAdded >= 5) earnedIds.add('collector_5');
-    if (stats.totalWorksAdded >= 10) earnedIds.add('collector_10');
-    if (stats.totalWorksAdded >= 25) earnedIds.add('collector_25');
-
-    if (stats.totalChaptersRead >= 5) earnedIds.add('reader_5');
-    if (stats.totalChaptersRead >= 25) earnedIds.add('reader_25');
-    if (stats.totalChaptersRead >= 100) earnedIds.add('reader_100');
-
-    if (streak >= 3) earnedIds.add('streak_3');
-    if (streak >= 7) earnedIds.add('streak_7');
-    if (streak >= 30) earnedIds.add('streak_30');
-
-    if (stats.totalWorksCompleted >= 1) earnedIds.add('first_complete');
-    if (stats.totalWorksCompleted >= 5) earnedIds.add('complete_5');
-
-    if (stats.level >= 5) earnedIds.add('level_5');
-    if (stats.level >= 10) earnedIds.add('level_10');
-    if (stats.level >= 25) earnedIds.add('level_25');
-    if (stats.level >= 50) earnedIds.add('level_50');
-
-    earnedIds.add('first_steps');
-
-    const badges = [];
-    for (const id of earnedIds) {
-        if (existingMap[id]) {
-            badges.push(existingMap[id]);
-        } else {
-            const def = BADGE_DEFINITIONS.find(d => d.id === id);
-            if (def) {
-                badges.push({ ...def, unlockedAt: Date.now() });
-            }
-        }
-    }
-    return badges;
+function db() {
+    return admin.firestore();
 }
 
-function calculateUserStats(libraryWorks, bonusXp = 0) {
-    let totalChaptersRead = 0;
-    let totalAnimeEpisodesWatched = 0;
-    let totalMoviesWatched = 0;
-    const totalWorksAdded = libraryWorks.length;
-    let totalWorksCompleted = 0;
-    let totalXpFromLibrary = 0;
+function libraryRef(userId) {
+    return db().collection('users').doc(userId).collection('data').doc('library');
+}
 
-    libraryWorks.forEach(w => {
-        const progress = w.currentChapter || w.currentEpisode || 0;
-        const total = w.totalChapters || w.totalEpisodes || 0;
-        const type = (w.type || 'manga').toLowerCase();
+function gamificationRef(userId) {
+    return db().collection('users').doc(userId).collection('data').doc('gamification');
+}
 
-        totalXpFromLibrary += XP_REWARDS.ADD_WORK;
+// Deep-equal for the derived payload; avoids rewriting identical docs (and re-triggering).
+function isSamePayload(a, b) {
+    if (!a || !b) return false;
+    return SERVER_OWNED_FIELDS.every(
+        (key) => JSON.stringify(a[key]) === JSON.stringify(b[key])
+    );
+}
 
-        const typeCap = type === 'anime' ? MAX_EPISODES : MAX_CHAPTERS;
-        let effectiveProgress = (total > 0)
-            ? Math.min(progress, total, typeCap)
-            : Math.min(progress, typeCap);
+/**
+ * Recomputes every derived stat for a user from their library plus the
+ * client-owned bonusXp/streak, and mirrors the result to both documents.
+ * Returns null when nothing changed, so repeat triggers settle immediately.
+ */
+async function syncUserGamification(userId, preloaded = {}) {
+    const [librarySnap, gamificationSnap] = await Promise.all([
+        preloaded.librarySnap ? Promise.resolve(preloaded.librarySnap) : libraryRef(userId).get(),
+        preloaded.gamificationSnap ? Promise.resolve(preloaded.gamificationSnap) : gamificationRef(userId).get(),
+    ]);
 
-        if (type === 'anime' || type === 'manga') {
-            const cap = typeCap;
+    const works = librarySnap.exists ? (librarySnap.data().works || []) : [];
+    const gamData = gamificationSnap.exists ? gamificationSnap.data() : {};
 
-            if (type === 'anime') {
-                if (w.format === 'Movie') {
-                    totalMoviesWatched += (w.status === 'completed' ? 1 : 0);
-                    totalXpFromLibrary += (w.status === 'completed' ? XP_REWARDS.WATCH_MOVIE : 0);
-                } else {
-                    totalAnimeEpisodesWatched += effectiveProgress;
-                    totalXpFromLibrary += Math.min(effectiveProgress * XP_REWARDS.UPDATE_PROGRESS, MAX_XP_PER_WORK);
-                }
-            } else {
-                totalChaptersRead += effectiveProgress;
-                totalXpFromLibrary += Math.min(effectiveProgress * XP_REWARDS.UPDATE_PROGRESS, MAX_XP_PER_WORK);
-            }
-        } else {
-            totalChaptersRead += effectiveProgress;
-            totalXpFromLibrary += Math.min(effectiveProgress * XP_REWARDS.UPDATE_PROGRESS, MAX_XP_PER_WORK);
-        }
+    const bonusXp = clampBonusXp(gamData.bonusXp);
 
-        if (w.status === 'completed') {
-            totalWorksCompleted += 1;
-            totalXpFromLibrary += XP_REWARDS.COMPLETE_WORK;
-        }
-    });
+    // The client claims a streak; the server only accepts a plausible advance.
+    const verifiedStreak = clampClaimedStreak(
+        gamData.streak,
+        gamData.verifiedStreak,
+        gamData.lastActivityDate,
+        gamData.verifiedStreakAt
+    );
 
-    const totalXp = totalXpFromLibrary + bonusXp;
+    const stats = calculateUserStats(works, bonusXp);
+    const badges = calculateBadges(stats, verifiedStreak, gamData.badges || []);
 
-    let level = 1;
-    let remainingXp = totalXp;
-    let xpToNext = LEVEL_BASE;
+    const payload = {
+        ...stats,
+        badges,
+        streak: verifiedStreak,
+    };
 
-    while (remainingXp >= xpToNext && level < MAX_LEVEL) {
-        remainingXp -= xpToNext;
-        level++;
-        xpToNext = Math.floor(xpToNext * LEVEL_MULTIPLIER);
+    if (isSamePayload(payload, gamData) && gamData.verifiedStreak === verifiedStreak) {
+        return null;
     }
 
-    return {
-        level,
-        xp: remainingXp,
-        totalXp,
-        xpToNextLevel: xpToNext,
-        totalChaptersRead,
-        totalAnimeEpisodesWatched,
-        totalMoviesWatched,
-        totalWorksAdded,
-        totalWorksCompleted
-    };
+    const batch = db().batch();
+
+    batch.set(db().collection('users').doc(userId), {
+        ...payload,
+        bonusXp,
+        lastActivityDate: gamData.lastActivityDate || null,
+        lastUpdated: FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    batch.set(gamificationRef(userId), {
+        ...payload,
+        verifiedStreak,
+        verifiedStreakAt: gamData.lastActivityDate || null,
+        lastUpdated: Date.now(),
+    }, { merge: true });
+
+    await batch.commit();
+    return payload;
+}
+
+async function logLibraryActivities(userId, works, prevWorks) {
+    const userDoc = await db().collection('users').doc(userId).get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+    const userName = userData.displayName || 'Héros';
+    const userPhoto = userData.photoURL || '';
+    const isVisible = userData.showActivityStatus !== false;
+    const profileVisibility = userData.profileVisibility || 'public';
+
+    const prevWorkMap = {};
+    prevWorks.forEach((w) => { prevWorkMap[w.id] = w; });
+
+    const activitiesToLog = [];
+    for (const work of works) {
+        const prev = prevWorkMap[work.id];
+        const base = {
+            userId, userName, userPhoto,
+            workId: work.id, workTitle: work.title, workImage: work.image || '',
+            workType: (work.type || 'manga').toLowerCase(),
+            isVisible, profileVisibility, timestamp: Date.now(),
+        };
+
+        if (!prev) {
+            activitiesToLog.push({ ...base, type: 'add_work' });
+        } else if (work.status === 'completed' && prev.status !== 'completed') {
+            activitiesToLog.push({ ...base, type: 'complete' });
+        } else {
+            const current = work.currentChapter || 0;
+            const previous = prev.currentChapter || 0;
+            if (current - previous >= ACTIVITY_PROGRESS_THRESHOLD) {
+                activitiesToLog.push({
+                    ...base,
+                    type: base.workType === 'anime' ? 'watch' : 'read',
+                    episodeNumber: current,
+                });
+            }
+        }
+    }
+
+    const limited = activitiesToLog.slice(0, MAX_ACTIVITIES_PER_WRITE);
+    if (limited.length === 0) return;
+
+    const batch = db().batch();
+    for (const activity of limited) {
+        const actRef = db().collection('activities').doc();
+        batch.set(actRef, { ...activity, id: actRef.id });
+    }
+    await batch.commit();
 }
 
 // --- CLOUD FUNCTIONS ---
@@ -162,115 +152,54 @@ exports.onLibraryUpdate = onDocumentWritten('users/{userId}/data/library', async
     const userId = event.params.userId;
     const change = event.data;
     if (!change) return null;
+
     const libraryData = change.after.exists ? change.after.data() : { works: [] };
     const works = libraryData.works || [];
     const prevLibraryData = change.before.exists ? change.before.data() : { works: [] };
     const prevWorks = prevLibraryData.works || [];
 
-    try {
-        const gamificationSnap = await admin.firestore()
-            .collection('users')
-            .doc(userId)
-            .collection('data')
-            .doc('gamification')
-            .get();
-
-        const gamData = gamificationSnap.exists ? gamificationSnap.data() : {};
-        const rawBonus = Number(gamData.bonusXp) || 0;
-        const bonusXp = Math.min(rawBonus, 50000);
-        const streak = gamData.streak || 0;
-        const lastActivityDate = gamData.lastActivityDate || null;
-        const existingBadges = gamData.badges || [];
-
-        const stats = calculateUserStats(works, bonusXp);
-        const badges = calculateBadges(stats, streak, existingBadges);
-
-        await admin.firestore().collection('users').doc(userId).set({
-            ...stats,
-            badges,
-            streak,
-            lastActivityDate,
-            bonusXp,
-            lastUpdated: FieldValue.serverTimestamp()
-        }, { merge: true });
-
-        await admin.firestore()
-            .collection('users')
-            .doc(userId)
-            .collection('data')
-            .doc('gamification')
-            .set({
-                ...stats,
-                badges,
-                streak,
-                lastActivityDate,
-                bonusXp,
-                lastUpdated: Date.now()
-            }, { merge: true });
-
-        // ACTIVITY LOGGING
-        try {
-            const userDoc = await admin.firestore().collection('users').doc(userId).get();
-            const userData = userDoc.exists ? userDoc.data() : {};
-            const userName = userData.displayName || 'Héros';
-            const userPhoto = userData.photoURL || '';
-            const isVisible = userData.showActivityStatus !== false;
-            const profileVisibility = userData.profileVisibility || 'public';
-
-            const prevWorkMap = {};
-            prevWorks.forEach(w => { prevWorkMap[w.id] = w; });
-
-            const activitiesToLog = [];
-            for (const work of works) {
-                const prev = prevWorkMap[work.id];
-                if (!prev) {
-                    activitiesToLog.push({
-                        userId, userName, userPhoto, type: 'add_work',
-                        workId: work.id, workTitle: work.title, workImage: work.image || '',
-                        workType: (work.type || 'manga').toLowerCase(),
-                        isVisible, profileVisibility, timestamp: Date.now()
-                    });
-                } else if (work.status === 'completed' && prev.status !== 'completed') {
-                    activitiesToLog.push({
-                        userId, userName, userPhoto, type: 'complete',
-                        workId: work.id, workTitle: work.title, workImage: work.image || '',
-                        workType: (work.type || 'manga').toLowerCase(),
-                        isVisible, profileVisibility, timestamp: Date.now()
-                    });
-                } else if ((work.currentChapter || 0) > (prev.currentChapter || 0)) {
-                    const diff = (work.currentChapter || 0) - (prev.currentChapter || 0);
-                    if (diff >= 5) {
-                        const workType = (work.type || 'manga').toLowerCase();
-                        activitiesToLog.push({
-                            userId, userName, userPhoto,
-                            type: workType === 'anime' ? 'watch' : 'read',
-                            workId: work.id, workTitle: work.title, workImage: work.image || '',
-                            workType: workType, isVisible, profileVisibility,
-                            episodeNumber: work.currentChapter || 0, timestamp: Date.now()
-                        });
-                    }
-                }
-            }
-
-            const batch = admin.firestore().batch();
-            const limitedActivities = activitiesToLog.slice(0, 5);
-            for (const activity of limitedActivities) {
-                const actRef = admin.firestore().collection('activities').doc();
-                batch.set(actRef, { ...activity, id: actRef.id });
-            }
-            if (limitedActivities.length > 0) {
-                await batch.commit();
-            }
-        } catch (actError) {
-            console.error(`[Activity] Error logging activities for ${userId}:`, actError);
-        }
-
-        console.log(`[Gamification] Recalculated stats + badges for user ${userId}`);
-        return null;
-    } catch (error) {
-        console.error(`[Gamification] Error updating user ${userId}:`, error);
+    // viewMode/sortBy live in the same document: ignore writes that touch only those.
+    if (JSON.stringify(works) === JSON.stringify(prevWorks)) {
         return null;
     }
+
+    try {
+        await syncUserGamification(userId, { librarySnap: change.after });
+    } catch (error) {
+        console.error(`[Gamification] Error updating user ${userId}:`, error);
+    }
+
+    try {
+        await logLibraryActivities(userId, works, prevWorks);
+    } catch (actError) {
+        console.error(`[Activity] Error logging activities for ${userId}:`, actError);
+    }
+
+    return null;
+});
+
+// Client-owned bonusXp/streak changes must also be re-derived server-side.
+exports.onGamificationUpdate = onDocumentWritten('users/{userId}/data/gamification', async (event) => {
+    const userId = event.params.userId;
+    const change = event.data;
+    if (!change || !change.after.exists) return null;
+
+    const before = change.before.exists ? change.before.data() : {};
+    const after = change.after.data();
+
+    const clientOwnedChanged =
+        (before.bonusXp || 0) !== (after.bonusXp || 0) ||
+        (before.streak || 0) !== (after.streak || 0) ||
+        (before.lastActivityDate || null) !== (after.lastActivityDate || null);
+
+    if (!clientOwnedChanged) return null;
+
+    try {
+        await syncUserGamification(userId, { gamificationSnap: change.after });
+    } catch (error) {
+        console.error(`[Gamification] Error syncing bonus/streak for ${userId}:`, error);
+    }
+    return null;
 });
 
 exports.recalculateAllUserStats = onCall({
@@ -281,61 +210,32 @@ exports.recalculateAllUserStats = onCall({
 }, async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Must be logged in.');
 
-    const callerDoc = await admin.firestore().collection('users').doc(request.auth.uid).get();
+    const callerDoc = await db().collection('users').doc(request.auth.uid).get();
     if (!callerDoc.exists || !callerDoc.data().isAdmin) {
         throw new HttpsError('permission-denied', 'Admin access required.');
     }
 
-    const usersSnap = await admin.firestore().collection('users').get();
-    const results = { total: usersSnap.size, updated: 0, errors: 0 };
-    const batch = admin.firestore().batch();
-    let batchCount = 0;
+    const usersSnap = await db().collection('users').get();
+    const results = { total: usersSnap.size, updated: 0, unchanged: 0, errors: 0 };
 
     for (const userDoc of usersSnap.docs) {
-        const userId = userDoc.id;
         try {
-            const librarySnap = await admin.firestore()
-                .collection('users').doc(userId).collection('data').doc('library').get();
-            const works = librarySnap.exists ? (librarySnap.data().works || []) : [];
-
-            const gamificationSnap = await admin.firestore()
-                .collection('users').doc(userId).collection('data').doc('gamification').get();
-            const gamData = gamificationSnap.exists ? gamificationSnap.data() : {};
-            const rawBonus = Number(gamData.bonusXp) || 0;
-            const bonusXp = Math.min(rawBonus, 50000);
-            const streak = gamData.streak || 0;
-            const existingBadges = gamData.badges || [];
-
-            const stats = calculateUserStats(works, bonusXp);
-            const badges = calculateBadges(stats, streak, existingBadges);
-
-            batch.set(admin.firestore().collection('users').doc(userId), {
-                ...stats, badges, lastUpdated: FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            batch.set(admin.firestore().collection('users').doc(userId).collection('data').doc('gamification'), {
-                ...stats, badges, lastUpdated: Date.now()
-            }, { merge: true });
-
-            results.updated++;
-            batchCount++;
-            if (batchCount >= 200) {
-                await batch.commit();
-                batchCount = 0;
-            }
+            const changed = await syncUserGamification(userDoc.id);
+            if (changed) results.updated++;
+            else results.unchanged++;
         } catch (e) {
-            console.error(`Error processing user ${userId}:`, e);
+            console.error(`Error processing user ${userDoc.id}:`, e);
             results.errors++;
         }
     }
-    if (batchCount > 0) await batch.commit();
+
     return results;
 });
 
 exports.getLeaderboard = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {
     const data = request.data || {};
     const category = data.category || 'xp';
-    const limitCount = Math.min(data.limit || 20, 100);
+    const limitCount = Math.min(Math.max(Number(data.limit) || 20, 1), 100);
 
     const fieldMap = {
         'xp': 'totalXp',
@@ -346,20 +246,22 @@ exports.getLeaderboard = onCall({ cors: true, region: CALLABLE_REGIONS }, async 
     const field = fieldMap[category] || 'totalXp';
 
     try {
-        const usersSnap = await admin.firestore()
-            .collection('users').orderBy(field, 'desc').limit(limitCount).get();
+        // Over-fetch so banned accounts can be dropped without shrinking the board.
+        const usersSnap = await db()
+            .collection('users').orderBy(field, 'desc').limit(limitCount * 2).get();
 
         const leaderboard = [];
-        let rank = 1;
         for (const userDoc of usersSnap.docs) {
+            if (leaderboard.length >= limitCount) break;
             const d = userDoc.data();
+            if (d.isBanned) continue;
             leaderboard.push({
                 uid: userDoc.id, displayName: d.displayName || null, username: d.username || null,
                 photoURL: d.photoURL || null, level: d.level || 1, totalXp: d.totalXp || 0,
                 totalChaptersRead: d.totalChaptersRead || 0, totalAnimeEpisodesWatched: d.totalAnimeEpisodesWatched || 0,
-                totalWorksCompleted: d.totalWorksCompleted || 0, streak: d.streak || 0, rank
+                totalWorksCompleted: d.totalWorksCompleted || 0, streak: d.streak || 0,
+                rank: leaderboard.length + 1
             });
-            rank++;
         }
         return { leaderboard };
     } catch (error) {

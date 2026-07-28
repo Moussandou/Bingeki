@@ -24,6 +24,7 @@ const WorkDetails = lazy(() => import('@/pages/WorkDetails'));
 const Profile = lazy(() => import('@/pages/Profile'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Discover = lazy(() => import('@/pages/Discover'));
+const Seasons = lazy(() => import('@/pages/Seasons'));
 const Social = lazy(() => import('@/pages/Social'));
 const Legal = lazy(() => import('@/pages/Legal'));
 const Challenges = lazy(() => import('@/pages/Challenges'));
@@ -219,6 +220,7 @@ function App() {
               <Route path="settings" element={<Settings />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="schedule" element={<Schedule />} />
+              <Route path="seasons" element={<Seasons />} />
               <Route path="character/:id" element={<CharacterDetails />} />
               <Route path="person/:id" element={<PersonDetails />} />
 

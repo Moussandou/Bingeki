@@ -29,6 +29,7 @@ const ROUTES_TO_PRERENDER = [
   '/fr/discover', '/en/discover',
   '/fr/news', '/en/news',
   '/fr/schedule', '/en/schedule',
+  '/fr/seasons', '/en/seasons',
   '/fr/changelog', '/en/changelog',
   '/fr/challenges', '/en/challenges',
   '/fr/social', '/en/social',

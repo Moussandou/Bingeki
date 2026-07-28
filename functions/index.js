@@ -23,6 +23,7 @@ exports.seoHandler = seo.seoHandler;
 // 2. Gamification & Library Triggers
 const gamification = require("./gamification");
 exports.onLibraryUpdate = gamification.onLibraryUpdate;
+exports.onGamificationUpdate = gamification.onGamificationUpdate;
 exports.recalculateAllUserStats = gamification.recalculateAllUserStats;
 exports.getLeaderboard = gamification.getLeaderboard;
 
@@ -54,6 +55,15 @@ exports.searchCharacters = jikanProxy.searchCharacters;
 exports.getPersonFull = jikanProxy.getPersonFull;
 exports.getAnimeEpisodeDetails = jikanProxy.getAnimeEpisodeDetails;
 exports.getRandomAnime = jikanProxy.getRandomAnime;
+exports.getRandomManga = jikanProxy.getRandomManga;
+exports.getGenres = jikanProxy.getGenres;
+exports.getProducers = jikanProxy.getProducers;
+exports.getSeasonsList = jikanProxy.getSeasonsList;
+exports.getUpcomingAnime = jikanProxy.getUpcomingAnime;
+exports.getSeasonAnime = jikanProxy.getSeasonAnime;
+exports.getRecentRecommendations = jikanProxy.getRecentRecommendations;
+exports.getTopCharacters = jikanProxy.getTopCharacters;
+exports.getWorkNews = jikanProxy.getWorkNews;
 exports.getJikanStatus = jikanProxy.getJikanStatus;
 exports.syncStaleCache = jikanProxy.syncStaleCache;
 

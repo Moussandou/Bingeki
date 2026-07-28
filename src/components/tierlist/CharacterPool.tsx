@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useDraggable } from '@dnd-kit/core';
 import { Search, Info, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { searchCharacters, getWorkCharacters, searchWorks, getTopWorks } from '@/services/animeApi';
+import { searchCharacters, getWorkCharacters, searchWorks, getTopWorks, getTopCharacters } from '@/services/animeApi';
 import type { JikanCharacter, JikanResult } from '@/services/animeApi';
 import { useToast } from '@/context/ToastContext';
 import styles from './CharacterPool.module.css';
@@ -114,6 +114,18 @@ export function useCharacterPool(): CharacterPoolState {
         }
     };
 
+    /** Pool par défaut de l'onglet « par nom » : sans ça l'utilisateur fait face à un écran vide. */
+    const loadTopCharacters = async () => {
+        setIsLoading(true);
+        try {
+            setCharacters(await getTopCharacters(25));
+        } catch (error) {
+            logger.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // Auto-load popular anime on mount
     useEffect(() => {
         loadTopWorks('anime');
@@ -130,9 +142,10 @@ export function useCharacterPool(): CharacterPoolState {
 
         if (tab !== 'characters') {
             await loadTopWorks(tab);
+        } else if (charSubTab === 'by_name') {
+            await loadTopCharacters();
         } else {
-            // Default: load top anime for by_anime sub-tab
-            await loadTopWorks('anime');
+            await loadTopWorks(charSubTab === 'by_manga' ? 'manga' : 'anime');
         }
     };
 
@@ -147,6 +160,8 @@ export function useCharacterPool(): CharacterPoolState {
 
         if (sub !== 'by_name') {
             await loadTopWorks(sub === 'by_anime' ? 'anime' : 'manga');
+        } else {
+            await loadTopCharacters();
         }
     };
 

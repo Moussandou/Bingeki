@@ -3,8 +3,14 @@
  * Prevents data loss during local/cloud conflict resolution
  */
 import { logger } from '@/utils/logger';
-import type { Work } from '@/store/libraryStore';
+import type { Tombstone, Work } from '@/store/libraryStore';
 import type { Badge } from '@/types/badge';
+import {
+    MAX_BONUS_XP,
+    MAX_LEVEL,
+    clampBonusXp,
+    levelFromTotalXp,
+} from '@/shared/gamificationCore';
 
 
 export interface GamificationData {
@@ -25,143 +31,131 @@ export interface GamificationData {
     version?: number;
 }
 
+/** The only gamification fields a client is allowed to write. */
+export interface ClientOwnedGamification {
+    bonusXp: number;
+    streak: number;
+    lastActivityDate: string | null;
+}
+
+export const CLIENT_OWNED_GAMIFICATION_KEYS = [
+    'bonusXp',
+    'streak',
+    'lastActivityDate',
+] as const;
+
 export interface LibraryData {
     works: Work[];
     lastUpdated?: number;
     version?: number;
 }
 
-// Safely merges gamification - cumulative stats never decrease
+/**
+ * Login-time merge.
+ *
+ * Derived stats (level/xp/totalXp/counters/badges) belong to the server, so the
+ * cloud copy wins. Only bonusXp, streak and lastActivityDate are client-owned,
+ * and those are reconciled across devices. The caller recalculates from the
+ * merged library right after, which corrects anything the server has not seen yet.
+ */
 export function mergeGamificationData(
     local: Partial<GamificationData>,
     cloud: Partial<GamificationData> | null
 ): GamificationData {
+    const hasCloud = !!cloud && Object.keys(cloud).length > 0;
+    const hasLocal = !!local && Object.keys(local).length > 0;
+    const authoritative = (hasCloud ? cloud : local) || {};
 
-    if (!cloud) {
-        return {
-            level: local.level || 1,
-            xp: local.xp || 0,
-            totalXp: local.totalXp || 0,
-            xpToNextLevel: local.xpToNextLevel || 100,
-            streak: local.streak || 0,
-            lastActivityDate: local.lastActivityDate || null,
-            bonusXp: local.bonusXp || 0,
-            badges: local.badges || [],
-            totalChaptersRead: local.totalChaptersRead || 0,
-            totalAnimeEpisodesWatched: local.totalAnimeEpisodesWatched || 0,
-            totalMoviesWatched: local.totalMoviesWatched || 0,
-            totalWorksAdded: local.totalWorksAdded || 0,
-            totalWorksCompleted: local.totalWorksCompleted || 0,
-            lastUpdated: Date.now(),
-            version: (local.version || 0) + 1
-        };
-    }
+    // Client-owned: highest bonus, and the streak attached to the latest activity.
+    const bonusXp = clampBonusXp(
+        Math.max(local?.bonusXp || 0, cloud?.bonusXp || 0)
+    );
 
+    const localActivityTime = local?.lastActivityDate ? new Date(local.lastActivityDate).getTime() : 0;
+    const cloudActivityTime = cloud?.lastActivityDate ? new Date(cloud.lastActivityDate).getTime() : 0;
+    const useLocalStreak = hasLocal && localActivityTime >= cloudActivityTime;
+    const streak = useLocalStreak ? (local?.streak || 0) : (cloud?.streak || 0);
+    const lastActivityDate = (useLocalStreak ? local?.lastActivityDate : cloud?.lastActivityDate) || null;
 
-    if (!local || Object.keys(local).length === 0) {
-        return {
-            ...cloud,
-            lastUpdated: cloud.lastUpdated || Date.now(),
-            version: cloud.version || 1
-        } as GamificationData;
-    }
-
-    // Take higher of each stat
-    const MAX_LEVEL = 100;
-    
-    // XP source: use whichever side has more totalXp
-    const localTotalXp = local.totalXp || 0;
-    const cloudTotalXp = cloud.totalXp || 0;
-    const isLocalAhead = localTotalXp >= cloudTotalXp;
-
-    const mergedTotalXp = Math.max(localTotalXp, cloudTotalXp);
-    const mergedLevel = Math.min(MAX_LEVEL, isLocalAhead ? (local.level || 1) : (cloud.level || 1));
-    const mergedXp = isLocalAhead ? (local.xp || 0) : (cloud.xp || 0);
-
-    const mergedTotalChapters = Math.max(local.totalChaptersRead || 0, cloud.totalChaptersRead || 0);
-    const mergedTotalEpisodes = Math.max(local.totalAnimeEpisodesWatched || 0, cloud.totalAnimeEpisodesWatched || 0);
-    const mergedTotalMovies = Math.max(local.totalMoviesWatched || 0, cloud.totalMoviesWatched || 0);
-    const mergedTotalWorks = Math.max(local.totalWorksAdded || 0, cloud.totalWorksAdded || 0);
-    const mergedTotalCompleted = Math.max(local.totalWorksCompleted || 0, cloud.totalWorksCompleted || 0);
-
-    // Streak: use most recent activity
-    const localLastActivityTime = local.lastActivityDate ? new Date(local.lastActivityDate).getTime() : 0;
-    const cloudLastActivityTime = cloud.lastActivityDate ? new Date(cloud.lastActivityDate).getTime() : 0;
-    const useLocalStreak = localLastActivityTime >= cloudLastActivityTime;
-    const mergedStreak = useLocalStreak ? (local.streak || 0) : (cloud.streak || 0);
-    const mergedLastActivity = useLocalStreak ? local.lastActivityDate : cloud.lastActivityDate;
-
-
-    const mergedBonusXp = Math.max(local.bonusXp || 0, cloud.bonusXp || 0);
-
-    // Badges: union of both sets, keep earliest unlock
-    const localBadges = local.badges || [];
-    const cloudBadges = cloud.badges || [];
+    // Badges: union of both sets, keeping the earliest unlock date.
     const badgeMap = new Map<string, Badge>();
-
-    [...cloudBadges, ...localBadges].forEach(badge => {
+    [...(cloud?.badges || []), ...(local?.badges || [])].forEach(badge => {
+        if (!badge || !badge.id) return;
         const existing = badgeMap.get(badge.id);
-
         if (!existing || (badge.unlockedAt && (!existing.unlockedAt || badge.unlockedAt < existing.unlockedAt))) {
             badgeMap.set(badge.id, badge);
         }
     });
-    const mergedBadges = Array.from(badgeMap.values());
 
-
-    const LEVEL_BASE = 100;
-    const LEVEL_MULTIPLIER = 1.15;
-    let xpToNext = LEVEL_BASE;
-    for (let i = 1; i < mergedLevel; i++) {
-        xpToNext = Math.floor(xpToNext * LEVEL_MULTIPLIER);
-    }
+    const totalXp = Math.max(0, authoritative.totalXp || 0);
+    const derived = levelFromTotalXp(totalXp);
 
     logger.log('[DataProtection] Merged gamification:', {
-        localLevel: local.level,
-        cloudLevel: cloud.level,
-        mergedLevel,
-        localXp: local.xp,
-        cloudXp: cloud.xp,
-        mergedXp
+        source: hasCloud ? 'cloud' : 'local',
+        totalXp,
+        level: derived.level,
+        bonusXp,
     });
 
     return {
-        level: mergedLevel,
-        xp: mergedXp,
-        totalXp: mergedTotalXp,
-        xpToNextLevel: xpToNext,
-        streak: mergedStreak,
-        lastActivityDate: mergedLastActivity || null,
-        bonusXp: mergedBonusXp,
-        badges: mergedBadges,
-        totalChaptersRead: mergedTotalChapters,
-        totalAnimeEpisodesWatched: mergedTotalEpisodes,
-        totalMoviesWatched: mergedTotalMovies,
-        totalWorksAdded: mergedTotalWorks,
-        totalWorksCompleted: mergedTotalCompleted,
+        level: Math.min(MAX_LEVEL, derived.level),
+        xp: derived.xp,
+        totalXp,
+        xpToNextLevel: derived.xpToNextLevel,
+        streak,
+        lastActivityDate,
+        bonusXp,
+        badges: Array.from(badgeMap.values()),
+        totalChaptersRead: authoritative.totalChaptersRead || 0,
+        totalAnimeEpisodesWatched: authoritative.totalAnimeEpisodesWatched || 0,
+        totalMoviesWatched: authoritative.totalMoviesWatched || 0,
+        totalWorksAdded: authoritative.totalWorksAdded || 0,
+        totalWorksCompleted: authoritative.totalWorksCompleted || 0,
         lastUpdated: Date.now(),
-        version: Math.max(local.version || 0, cloud.version || 0) + 1
+        version: Math.max(local?.version || 0, cloud?.version || 0) + 1
     };
 }
 
-// Merges library works - local order preserved, cloud additions appended
+/**
+ * Merges library works - local order preserved, cloud additions appended.
+ *
+ * `tombstones` carries deletions made on this device. Without them a deleted
+ * work reappears from the cloud copy on the very next save.
+ */
 export function mergeLibraryData(
     local: Work[] | undefined,
-    cloud: Work[] | null
+    cloud: Work[] | null,
+    tombstones: Tombstone[] = []
 ): Work[] {
-    if (!cloud || cloud.length === 0) {
+    // A deletion only wins over a cloud edit that predates it.
+    const deletedAtById = new Map<number | string, number>();
+    (tombstones || []).forEach(t => {
+        if (!t) return;
+        const previous = deletedAtById.get(t.id) || 0;
+        if (t.deletedAt > previous) deletedAtById.set(t.id, t.deletedAt);
+    });
+
+    const isDeleted = (work: Work): boolean => {
+        const deletedAt = deletedAtById.get(work.id);
+        if (deletedAt === undefined) return false;
+        return (work.lastUpdated || 0) <= deletedAt;
+    };
+
+    const survivingCloud = (cloud || []).filter(work => !isDeleted(work));
+
+    if (survivingCloud.length === 0) {
         return local || [];
     }
 
     if (!local || local.length === 0) {
-        return cloud;
+        return survivingCloud;
     }
 
 
     const workMap = new Map<number | string, Work>();
-    
 
-    cloud.forEach(work => {
+
+    survivingCloud.forEach(work => {
         workMap.set(work.id, work);
     });
 
@@ -187,7 +181,7 @@ export function mergeLibraryData(
     });
 
 
-    cloud.forEach(work => {
+    survivingCloud.forEach(work => {
         if (!seenIds.has(work.id)) {
             const upToDateWork = workMap.get(work.id);
             if (upToDateWork) {
@@ -199,7 +193,8 @@ export function mergeLibraryData(
 
     logger.log('[DataProtection] Merged library:', {
         localCount: local.length,
-        cloudCount: cloud.length,
+        cloudCount: (cloud || []).length,
+        droppedByTombstone: (cloud || []).length - survivingCloud.length,
         mergedCount: merged.length,
         strategy: 'local-priority-order'
     });
@@ -207,46 +202,48 @@ export function mergeLibraryData(
     return merged;
 }
 
-// Validates gamification writes - prevents accidental downgrades
+/** Bonus XP earned in a single save; a day's login plus streak bonus is far below this. */
+export const MAX_BONUS_XP_JUMP = 1000;
+
+/**
+ * Validates the client-owned part of a gamification write.
+ *
+ * Derived stats are no longer checked here: the server owns them and MUST be
+ * able to correct them downwards. Guarding them was what froze inflated totals
+ * in place. Only bonusXp and streak come from the client, so only they are checked.
+ */
 export function validateGamificationWrite(
-    newData: Partial<GamificationData>,
+    newData: Partial<ClientOwnedGamification>,
     existing: Partial<GamificationData> | null
 ): boolean {
-    if (!existing) return true;
-
-
-    const checks = [
-        { name: 'level', newVal: newData.level, oldVal: existing.level },
-        { name: 'totalXp', newVal: newData.totalXp, oldVal: existing.totalXp },
-        { name: 'totalChaptersRead', newVal: newData.totalChaptersRead, oldVal: existing.totalChaptersRead },
-        { name: 'totalAnimeEpisodesWatched', newVal: newData.totalAnimeEpisodesWatched, oldVal: existing.totalAnimeEpisodesWatched },
-        { name: 'totalMoviesWatched', newVal: newData.totalMoviesWatched, oldVal: existing.totalMoviesWatched },
-        { name: 'totalWorksAdded', newVal: newData.totalWorksAdded, oldVal: existing.totalWorksAdded },
-        { name: 'totalWorksCompleted', newVal: newData.totalWorksCompleted, oldVal: existing.totalWorksCompleted }
-    ];
-
-    for (const check of checks) {
-        if (check.newVal !== undefined && check.oldVal !== undefined) {
-            if (check.newVal < check.oldVal) {
-                logger.warn(`[DataProtection] Validation failed: ${check.name} would decrease from ${check.oldVal} to ${check.newVal}`);
-                return false;
-            }
+    if (newData.bonusXp !== undefined) {
+        if (!Number.isFinite(newData.bonusXp) || newData.bonusXp < 0) {
+            logger.warn('[DataProtection] Validation failed: bonusXp is not a positive number');
+            return false;
         }
-    }
-
-    // Anti-cheat: cap max jump per save
-    if (newData.level && existing.level) {
-
-        if (newData.level > existing.level + 10) {
-            logger.warn(`[DataProtection] SECURITY: Prevented suspicious level jump (${existing.level} -> ${newData.level})`);
+        if (newData.bonusXp > MAX_BONUS_XP) {
+            logger.warn(`[DataProtection] Validation failed: bonusXp above cap (${newData.bonusXp})`);
             return false;
         }
     }
 
-    if (newData.totalXp !== undefined && existing.totalXp !== undefined) {
+    if (newData.streak !== undefined && (!Number.isFinite(newData.streak) || newData.streak < 0)) {
+        logger.warn('[DataProtection] Validation failed: streak is not a positive number');
+        return false;
+    }
 
-        if (newData.totalXp > existing.totalXp + 25000) {
-            logger.warn(`[DataProtection] SECURITY: Prevented suspicious totalXp jump (+${newData.totalXp - existing.totalXp})`);
+    if (!existing) return true;
+
+    // An exact reset to 0 is the "erase my data" path, not a downgrade.
+    if (newData.bonusXp === 0) return true;
+
+    if (newData.bonusXp !== undefined && existing.bonusXp !== undefined) {
+        if (newData.bonusXp < existing.bonusXp) {
+            logger.warn(`[DataProtection] Validation failed: bonusXp would decrease from ${existing.bonusXp} to ${newData.bonusXp}`);
+            return false;
+        }
+        if (newData.bonusXp > existing.bonusXp + MAX_BONUS_XP_JUMP) {
+            logger.warn(`[DataProtection] SECURITY: Prevented suspicious bonusXp jump (+${newData.bonusXp - existing.bonusXp})`);
             return false;
         }
     }

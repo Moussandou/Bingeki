@@ -26,6 +26,15 @@ import {
     getPersonFullFn,
     getAnimeEpisodeDetailsFn,
     getRandomAnimeFn,
+    getRandomMangaFn,
+    getGenresFn,
+    getProducersFn,
+    getSeasonsListFn,
+    getUpcomingAnimeFn,
+    getSeasonAnimeFn,
+    getRecentRecommendationsFn,
+    getTopCharactersFn,
+    getWorkNewsFn,
     getJikanStatusFn,
 } from '@/firebase/functions';
 
@@ -74,6 +83,7 @@ const CACHE_TTL_SHORT = 30 * 60 * 1000;   // 30 min — search results
 const CACHE_TTL_MEDIUM = 60 * 60 * 1000;  // 1 hour — reviews, stats, staff
 const CACHE_TTL_LONG = 4 * 60 * 60 * 1000; // 4 hours — anime details, characters, episodes
 const CACHE_TTL_LISTS = 6 * 60 * 60 * 1000; // 6 hours — top/seasonal/schedule (Jikan les cache 24 h en amont)
+const CACHE_TTL_TAXONOMY = 7 * 24 * 60 * 60 * 1000; // 7 jours — genres, producteurs, saisons
 const CACHE_STALE_MAX = 7 * 24 * 60 * 60 * 1000; // au-delà, une entrée expirée n'est plus servie en stale
 
 const LS_PREFIX = 'bgk_c_';
@@ -848,5 +858,196 @@ export const searchCharacters = async (query: string, limit: number = 25, option
         [],
         options,
         { path: `/characters?q=${encodeURIComponent(query)}&limit=${limit}` }
+    );
+};
+
+// ==================== TAXONOMIES & DÉCOUVERTE ====================
+
+export interface JikanGenre {
+    mal_id: number;
+    name: string;
+    url: string;
+    count: number;
+}
+
+/** Liste complète des genres MAL (78 en anime, 79 en manga) — remplace toute liste codée en dur. */
+export const getGenres = async (type: 'anime' | 'manga' = 'anime', options?: CallOptions): Promise<JikanGenre[]> => {
+    return callProxy<JikanGenre[]>(
+        getGenresFn,
+        { type },
+        `genres_${type}`,
+        CACHE_TTL_TAXONOMY,
+        [],
+        options,
+        { path: `/genres/${type}` }
+    );
+};
+
+export interface JikanProducer {
+    mal_id: number;
+    titles?: { type: string; title: string }[];
+    images?: { jpg: { image_url: string } };
+    favorites?: number;
+    count?: number;
+    established?: string | null;
+}
+
+/** Studios/producteurs triés par popularité. */
+export const getProducers = async (limit: number = 25, page: number = 1, options?: CallOptions): Promise<JikanProducer[]> => {
+    const result = await callProxy<{ data: JikanProducer[] }>(
+        getProducersFn,
+        { limit, page },
+        `producers_${limit}_p${page}`,
+        CACHE_TTL_TAXONOMY,
+        { data: [] },
+        options,
+        { path: `/producers?page=${page}&limit=${limit}&order_by=favorites&sort=desc`, full: true }
+    );
+    return result?.data ?? [];
+};
+
+/** Nom d'affichage d'un producteur (le schéma expose `titles[]`, pas `name`). */
+export const getProducerName = (p: JikanProducer): string => {
+    const titles = p.titles ?? [];
+    return (titles.find(t => t.type === 'Default') ?? titles[0])?.title ?? `#${p.mal_id}`;
+};
+
+export interface JikanSeasonEntry {
+    year: number;
+    seasons: string[];
+}
+
+export const getSeasonsList = async (options?: CallOptions): Promise<JikanSeasonEntry[]> => {
+    return callProxy<JikanSeasonEntry[]>(
+        getSeasonsListFn,
+        {},
+        'seasons_list',
+        CACHE_TTL_TAXONOMY,
+        [],
+        options,
+        { path: '/seasons' }
+    );
+};
+
+export const getUpcomingAnime = async (limit: number = 24, options?: CallOptions): Promise<JikanResult[]> => {
+    const { nsfwMode } = useSettingsStore.getState();
+    const direct: DirectCall | undefined = nsfwMode
+        ? undefined
+        : { path: `/seasons/upcoming?limit=${limit}&sfw=true` };
+    return callProxy<JikanResult[]>(
+        getUpcomingAnimeFn,
+        { limit, nsfwMode },
+        `upcoming_${limit}_nsfw_${nsfwMode}`,
+        CACHE_TTL_LISTS,
+        [],
+        options,
+        direct
+    );
+};
+
+export const getSeasonAnime = async (
+    year: number,
+    season: string,
+    limit: number = 24,
+    page: number = 1,
+    options?: CallOptions
+): Promise<{ data: JikanResult[]; pagination: JikanPagination }> => {
+    const { nsfwMode } = useSettingsStore.getState();
+    const direct: DirectCall | undefined = nsfwMode
+        ? undefined
+        : { path: `/seasons/${year}/${season}?limit=${limit}&page=${page}&sfw=true`, full: true };
+    return callProxy(
+        getSeasonAnimeFn,
+        { year, season, limit, page, nsfwMode },
+        `season_${year}_${season}_${limit}_p${page}_nsfw_${nsfwMode}`,
+        CACHE_TTL_LONG,
+        { data: [], pagination: { has_next_page: false, last_visible_page: 1 } },
+        options,
+        direct
+    );
+};
+
+export interface JikanRecommendationPair {
+    mal_id: string;
+    entry: {
+        mal_id: number;
+        url: string;
+        images: { jpg: { image_url: string; large_image_url: string } };
+        title: string;
+    }[];
+    content: string;
+}
+
+/** Recommandations récentes de la communauté : des paires « si tu as aimé X, essaie Y ». */
+export const getRecentRecommendations = async (
+    type: 'anime' | 'manga' = 'anime',
+    limit: number = 12,
+    options?: CallOptions
+): Promise<JikanRecommendationPair[]> => {
+    const { nsfwMode } = useSettingsStore.getState();
+    const direct: DirectCall | undefined = nsfwMode
+        ? undefined
+        : { path: `/recommendations/${type}?limit=${limit}&sfw=true` };
+    return callProxy<JikanRecommendationPair[]>(
+        getRecentRecommendationsFn,
+        { type, limit, nsfwMode },
+        `recent_recs_${type}_${limit}_nsfw_${nsfwMode}`,
+        CACHE_TTL_MEDIUM,
+        [],
+        options,
+        direct
+    );
+};
+
+export const getTopCharacters = async (limit: number = 25, page: number = 1, options?: CallOptions): Promise<JikanCharacterFull[]> => {
+    return callProxy<JikanCharacterFull[]>(
+        getTopCharactersFn,
+        { limit, page },
+        `top_characters_${limit}_p${page}`,
+        CACHE_TTL_LONG,
+        [],
+        options,
+        { path: `/top/characters?limit=${limit}&page=${page}` }
+    );
+};
+
+export interface JikanNewsItem {
+    mal_id: number;
+    url: string;
+    title: string;
+    date: string;
+    author_username: string;
+    author_url: string;
+    forum_url: string;
+    images?: { jpg: { image_url: string | null } };
+    comments: number;
+    excerpt: string;
+}
+
+/** Actualités MyAnimeList liées à une œuvre (distinct du fil RSS global du site). */
+export const getWorkNews = async (id: number, type: 'anime' | 'manga', options?: CallOptions): Promise<JikanNewsItem[]> => {
+    return callProxy<JikanNewsItem[]>(
+        getWorkNewsFn,
+        { id, type },
+        `${type}_${id}_news`,
+        CACHE_TTL_MEDIUM,
+        [],
+        options,
+        { path: `/${type}/${id}/news` }
+    );
+};
+
+export const getRandomManga = async (options?: CallOptions): Promise<JikanResult | null> => {
+    const { nsfwMode } = useSettingsStore.getState();
+    const cacheKey = `random_manga_${Date.now()}`;
+    const direct: DirectCall | undefined = nsfwMode ? undefined : { path: '/random/manga?sfw=true' };
+    return callProxy<JikanResult | null>(
+        getRandomMangaFn,
+        { nsfwMode },
+        cacheKey,
+        0,
+        null,
+        options,
+        direct
     );
 };

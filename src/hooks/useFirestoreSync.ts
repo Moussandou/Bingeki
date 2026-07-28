@@ -15,30 +15,22 @@ import {
   saveLibraryToFirestore,
   saveGamificationToFirestore
 } from '@/firebase/firestore';
+import type { ClientOwnedGamification } from '@/utils/dataProtection';
+import { logger } from '@/utils/logger';
 import { syncFlags } from './syncFlags';
 
 const SAVE_DEBOUNCE_MS = 3000;
 
-const GAMIFICATION_KEYS = [
-  'level',
-  'xp',
-  'totalXp',
-  'xpToNextLevel',
-  'streak',
-  'lastActivityDate',
-  'badges',
-  'totalChaptersRead',
-  'totalWorksAdded',
-  'totalWorksCompleted',
-  'totalAnimeEpisodesWatched',
-  'totalMoviesWatched',
-  'bonusXp',
-] as const;
+// Only the client-owned fields are saved. Everything else is derived by the
+// Cloud Function, and the security rules reject client writes to it.
+const GAMIFICATION_KEYS = ['bonusXp', 'streak', 'lastActivityDate'] as const;
 
-function pickGamification(state: GamificationState) {
-  return Object.fromEntries(
-    GAMIFICATION_KEYS.map((key) => [key, state[key]])
-  ) as Pick<GamificationState, (typeof GAMIFICATION_KEYS)[number]>;
+function pickGamification(state: GamificationState): ClientOwnedGamification {
+  return {
+    bonusXp: state.bonusXp,
+    streak: state.streak,
+    lastActivityDate: state.lastActivityDate,
+  };
 }
 
 export function useFirestoreSync() {
@@ -62,8 +54,12 @@ export function useFirestoreSync() {
       libraryTimeout = setTimeout(() => {
         // User may have logged out while the save was pending
         if (useAuthStore.getState().user?.uid !== uid) return;
-        const { works, folders, viewMode, sortBy } = useLibraryStore.getState();
-        saveLibraryToFirestore(uid, works, folders, viewMode, sortBy);
+        const { works, folders, viewMode, sortBy, deletedWorks } = useLibraryStore.getState();
+        saveLibraryToFirestore(uid, works, folders, viewMode, sortBy, {
+          tombstones: deletedWorks,
+        }).catch((error) => {
+          logger.error('[FirestoreSync] Library save failed:', error);
+        });
       }, SAVE_DEBOUNCE_MS);
     });
 
@@ -80,7 +76,12 @@ export function useFirestoreSync() {
       clearTimeout(gamificationTimeout);
       gamificationTimeout = setTimeout(() => {
         if (useAuthStore.getState().user?.uid !== uid) return;
-        saveGamificationToFirestore(uid, pickGamification(useGamificationStore.getState()));
+        saveGamificationToFirestore(
+          uid,
+          pickGamification(useGamificationStore.getState())
+        ).catch((error) => {
+          logger.error('[FirestoreSync] Gamification save failed:', error);
+        });
       }, SAVE_DEBOUNCE_MS);
     });
 

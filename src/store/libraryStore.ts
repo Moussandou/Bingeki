@@ -66,13 +66,30 @@ export interface Work {
     source?: string;
 }
 
+/** Records a deletion so the cloud merge cannot resurrect the work. */
+export interface Tombstone {
+    id: number | string;
+    deletedAt: number;
+}
+
+// Deletions older than this are assumed propagated to every device.
+export const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+
+export function pruneTombstones(tombstones: Tombstone[], now = Date.now()): Tombstone[] {
+    return (tombstones || []).filter((t) => now - t.deletedAt < TOMBSTONE_TTL_MS);
+}
+
 interface LibraryState {
     works: Work[];
     folders: Folder[];
     favoriteCharacters: FavoriteCharacter[];
+    deletedWorks: Tombstone[];
+    /** False until the cloud library has been merged in; guards cold-start recalcs. */
+    hydrated: boolean;
 
     addWork: (work: Work) => void;
     removeWork: (id: number | string) => void;
+    setHydrated: (value: boolean) => void;
     updateProgress: (id: number | string, progress: number) => void;
     updateStatus: (id: number | string, status: Work['status']) => void;
     updateWorkDetails: (id: number | string, details: Partial<Work>) => void;
@@ -104,11 +121,16 @@ export const useLibraryStore = create<LibraryState>()(
             works: [],
             folders: [],
             favoriteCharacters: [],
+            deletedWorks: [],
+            hydrated: false,
 
+            setHydrated: (value) => set({ hydrated: value }),
 
             addWork: (work) => set((state) => {
                 if (state.works.some((w) => w.id === work.id)) return state;
                 return {
+                    // Re-adding clears the tombstone, otherwise the merge would drop it again.
+                    deletedWorks: state.deletedWorks.filter((t) => t.id !== work.id),
                     works: [...state.works, {
                         ...work,
                         dateAdded: Date.now(),
@@ -119,6 +141,10 @@ export const useLibraryStore = create<LibraryState>()(
             }),
             removeWork: (id) => set((state) => ({
                 works: state.works.filter((w) => w.id !== id),
+                deletedWorks: pruneTombstones([
+                    ...state.deletedWorks.filter((t) => t.id !== id),
+                    { id, deletedAt: Date.now() },
+                ]),
             })),
             updateProgress: (id, progress) => set((state) => ({
                 works: state.works.map((w) =>
@@ -200,6 +226,8 @@ export const useLibraryStore = create<LibraryState>()(
                 works: [],
                 folders: [],
                 favoriteCharacters: [],
+                deletedWorks: [],
+                hydrated: false,
                 viewMode: 'grid',
                 sortBy: 'updated'
             }),
@@ -210,6 +238,12 @@ export const useLibraryStore = create<LibraryState>()(
         }),
         {
             name: 'bingeki-library-storage',
+            // `hydrated` tracks this session's cloud load; it must never be restored.
+            partialize: (state) => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { hydrated, ...rest } = state;
+                return rest as LibraryState;
+            },
         }
     )
 );

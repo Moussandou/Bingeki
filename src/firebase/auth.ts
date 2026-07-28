@@ -91,21 +91,19 @@ export const logout = async (): Promise<void> => {
             const gamificationState = useGamificationStore.getState();
 
 
-            await saveLibraryToFirestore(currentUser.uid, libraryState.works);
+            await saveLibraryToFirestore(
+                currentUser.uid,
+                libraryState.works,
+                libraryState.folders,
+                libraryState.viewMode,
+                libraryState.sortBy,
+                { tombstones: libraryState.deletedWorks }
+            );
+            // Client-owned fields only; the trigger derives the rest.
             await saveGamificationToFirestore(currentUser.uid, {
-                level: gamificationState.level,
-                xp: gamificationState.xp,
-                totalXp: gamificationState.totalXp,
-                xpToNextLevel: gamificationState.xpToNextLevel,
+                bonusXp: gamificationState.bonusXp,
                 streak: gamificationState.streak,
-                lastActivityDate: gamificationState.lastActivityDate,
-                badges: gamificationState.badges,
-                totalChaptersRead: gamificationState.totalChaptersRead,
-                totalAnimeEpisodesWatched: gamificationState.totalAnimeEpisodesWatched,
-                totalMoviesWatched: gamificationState.totalMoviesWatched,
-                totalWorksAdded: gamificationState.totalWorksAdded,
-                totalWorksCompleted: gamificationState.totalWorksCompleted,
-                bonusXp: gamificationState.bonusXp
+                lastActivityDate: gamificationState.lastActivityDate
             });
 
             logger.log("Data synced before logout");

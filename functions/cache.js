@@ -5,9 +5,11 @@ const TTL_MS = {
   SEARCH: 60 * 60 * 1000,                    // 1h
   RECOMMENDATIONS: 6 * 60 * 60 * 1000,       // 6h
   EPISODES: 6 * 60 * 60 * 1000,              // 6h
+  NEWS: 6 * 60 * 60 * 1000,                  // 6h
   STREAMING: 24 * 60 * 60 * 1000,            // 24h
   DETAILS: 24 * 60 * 60 * 1000,              // 24h
   SECONDARY: 48 * 60 * 60 * 1000,            // 48h (characters, relations, pics, stats, staff, themes)
+  TAXONOMY: 30 * 24 * 60 * 60 * 1000,        // 30j (genres, producteurs, liste des saisons — quasi immuables)
 };
 
 /**

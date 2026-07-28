@@ -23,7 +23,8 @@
     "see_changelog": "View Changelog",
     "report_bug": "Report Bug",
     "notifications": "Notifications",
-    "lens": "ANIME LENS"
+    "lens": "ANIME LENS",
+    "seasons": "Seasons"
   },
   "lens": {
     "title": "ANIME LENS",
@@ -520,13 +521,17 @@
     "surprise": {
       "title": "Need inspiration?",
       "subtitle": "Let fate choose your next adventure.",
-      "button": "SURPRISE ME"
+      "button": "SURPRISE ME",
+      "button_anime": "AN ANIME",
+      "button_manga": "A MANGA"
     },
     "carousels": {
       "seasonal": "Seasonal Anime",
       "top_anime": "Top 10 Anime",
       "popular_manga": "Popular Manga",
-      "top_manga": "Top 10 Manga"
+      "top_manga": "Top 10 Manga",
+      "upcoming": "Coming Soon",
+      "community_recs": "Community Picks"
     }
   },
   "social": {
@@ -843,7 +848,8 @@
       "music": "MUSIC",
       "reviews": "REVIEWS",
       "gallery": "GALLERY",
-      "stats": "STATISTICS"
+      "stats": "STATISTICS",
+      "news": "News"
     },
     "meta": {
       "score": "Score",
@@ -1011,6 +1017,10 @@
       "prompt": "Enter total number of chapters:",
       "prompt_total": "Enter total number:",
       "click_to_edit": "Click to edit total"
+    },
+    "news": {
+      "loading": "Loading news…",
+      "empty": "No news for this title."
     }
   },
   "character_details": {
@@ -1249,6 +1259,18 @@
       "instagram": "Follow us on Instagram",
       "tiktok": "Follow us on TikTok",
       "home": "Back to home"
+    }
+  },
+  "seasons": {
+    "title": "Seasons",
+    "subtitle": "Explore anime season by season, year after year.",
+    "year": "Year",
+    "empty": "No anime for this season.",
+    "names": {
+      "winter": "Winter",
+      "spring": "Spring",
+      "summer": "Summer",
+      "fall": "Fall"
     }
   }
 }

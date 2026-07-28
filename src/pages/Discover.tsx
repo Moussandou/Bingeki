@@ -8,10 +8,14 @@ import { Layout } from '@/components/layout/Layout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Carousel } from '@/components/ui/Carousel';
-import { searchWorks, getTopWorks, getSeasonalAnime, getRandomAnime, type JikanResult, type SearchFilters } from '@/services/animeApi';
+import {
+    searchWorks, getTopWorks, getSeasonalAnime, getRandomAnime, getRandomManga,
+    getUpcomingAnime, getGenres, getProducers, getProducerName, getRecentRecommendations,
+    type JikanResult, type SearchFilters, type JikanGenre, type JikanProducer
+} from '@/services/animeApi';
 import { useLibraryStore } from '@/store/libraryStore';
 import { useAuthStore } from '@/store/authStore';
-import { Search, Check, Loader2, Flame, Sparkles, Star, Dice5, TrendingUp, Plus, SlidersHorizontal, X } from 'lucide-react';
+import { Search, Check, Loader2, Flame, Sparkles, Star, Dice5, TrendingUp, Plus, SlidersHorizontal, X, CalendarClock, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AddWorkModal } from '@/components/library/AddWorkModal';
 import { FriendRecommendations } from '@/components/social/FriendRecommendations';
@@ -46,6 +50,12 @@ export default function Discover() {
     const [topAnime, setTopAnime] = useState<JikanResult[]>([]);
     const [popularManga, setPopularManga] = useState<JikanResult[]>([]);
     const [topManga, setTopManga] = useState<JikanResult[]>([]);
+    const [upcomingAnime, setUpcomingAnime] = useState<JikanResult[]>([]);
+    const [communityRecs, setCommunityRecs] = useState<JikanResult[]>([]);
+
+    // Taxonomies chargées depuis l'API (remplacent les listes autrefois codées en dur)
+    const [genres, setGenres] = useState<JikanGenre[]>([]);
+    const [studios, setStudios] = useState<JikanProducer[]>([]);
 
     const [isLoadingSections, setIsLoadingSections] = useState(true);
     const [selectedWork, setSelectedWork] = useState<JikanResult | null>(null);
@@ -57,29 +67,14 @@ export default function Discover() {
 
     const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
 
-    const GENRES = [
-        { id: 1, label: 'Action' },
-        { id: 2, label: 'Adventure' },
-        { id: 4, label: 'Comedy' },
-        { id: 8, label: 'Drama' },
-        { id: 10, label: 'Fantasy' },
-        { id: 24, label: 'Sci-Fi' }
-    ];
-
-    const POPULAR_STUDIOS = [
-        { id: '569', name: 'MAPPA' },
-        { id: '11', name: 'Madhouse' },
-        { id: '4', name: 'Bones' },
-        { id: '858', name: 'Wit Studio' },
-        { id: '43', name: 'Ufotable' },
-        { id: '56', name: 'A-1 Pictures' },
-        { id: '18', name: 'Toei Animation' },
-        { id: '21', name: 'Studio Ghibli' },
-        { id: '2', name: 'Kyoto Animation' },
-        { id: '14', name: 'Sunrise' },
-        { id: '7', name: 'J.C.Staff' },
-        { id: '10', name: 'Production I.G' },
-    ];
+    // Raccourcis affichés sous la barre de recherche : les genres les plus utilisés,
+    // pris dans la liste complète renvoyée par l'API (triée par nombre d'œuvres).
+    const QUICK_GENRE_IDS = [1, 2, 4, 8, 10, 24];
+    const quickGenres = useMemo(
+        () => QUICK_GENRE_IDS.map(id => genres.find(g => g.mal_id === id)).filter((g): g is JikanGenre => !!g),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [genres]
+    );
 
     // Fetch Home Data
     useEffect(() => {
@@ -96,18 +91,39 @@ export default function Discover() {
                     return Array.from(map.values());
                 };
 
-                // All 4 calls in parallel — apiQueue handles rate limiting
-                const [season, topA, popM, topM] = await Promise.all([
+                // Tout en parallèle — apiQueue gère le débit ; les taxonomies sont
+                // cachées 7 jours donc gratuites après la première visite.
+                const [season, topA, popM, topM, upcoming, recs, genreList, studioList] = await Promise.all([
                     getSeasonalAnime(15),
                     getTopWorks('anime', 'favorite', 15),
                     getTopWorks('manga', 'bypopularity', 15),
-                    getTopWorks('manga', 'favorite', 15)
+                    getTopWorks('manga', 'favorite', 15),
+                    getUpcomingAnime(15),
+                    getRecentRecommendations('anime', 15),
+                    getGenres('anime'),
+                    getProducers(30)
                 ]);
 
                 setSeasonalAnime(dedup(season));
                 setTopAnime(dedup(topA));
                 setPopularManga(dedup(popM));
                 setTopManga(dedup(topM));
+                setUpcomingAnime(dedup(upcoming));
+                setGenres(genreList);
+                setStudios(studioList);
+
+                // Les recommandations arrivent en paires « si tu as aimé A, essaie B » :
+                // on aplatit vers la forme JikanResult attendue par Carousel.
+                setCommunityRecs(dedup(
+                    recs.flatMap(pair => (pair.entry || []).map(e => ({
+                        mal_id: e.mal_id,
+                        title: e.title,
+                        images: { jpg: { image_url: e.images?.jpg?.image_url, small_image_url: e.images?.jpg?.image_url, large_image_url: e.images?.jpg?.large_image_url } },
+                        type: 'anime',
+                        synopsis: '',
+                        status: '',
+                    } as JikanResult)))
+                ).slice(0, 20));
             } catch (error) {
                 logger.error("[Discover] ❌ Failed to load discovery data", error);
             } finally {
@@ -225,16 +241,16 @@ export default function Discover() {
         }
     }, [seasonalAnime, topAnime]);
 
-    // Handle Surprise Me (True Random)
-    const handleSurpriseMe = async () => {
+    // Handle Surprise Me — anime ou manga, Bingeki suivant les deux
+    const handleSurpriseMe = async (type: 'anime' | 'manga') => {
         setLoading(true);
         try {
-            const randomWork = await getRandomAnime();
+            const randomWork = type === 'manga' ? await getRandomManga() : await getRandomAnime();
             if (randomWork) {
-                navigate(`/work/${randomWork.mal_id}?type=anime`); // Usually works for anime
+                navigate(`/work/${randomWork.mal_id}?type=${type}`);
             }
         } catch (error) {
-            logger.error("Failed to get random anime", error);
+            logger.error(`Failed to get random ${type}`, error);
         } finally {
             setLoading(false);
         }
@@ -526,8 +542,10 @@ export default function Discover() {
                                                 }}
                                             >
                                                 <option value="">{t('discover.filters.all_studios')}</option>
-                                                {POPULAR_STUDIOS.map(studio => (
-                                                    <option key={studio.id} value={studio.id}>{studio.name.toUpperCase()}</option>
+                                                {studios.map(studio => (
+                                                    <option key={studio.mal_id} value={String(studio.mal_id)}>
+                                                        {getProducerName(studio).toUpperCase()}
+                                                    </option>
                                                 ))}
                                             </select>
                                         </div>
@@ -563,12 +581,12 @@ export default function Discover() {
                         {/* Quick Genres */}
                         {!searchQuery && !showFilters && (
                             <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                                {GENRES.map(genre => {
-                                    const isActive = selectedGenre === genre.id;
+                                {quickGenres.map(genre => {
+                                    const isActive = selectedGenre === genre.mal_id;
                                     return (
                                         <button
-                                            key={genre.id}
-                                            onClick={() => handleGenreClick(genre.id)}
+                                            key={genre.mal_id}
+                                            onClick={() => handleGenreClick(genre.mal_id)}
                                             style={{
                                                 padding: '0.5rem 1rem',
                                                 borderRadius: '0',
@@ -583,7 +601,7 @@ export default function Discover() {
                                                 transform: isActive ? 'translate(1px, 1px)' : 'none'
                                             }}
                                         >
-                                            {genre.label}
+                                            {genre.name}
                                         </button>
                                     );
                                 })}
@@ -603,11 +621,11 @@ export default function Discover() {
                             {/* Filter Chips (if any active) */}
                             {hasFilters && (
                                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
-                                    {selectedGenre && <span style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.25rem 0.5rem', fontWeight: 700, fontSize: '0.8rem' }}>{t('discover.filters.genre')}: {GENRES.find(g => g.id === selectedGenre)?.label || selectedGenre}</span>}
+                                    {selectedGenre && <span style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.25rem 0.5rem', fontWeight: 700, fontSize: '0.8rem' }}>{t('discover.filters.genre')}: {genres.find(g => g.mal_id === selectedGenre)?.name || selectedGenre}</span>}
                                     {filterStatus && <span style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.25rem 0.5rem', fontWeight: 700, fontSize: '0.8rem' }}>{t('discover.filters.status')}: {filterStatus}</span>}
                                     {filterYear && <span style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.25rem 0.5rem', fontWeight: 700, fontSize: '0.8rem' }}>{t('discover.filters.year')}: {filterYear}</span>}
                                     {filterScore > 0 && <span style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.25rem 0.5rem', fontWeight: 700, fontSize: '0.8rem' }}>{t('discover.filters.score')} : {filterScore}</span>}
-                                    {filterStudio && <span style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.25rem 0.5rem', fontWeight: 700, fontSize: '0.8rem' }}>{t('discover.filters.studio')}: {POPULAR_STUDIOS.find(s => s.id === filterStudio)?.name}</span>}
+                                    {filterStudio && <span style={{ background: 'var(--color-text)', color: 'var(--color-surface)', padding: '0.25rem 0.5rem', fontWeight: 700, fontSize: '0.8rem' }}>{t('discover.filters.studio')}: {(() => { const s = studios.find(x => String(x.mal_id) === filterStudio); return s ? getProducerName(s) : filterStudio; })()}</span>}
                                 </div>
                             )}
 
@@ -701,29 +719,34 @@ export default function Discover() {
                                         </h2>
                                         <p style={{ opacity: 0.8, fontSize: '1.1rem' }}>{t('discover.surprise.subtitle')}</p>
                                     </div>
-                                    <Button
-                                        variant="manga"
-                                        onClick={handleSurpriseMe}
-                                        icon={loading ? <Loader2 className="spin" size={24} /> : <Dice5 size={24} />}
-                                        disabled={loading}
-                                        style={{
-                                            fontSize: '1.2rem',
-                                            padding: '1rem 2rem',
-                                            background: 'var(--color-surface)',
-                                            border: 'none',
-                                            color: 'var(--color-text-contrast)',
-                                            boxShadow: '4px 4px 0 var(--color-shadow-solid)',
-                                            transition: 'all 0.2s',
-                                            opacity: loading ? 0.7 : 1
-                                        }}
-                                        whileHover={{
-                                            borderColor: 'var(--color-primary)',
-                                            color: 'var(--color-primary)',
-                                            boxShadow: '4px 4px 0 var(--color-primary)'
-                                        }}
-                                    >
-                                        {t('discover.surprise.button')}
-                                    </Button>
+                                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                        {(['anime', 'manga'] as const).map(kind => (
+                                            <Button
+                                                key={kind}
+                                                variant="manga"
+                                                onClick={() => handleSurpriseMe(kind)}
+                                                icon={loading ? <Loader2 className="spin" size={24} /> : <Dice5 size={24} />}
+                                                disabled={loading}
+                                                style={{
+                                                    fontSize: '1.1rem',
+                                                    padding: '1rem 1.5rem',
+                                                    background: 'var(--color-surface)',
+                                                    border: 'none',
+                                                    color: 'var(--color-text-contrast)',
+                                                    boxShadow: '4px 4px 0 var(--color-shadow-solid)',
+                                                    transition: 'all 0.2s',
+                                                    opacity: loading ? 0.7 : 1
+                                                }}
+                                                whileHover={{
+                                                    borderColor: 'var(--color-primary)',
+                                                    color: 'var(--color-primary)',
+                                                    boxShadow: '4px 4px 0 var(--color-primary)'
+                                                }}
+                                            >
+                                                {t(`discover.surprise.button_${kind}`)}
+                                            </Button>
+                                        ))}
+                                    </div>
                                 </Card>
                             </div>
 
@@ -746,6 +769,24 @@ export default function Discover() {
                                 onAdd={handleQuickAdd}
                                 loading={isLoadingSections}
                                 showRank
+                            />
+
+                            <Carousel
+                                title={<><CalendarClock size={24} color="#8b5cf6" /> {t('discover.carousels.upcoming')}</>}
+                                items={upcomingAnime}
+                                onItemClick={handleWorkClick}
+                                libraryIds={libraryIds}
+                                onAdd={handleQuickAdd}
+                                loading={isLoadingSections}
+                            />
+
+                            <Carousel
+                                title={<><Users size={24} color="#10b981" /> {t('discover.carousels.community_recs')}</>}
+                                items={communityRecs}
+                                onItemClick={handleWorkClick}
+                                libraryIds={libraryIds}
+                                onAdd={handleQuickAdd}
+                                loading={isLoadingSections}
                             />
 
                             <Carousel

@@ -6,7 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Search, Shield, Ban, ExternalLink, Edit, Eye, Trash2, Clock, Circle, ArrowUpDown, LayoutGrid, List, Download, Copy, Check, Database } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Switch } from '@/components/ui/Switch';
-import { getAllUsers, toggleUserBan, toggleUserAdmin, adminUpdateUserGamification, deleteUserData, logAdminAction, type UserProfile } from '@/firebase/firestore';
+import { getAllUsers, toggleUserBan, toggleUserAdmin, adminSetUserBonusXp, deleteUserData, logAdminAction, type UserProfile } from '@/firebase/firestore';
 import { Link } from '@/components/routing/LocalizedLink';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -29,8 +29,7 @@ export default function AdminUsers() {
     // Modal State
     const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
     const [modalType, setModalType] = useState<'level' | 'details' | null>(null);
-    const [editLevel, setEditLevel] = useState(1);
-    const [editXp, setEditXp] = useState(0);
+    const [editBonusXp, setEditBonusXp] = useState(0);
     const [sortBy, setSortBy] = useState<'lastLogin' | 'createdAt' | 'xp' | 'level' | 'name'>('lastLogin');
     const [copiedUid, setCopiedUid] = useState(false);
 
@@ -210,8 +209,7 @@ export default function AdminUsers() {
 
     const openLevelModal = (user: UserProfile) => {
         setSelectedUser(user);
-        setEditLevel(user.level || 1);
-        setEditXp(user.xp || 0);
+        setEditBonusXp(user.bonusXp || 0);
         setModalType('level');
     };
 
@@ -223,8 +221,8 @@ export default function AdminUsers() {
     const handleSaveLevel = async () => {
         if (!selectedUser) return;
         try {
-            await adminUpdateUserGamification(selectedUser.uid, Number(editLevel), Number(editXp));
-            
+            await adminSetUserBonusXp(selectedUser.uid, Number(editBonusXp));
+
             if (currentAdmin) {
                 await logAdminAction({
                     action: 'user_update_stats',
@@ -233,13 +231,13 @@ export default function AdminUsers() {
                     adminEmail: currentAdmin.email || undefined,
                     targetId: selectedUser.uid,
                     targetName: selectedUser.displayName || selectedUser.email || selectedUser.uid,
-                    details: `Updated Level from ${selectedUser.level || 1} to ${editLevel}, XP from ${selectedUser.xp || 0} to ${editXp}`
+                    details: `Updated bonus XP from ${selectedUser.bonusXp || 0} to ${editBonusXp}`
                 });
             }
 
-            setUsers(prev => prev.map(u => u.uid === selectedUser.uid ? { ...u, level: Number(editLevel), xp: Number(editXp) } : u));
+            setUsers(prev => prev.map(u => u.uid === selectedUser.uid ? { ...u, bonusXp: Number(editBonusXp) } : u));
             setModalType(null);
-            alert("User stats updated successfully!");
+            alert("Bonus XP updated. Level and total XP are recomputed by the server.");
         } catch (e) {
             logger.error(e);
             alert("Failed to update user stats.");
@@ -645,17 +643,18 @@ export default function AdminUsers() {
                 </div>
             )}
 
-            {/* Level Edit Modal */}
-            <Modal isOpen={modalType === 'level'} onClose={() => setModalType(null)} title="Edit User Stats">
+            {/* Bonus XP Edit Modal */}
+            <Modal isOpen={modalType === 'level'} onClose={() => setModalType(null)} title="Edit Bonus XP">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Level</label>
-                        <Input type="number" value={editLevel} onChange={(e) => setEditLevel(Number(e.target.value))} />
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Bonus XP</label>
+                        <Input type="number" value={editBonusXp} onChange={(e) => setEditBonusXp(Number(e.target.value))} />
                     </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>XP</label>
-                        <Input type="number" value={editXp} onChange={(e) => setEditXp(Number(e.target.value))} />
-                    </div>
+                    <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: 0 }}>
+                        Level, XP and total XP are derived from the library and recomputed
+                        by the server. Bonus XP is the only value that can be set by hand.
+                        Current: level {selectedUser?.level || 1}, {selectedUser?.totalXp || 0} total XP.
+                    </p>
                     <Button onClick={handleSaveLevel} style={{ width: '100%' }}>Save Changes</Button>
                 </div>
             </Modal>

@@ -15,7 +15,8 @@ import {
     Newspaper,
     ScanSearch,
     ShieldCheck,
-    LayoutList
+    LayoutList,
+    CalendarRange,
 } from 'lucide-react';
 
 import { GlobalSearch } from '@/components/search/GlobalSearch';
@@ -250,6 +251,9 @@ export function Header() {
                                     </Link>
                                     <Link to="/schedule" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <Calendar size={16} /> {t('header.agenda')}
+                                    </Link>
+                                    <Link to="/seasons" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
+                                        <CalendarRange size={16} /> {t('header.seasons')}
                                     </Link>
                                     <Link to="/changelog" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <HistoryIcon size={16} /> {t('header.changelog')}

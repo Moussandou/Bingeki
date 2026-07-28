@@ -23,7 +23,8 @@
     "see_changelog": "Voir le changelog",
     "report_bug": "Signaler un bug",
     "notifications": "Notifications",
-    "lens": "ANIME LENS"
+    "lens": "ANIME LENS",
+    "seasons": "Saisons"
   },
   "lens": {
     "title": "ANIME LENS",
@@ -523,13 +524,17 @@
     "surprise": {
       "title": "En panne d'inspiration ?",
       "subtitle": "Laisse le destin choisir ta prochaine aventure.",
-      "button": "SURPRENDS-MOI"
+      "button": "SURPRENDS-MOI",
+      "button_anime": "UN ANIME",
+      "button_manga": "UN MANGA"
     },
     "carousels": {
       "seasonal": "Anime de la Saison",
       "top_anime": "Top 10 Animes",
       "popular_manga": "Mangas Populaires",
-      "top_manga": "Top 10 Mangas"
+      "top_manga": "Top 10 Mangas",
+      "upcoming": "Prochainement",
+      "community_recs": "Recommandé par la communauté"
     }
   },
   "social": {
@@ -843,7 +848,8 @@
       "music": "MUSIQUES",
       "reviews": "AVIS",
       "gallery": "GALERIE",
-      "stats": "STATISTIQUES"
+      "stats": "STATISTIQUES",
+      "news": "Actus"
     },
     "meta": {
       "score": "Score",
@@ -1011,6 +1017,10 @@
       "prompt": "Entrez le nombre total de chapitres :",
       "prompt_total": "Entrez le nombre total:",
       "click_to_edit": "Cliquez pour modifier le total"
+    },
+    "news": {
+      "loading": "Chargement des actualités…",
+      "empty": "Aucune actualité pour cette œuvre."
     }
   },
   "character_details": {
@@ -1249,6 +1259,18 @@
       "instagram": "Nous suivre sur Instagram",
       "tiktok": "Nous suivre sur TikTok",
       "home": "Retour à l'accueil"
+    }
+  },
+  "seasons": {
+    "title": "Saisons",
+    "subtitle": "Explore les animes saison par saison, année après année.",
+    "year": "Année",
+    "empty": "Aucun anime pour cette saison.",
+    "names": {
+      "winter": "Hiver",
+      "spring": "Printemps",
+      "summer": "Été",
+      "fall": "Automne"
     }
   }
 }

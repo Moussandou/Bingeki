@@ -154,32 +154,108 @@ runIfEmulator('Firestore security rules', () => {
             await testEnv.withSecurityRulesDisabled(async (ctx) => {
                 await setDoc(doc(ctx.firestore(), 'users', ALICE, 'data', 'gamification'), {
                     level: 5,
+                    xp: 20,
                     totalXp: 1000,
+                    xpToNextLevel: 121,
+                    badges: [],
+                    totalChaptersRead: 100,
+                    bonusXp: 200,
+                    streak: 3,
+                    verifiedStreak: 3,
+                    lastActivityDate: '2024-03-04T10:00:00.000Z',
                 });
             });
         });
 
-        it('allows a reasonable progress sync', async () => {
+        // --- client-owned fields ---
+
+        it('allows a normal daily bonus sync', async () => {
             const db = testEnv.authenticatedContext(ALICE).firestore();
             await assertSucceeds(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
-                level: 6,
+                bonusXp: 230,
+                streak: 4,
+                lastActivityDate: '2024-03-05T10:00:00.000Z',
+            }));
+        });
+
+        it('allows an exact reset to zero', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertSucceeds(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
+                bonusXp: 0,
+                streak: 0,
+                lastActivityDate: null,
+            }));
+        });
+
+        it('blocks a partial bonusXp regression', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
+                bonusXp: 100,
+            }));
+        });
+
+        it('blocks an absurd bonusXp jump', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
+                bonusXp: 40_000,
+            }));
+        });
+
+        it('blocks bonusXp above the hard cap', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
+                bonusXp: 9_999_999,
+            }));
+        });
+
+        it('blocks a negative streak', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
+                streak: -5,
+            }));
+        });
+
+        // --- server-owned fields: the client must never touch these ---
+
+        it('blocks the client from writing totalXp', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
                 totalXp: 2000,
             }));
         });
 
-        it('blocks an absurd XP jump', async () => {
+        it('blocks the client from writing level', async () => {
             const db = testEnv.authenticatedContext(ALICE).firestore();
             await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
-                level: 99,
-                totalXp: 9_999_999,
+                level: 6,
             }));
         });
 
-        it('blocks level/XP regression', async () => {
+        it('blocks the client from writing badges', async () => {
             const db = testEnv.authenticatedContext(ALICE).firestore();
             await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
-                level: 1,
-                totalXp: 0,
+                badges: [{ id: 'level_50', name: 'Légende', description: '', icon: '', rarity: 'legendary' }],
+            }));
+        });
+
+        it('blocks the client from writing counters', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
+                totalChaptersRead: 99_999,
+            }));
+        });
+
+        it('blocks the client from forging its verified streak', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
+                verifiedStreak: 365,
+            }));
+        });
+
+        it('blocks another user from writing Alice gamification', async () => {
+            const db = testEnv.authenticatedContext(BOB).firestore();
+            await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
+                bonusXp: 230,
             }));
         });
     });
