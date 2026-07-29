@@ -46,7 +46,7 @@ const SERVICE_ICONS: Record<string, typeof Server> = {
     'Firebase Auth': Lock,
     'Firestore': Database,
     'Storage': HardDrive,
-    'Jikan API': Zap
+    'Tenrai API': Zap
 };
 
 interface DiscordConfig {
@@ -296,7 +296,7 @@ export default function AdminHealth() {
                 try {
                     const status = await checkJikanStatus();
                     setJikanStatus(status);
-                    setLogs(prev => [`[${new Date().toLocaleTimeString()}] [API] Jikan: ${status.status.toUpperCase()} | ${status.responseTime}ms`, ...prev].slice(0, 100));
+                    setLogs(prev => [`[${new Date().toLocaleTimeString()}] [API] Tenrai: ${status.status.toUpperCase()} | ${status.responseTime}ms`, ...prev].slice(0, 100));
                 } catch (e) {
                     logger.error(e);
                 } finally {
@@ -634,7 +634,7 @@ export default function AdminHealth() {
                                 checkJikanStatus().then(s => {
                                     setJikanStatus(s);
                                     setCheckingJikan(false);
-                                    setLogs(prev => [`[${new Date().toLocaleTimeString()}] [API] Jikan: ${s.status.toUpperCase()} | ${s.responseTime}ms`, ...prev].slice(0, 100));
+                                    setLogs(prev => [`[${new Date().toLocaleTimeString()}] [API] Tenrai: ${s.status.toUpperCase()} | ${s.responseTime}ms`, ...prev].slice(0, 100));
                                 });
                             }
                         }}

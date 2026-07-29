@@ -172,7 +172,7 @@
       "open": "OPEN",
       "closed": "CLOSED",
       "auto_refresh": "Auto-refresh every 60s",
-      "api_queue": "API Queue (Jikan)",
+      "api_queue": "API Queue (Tenrai)",
       "queue_pending": "Pending",
       "queue_active": "Active",
       "queue_idle": "Idle",

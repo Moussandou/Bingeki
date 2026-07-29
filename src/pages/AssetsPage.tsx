@@ -996,7 +996,7 @@ export default function AssetsPage() {
                                 display: 'flex', flexWrap: 'wrap', gap: '0.8rem', justifyContent: 'center'
                             }}>
                                 {[
-                                    "Système XP", "Badges", "Profils Hunter", "API Jikan", "Amis", "Défis",
+                                    "Système XP", "Badges", "Profils Hunter", "API Tenrai", "Amis", "Défis",
                                     "Watch Parties", "Agenda", "Casting", "Reviews", "13 mises à jour continues"
                                 ].map((feat, i) => (
                                     <span key={i} style={{

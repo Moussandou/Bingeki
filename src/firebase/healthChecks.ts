@@ -222,14 +222,14 @@ export async function checkStorage(): Promise<ServiceHealthResult> {
     }
 }
 
-/** Check Jikan API (external) */
+/** Check the MyAnimeList data API (Tenrai, external) */
 export async function checkJikan(): Promise<ServiceHealthResult> {
     const start = performance.now();
     try {
         const result = await checkJikanStatus();
         const elapsed = Math.round(performance.now() - start);
         return {
-            service: 'Jikan API',
+            service: 'Tenrai API',
             status: result.status === 'online' ? 'operational'
                 : result.status === 'offline' ? 'down' : 'degraded',
             responseTime: result.responseTime || elapsed,
@@ -239,7 +239,7 @@ export async function checkJikan(): Promise<ServiceHealthResult> {
     } catch {
         const elapsed = Math.round(performance.now() - start);
         return {
-            service: 'Jikan API',
+            service: 'Tenrai API',
             status: 'down',
             responseTime: elapsed,
             message: 'API unreachable',

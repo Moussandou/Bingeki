@@ -281,7 +281,7 @@
     "export_button": "Download Image",
     "save_button": "Save",
     "default_title": "My Tier List",
-    "jikan_busy": "Jikan API is busy. Please try again in a moment.",
+    "jikan_busy": "The API is busy. Please try again in a moment.",
     "drop_items_here": "Drop items here",
     "title_required": "Title cannot be empty.",
     "title_too_long": "Title cannot exceed 100 characters.",
@@ -421,7 +421,7 @@
       "title": "ABOUT",
       "version": "Version 4.0.0",
       "made_with": "Developed with ❤️ for anime and manga fans.",
-      "credits": "Data provided by Jikan API (MyAnimeList). Images and titles belong to their respective creators."
+      "credits": "Data provided by the Tenrai API, sourced from the MyAnimeList catalogue. Images and titles belong to their respective creators."
     },
     "sync": {
       "no_works": "No works to sync",
