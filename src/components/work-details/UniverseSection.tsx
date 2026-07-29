@@ -45,7 +45,8 @@ export function UniverseSection({ relations, expandedRelations, setExpandedRelat
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                 {visibleEntries.map((entry) => (
-                                    <Link to={`/work/${entry.mal_id}`} key={entry.mal_id} style={{
+                                    // `type` disambiguates colliding MAL ids between anime and manga
+                                    <Link to={`/work/${entry.mal_id}?type=${(entry.type || 'anime').toLowerCase()}`} key={entry.mal_id} style={{
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '0.5rem',

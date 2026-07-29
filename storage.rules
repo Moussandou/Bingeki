@@ -14,14 +14,19 @@ service firebase.storage {
     }
 
     // Feedback Attachments
-    // Path: feedback-attachments/{feedbackId}/{filename}
-    match /feedback-attachments/{feedbackId}/{allPaths=**} {
-      // Upload: only authenticated users (feedbackId links to their feedback doc)
-      allow write: if request.auth != null;
-      // Read: admin or the user who submitted the feedback (cross-service Firestore check)
-      allow read: if isAdmin() ||
-                  (isAuthenticated() &&
-                   firestore.get(/databases/(default)/documents/feedback/$(feedbackId)).data.userId == request.auth.uid);
+    // Path: feedback-attachments/{ticketRef}/{filename}
+    // NOTE: `ticketRef` is a client-generated temp id chosen BEFORE the feedback doc
+    // exists, so it can never be resolved back to a /feedback document. The previous
+    // read rule did exactly that lookup and therefore always denied. Access is instead
+    // carried by the signed download token embedded in the stored URL.
+    match /feedback-attachments/{ticketRef}/{allPaths=**} {
+      // Guests can report bugs (see /feedback rules), so they must be able to attach
+      // the screenshot that goes with it. Constrained to modest image uploads.
+      allow write: if request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      // Rendering happens through the tokenized download URL saved on the ticket,
+      // which bypasses these rules — so direct path access stays admin-only.
+      allow read: if isAdmin();
       allow delete: if isAdmin();
     }
 

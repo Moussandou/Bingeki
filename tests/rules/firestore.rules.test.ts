@@ -259,4 +259,148 @@ runIfEmulator('Firestore security rules', () => {
             }));
         });
     });
+
+    describe('feedback submission', () => {
+        const guestTicket = {
+            message: 'The share link opens a blank page',
+            userId: null,
+            userName: 'Guest',
+            contactEmail: 'guest@example.com',
+            category: 'bug',
+            rating: 0,
+            status: 'open',
+            priority: 'medium',
+            attachments: [],
+            adminResponses: [],
+            userAgent: 'jsdom',
+            timestamp: 1,
+            lastUpdated: 1,
+        };
+
+        it('lets a logged-out visitor submit feedback', async () => {
+            const db = testEnv.unauthenticatedContext().firestore();
+            await assertSucceeds(setDoc(doc(db, 'feedback', 'guest1'), guestTicket));
+        });
+
+        it('blocks an anonymous ticket that claims someone else uid', async () => {
+            const db = testEnv.unauthenticatedContext().firestore();
+            await assertFails(setDoc(doc(db, 'feedback', 'forged'), { ...guestTicket, userId: ALICE }));
+        });
+
+        it('blocks an empty anonymous ticket', async () => {
+            const db = testEnv.unauthenticatedContext().firestore();
+            await assertFails(setDoc(doc(db, 'feedback', 'empty'), { ...guestTicket, message: '' }));
+        });
+
+        it('lets an authed user submit feedback under their own uid', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertSucceeds(setDoc(doc(db, 'feedback', 'alice1'), { ...guestTicket, userId: ALICE }));
+        });
+
+        it('blocks an authed user from attributing feedback to someone else', async () => {
+            const db = testEnv.authenticatedContext(BOB).firestore();
+            await assertFails(setDoc(doc(db, 'feedback', 'spoof'), { ...guestTicket, userId: ALICE }));
+        });
+    });
+
+    describe('comment likes', () => {
+        beforeEach(async () => {
+            await testEnv.withSecurityRulesDisabled(async (ctx) => {
+                await setDoc(doc(ctx.firestore(), 'comments', 'c1'), {
+                    userId: ALICE,
+                    userName: 'Alice',
+                    workId: 1,
+                    text: 'Great arc',
+                    likes: [],
+                    timestamp: 1,
+                });
+            });
+        });
+
+        it('lets a non-author like someone else comment', async () => {
+            const db = testEnv.authenticatedContext(BOB).firestore();
+            await assertSucceeds(updateDoc(doc(db, 'comments', 'c1'), { likes: [BOB] }));
+        });
+
+        it('lets a non-author remove their own like', async () => {
+            await testEnv.withSecurityRulesDisabled(async (ctx) => {
+                await updateDoc(doc(ctx.firestore(), 'comments', 'c1'), { likes: [BOB] });
+            });
+            const db = testEnv.authenticatedContext(BOB).firestore();
+            await assertSucceeds(updateDoc(doc(db, 'comments', 'c1'), { likes: [] }));
+        });
+
+        it('blocks a non-author from liking on behalf of someone else', async () => {
+            const db = testEnv.authenticatedContext(BOB).firestore();
+            await assertFails(updateDoc(doc(db, 'comments', 'c1'), { likes: [ALICE] }));
+        });
+
+        it('blocks a non-author from editing the comment text', async () => {
+            const db = testEnv.authenticatedContext(BOB).firestore();
+            await assertFails(updateDoc(doc(db, 'comments', 'c1'), { text: 'hacked' }));
+        });
+
+        it('blocks a non-author from smuggling a text edit alongside a like', async () => {
+            const db = testEnv.authenticatedContext(BOB).firestore();
+            await assertFails(updateDoc(doc(db, 'comments', 'c1'), { likes: [BOB], text: 'hacked' }));
+        });
+
+        it('blocks an anonymous like', async () => {
+            const db = testEnv.unauthenticatedContext().firestore();
+            await assertFails(updateDoc(doc(db, 'comments', 'c1'), { likes: ['ghost'] }));
+        });
+    });
+
+    describe('user-created challenges', () => {
+        const challenge = (createdBy: string, participantIds: string[]) => ({
+            title: 'Who finishes One Piece first?',
+            type: 'race_to_finish',
+            participants: participantIds.map((id) => ({ id, name: id, progress: 0, joinedAt: 1, status: 'pending' })),
+            participantIds,
+            startDate: 1,
+            status: 'active',
+            createdBy,
+        });
+
+        it('lets a user create a challenge they own', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertSucceeds(setDoc(doc(db, 'challenges', 'ch1'), challenge(ALICE, [ALICE, BOB])));
+        });
+
+        it('blocks creating a challenge attributed to someone else', async () => {
+            const db = testEnv.authenticatedContext(BOB).firestore();
+            await assertFails(setDoc(doc(db, 'challenges', 'ch2'), challenge(ALICE, [ALICE])));
+        });
+
+        it('blocks a creator who is not a participant', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertFails(setDoc(doc(db, 'challenges', 'ch3'), challenge(ALICE, [BOB])));
+        });
+
+        it('lets an invited participant update their progress', async () => {
+            await testEnv.withSecurityRulesDisabled(async (ctx) => {
+                await setDoc(doc(ctx.firestore(), 'challenges', 'ch4'), challenge(ALICE, [ALICE, BOB]));
+            });
+            const db = testEnv.authenticatedContext(BOB).firestore();
+            await assertSucceeds(updateDoc(doc(db, 'challenges', 'ch4'), {
+                participants: [{ id: BOB, name: 'Bob', progress: 12, joinedAt: 1, status: 'accepted' }],
+            }));
+        });
+
+        it('blocks an outsider from reading a challenge they are not in', async () => {
+            await testEnv.withSecurityRulesDisabled(async (ctx) => {
+                await setDoc(doc(ctx.firestore(), 'challenges', 'ch5'), challenge(ALICE, [ALICE]));
+            });
+            const db = testEnv.authenticatedContext(BOB).firestore();
+            await assertFails(getDoc(doc(db, 'challenges', 'ch5')));
+        });
+
+        it('blocks an outsider from tampering with a challenge', async () => {
+            await testEnv.withSecurityRulesDisabled(async (ctx) => {
+                await setDoc(doc(ctx.firestore(), 'challenges', 'ch6'), challenge(ALICE, [ALICE]));
+            });
+            const db = testEnv.authenticatedContext(BOB).firestore();
+            await assertFails(updateDoc(doc(db, 'challenges', 'ch6'), { status: 'cancelled' }));
+        });
+    });
 });

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Link } from '@/components/routing/LocalizedLink';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import type { JikanRecommendation } from '@/services/animeApi';
 
@@ -29,9 +30,9 @@ export function RecommendationsSection({ recommendations, workType }: Recommenda
                 gap: '1.5rem'
             }}>
                 {recommendations.map((rec) => (
-                    <a
+                    <Link
                         key={rec.entry.mal_id}
-                        href={`/work/${rec.entry.mal_id}?type=${workType}`}
+                        to={`/work/${rec.entry.mal_id}?type=${workType}`}
                         style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
                     >
                         <div style={{
@@ -79,7 +80,7 @@ export function RecommendationsSection({ recommendations, workType }: Recommenda
                         }}>
                             {rec.entry.title}
                         </h4>
-                    </a>
+                    </Link>
                 ))}
             </div>
         </div>

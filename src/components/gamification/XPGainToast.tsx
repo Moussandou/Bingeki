@@ -1,7 +1,7 @@
 /**
  * X P Gain Toast component (gamification)
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGamificationStore } from '@/store/gamificationStore';
 
@@ -10,6 +10,7 @@ export function XPGainToast() {
     const [xpList, setXpList] = useState<{ id: string, amount: number }[]>([]);
 
     const clearXpGained = useGamificationStore(s => s.clearXpGained);
+    const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
     useEffect(() => {
         if (!xpGained) return;
@@ -18,14 +19,22 @@ export function XPGainToast() {
         const amount = xpGained.amount;
 
         setXpList(prev => [...prev, { id, amount }]);
+        // Clearing the store re-runs this effect, so the removal timer must NOT be
+        // tied to this effect's cleanup — it would cancel itself immediately.
         clearXpGained();
 
         const removeTimer = setTimeout(() => {
             setXpList(prev => prev.filter(item => item.id !== id));
+            timersRef.current = timersRef.current.filter(t => t !== removeTimer);
         }, 2000);
-
-        return () => clearTimeout(removeTimer);
+        timersRef.current.push(removeTimer);
     }, [xpGained, clearXpGained]);
+
+    // Only cancel pending timers when the component actually unmounts
+    useEffect(() => () => {
+        timersRef.current.forEach(clearTimeout);
+        timersRef.current = [];
+    }, []);
 
     return (
         <div style={{

@@ -3,7 +3,7 @@
  */
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGamificationStore } from '@/store/gamificationStore';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Trophy } from 'lucide-react';
 
@@ -94,7 +94,14 @@ export function LevelUpModal() {
                             </h2>
                             
                             <p style={{ fontSize: '1.1rem', opacity: 0.8, marginBottom: '2rem' }}>
-                                {t('gamification.reached_level', 'You have reached level')} <strong style={{color: 'var(--color-primary)', fontSize: '1.5rem', fontFamily: 'var(--font-heading)'}}>{levelUpData.newLevel}</strong>
+                                <Trans
+                                    i18nKey="gamification.reached_level"
+                                    values={{ level: levelUpData.newLevel }}
+                                    components={{
+                                        1: <strong style={{ color: 'var(--color-primary)', fontSize: '1.5rem', fontFamily: 'var(--font-heading)' }} />
+                                    }}
+                                    defaults="You reached level <1>{{level}}</1>"
+                                />
                             </p>
 
                             <Button variant="manga" size="lg" onClick={clearLevelUpData} style={{ width: '100%' }}>

@@ -18,7 +18,8 @@ export interface FeedbackData {
     rating: number;
     category: 'bug' | 'feature' | 'general';
     message: string;
-    userId?: string;
+    /** null for feedback submitted by a logged-out visitor */
+    userId?: string | null;
     userName?: string;
     contactEmail?: string;
     timestamp: number;

@@ -98,9 +98,10 @@ export function ChallengesSection({ onNavigateToProfile }: ChallengesSectionProp
         const challenge: Omit<Challenge, 'id'> = {
             title: newChallenge.title,
             type: newChallenge.type,
-            workId: newChallenge.workId || undefined,
-            workTitle: newChallenge.workTitle || undefined,
-            workImage: newChallenge.workImage || undefined,
+            // Firestore rejects `undefined`, so omit the optional work fields entirely
+            ...(newChallenge.workId ? { workId: newChallenge.workId } : {}),
+            ...(newChallenge.workTitle ? { workTitle: newChallenge.workTitle } : {}),
+            ...(newChallenge.workImage ? { workImage: newChallenge.workImage } : {}),
             participants,
             participantIds: [user.uid, ...newChallenge.selectedFriends], // For querying
             startDate: Date.now(),
@@ -108,7 +109,11 @@ export function ChallengesSection({ onNavigateToProfile }: ChallengesSectionProp
             createdBy: user.uid
         };
 
-        await createChallenge(challenge);
+        const createdId = await createChallenge(challenge);
+        if (!createdId) {
+            addToast(t('components.challenges_section.toast_create_error'), 'error');
+            return;
+        }
         addToast(t('components.challenges_section.toast_created'), 'success');
         setIsCreateModalOpen(false);
         setNewChallenge({ title: '', type: 'race_to_finish', workId: 0, workTitle: '', workImage: '', selectedFriends: [] });

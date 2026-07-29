@@ -83,6 +83,7 @@ export async function toggleCommentLike(commentId: string, userId: string): Prom
         }
     } catch (error) {
         logger.error('[Firestore] Error toggling comment like:', error);
+        throw error;
     }
 }
 

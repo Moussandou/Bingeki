@@ -455,6 +455,7 @@
       "create_btn": "Créer le défi",
       "toast_fill_fields": "Remplissez tous les champs et sélectionnez des amis",
       "toast_created": "Défi créé !",
+      "toast_create_error": "Impossible de créer le défi. Réessayez.",
       "toast_accepted": "Défi accepté !",
       "toast_declined": "Défi refusé",
       "toast_cancelled": "Défi annulé"
@@ -667,7 +668,7 @@
   },
   "gamification": {
     "level_up": "MONTÉE DE NIVEAU !",
-    "reached_level": "Tu as atteint le niveau {{level}}"
+    "reached_level": "Tu as atteint le niveau <1>{{level}}</1>"
   },
   "share": {
     "share": "Partager",
@@ -968,7 +969,8 @@
       "reading": "Vous et {{count}} ami(s) lisent aussi cette œuvre",
       "watching": "Vous et {{count}} ami(s) regardez aussi cette œuvre",
       "placeholder": "Partagez votre avis (sans spoil de préférence)...",
-      "submit": "PUBLIER"
+      "submit": "PUBLIER",
+      "like_error": "Impossible d'aimer ce commentaire pour le moment."
     },
     "danger": {
       "delete_button": "SUPPRIMER DE MA BIBLIOTHÈQUE",

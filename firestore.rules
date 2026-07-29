@@ -150,8 +150,14 @@ service cloud.firestore {
 
     // FEEDBACK
     match /feedback/{feedbackId} {
-      // Anyone can create feedback
-      allow create: if isAuthenticated();
+      // Guests may submit feedback (the form exposes an email field when logged out),
+      // but an anonymous submission must not claim a userId it cannot prove.
+      allow create: if (isAuthenticated() && request.resource.data.userId == request.auth.uid)
+                    || (!isAuthenticated()
+                        && request.resource.data.get('userId', null) == null
+                        && request.resource.data.message is string
+                        && request.resource.data.message.size() > 0
+                        && request.resource.data.message.size() <= 5000);
       // Users can read their own feedback, Admins can read all
       allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
       // Only Admins can update/delete (Resolution)
@@ -196,14 +202,44 @@ service cloud.firestore {
     match /comments/{commentId} {
       allow read: if true;
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      // Allow author or Admin to update/delete
-      allow update, delete: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      // Any signed-in user may like/unlike, but the ONLY field they can touch on a
+      // comment they don't own is `likes`, and only to add/remove their own uid.
+      function isLikeToggleOnly() {
+        return isAuthenticated()
+               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
+               && request.resource.data.likes is list
+               && request.resource.data.likes.size() <= resource.data.likes.size() + 1
+               && request.resource.data.likes.size() >= resource.data.likes.size() - 1
+               && (request.resource.data.likes.hasAll(resource.data.likes.removeAll([request.auth.uid]))
+                   && resource.data.likes.hasAll(request.resource.data.likes.removeAll([request.auth.uid])));
+      }
+      // Allow author or Admin to update/delete; everyone else only toggles their like
+      allow update: if (isAuthenticated() && resource.data.userId == request.auth.uid)
+                    || isAdmin()
+                    || isLikeToggleOnly();
+      allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
     }
 
     // CHALLENGES
+    // User-created duels: the creator owns the doc, invited friends may accept/decline
+    // and report their own progress. participantIds drives the "my challenges" query.
     match /challenges/{challengeId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isAdmin();
+      allow read: if isAuthenticated()
+                  && (request.auth.uid in resource.data.participantIds || isAdmin());
+      allow create: if isAuthenticated()
+                    && request.resource.data.createdBy == request.auth.uid
+                    && request.auth.uid in request.resource.data.participantIds;
+      // Creator can manage the challenge; participants may only update the
+      // mutable gameplay fields (their progress / invitation status).
+      allow update: if isAuthenticated() && (
+                      resource.data.createdBy == request.auth.uid
+                      || isAdmin()
+                      || (request.auth.uid in resource.data.participantIds
+                          && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['participants', 'participantIds', 'status', 'endDate', 'winnerId']))
+                    );
+      allow delete: if isAuthenticated()
+                    && (resource.data.createdBy == request.auth.uid || isAdmin());
     }
     
     // ==================== GLOBAL CONFIGURATION ====================

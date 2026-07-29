@@ -137,7 +137,8 @@ export default function Feedback() {
                 category,
                 priority,
                 message,
-                userId: user?.uid,
+                // Firestore rejects `undefined`; guests must send an explicit null
+                userId: user?.uid ?? null,
                 userName: user?.displayName || 'Guest',
                 contactEmail: user?.email || email,
                 userAgent: navigator.userAgent,
@@ -157,6 +158,9 @@ export default function Feedback() {
                 setMessage('');
                 setAttachments([]);
                 if (!user) setEmail('');
+            } else {
+                // submitFeedback swallows its error and returns null — surface it
+                addToast(t('feedback.toast_unexpected'), 'error');
             }
         } catch (error) {
             logger.error('[Feedback] Submission error:', error);

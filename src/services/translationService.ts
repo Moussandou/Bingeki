@@ -4,6 +4,14 @@ import { useState, useEffect } from 'react';
 import { logger } from '@/utils/logger';
 import { getAuth } from 'firebase/auth';
 
+/**
+ * A translation is filled in asynchronously server-side. If nothing lands within
+ * this window (backend down, guest user who cannot enqueue a request, or a language
+ * nobody has translated yet) we stop showing a spinner and fall back to the source
+ * text instead of loading forever.
+ */
+const TRANSLATION_WAIT_MS = 8000;
+
 export interface TranslationData {
     input: string;
     translated?: {
@@ -99,6 +107,13 @@ export function useTranslationData(
         const docRef = doc(db, 'translations', docId);
 
         setLoading(true);
+
+        // Safety net: never leave the caller stuck on a spinner.
+        const giveUpTimer = setTimeout(() => {
+            logger.log(`[Translation] Gave up waiting for "${langCode}" on ${docId}, using source text`);
+            setLoading(false);
+        }, TRANSLATION_WAIT_MS);
+
         const unsubscribe = onSnapshot(docRef, async (snap) => {
             const data = snap.exists() ? (snap.data() as TranslationData) : null;
 
@@ -112,15 +127,22 @@ export function useTranslationData(
                 logger.log(`%c[Translation] Received "${langCode}" for ${docId}`, 'color: #10b981; font-weight: bold');
                 setTranslatedText(translated);
             } else {
+                // Request is queued but not fulfilled yet: show the source text now and
+                // stay subscribed so a late translation still swaps in.
                 logger.log(`%c[Translation] Waiting for "${langCode}" for ${docId}...`, 'color: #f59e0b; font-weight: bold');
             }
+            clearTimeout(giveUpTimer);
             setLoading(false);
         }, (err) => {
             logger.error(`[Translation] Snapshot error for ${docId}:`, err);
+            clearTimeout(giveUpTimer);
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => {
+            clearTimeout(giveUpTimer);
+            unsubscribe();
+        };
     }, [text, sourceId, sourceType, sourceField, targetLang]);
 
     return { translatedText, loading };

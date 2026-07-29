@@ -86,9 +86,14 @@ export function CommentsSection({ workId }: CommentsSectionProps) {
 
     const handleLikeComment = async (commentId: string) => {
         if (!user) return;
-        await toggleCommentLike(commentId, user.uid);
-        const updated = await getCommentsWithReplies(workId);
-        setComments(updated);
+        try {
+            await toggleCommentLike(commentId, user.uid);
+            const updated = await getCommentsWithReplies(workId);
+            setComments(updated);
+        } catch (error) {
+            logger.error('[Comments] Error toggling like:', error);
+            addToast(t('work_details.comments.like_error'), 'error');
+        }
     };
 
     const handleReply = async (parentId: string) => {

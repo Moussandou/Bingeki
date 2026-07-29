@@ -141,7 +141,7 @@
   },
   "gamification": {
     "level_up": "LEVEL UP!",
-    "reached_level": "You reached level {{level}}"
+    "reached_level": "You reached level <1>{{level}}</1>"
   },
   "share": {
     "share": "Share",
@@ -807,6 +807,7 @@
       "create_btn": "Create challenge",
       "toast_fill_fields": "Fill all fields and select friends",
       "toast_created": "Challenge created!",
+      "toast_create_error": "Could not create the challenge. Please try again.",
       "toast_accepted": "Challenge accepted!",
       "toast_declined": "Challenge declined",
       "toast_cancelled": "Challenge cancelled"
@@ -968,7 +969,8 @@
       "reading": "You and {{count}} friend(s) are also reading this work",
       "watching": "You and {{count}} friend(s) are also watching this work",
       "placeholder": "Share your opinion (no spoilers please)...",
-      "submit": "SUBMIT"
+      "submit": "SUBMIT",
+      "like_error": "Could not like this comment right now."
     },
     "danger": {
       "delete_button": "REMOVE FROM MY LIBRARY",
