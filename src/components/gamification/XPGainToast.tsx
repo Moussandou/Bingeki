@@ -16,21 +16,15 @@ export function XPGainToast() {
 
         const id = Math.random().toString(36).substring(2, 11);
         const amount = xpGained.amount;
-        
-        // Defer state updates to avoid cascading render warning
-        const timer = setTimeout(() => {
-            setXpList(prev => [...prev, { id, amount }]);
-            clearXpGained();
-        }, 0);
+
+        setXpList(prev => [...prev, { id, amount }]);
+        clearXpGained();
 
         const removeTimer = setTimeout(() => {
             setXpList(prev => prev.filter(item => item.id !== id));
-        }, 3000);
+        }, 2000);
 
-        return () => {
-            clearTimeout(timer);
-            clearTimeout(removeTimer);
-        };
+        return () => clearTimeout(removeTimer);
     }, [xpGained, clearXpGained]);
 
     return (

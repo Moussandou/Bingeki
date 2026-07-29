@@ -108,6 +108,7 @@
     transition: all 0.2s;
     flex: 1;
     height: 100%;
+    position: relative;
 }
 
 .controlButton:last-child,

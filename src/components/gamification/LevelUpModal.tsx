@@ -15,8 +15,9 @@ export function LevelUpModal() {
     if (!levelUpData) return null;
 
     return (
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
             <motion.div
+                key={levelUpData.newLevel}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
