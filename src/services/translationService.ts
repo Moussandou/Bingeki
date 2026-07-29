@@ -25,6 +25,8 @@ export interface TranslationData {
     sourceType: 'work' | 'character' | 'episode' | 'article';
     sourceField: string;
     createdAt: number;
+    /** Server-written: the `input` the stored `translated` payload was produced from. */
+    translatedInput?: string;
 }
 
 /**
@@ -122,7 +124,10 @@ export function useTranslationData(
                 return; // Let the next snapshot trigger the UI update
             }
 
-            const translated = data.translated?.[langCode];
+            // Ignore a payload produced from an older `input` — the server is
+            // already re-translating it, and showing it would mismatch the source.
+            const isFresh = data.translatedInput === undefined || data.translatedInput === text;
+            const translated = isFresh ? data.translated?.[langCode] : undefined;
             if (translated) {
                 logger.log(`%c[Translation] Received "${langCode}" for ${docId}`, 'color: #10b981; font-weight: bold');
                 setTranslatedText(translated);

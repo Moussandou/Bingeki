@@ -38,7 +38,61 @@ Because Bingeki uses prerendering for SEO, we generate language-specific entry p
 *   `scripts/localize-html.cjs`: A post-build script that clones `dist/index.html` into `dist/index-en.html`, replacing meta tags, titles, and descriptions with their English equivalents.
 *   **Note**: Ensure that any changes to the default `index.html` (French) are reflected in this script if they impact the English version.
 
-## 4. Best Practices
+## 4. Dynamic Content Translation (Cloud Function)
+
+Static UI strings live in the locale files above. **Dynamic** content pulled from external
+sources — work synopses, character bios, news titles and bodies — is English-only at the
+source and is translated automatically at runtime.
+
+### How it works
+
+1.  A component calls `useTranslationData(text, sourceId, sourceType, sourceField, lang)`
+    (`src/services/translationService.ts`).
+2.  If the viewer is signed in, the hook writes a **request document** to
+    `translations/{type}_{id}_{field}` containing the source `input`.
+    Security rules let clients write the request metadata but **never** the rendered
+    payload (`translated`, `translatedInput`, `translatedAt`).
+3.  The `onTranslationRequest` Cloud Function (`functions/translate.js`) picks it up,
+    translates, and writes `translated` back via the Admin SDK.
+4.  The hook is subscribed with `onSnapshot`, so the UI swaps in the translation live.
+    Results are cached in Firestore forever and served to **all** visitors, guests included.
+
+### Providers (free, no API key, no billing)
+
+Tried in order, controlled by `TRANSLATE_PROVIDER_ORDER` (default `google,mymemory`):
+
+| Provider | Limit | Notes |
+| --- | --- | --- |
+| `google` | ~1 800 chars/request | The endpoint the public translate widget uses. No key. Unofficial, hence the fallback. |
+| `mymemory` | 500 chars/request, 5 000 chars/day/IP | Documented free tier. Set `MYMEMORY_EMAIL` (free signup) to raise the daily cap to 50 000. |
+
+Long text is chunked on sentence boundaries to respect these limits. A provider is only
+accepted if it translates **every** chunk, so a half-English result is never stored.
+
+### HTML safety
+
+News bodies are HTML. `splitHtmlSegments()` sends only text nodes to the providers and
+keeps tags byte-for-byte, and `preserveEdgeWhitespace()` restores the spaces providers trim
+(without it, `The <strong>` collapses into `Le<strong>`). Output is still passed through
+`DOMPurify` client-side before rendering.
+
+> **Known limitation**: text split by *inline* tags is translated fragment by fragment, so
+> grammar around `<strong>`/`<a>` can be imperfect. Block-level content and plain-text
+> synopses — the main use case — are unaffected.
+
+### Loop safety
+
+The trigger writes to the document it watches. `missingLanguages()` returns an empty array
+once `translatedInput === input` and the payload is present, so the re-trigger exits
+immediately. This is covered by `functions/__tests__/translateCore.test.js` and verified
+end-to-end against the emulators (exactly two writes: the request, then the fill).
+
+### Adding a target language
+
+Add it to `TARGET_LANGS` in `functions/translate.js` and redeploy — existing documents are
+re-processed automatically because the new language shows up as missing.
+
+## 5. Best Practices
 *   **Avoid Dynamic Keys**: Avoid `t(`badge_${id}`)` where possible, as the validation script cannot easily track these. If you must use them, document them.
 *   **Interpolation**: Use the standard `{{variable}}` syntax.
     *   Example: `t('player_rank', { rank: 1 })`

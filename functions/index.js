@@ -70,3 +70,7 @@ exports.syncStaleCache = jikanProxy.syncStaleCache;
 // 5. Maintenance & Cron Jobs
 const maintenance = require("./maintenance");
 exports.dailyMaintenance = maintenance.dailyMaintenance;
+
+// 6. Automated translation of dynamic content (fills /translations.translated)
+const translate = require("./translate");
+exports.onTranslationRequest = translate.onTranslationRequest;

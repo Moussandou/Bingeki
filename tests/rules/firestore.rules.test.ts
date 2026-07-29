@@ -147,6 +147,57 @@ runIfEmulator('Firestore security rules', () => {
                 sourceField: 'title',
             }));
         });
+
+        it('blocks a client from forging the server provenance fields', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertFails(setDoc(doc(db, 'translations', 'work_2_title'), {
+                input: 'Hello',
+                translatedInput: 'Hello',
+                sourceId: 2,
+                sourceType: 'work',
+                sourceField: 'title',
+            }));
+        });
+
+        it('blocks a client from injecting a payload onto an existing request', async () => {
+            await testEnv.withSecurityRulesDisabled(async (ctx) => {
+                await setDoc(doc(ctx.firestore(), 'translations', 'work_3_title'), {
+                    input: 'Hello',
+                    sourceId: 3,
+                    sourceType: 'work',
+                    sourceField: 'title',
+                });
+            });
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertFails(updateDoc(doc(db, 'translations', 'work_3_title'), {
+                translated: { fr: 'contenu injecté' },
+            }));
+        });
+
+        it('still lets a client refresh the source input of an existing request', async () => {
+            await testEnv.withSecurityRulesDisabled(async (ctx) => {
+                await setDoc(doc(ctx.firestore(), 'translations', 'work_4_title'), {
+                    input: 'Old',
+                    sourceId: 4,
+                    sourceType: 'work',
+                    sourceField: 'title',
+                });
+            });
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertSucceeds(updateDoc(doc(db, 'translations', 'work_4_title'), { input: 'New' }));
+        });
+
+        it('lets everyone read a translation (guests included)', async () => {
+            await testEnv.withSecurityRulesDisabled(async (ctx) => {
+                await setDoc(doc(ctx.firestore(), 'translations', 'work_5_title'), {
+                    input: 'Hello',
+                    translated: { fr: 'Bonjour' },
+                    translatedInput: 'Hello',
+                });
+            });
+            const db = testEnv.unauthenticatedContext().firestore();
+            await assertSucceeds(getDoc(doc(db, 'translations', 'work_5_title')));
+        });
     });
 
     describe('gamification anti-cheat', () => {
