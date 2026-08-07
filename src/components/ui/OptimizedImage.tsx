@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
 import { getFirebaseThumbnail } from '@/utils/imageOptimization';
 import { useSettingsStore } from '@/store/settingsStore';
+import { isBot } from '@/utils/isBot';
 import styles from './OptimizedImage.module.css';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -76,7 +77,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     const startTimeRef = React.useRef(0);
     const [, setPlaceholderLoaded] = useState(false);
     const [placeholderError, setPlaceholderError] = useState(false);
-    const [isVisible, setIsVisible] = useState(priority);
+    const [isVisible, setIsVisible] = useState(priority || isBot());
     const containerRef = React.useRef<HTMLDivElement>(null);
 
     // Initialize start time on mount
@@ -171,6 +172,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
                     style={{ objectFit, ...style }}
                     onLoad={handleLoad}
                     onError={(e) => {
+                        if (isBot()) return;
                         setHasError(true);
                         if (fallback && e.currentTarget.src !== fallback) {
                             e.currentTarget.src = fallback;
