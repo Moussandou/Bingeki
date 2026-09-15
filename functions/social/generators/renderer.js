@@ -1,26 +1,40 @@
 /**
- * generators/renderer.js — HTML → PNG rendering via Puppeteer.
+ * generators/renderer.js — HTML → PNG rendering.
  *
- * The mockup React components (SocialPostMockup.tsx) will be converted
- * to standalone HTML templates that Puppeteer can render at exact
- * 1080×1350 (feed) and 1080×1920 (story) resolutions, then upload to
- * Firebase Storage.
- *
- * Phase 1 stub.
+ * Phase 3 shortcut: uses Jikan cover URLs directly as slide images to
+ * unblock the pipeline end-to-end without a Puppeteer dep. The real
+ * templated renderer (with the manga-style overlays from the mockups)
+ * will land in a follow-up when we're happy with the pipeline.
  */
 
-// const puppeteer = require('puppeteer');
-// const { getStorage } = require('firebase-admin/storage');
+/**
+ * @param {'daily'|'weekly'|'favorite'|'newseason'} type
+ * @param {object|Array} data — output of generators/jikan or stats
+ * @param {Array<'feed'|'story'>} formats
+ * @returns {Promise<Array<{format, url, index}>>}
+ */
+async function renderSlides(type, data, formats = ['feed']) {
+    // Normalize input into a list of anime with cover URLs
+    let animes = [];
+    if (type === 'daily' || type === 'weekly' || type === 'favorite') {
+        animes = Array.isArray(data) ? data : [data];
+    } else if (type === 'newseason') {
+        animes = [data];
+    }
 
-async function renderSlides(_type, _data, _formats = ['feed']) {
-    // TODO:
-    // 1. For each format & each slide of this post type, build the HTML
-    //    from a template + data.
-    // 2. Launch Puppeteer, set viewport to target dimensions.
-    // 3. Screenshot to PNG buffer.
-    // 4. Upload to Storage bucket at `social/{postId}/slide-{n}-{format}.png`.
-    // 5. Return array of PostSlide with public URLs.
-    throw new Error('Not implemented — Phase 2');
+    const slides = [];
+    let index = 0;
+
+    for (const format of formats) {
+        for (const anime of animes) {
+            const url = anime.cover || anime.image || '';
+            if (!url) continue;
+            slides.push({ format, url, index });
+            index += 1;
+        }
+    }
+
+    return slides;
 }
 
 module.exports = { renderSlides };

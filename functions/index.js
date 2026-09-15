@@ -74,3 +74,17 @@ exports.dailyMaintenance = maintenance.dailyMaintenance;
 // 6. Automated translation of dynamic content (fills /translations.translated)
 const translate = require("./translate");
 exports.onTranslationRequest = translate.onTranslationRequest;
+
+// 7. Social Bot — scheduled crons + admin callables
+const socialDaily = require("./social/crons/dailyReleases");
+const socialWeekly = require("./social/crons/weeklyRecap");
+const socialFavorite = require("./social/crons/communityFavorite");
+const socialNewSeason = require("./social/crons/newSeasonDetector");
+const socialCallables = require("./social/admin/callables");
+exports.socialDailyReleases = socialDaily.dailyReleases;
+exports.socialWeeklyRecap = socialWeekly.weeklyRecap;
+exports.socialCommunityFavorite = socialFavorite.communityFavorite;
+exports.socialNewSeasonDetector = socialNewSeason.newSeasonDetector;
+exports.socialPublishNow = socialCallables.socialPublishNow;
+exports.socialRejectPost = socialCallables.socialRejectPost;
+exports.socialRegeneratePost = socialCallables.socialRegeneratePost;

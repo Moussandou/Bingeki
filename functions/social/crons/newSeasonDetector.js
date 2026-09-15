@@ -1,32 +1,58 @@
 /**
- * cron newSeasonDetector — event-driven. Check quotidien pour détecter
- * un anime attendu qui commence sa nouvelle saison (S2, S3, remake…) et
- * queue un post d'annonce.
- *
- * Schedule: chaque jour à 8h.
- * Utilise Jikan pour lister les animes "airing" dont c'est le premier
- * épisode ET dont le titre matche un anime déjà en base users (proxy
- * "attendu").
- *
- * Phase 1 stub.
+ * cron newSeasonDetector — event-driven. Poll quotidien à 8h pour
+ * détecter les nouvelles saisons qui ont démarré dans les dernières
+ * 24h et queue un post d'annonce.
  */
 
-// exports.newSeasonDetector = onSchedule({
-//     schedule: '0 8 * * *',
-//     timeZone: 'Europe/Paris',
-// }, async () => {
-//     const config = await loadBotConfig();
-//     if (isKilled(config)) return;
-//
-//     const newSeasons = await detectNewSeasons();
-//     for (const anime of newSeasons) {
-//         const { caption, hashtags } = await generateCaption('newseason', anime, config);
-//         const slides = await renderSlides('newseason', anime, ['feed', 'story']);
-//         await createPendingPost({
-//             type: 'newseason',
-//             title: `${anime.title} · Announcement`,
-//             caption, hashtags, slides,
-//             platforms: { insta: true, tiktok: true, x: false },
-//         });
-//     }
-// });
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { defineSecret } = require('firebase-functions/params');
+const { loadBotConfig, isKilled } = require('../shared/config');
+const { detectNewSeasons } = require('../generators/jikan');
+const { generateCaption } = require('../generators/gemini');
+const { renderSlides } = require('../generators/renderer');
+const { createPendingPost } = require('../shared/firestore');
+
+const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
+
+exports.newSeasonDetector = onSchedule(
+    {
+        schedule: '0 8 * * *',
+        timeZone: 'Europe/Paris',
+        retryCount: 1,
+        secrets: [GEMINI_API_KEY],
+    },
+    async () => {
+        const config = await loadBotConfig();
+        if (isKilled(config)) {
+            console.log('[social/newSeasonDetector] skipped — kill-switch');
+            return;
+        }
+
+        const candidates = await detectNewSeasons();
+        if (candidates.length === 0) {
+            console.log('[social/newSeasonDetector] no new season detected today');
+            return;
+        }
+
+        for (const anime of candidates) {
+            try {
+                const { caption, hashtags } = await generateCaption('newseason', anime, config);
+                const slides = await renderSlides('newseason', anime, ['feed', 'story']);
+
+                const id = await createPendingPost({
+                    type: 'newseason',
+                    scheduledAt: Date.now() + 3600_000,
+                    title: `${anime.title} · Announcement`,
+                    caption,
+                    hashtags,
+                    slides,
+                    sourceData: { animeIds: [anime.mal_id] },
+                    platforms: { insta: true, tiktok: true, x: false },
+                });
+                console.log(`[social/newSeasonDetector] created pending ${id} for ${anime.title}`);
+            } catch (err) {
+                console.error(`[social/newSeasonDetector] failed for ${anime.title}:`, err);
+            }
+        }
+    },
+);
