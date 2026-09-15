@@ -16,10 +16,15 @@ const {
     updatePendingCaption,
     markPendingFailed,
     markPendingProcessing,
+    movePendingToPublished,
 } = require('../shared/firestore');
 const { generateCaption } = require('../generators/gemini');
+const { publishToInstagram } = require('../publishers/instagram');
+const { publishToTikTok } = require('../publishers/tiktok');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
+const INSTA_PAGE_TOKEN = defineSecret('INSTA_PAGE_TOKEN');
+const TIKTOK_ACCESS_TOKEN = defineSecret('TIKTOK_ACCESS_TOKEN');
 
 async function assertAdminOrThrow(request) {
     const uid = request?.auth?.uid;
@@ -93,7 +98,66 @@ exports.socialRegeneratePost = onCall(
    PUBLISH NOW — Phase 4 (needs Meta + TikTok tokens in Secret Manager)
    ========================================================================== */
 
-exports.socialPublishNow = onCall(async (request) => {
-    await assertAdminOrThrow(request);
-    throw new HttpsError('unimplemented', 'Publish will land in phase 4 with Meta/TikTok integrations');
-});
+exports.socialPublishNow = onCall(
+    { secrets: [INSTA_PAGE_TOKEN, TIKTOK_ACCESS_TOKEN] },
+    async (request) => {
+        await assertAdminOrThrow(request);
+        const { postId } = request.data || {};
+        if (!postId || typeof postId !== 'string') {
+            throw new HttpsError('invalid-argument', 'postId is required');
+        }
+
+        const db = admin.firestore();
+        const ref = db.collection(COLLECTIONS.pending).doc(postId);
+        const snap = await ref.get();
+        if (!snap.exists) throw new HttpsError('not-found', `pending post ${postId} not found`);
+        const post = snap.data();
+
+        const config = await loadBotConfig();
+        if (isKilled(config)) {
+            throw new HttpsError('failed-precondition', 'Kill-switch is active');
+        }
+
+        await markPendingProcessing(postId);
+
+        const combinedCaption = `${post.caption || ''}\n\n${post.hashtags || ''}`.trim();
+        const results = { insta: null, tiktok: null };
+
+        // Instagram
+        if (post.platforms?.insta) {
+            try {
+                results.insta = await publishToInstagram(
+                    post.slides,
+                    combinedCaption,
+                    {
+                        accountId: config.platforms?.insta?.accountId,
+                        accessToken: process.env.INSTA_PAGE_TOKEN,
+                    },
+                );
+            } catch (err) {
+                console.error(`[social/publishNow] Instagram failed for ${postId}:`, err);
+                await markPendingFailed(postId, `Instagram: ${err.message || err}`);
+                throw new HttpsError('internal', `Instagram publish failed: ${err.message || err}`);
+            }
+        }
+
+        // TikTok
+        if (post.platforms?.tiktok) {
+            try {
+                results.tiktok = await publishToTikTok(
+                    post.slides,
+                    combinedCaption,
+                    { accessToken: process.env.TIKTOK_ACCESS_TOKEN },
+                );
+            } catch (err) {
+                console.error(`[social/publishNow] TikTok failed for ${postId}:`, err);
+                // Instagram may have succeeded — don't rollback, just record the partial failure
+                await markPendingFailed(postId, `TikTok: ${err.message || err}`);
+                throw new HttpsError('internal', `TikTok publish failed: ${err.message || err}`);
+            }
+        }
+
+        await movePendingToPublished(postId, results, request.auth.uid);
+        return { ok: true, results };
+    },
+);
