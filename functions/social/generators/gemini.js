@@ -1,25 +1,151 @@
 /**
- * generators/gemini.js — prompt Gemini pour générer captions + hashtags
- * par type de post. Reprend des angles inspirés du bot Python de Yanis
- * (build-in-public, communauté, tech) mais adapté aux 4 types.
+ * generators/gemini.js — caption + hashtags via Gemini REST API.
  *
- * Phase 1 stub.
+ * Uses raw fetch to avoid pinning to a specific SDK version. The model
+ * alias `gemini-flash-latest` follows the current stable flash release.
+ *
+ * Auth: reads `GEMINI_API_KEY` from process.env. In prod (Cloud
+ * Functions v2) bind it via `defineSecret('GEMINI_API_KEY')` in the
+ * cron declaration.
  */
 
-// const { GoogleGenerativeAI } = require('@google/generative-ai');
-// const { defineSecret } = require('firebase-functions/params');
-// const GEMINI_KEY = defineSecret('GEMINI_API_KEY');
+const GEMINI_ENDPOINT = (model, key) =>
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
 
 const PROMPTS = {
-    daily: `Rédige une caption Instagram courte (max 300 chars) pour un post "Sorties du jour" listant les épisodes d'anime sortis aujourd'hui. Ton: enthousiaste, communautaire, adresse les fans avec "vous". Termine par une question ouverte pour l'engagement. Pas de "Chez Bingeki". Renvoie strictement JSON: {"caption": "...", "hashtags": "#... #..."}.`,
-    weekly: `Rédige une caption Instagram (max 400 chars) pour un post "Récap hebdo TOP 3" avec le classement des animes les mieux notés par les users Bingeki cette semaine. Ton: fier de la communauté, mets en avant que ce sont EUX qui ont fait le classement. Renvoie strictement JSON: {"caption": "...", "hashtags": "..."}.`,
-    favorite: `Rédige une caption Instagram (max 350 chars) pour un post "Coup de cœur communauté" annonçant le/les anime(s) le mieux noté cette semaine. Ton: célébration, invite à découvrir. Renvoie strictement JSON: {"caption": "...", "hashtags": "..."}.`,
-    newseason: `Rédige une caption Instagram (max 400 chars) pour un post d'annonce "Nouvelle saison qui démarre". Ton: hype, événementiel. Mentionne le studio et la note de la saison précédente. Renvoie strictement JSON: {"caption": "...", "hashtags": "..."}.`,
+    daily: `Tu écris pour la page Instagram de Bingeki (un tracker anime & manga gamifié). Ton: chaleureux, communautaire, un peu insolent quand ça sert, on parle en "on" pour l'équipe et en "vous" pour la commu. Interdit: "Chez Bingeki nous...", "En tant que...", émojis à outrance.
+
+Voici les épisodes d'anime sortis aujourd'hui :
+{{DATA}}
+
+Rédige une caption Instagram (max 400 caractères) qui :
+1. Accroche avec le nombre ou un titre marquant (pas "Aujourd'hui...").
+2. Cite 2-3 des animes par leur nom.
+3. Termine par une question qui pousse au commentaire.
+
+Puis 5-7 hashtags pertinents (anime, titres, communauté).
+
+Réponds STRICTEMENT en JSON, rien d'autre :
+{"caption": "...", "hashtags": "#... #... #..."}`,
+
+    weekly: `Tu écris pour la page Instagram de Bingeki. Contexte: post récap hebdo TOP 3, notes moyennes calculées à partir de VOS users Bingeki.
+
+TOP 3 de la semaine :
+{{DATA}}
+
+Rédige une caption (max 400 caractères) qui :
+1. Célèbre le classement.
+2. Souligne que ce sont LES USERS qui ont fait le classement (fierté commu).
+3. Termine par un appel à noter/commenter.
+
+Puis 5 hashtags.
+
+JSON strict :
+{"caption": "...", "hashtags": "..."}`,
+
+    favorite: `Tu écris pour la page Instagram de Bingeki. Contexte: post "coup de cœur communauté", anime(s) le mieux noté par les users cette semaine.
+
+{{DATA}}
+
+Rédige une caption (max 350 caractères) qui :
+1. Célèbre l'anime (ou les animes s'il y a égalité).
+2. Mentionne la note et le nombre de watchers Bingeki.
+3. Invite à l'ajouter à sa liste.
+
+Puis 5 hashtags.
+
+JSON strict :
+{"caption": "...", "hashtags": "..."}`,
+
+    newseason: `Tu écris pour la page Instagram de Bingeki. Contexte: annonce du démarrage d'une nouvelle saison d'un anime attendu.
+
+Anime :
+{{DATA}}
+
+Rédige une caption (max 400 caractères) qui :
+1. Accroche façon "hype" (le retour tant attendu, etc.).
+2. Mentionne le studio et la note de la précédente saison (si dispo).
+3. Termine par une question aux fans.
+
+Puis 5-6 hashtags avec le nom de l'anime.
+
+JSON strict :
+{"caption": "...", "hashtags": "..."}`,
 };
 
-async function generateCaption(_type, _data, _config) {
-    // TODO: build prompt with data, call gemini, parse JSON, return {caption, hashtags}.
-    throw new Error('Not implemented — Phase 2');
+function serializeData(type, data) {
+    switch (type) {
+        case 'daily':
+            return data.map((a) => `- ${a.title}${a.season ? ` ${a.season}` : ''}`).join('\n');
+        case 'weekly':
+            return data.map((a, i) => `${i + 1}. ${a.title} — ${a.avg}/10 (${a.count} notes)`).join('\n');
+        case 'favorite':
+            return data.map((a) => `- ${a.title} — ${a.avg}/10 (${a.count} watchers)`).join('\n');
+        case 'newseason':
+            return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus${data.previousScore ? `, S1 notée ${data.previousScore}/10` : ''}`;
+        default:
+            return JSON.stringify(data);
+    }
 }
 
-module.exports = { generateCaption, PROMPTS };
+function parseGeminiResponse(text) {
+    // Trim any surrounding markdown fences the model may add
+    const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+    let obj;
+    try {
+        obj = JSON.parse(cleaned);
+    } catch {
+        // Fallback: find the first {...} block
+        const match = cleaned.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('Gemini response is not JSON');
+        obj = JSON.parse(match[0]);
+    }
+    if (typeof obj.caption !== 'string' || typeof obj.hashtags !== 'string') {
+        throw new Error('Gemini response missing caption/hashtags');
+    }
+    return obj;
+}
+
+/**
+ * @param {'daily'|'weekly'|'favorite'|'newseason'} type
+ * @param {object|Array} data
+ * @param {{gemini:{model:string}}} config
+ * @returns {Promise<{caption:string, hashtags:string}>}
+ */
+async function generateCaption(type, data, config) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+    const template = PROMPTS[type];
+    if (!template) throw new Error(`Unknown post type: ${type}`);
+
+    const prompt = template.replace('{{DATA}}', serializeData(type, data));
+    const model = config?.gemini?.model || 'gemini-flash-latest';
+
+    const res = await fetch(GEMINI_ENDPOINT(model, apiKey), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(30_000),
+        body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+                temperature: 0.85,
+                maxOutputTokens: 800,
+                responseMimeType: 'application/json',
+            },
+        }),
+    });
+
+    if (!res.ok) {
+        const errBody = await res.text().catch(() => '');
+        throw new Error(`Gemini API ${res.status}: ${errBody.slice(0, 300)}`);
+    }
+
+    const body = await res.json();
+    const text = body?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('Gemini response empty');
+
+    return parseGeminiResponse(text);
+}
+
+module.exports = { generateCaption, PROMPTS, parseGeminiResponse, serializeData };

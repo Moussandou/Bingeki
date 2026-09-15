@@ -1,74 +1,31 @@
 /**
  * Admin Social Bot page — post validation & publishing UI
  *
- * Phase 1: local state (mock data) — Phase 2 will wire onSnapshot from
- * Firestore + callable Cloud Functions for the actions.
+ * Phase 2: branché sur Firestore live (subscribeToPendingPosts /
+ * subscribeToBotConfig / subscribeToPublishedPosts). Les actions
+ * Publier / Rejeter / Régénérer appellent les callables backend qui
+ * seront implémentées en Phase 4.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Calendar, TrendingUp, Sparkles, Camera, Music2, MessageSquare,
-    RefreshCw, Edit3, Trash2, Send, Clock, CheckCircle2, Users, Power, PowerOff,
+    RefreshCw, Save, Trash2, Send, Clock, CheckCircle2, Users, Power, PowerOff,
+    Loader2,
 } from 'lucide-react';
-import type { PostType, PendingPost, PostPlatforms } from '@/shared/socialBot';
-import { POST_TYPE_LABELS, POST_TYPE_COLORS } from '@/shared/socialBot';
-
-/* ==========================================================================
-   MOCK DATA (Phase 1) — replace with Firestore onSnapshot in Phase 2
-   ========================================================================== */
-
-const MOCK_PENDING: PendingPost[] = [
-    {
-        id: 'p1',
-        type: 'daily',
-        createdAt: Date.now() - 3600_000,
-        scheduledAt: Date.now() + 3600_000 * 6,
-        status: 'ready',
-        title: "Sorties du jour · 12 mars",
-        caption: `4 épisodes sont sortis aujourd'hui — et pas des moindres. MHA S8 continue sa dernière saison, Frieren se rapproche du final, One Piece dépasse les 1100 épisodes et Dandadan monte en puissance.\n\nVous suivez lesquels cette saison ? Dites-nous en commentaires 👇\n\nToute la liste et vos progressions sur Bingeki.`,
-        hashtags: '#anime #mha #frieren #onepiece #dandadan #bingeki #animefr',
-        slides: [
-            { format: 'feed', url: 'https://cdn.myanimelist.net/images/anime/10/78745l.jpg', index: 1 },
-        ],
-        sourceData: { animeIds: [31964, 52991, 21, 57334] },
-        platforms: { insta: true, tiktok: true, x: false },
-    },
-    {
-        id: 'p2',
-        type: 'newseason',
-        createdAt: Date.now() - 7200_000,
-        scheduledAt: Date.now() + 3600_000 * 72,
-        status: 'ready',
-        title: "Chainsaw Man S2 · Announcement",
-        caption: `Chainsaw Man revient. Le S2 débarque vendredi et on trépigne autant que vous.\n\n12 épisodes prévus, MAPPA aux commandes, la barre est haute après une S1 à 8.7/10. On l'ajoute déjà à notre liste — et vous ?`,
-        hashtags: '#chainsawman #mappa #anime2026 #newseason #bingeki',
-        slides: [
-            { format: 'feed', url: 'https://cdn.myanimelist.net/images/anime/1806/126216l.jpg', index: 1 },
-        ],
-        sourceData: { animeIds: [44511] },
-        platforms: { insta: true, tiktok: true, x: false },
-    },
-    {
-        id: 'p3',
-        type: 'weekly',
-        createdAt: Date.now() - 10800_000,
-        scheduledAt: Date.now() + 3600_000 * 96,
-        status: 'ready',
-        title: 'Récap semaine 11',
-        caption: `Le TOP 3 de la semaine 11 selon vous.\n\n🥇 Frieren — 9.4/10\n🥈 Dandadan — 9.1/10\n🥉 Blue Lock — 8.9/10\n\nMerci aux 6 800+ watchers qui ont noté leurs épisodes cette semaine. Vous avez fait le classement.`,
-        hashtags: '#animeweeklyrecap #frieren #dandadan #bluelock #bingeki',
-        slides: [
-            { format: 'feed', url: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg', index: 1 },
-        ],
-        sourceData: { weekNumber: 11 },
-        platforms: { insta: true, tiktok: false, x: false },
-    },
-];
-
-const MOCK_PUBLISHED = [
-    { id: 'x1', type: 'daily' as PostType, title: 'Sorties du jour · 11 mars', publishedAt: 'Hier 20h', reach: '2.3K' },
-    { id: 'x2', type: 'favorite' as PostType, title: 'Coup de cœur · Solo Leveling', publishedAt: 'Il y a 3 jours', reach: '4.1K' },
-    { id: 'x3', type: 'weekly' as PostType, title: 'Récap semaine 10', publishedAt: 'Il y a 6 jours', reach: '3.7K' },
-];
+import { logger } from '@/utils/logger';
+import { useAuthStore } from '@/store/authStore';
+import type { PendingPost, PublishedPost, BotConfig, PostType, PostPlatforms } from '@/shared/socialBot';
+import { POST_TYPE_LABELS, POST_TYPE_COLORS, DEFAULT_BOT_CONFIG } from '@/shared/socialBot';
+import {
+    subscribeToPendingPosts,
+    subscribeToPublishedPosts,
+    subscribeToBotConfig,
+    setBotEnabled,
+    updatePendingPostDraft,
+    publishPostNow,
+    rejectPost,
+    regeneratePost,
+} from '@/firebase/socialBot';
 
 /* ==========================================================================
    UI PIECES
@@ -97,12 +54,15 @@ const TypeBadge: React.FC<{ type: PostType }> = ({ type }) => {
 };
 
 const formatSchedule = (ts: number): string => {
+    if (!ts) return '—';
     const d = new Date(ts);
     const now = new Date();
     const sameDay = d.toDateString() === now.toDateString();
     if (sameDay) return `Aujourd'hui ${d.getHours()}h${String(d.getMinutes()).padStart(2, '0')}`;
     const days = Math.round((ts - now.getTime()) / 86_400_000);
-    if (days < 7) return `Dans ${days}j · ${d.getHours()}h`;
+    if (days === 1) return `Demain ${d.getHours()}h`;
+    if (days > 1 && days < 7) return `Dans ${days}j · ${d.getHours()}h`;
+    if (days < 0 && days > -7) return `Il y a ${Math.abs(days)}j`;
     return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 };
 
@@ -111,42 +71,147 @@ const formatSchedule = (ts: number): string => {
    ========================================================================== */
 
 export default function AdminSocial() {
-    const [pending] = useState<PendingPost[]>(MOCK_PENDING);
-    const [activeId, setActiveId] = useState<string>(MOCK_PENDING[0].id);
-    const [botEnabled, setBotEnabled] = useState<boolean>(true);
+    const isSuperAdmin = useAuthStore((s) => s.userProfile?.isSuperAdmin === true);
 
-    const active = pending.find((p) => p.id === activeId) ?? pending[0];
+    const [pending, setPending] = useState<PendingPost[]>([]);
+    const [published, setPublished] = useState<PublishedPost[]>([]);
+    const [config, setConfig] = useState<BotConfig>(DEFAULT_BOT_CONFIG);
+    const [loading, setLoading] = useState(true);
 
-    // Editable local state (would be pushed back to Firestore on save)
-    const [captionDraft, setCaptionDraft] = useState<string>(active.caption);
-    const [hashtagsDraft, setHashtagsDraft] = useState<string>(active.hashtags);
-    const [platforms, setPlatforms] = useState<PostPlatforms>(active.platforms);
+    const [activeId, setActiveId] = useState<string | null>(null);
+
+    // Draft state (unsaved edits)
+    const [captionDraft, setCaptionDraft] = useState<string>('');
+    const [hashtagsDraft, setHashtagsDraft] = useState<string>('');
+    const [platformsDraft, setPlatformsDraft] = useState<PostPlatforms>({ insta: false, tiktok: false, x: false });
+    const [savingDraft, setSavingDraft] = useState(false);
+    const [actionBusy, setActionBusy] = useState<string | null>(null);
+
+    // Subscribe to Firestore
+    useEffect(() => {
+        const unsubPending = subscribeToPendingPosts((posts) => {
+            setPending(posts);
+            setLoading(false);
+        });
+        const unsubPublished = subscribeToPublishedPosts(setPublished, 8);
+        const unsubConfig = subscribeToBotConfig(setConfig);
+        return () => {
+            unsubPending();
+            unsubPublished();
+            unsubConfig();
+        };
+    }, []);
+
+    // Auto-select first pending post
+    useEffect(() => {
+        if (!activeId && pending.length > 0) {
+            setActiveId(pending[0].id);
+        } else if (activeId && !pending.find((p) => p.id === activeId)) {
+            // Selected post was removed (published/rejected)
+            setActiveId(pending[0]?.id ?? null);
+        }
+    }, [pending, activeId]);
+
+    const active = pending.find((p) => p.id === activeId) ?? null;
 
     // Reset drafts when switching post
-    const handleSelect = (id: string) => {
-        const p = pending.find((x) => x.id === id);
-        if (!p) return;
-        setActiveId(id);
-        setCaptionDraft(p.caption);
-        setHashtagsDraft(p.hashtags);
-        setPlatforms(p.platforms);
-    };
+    useEffect(() => {
+        if (active) {
+            setCaptionDraft(active.caption);
+            setHashtagsDraft(active.hashtags);
+            setPlatformsDraft(active.platforms);
+        }
+    }, [active?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const dirty = Boolean(active && (
+        captionDraft !== active.caption
+        || hashtagsDraft !== active.hashtags
+        || platformsDraft.insta !== active.platforms.insta
+        || platformsDraft.tiktok !== active.platforms.tiktok
+        || platformsDraft.x !== active.platforms.x
+    ));
 
     const togglePlatform = (key: keyof PostPlatforms) => {
-        setPlatforms((prev) => ({ ...prev, [key]: !prev[key] }));
+        setPlatformsDraft((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
-    // Action handlers (stubbed — Phase 4 will call Cloud Functions)
-    const handlePublish = () => {
-        alert(`[Stub] Publier "${active.title}" sur : ${
-            Object.entries(platforms).filter(([, v]) => v).map(([k]) => k).join(', ')
-        }`);
+    const handleToggleKillSwitch = async () => {
+        if (!isSuperAdmin) {
+            alert("Seul un superAdmin peut activer/désactiver le bot.");
+            return;
+        }
+        try {
+            await setBotEnabled(!config.enabled);
+        } catch (e) {
+            logger.error('[AdminSocial] toggle kill-switch failed:', e);
+            alert('Impossible de basculer le kill-switch (voir console).');
+        }
     };
-    const handleRegenerate = () => alert(`[Stub] Régénérer "${active.title}"`);
-    const handleReject = () => alert(`[Stub] Rejeter "${active.title}"`);
-    const handleEditToggle = () => alert('[Stub] Édition inline — Phase 2');
 
-    const cover = active.slides[0]?.url;
+    const handleSaveDraft = async () => {
+        if (!active) return;
+        setSavingDraft(true);
+        try {
+            await updatePendingPostDraft(active.id, {
+                caption: captionDraft,
+                hashtags: hashtagsDraft,
+                platforms: platformsDraft,
+            });
+        } catch (e) {
+            logger.error('[AdminSocial] save draft failed:', e);
+            alert('Impossible de sauver les modifications.');
+        } finally {
+            setSavingDraft(false);
+        }
+    };
+
+    const handlePublish = async () => {
+        if (!active) return;
+        if (dirty) {
+            alert("Sauve d'abord tes modifications avant de publier.");
+            return;
+        }
+        if (!confirm(`Publier "${active.title}" maintenant ?`)) return;
+        setActionBusy('publish');
+        try {
+            await publishPostNow(active.id);
+        } catch (e) {
+            logger.error('[AdminSocial] publish failed:', e);
+            alert('Publication échouée (voir console).');
+        } finally {
+            setActionBusy(null);
+        }
+    };
+
+    const handleReject = async () => {
+        if (!active) return;
+        if (!confirm(`Rejeter "${active.title}" ? Le post sera supprimé.`)) return;
+        setActionBusy('reject');
+        try {
+            await rejectPost(active.id);
+        } catch (e) {
+            logger.error('[AdminSocial] reject failed:', e);
+            alert('Rejet échoué (voir console).');
+        } finally {
+            setActionBusy(null);
+        }
+    };
+
+    const handleRegenerate = async () => {
+        if (!active) return;
+        if (!confirm(`Régénérer la caption pour "${active.title}" ?`)) return;
+        setActionBusy('regen');
+        try {
+            await regeneratePost(active.id);
+        } catch (e) {
+            logger.error('[AdminSocial] regenerate failed:', e);
+            alert('Régénération échouée (voir console).');
+        } finally {
+            setActionBusy(null);
+        }
+    };
+
+    const cover = active?.slides.find((s) => s.format === 'feed')?.url ?? active?.slides[0]?.url;
 
     return (
         <div style={{
@@ -193,34 +258,40 @@ export default function AdminSocial() {
                             fontFamily: '"Outfit", sans-serif', fontWeight: 900,
                             fontSize: '0.7rem',
                         }}>
-                            <CheckCircle2 size={11} style={{ verticalAlign: '-2px' }} /> {MOCK_PUBLISHED.length} PUBLIÉS · 7J
+                            <CheckCircle2 size={11} style={{ verticalAlign: '-2px' }} /> {published.length} PUBLIÉS
                         </div>
                         <button
-                            onClick={() => setBotEnabled((b) => !b)}
-                            title={botEnabled ? 'Kill-switch — désactiver le bot' : 'Activer le bot'}
+                            onClick={handleToggleKillSwitch}
+                            title={
+                                !isSuperAdmin ? 'superAdmin uniquement' :
+                                    config.enabled ? 'Kill-switch — désactiver le bot' : 'Activer le bot'
+                            }
+                            disabled={!isSuperAdmin}
                             style={{
-                                background: botEnabled ? '#08D9D6' : '#ef4444',
-                                color: botEnabled ? '#000' : '#fff',
-                                border: '2px solid #fff', cursor: 'pointer',
+                                background: config.enabled ? '#08D9D6' : '#ef4444',
+                                color: config.enabled ? '#000' : '#fff',
+                                border: '2px solid #fff',
+                                cursor: isSuperAdmin ? 'pointer' : 'not-allowed',
+                                opacity: isSuperAdmin ? 1 : 0.6,
                                 padding: '0.25rem 0.6rem',
                                 fontFamily: '"Outfit", sans-serif', fontWeight: 900,
                                 fontSize: '0.7rem', letterSpacing: '0.05em',
                                 display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                             }}
                         >
-                            {botEnabled ? <Power size={11} /> : <PowerOff size={11} />}
-                            {botEnabled ? 'BOT ACTIF' : 'BOT DÉSACTIVÉ'}
+                            {config.enabled ? <Power size={11} /> : <PowerOff size={11} />}
+                            {config.enabled ? 'BOT ACTIF' : 'BOT DÉSACTIVÉ'}
                         </button>
                     </div>
                 </div>
 
-                {!botEnabled && (
+                {!config.enabled && (
                     <div style={{
                         background: '#fff3cd', border: '3px solid #f59e0b', boxShadow: '4px 4px 0 #000',
                         padding: '0.7rem 1rem', marginBottom: '1rem',
                         fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: '0.8rem',
                     }}>
-                        Le kill-switch est actif — les crons ne génèrent plus de posts, aucune publication automatique ne se déclenche.
+                        Kill-switch actif — les crons ne génèrent plus de posts, aucune publication automatique.
                     </div>
                 )}
 
@@ -255,13 +326,32 @@ export default function AdminSocial() {
                                     {pending.length}
                                 </span>
                             </div>
+                            {loading && (
+                                <div style={{
+                                    padding: '1rem', textAlign: 'center', color: '#666',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                                    fontSize: '0.8rem',
+                                }}>
+                                    <Loader2 size={14} className="animate-spin" /> Chargement...
+                                </div>
+                            )}
+                            {!loading && pending.length === 0 && (
+                                <div style={{
+                                    padding: '1rem', textAlign: 'center', color: '#666',
+                                    border: '2px dashed #ccc', fontSize: '0.75rem', lineHeight: 1.4,
+                                }}>
+                                    Aucun post en attente.<br />
+                                    Le prochain cron déposera un post ici.
+                                </div>
+                            )}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                                 {pending.map((p) => {
                                     const selected = p.id === activeId;
+                                    const thumb = p.slides.find((s) => s.format === 'feed')?.url ?? p.slides[0]?.url;
                                     return (
                                         <button
                                             key={p.id}
-                                            onClick={() => handleSelect(p.id)}
+                                            onClick={() => setActiveId(p.id)}
                                             style={{
                                                 textAlign: 'left', cursor: 'pointer',
                                                 display: 'flex', gap: '0.6rem', padding: '0.6rem',
@@ -276,8 +366,8 @@ export default function AdminSocial() {
                                                 background: '#252A34', border: '2px solid #000',
                                                 position: 'relative', overflow: 'hidden',
                                             }}>
-                                                {p.slides[0]?.url && (
-                                                    <img src={p.slides[0].url} alt="" style={{
+                                                {thumb && (
+                                                    <img src={thumb} alt="" style={{
                                                         position: 'absolute', inset: 0,
                                                         width: '100%', height: '100%', objectFit: 'cover',
                                                     }} />
@@ -305,265 +395,297 @@ export default function AdminSocial() {
                             </div>
                         </div>
 
-                        <div>
-                            <div style={{
-                                borderTop: '2px dashed #ccc', paddingTop: '0.75rem', marginBottom: '0.5rem',
-                            }}>
-                                <h3 style={{
-                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                    fontSize: '0.7rem', textTransform: 'uppercase',
-                                    letterSpacing: '0.08em', margin: 0,
+                        {published.length > 0 && (
+                            <div>
+                                <div style={{
+                                    borderTop: '2px dashed #ccc', paddingTop: '0.75rem', marginBottom: '0.5rem',
                                 }}>
-                                    Publiés · 7 derniers jours
-                                </h3>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                {MOCK_PUBLISHED.map((p) => (
-                                    <div key={p.id} style={{
-                                        padding: '0.5rem 0.6rem', background: '#f5f5f5',
-                                        border: '2px solid #ccc',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    <h3 style={{
+                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                        fontSize: '0.7rem', textTransform: 'uppercase',
+                                        letterSpacing: '0.08em', margin: 0,
                                     }}>
-                                        <div style={{ minWidth: 0 }}>
-                                            <div style={{
-                                                fontFamily: '"Outfit", sans-serif', fontWeight: 800,
-                                                fontSize: '0.7rem', color: '#333',
-                                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                            }}>
-                                                {p.title}
-                                            </div>
-                                            <div style={{ fontSize: '0.6rem', color: '#666', marginTop: '2px' }}>
-                                                {p.publishedAt}
-                                            </div>
-                                        </div>
-                                        <div style={{
-                                            background: '#08D9D6', color: '#000', border: '2px solid #000',
-                                            padding: '1px 5px',
-                                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                            fontSize: '0.6rem',
+                                        Derniers publiés
+                                    </h3>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                    {published.map((p) => (
+                                        <div key={p.id} style={{
+                                            padding: '0.5rem 0.6rem', background: '#f5f5f5',
+                                            border: '2px solid #ccc',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                         }}>
-                                            {p.reach}
+                                            <div style={{ minWidth: 0 }}>
+                                                <div style={{
+                                                    fontFamily: '"Outfit", sans-serif', fontWeight: 800,
+                                                    fontSize: '0.7rem', color: '#333',
+                                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                                }}>
+                                                    {p.title}
+                                                </div>
+                                                <div style={{ fontSize: '0.6rem', color: '#666', marginTop: '2px' }}>
+                                                    {formatSchedule(p.publishedAt)}
+                                                </div>
+                                            </div>
+                                            {p.reach?.insta?.impressions && (
+                                                <div style={{
+                                                    background: '#08D9D6', color: '#000', border: '2px solid #000',
+                                                    padding: '1px 5px',
+                                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                                    fontSize: '0.6rem',
+                                                }}>
+                                                    {(p.reach.insta.impressions / 1000).toFixed(1)}K
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </aside>
 
                     {/* Preview panel */}
-                    <div style={{
-                        background: '#fff', border: '3px solid #000', boxShadow: '6px 6px 0 #000',
-                        padding: '1.2rem', display: 'grid',
-                        gridTemplateColumns: '260px 1fr', gap: '1.2rem',
-                    }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {!active ? (
+                        <div style={{
+                            background: '#fff', border: '3px solid #000', boxShadow: '6px 6px 0 #000',
+                            padding: '3rem', textAlign: 'center', color: '#666',
+                        }}>
                             <div style={{
-                                width: '260px', height: '325px',
-                                border: '3px solid #000', boxShadow: '5px 5px 0 #000',
-                                background: '#000', position: 'relative', overflow: 'hidden',
+                                fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                fontSize: '1.2rem', color: '#000', marginBottom: '0.5rem',
                             }}>
-                                {cover && (
-                                    <img src={cover} alt="" style={{
+                                Rien à valider pour l'instant
+                            </div>
+                            <div style={{ fontSize: '0.85rem' }}>
+                                Le bot déposera un post à valider dès le prochain cron.
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{
+                            background: '#fff', border: '3px solid #000', boxShadow: '6px 6px 0 #000',
+                            padding: '1.2rem', display: 'grid',
+                            gridTemplateColumns: '260px 1fr', gap: '1.2rem',
+                        }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{
+                                    width: '260px', height: '325px',
+                                    border: '3px solid #000', boxShadow: '5px 5px 0 #000',
+                                    background: '#000', position: 'relative', overflow: 'hidden',
+                                }}>
+                                    {cover && (
+                                        <img src={cover} alt="" style={{
+                                            position: 'absolute', inset: 0,
+                                            width: '100%', height: '100%', objectFit: 'cover',
+                                        }} />
+                                    )}
+                                    <div aria-hidden style={{
                                         position: 'absolute', inset: 0,
-                                        width: '100%', height: '100%', objectFit: 'cover',
+                                        background: 'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.05) 55%, rgba(0,0,0,0.95) 100%)',
                                     }} />
-                                )}
-                                <div aria-hidden style={{
-                                    position: 'absolute', inset: 0,
-                                    background: 'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.05) 55%, rgba(0,0,0,0.95) 100%)',
-                                }} />
+                                    <div style={{
+                                        position: 'absolute', bottom: '12px', left: '12px', right: '12px',
+                                        color: '#fff',
+                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                        fontSize: '1.1rem', letterSpacing: '-0.6px', lineHeight: 1,
+                                        textTransform: 'uppercase',
+                                        textShadow: '2px 2px 0 rgba(0,0,0,0.9)',
+                                    }}>
+                                        {active.title}
+                                    </div>
+                                </div>
                                 <div style={{
-                                    position: 'absolute', bottom: '12px', left: '12px', right: '12px',
-                                    color: '#fff',
-                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                    fontSize: '1.1rem', letterSpacing: '-0.6px', lineHeight: 1,
-                                    textTransform: 'uppercase',
-                                    textShadow: '2px 2px 0 rgba(0,0,0,0.9)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    padding: '0.4rem 0.6rem', border: '2px solid #000', background: '#fff',
+                                    fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: '0.65rem',
+                                    color: '#666', textTransform: 'uppercase',
                                 }}>
-                                    {active.title}
+                                    {active.slides.length} slide{active.slides.length > 1 ? 's' : ''} · {active.slides.filter((s) => s.format === 'feed').length} feed / {active.slides.filter((s) => s.format === 'story').length} story
                                 </div>
                             </div>
-                            <div style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                padding: '0.4rem 0.6rem', border: '2px solid #000', background: '#fff',
-                                fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: '0.65rem',
-                                color: '#666', textTransform: 'uppercase',
-                            }}>
-                                Preview · slide 1 / {active.slides.length}
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', minWidth: 0 }}>
+                                <div>
+                                    <TypeBadge type={active.type} />
+                                    <h2 style={{
+                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                        fontSize: '1.4rem', letterSpacing: '-0.8px',
+                                        margin: '0.4rem 0 0.3rem', textTransform: 'uppercase',
+                                    }}>
+                                        {active.title}
+                                    </h2>
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                        fontSize: '0.75rem', color: '#666', fontWeight: 600,
+                                    }}>
+                                        <Clock size={12} /> Programmé — {formatSchedule(active.scheduledAt)}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style={{
+                                        display: 'block',
+                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                        fontSize: '0.7rem', letterSpacing: '0.1em',
+                                        textTransform: 'uppercase', color: '#666', marginBottom: '0.3rem',
+                                    }}>
+                                        Caption — généré par Gemini
+                                    </label>
+                                    <textarea
+                                        value={captionDraft}
+                                        onChange={(e) => setCaptionDraft(e.target.value)}
+                                        rows={6}
+                                        style={{
+                                            width: '100%',
+                                            background: '#fff', border: '3px solid #000', boxShadow: '3px 3px 0 #000',
+                                            padding: '0.7rem 0.85rem',
+                                            fontSize: '0.8rem', lineHeight: 1.5, color: '#1a1a1a',
+                                            fontFamily: '"Inter", sans-serif', resize: 'vertical',
+                                        }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label style={{
+                                        display: 'block',
+                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                        fontSize: '0.7rem', letterSpacing: '0.1em',
+                                        textTransform: 'uppercase', color: '#666', marginBottom: '0.3rem',
+                                    }}>
+                                        Hashtags
+                                    </label>
+                                    <input
+                                        value={hashtagsDraft}
+                                        onChange={(e) => setHashtagsDraft(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            background: '#fff', border: '3px solid #000', boxShadow: '3px 3px 0 #000',
+                                            padding: '0.6rem 0.85rem',
+                                            fontSize: '0.78rem', lineHeight: 1.5, color: '#FF2E63', fontWeight: 700,
+                                            fontFamily: '"Inter", sans-serif',
+                                        }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <div style={{
+                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                        fontSize: '0.7rem', letterSpacing: '0.1em',
+                                        textTransform: 'uppercase', color: '#666', marginBottom: '0.3rem',
+                                    }}>
+                                        Publication sur
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {([
+                                            { key: 'insta' as const, label: 'Instagram', icon: <Camera size={13} />, auto: true },
+                                            { key: 'tiktok' as const, label: 'TikTok', icon: <Music2 size={13} />, auto: true },
+                                            { key: 'x' as const, label: 'X (manuel)', icon: <MessageSquare size={13} />, auto: false },
+                                        ]).map((p) => {
+                                            const enabled = platformsDraft[p.key];
+                                            return (
+                                                <button
+                                                    key={p.key}
+                                                    onClick={() => togglePlatform(p.key)}
+                                                    style={{
+                                                        display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                                        background: enabled ? (p.auto ? '#000' : '#666') : '#fff',
+                                                        color: enabled ? '#fff' : '#999',
+                                                        border: '2px solid #000', cursor: 'pointer',
+                                                        padding: '0.35rem 0.6rem',
+                                                        fontFamily: '"Outfit", sans-serif', fontWeight: 800,
+                                                        fontSize: '0.7rem',
+                                                    }}
+                                                >
+                                                    {p.icon} {p.label}
+                                                    {enabled && !p.auto && (
+                                                        <span style={{
+                                                            marginLeft: '0.2rem', fontSize: '0.55rem',
+                                                            background: '#FF2E63', color: '#fff',
+                                                            padding: '1px 4px', letterSpacing: '0.05em',
+                                                        }}>
+                                                            COPY
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div style={{
+                                    display: 'flex', gap: '0.5rem', flexWrap: 'wrap',
+                                    paddingTop: '0.4rem', borderTop: '2px dashed #ccc', alignItems: 'center',
+                                }}>
+                                    <button
+                                        onClick={handleRegenerate}
+                                        disabled={actionBusy === 'regen'}
+                                        style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                            background: '#fff', color: '#000', border: '2px solid #000',
+                                            boxShadow: '3px 3px 0 #000',
+                                            padding: '0.5rem 0.85rem',
+                                            cursor: actionBusy === 'regen' ? 'wait' : 'pointer',
+                                            opacity: actionBusy === 'regen' ? 0.6 : 1,
+                                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                            fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase',
+                                        }}
+                                    >
+                                        <RefreshCw size={13} /> Régénérer
+                                    </button>
+                                    <button
+                                        onClick={handleSaveDraft}
+                                        disabled={!dirty || savingDraft}
+                                        style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                            background: dirty ? '#08D9D6' : '#fff',
+                                            color: dirty ? '#000' : '#999',
+                                            border: '2px solid #000',
+                                            boxShadow: '3px 3px 0 #000',
+                                            padding: '0.5rem 0.85rem',
+                                            cursor: dirty && !savingDraft ? 'pointer' : 'not-allowed',
+                                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                            fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase',
+                                        }}
+                                    >
+                                        <Save size={13} /> {dirty ? 'Sauver édits' : 'Aucun changement'}
+                                    </button>
+                                    <button
+                                        onClick={handleReject}
+                                        disabled={actionBusy === 'reject'}
+                                        style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                            background: '#fff', color: '#000', border: '2px solid #000',
+                                            boxShadow: '3px 3px 0 #000',
+                                            padding: '0.5rem 0.85rem',
+                                            cursor: actionBusy === 'reject' ? 'wait' : 'pointer',
+                                            opacity: actionBusy === 'reject' ? 0.6 : 1,
+                                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                            fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase',
+                                        }}
+                                    >
+                                        <Trash2 size={13} /> Rejeter
+                                    </button>
+                                    <button
+                                        onClick={handlePublish}
+                                        disabled={!config.enabled || actionBusy === 'publish' || dirty}
+                                        title={dirty ? 'Sauve tes édits avant de publier' : ''}
+                                        style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                            background: config.enabled && !dirty ? '#FF2E63' : '#ccc',
+                                            color: '#fff', border: '2px solid #000',
+                                            boxShadow: '3px 3px 0 #000',
+                                            padding: '0.5rem 1.1rem',
+                                            cursor: config.enabled && !dirty && actionBusy !== 'publish' ? 'pointer' : 'not-allowed',
+                                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                            fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase',
+                                            marginLeft: 'auto',
+                                        }}
+                                    >
+                                        <Send size={13} /> {actionBusy === 'publish' ? 'Publication...' : 'Publier maintenant'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', minWidth: 0 }}>
-                            <div>
-                                <TypeBadge type={active.type} />
-                                <h2 style={{
-                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                    fontSize: '1.4rem', letterSpacing: '-0.8px',
-                                    margin: '0.4rem 0 0.3rem', textTransform: 'uppercase',
-                                }}>
-                                    {active.title}
-                                </h2>
-                                <div style={{
-                                    display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                    fontSize: '0.75rem', color: '#666', fontWeight: 600,
-                                }}>
-                                    <Clock size={12} /> Programmé — {formatSchedule(active.scheduledAt)}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label style={{
-                                    display: 'block',
-                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                    fontSize: '0.7rem', letterSpacing: '0.1em',
-                                    textTransform: 'uppercase', color: '#666', marginBottom: '0.3rem',
-                                }}>
-                                    Caption — généré par Gemini
-                                </label>
-                                <textarea
-                                    value={captionDraft}
-                                    onChange={(e) => setCaptionDraft(e.target.value)}
-                                    rows={6}
-                                    style={{
-                                        width: '100%',
-                                        background: '#fff', border: '3px solid #000', boxShadow: '3px 3px 0 #000',
-                                        padding: '0.7rem 0.85rem',
-                                        fontSize: '0.8rem', lineHeight: 1.5, color: '#1a1a1a',
-                                        fontFamily: '"Inter", sans-serif', resize: 'vertical',
-                                    }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{
-                                    display: 'block',
-                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                    fontSize: '0.7rem', letterSpacing: '0.1em',
-                                    textTransform: 'uppercase', color: '#666', marginBottom: '0.3rem',
-                                }}>
-                                    Hashtags
-                                </label>
-                                <input
-                                    value={hashtagsDraft}
-                                    onChange={(e) => setHashtagsDraft(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        background: '#fff', border: '3px solid #000', boxShadow: '3px 3px 0 #000',
-                                        padding: '0.6rem 0.85rem',
-                                        fontSize: '0.78rem', lineHeight: 1.5, color: '#FF2E63', fontWeight: 700,
-                                        fontFamily: '"Inter", sans-serif',
-                                    }}
-                                />
-                            </div>
-
-                            <div>
-                                <div style={{
-                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                    fontSize: '0.7rem', letterSpacing: '0.1em',
-                                    textTransform: 'uppercase', color: '#666', marginBottom: '0.3rem',
-                                }}>
-                                    Publication sur
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                    {([
-                                        { key: 'insta' as const, label: 'Instagram', icon: <Camera size={13} />, auto: true },
-                                        { key: 'tiktok' as const, label: 'TikTok', icon: <Music2 size={13} />, auto: true },
-                                        { key: 'x' as const, label: 'X (manuel)', icon: <MessageSquare size={13} />, auto: false },
-                                    ]).map((p) => {
-                                        const enabled = platforms[p.key];
-                                        return (
-                                            <button
-                                                key={p.key}
-                                                onClick={() => togglePlatform(p.key)}
-                                                style={{
-                                                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                                    background: enabled ? (p.auto ? '#000' : '#666') : '#fff',
-                                                    color: enabled ? '#fff' : '#999',
-                                                    border: '2px solid #000', cursor: 'pointer',
-                                                    padding: '0.35rem 0.6rem',
-                                                    fontFamily: '"Outfit", sans-serif', fontWeight: 800,
-                                                    fontSize: '0.7rem',
-                                                }}
-                                            >
-                                                {p.icon} {p.label}
-                                                {enabled && !p.auto && (
-                                                    <span style={{
-                                                        marginLeft: '0.2rem', fontSize: '0.55rem',
-                                                        background: '#FF2E63', color: '#fff',
-                                                        padding: '1px 4px', letterSpacing: '0.05em',
-                                                    }}>
-                                                        COPY
-                                                    </span>
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <div style={{
-                                display: 'flex', gap: '0.5rem', flexWrap: 'wrap',
-                                paddingTop: '0.4rem', borderTop: '2px dashed #ccc',
-                            }}>
-                                <button
-                                    onClick={handleRegenerate}
-                                    style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                        background: '#fff', color: '#000', border: '2px solid #000',
-                                        boxShadow: '3px 3px 0 #000',
-                                        padding: '0.5rem 0.85rem', cursor: 'pointer',
-                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                        fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase',
-                                    }}
-                                >
-                                    <RefreshCw size={13} /> Régénérer
-                                </button>
-                                <button
-                                    onClick={handleEditToggle}
-                                    style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                        background: '#fff', color: '#000', border: '2px solid #000',
-                                        boxShadow: '3px 3px 0 #000',
-                                        padding: '0.5rem 0.85rem', cursor: 'pointer',
-                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                        fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase',
-                                    }}
-                                >
-                                    <Edit3 size={13} /> Sauver édits
-                                </button>
-                                <button
-                                    onClick={handleReject}
-                                    style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                        background: '#fff', color: '#000', border: '2px solid #000',
-                                        boxShadow: '3px 3px 0 #000',
-                                        padding: '0.5rem 0.85rem', cursor: 'pointer',
-                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                        fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase',
-                                    }}
-                                >
-                                    <Trash2 size={13} /> Rejeter
-                                </button>
-                                <button
-                                    onClick={handlePublish}
-                                    disabled={!botEnabled}
-                                    style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                        background: botEnabled ? '#FF2E63' : '#ccc',
-                                        color: '#fff', border: '2px solid #000',
-                                        boxShadow: '3px 3px 0 #000',
-                                        padding: '0.5rem 1.1rem',
-                                        cursor: botEnabled ? 'pointer' : 'not-allowed',
-                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                        fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase',
-                                        marginLeft: 'auto',
-                                    }}
-                                >
-                                    <Send size={13} /> Publier maintenant
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </div>
