@@ -93,6 +93,7 @@ const AdminEngagementAnalytics = lazy(() => import('@/pages/admin/analytics/Enga
 const AdminRetentionAnalytics = lazy(() => import('@/pages/admin/analytics/Retention'));
 const AdminHealth = lazy(() => import('@/pages/admin/Health'));
 const AdminOrga = lazy(() => import('@/pages/admin/orga/OrgaPage'));
+const AdminSocial = lazy(() => import('@/pages/admin/AdminSocial'));
 
 
 const LanguageManager = () => {
@@ -257,6 +258,7 @@ function App() {
                 <Route path="health" element={<AdminHealth />} />
                 <Route path="audit" element={<Navigate to="../health?tab=audit" replace />} />
                 <Route path="orga" element={<AdminOrga />} />
+                <Route path="social" element={<AdminSocial />} />
               </Route>
 
 
