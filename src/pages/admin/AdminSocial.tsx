@@ -17,6 +17,8 @@ import { useAuthStore } from '@/store/authStore';
 import type { PendingPost, PublishedPost, BotConfig, PostType, PostPlatforms } from '@/shared/socialBot';
 import { POST_TYPE_LABELS, POST_TYPE_COLORS, DEFAULT_BOT_CONFIG } from '@/shared/socialBot';
 import { SlideHtmlPreview } from '@/components/admin/SlideHtmlPreview';
+import { SlidesEditor } from '@/components/admin/SlidesEditor';
+import type { PostSourceAnime } from '@/shared/socialBot';
 import {
     subscribeToPendingPosts,
     subscribeToPublishedPosts,
@@ -172,6 +174,22 @@ export default function AdminSocial() {
             alert('Impossible de sauver les modifications.');
         } finally {
             setSavingDraft(false);
+        }
+    };
+
+    const handleSaveSlides = async (nextAnimes: PostSourceAnime[]) => {
+        if (!active) return;
+        try {
+            await updatePendingPostDraft(active.id, {
+                sourceData: {
+                    ...active.sourceData,
+                    animes: nextAnimes,
+                    animeIds: nextAnimes.map((a) => a.mal_id).filter(Boolean) as number[],
+                },
+            });
+        } catch (e) {
+            logger.error('[AdminSocial] save slides failed:', e);
+            alert('Impossible de sauver les slides.');
         }
     };
 
@@ -705,6 +723,15 @@ export default function AdminSocial() {
                                     <span>Slide {activeSlideIndex + 1} / {previewSlides.length}</span>
                                     <span>{active.slides.filter((s) => s.format === 'feed').length}F / {active.slides.filter((s) => s.format === 'story').length}S</span>
                                 </div>
+
+                                {/* Slides editor (only when we have sourceData.animes to edit) */}
+                                {animesForLive && animesForLive.length > 0 && (
+                                    <SlidesEditor
+                                        type={active.type}
+                                        animes={animesForLive}
+                                        onSave={handleSaveSlides}
+                                    />
+                                )}
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', minWidth: 0 }}>

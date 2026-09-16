@@ -12,7 +12,9 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { logger } from '@/utils/logger';
-import type { PendingPost, PublishedPost, BotConfig, PostPlatforms } from '@/shared/socialBot';
+import type {
+    PendingPost, PublishedPost, BotConfig, PostPlatforms, PostSourceData,
+} from '@/shared/socialBot';
 import { DEFAULT_BOT_CONFIG, FIRESTORE_COLLECTIONS } from '@/shared/socialBot';
 
 const PENDING = FIRESTORE_COLLECTIONS.pendingPosts;
@@ -193,12 +195,18 @@ export async function setScheduleTime(
 }
 
 /**
- * Save inline edits (caption / hashtags / platforms) on a pending post.
- * Admin can call this while validating a post before publish.
+ * Save inline edits (caption / hashtags / platforms / sourceData) on
+ * a pending post. Admin can call this while validating a post before
+ * publish.
  */
 export async function updatePendingPostDraft(
     postId: string,
-    patch: { caption?: string; hashtags?: string; platforms?: PostPlatforms },
+    patch: {
+        caption?: string;
+        hashtags?: string;
+        platforms?: PostPlatforms;
+        sourceData?: PostSourceData;
+    },
 ): Promise<void> {
     const ref = doc(db, PENDING, postId);
     await updateDoc(ref, patch);
