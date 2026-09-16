@@ -19,6 +19,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "validate:i18n": "npx tsx scripts/check-translations.ts",
+    "social:init": "npx tsx scripts/social/init-bot-config.ts",
+    "social:seed-test-post": "npx tsx scripts/social/seed-test-post.ts",
     "audit": "npm run build && lhci autorun",
     "prepare": "husky"
   },
