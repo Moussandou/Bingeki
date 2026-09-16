@@ -336,11 +336,19 @@ export const publishPostNow = (postId: string) =>
         { postId },
     );
 
-export const rejectPost = (postId: string, reason?: string) =>
-    callAdminFn<{ postId: string; reason?: string }, { ok: true }>(
+export const rejectPost = (postId: string, reason?: string) => {
+    // Preview mock: skip network, just remove from local mock so the UI updates.
+    const mock = readMock();
+    if (mock) {
+        mock.pending = mock.pending.filter((p) => p.id !== postId);
+        fireMock('pending');
+        return Promise.resolve({ ok: true as const });
+    }
+    return callAdminFn<{ postId: string; reason?: string }, { ok: true }>(
         'socialRejectPost',
         { postId, reason },
     );
+};
 
 export const regeneratePost = (postId: string) =>
     callAdminFn<{ postId: string }, { ok: true }>(

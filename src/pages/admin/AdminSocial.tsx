@@ -32,6 +32,8 @@ import {
 } from '@/firebase/socialBot';
 import { SlideHtmlPreview } from '@/components/admin/SlideHtmlPreview';
 import { SlidesEditor } from '@/components/admin/SlidesEditor';
+import { PublishedPostModal } from '@/components/admin/PublishedPostModal';
+import { RejectModal } from '@/components/admin/RejectModal';
 import s from './AdminSocial.module.css';
 
 /* ==========================================================================
@@ -102,6 +104,9 @@ export default function AdminSocial() {
     const [actionBusy, setActionBusy] = useState<string | null>(null);
     const [slideFormat, setSlideFormat] = useState<'feed' | 'story'>('feed');
     const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
+    const [typeFilter, setTypeFilter] = useState<PostType | 'all'>('all');
+    const [analyticsPost, setAnalyticsPost] = useState<PublishedPost | null>(null);
+    const [rejectModal, setRejectModal] = useState<boolean>(false);
 
     // Subscribe
     useEffect(() => {
@@ -118,13 +123,17 @@ export default function AdminSocial() {
         };
     }, []);
 
+    const filteredPending = typeFilter === 'all'
+        ? pending
+        : pending.filter((p) => p.type === typeFilter);
+
     useEffect(() => {
-        if (!activeId && pending.length > 0) {
-            setActiveId(pending[0].id);
-        } else if (activeId && !pending.find((p) => p.id === activeId)) {
-            setActiveId(pending[0]?.id ?? null);
+        if (!activeId && filteredPending.length > 0) {
+            setActiveId(filteredPending[0].id);
+        } else if (activeId && !filteredPending.find((p) => p.id === activeId)) {
+            setActiveId(filteredPending[0]?.id ?? null);
         }
-    }, [pending, activeId]);
+    }, [filteredPending, activeId]);
 
     const active = pending.find((p) => p.id === activeId) ?? null;
 
@@ -238,12 +247,12 @@ export default function AdminSocial() {
         }
     };
 
-    const handleReject = async () => {
+    const handleRejectSubmit = async (reason: string) => {
         if (!active) return;
-        if (!confirm(`Rejeter "${active.title}" ? Le post sera supprimé.`)) return;
         setActionBusy('reject');
         try {
-            await rejectPost(active.id);
+            await rejectPost(active.id, reason);
+            setRejectModal(false);
         } catch (e) {
             logger.error('[AdminSocial] reject failed:', e);
             alert('Rejet échoué (voir console).');
@@ -317,20 +326,40 @@ export default function AdminSocial() {
                         <div className={s.sidebarSection}>
                             <div className={s.sectionHead}>
                                 <h3 className={s.sectionTitle}>En attente</h3>
-                                <span className={s.sectionCount}>{pending.length}</span>
+                                <span className={s.sectionCount}>{filteredPending.length}{typeFilter !== 'all' ? `/${pending.length}` : ''}</span>
                             </div>
+                            {pending.length > 1 && (
+                                <div className={s.filterChips}>
+                                    {([
+                                        { key: 'all' as const, label: 'Tous' },
+                                        { key: 'daily' as const, label: 'Sorties' },
+                                        { key: 'weekly' as const, label: 'Hebdo' },
+                                        { key: 'favorite' as const, label: 'Coup' },
+                                        { key: 'newseason' as const, label: 'Saison' },
+                                    ]).map((f) => (
+                                        <button
+                                            key={f.key}
+                                            onClick={() => setTypeFilter(f.key)}
+                                            className={`${s.filterChip} ${typeFilter === f.key ? s.active : ''}`}
+                                        >
+                                            {f.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             {loading && (
                                 <div className={s.emptyBox}>
                                     <Loader2 size={14} className="animate-spin" /> Chargement...
                                 </div>
                             )}
-                            {!loading && pending.length === 0 && (
+                            {!loading && filteredPending.length === 0 && (
                                 <div className={s.emptyBox}>
-                                    Aucun post en attente.<br />
-                                    Le prochain cron déposera un post ici.
+                                    {typeFilter === 'all'
+                                        ? "Aucun post en attente. Le prochain cron déposera un post ici."
+                                        : `Aucun post de ce type. Change le filtre pour voir les autres.`}
                                 </div>
                             )}
-                            {pending.map((p) => {
+                            {filteredPending.map((p) => {
                                 const selected = p.id === activeId;
                                 const thumb = p.slides.find((sl) => sl.format === 'feed')?.url ?? p.slides[0]?.url;
                                 return (
@@ -452,7 +481,11 @@ export default function AdminSocial() {
                                     <h3 className={s.sectionTitle}>Derniers publiés</h3>
                                 </div>
                                 {published.map((p) => (
-                                    <div key={p.id} className={s.publishedItem}>
+                                    <button
+                                        key={p.id}
+                                        onClick={() => setAnalyticsPost(p)}
+                                        className={s.publishedItem}
+                                    >
                                         <div className={s.thumbInfo}>
                                             <div className={s.thumbTitle}>{p.title}</div>
                                             <div className={s.thumbMeta}>{formatSchedule(p.publishedAt)}</div>
@@ -462,7 +495,7 @@ export default function AdminSocial() {
                                                 {(p.reach.insta.impressions / 1000).toFixed(1)}K
                                             </span>
                                         )}
-                                    </div>
+                                    </button>
                                 ))}
                             </div>
                         )}
@@ -664,7 +697,7 @@ export default function AdminSocial() {
                                         <Save size={13} /> {dirty ? 'Sauver édits' : 'Aucun changement'}
                                     </button>
                                     <button
-                                        onClick={handleReject}
+                                        onClick={() => setRejectModal(true)}
                                         disabled={actionBusy === 'reject'}
                                         className={s.actionBtn}
                                     >
@@ -693,6 +726,22 @@ export default function AdminSocial() {
                     )}
                 </div>
             </div>
+
+            {analyticsPost && (
+                <PublishedPostModal
+                    post={analyticsPost}
+                    onClose={() => setAnalyticsPost(null)}
+                />
+            )}
+
+            {rejectModal && active && (
+                <RejectModal
+                    postTitle={active.title}
+                    onCancel={() => setRejectModal(false)}
+                    onConfirm={handleRejectSubmit}
+                    busy={actionBusy === 'reject'}
+                />
+            )}
         </div>
     );
 }

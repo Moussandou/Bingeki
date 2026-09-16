@@ -51,8 +51,31 @@ exports.socialRejectPost = onCall(async (request) => {
     if (!postId || typeof postId !== 'string') {
         throw new HttpsError('invalid-argument', 'postId is required');
     }
-    console.log(`[social/reject] uid=${request.auth.uid} postId=${postId} reason=${reason || '-'}`);
+    const uid = request.auth.uid;
+    console.log(`[social/reject] uid=${uid} postId=${postId} reason=${reason || '-'}`);
+
+    // Snapshot the post before deleting so the audit log keeps the title.
+    const db = admin.firestore();
+    const snap = await db.collection(COLLECTIONS.pending).doc(postId).get();
+    const post = snap.exists ? snap.data() : null;
+
     await deletePending(postId);
+
+    // Audit log — non-blocking, best-effort
+    try {
+        await db.collection('social_admin_audit').add({
+            action: 'reject',
+            postId,
+            postTitle: post?.title || null,
+            postType: post?.type || null,
+            reason: reason || null,
+            uid,
+            at: Date.now(),
+        });
+    } catch (err) {
+        console.warn('[social/reject] audit write failed:', err.message || err);
+    }
+
     return { ok: true };
 });
 

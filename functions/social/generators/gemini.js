@@ -12,8 +12,10 @@
 const GEMINI_ENDPOINT = (model, key) =>
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
 
+const BINGEKI_URL = 'https://bingeki.web.app';
+
 const PROMPTS = {
-    daily: `Tu écris pour la page Instagram de Bingeki (un tracker anime & manga gamifié). Ton: chaleureux, communautaire, un peu insolent quand ça sert, on parle en "on" pour l'équipe et en "vous" pour la commu. Interdit: "Chez Bingeki nous...", "En tant que...", émojis à outrance.
+    daily: `Tu écris pour la page Instagram de Bingeki (un tracker anime & manga gamifié, dispo sur ${BINGEKI_URL}). Ton: chaleureux, communautaire, un peu insolent quand ça sert, on parle en "on" pour l'équipe et en "vous" pour la commu. Interdit: "Chez Bingeki nous...", "En tant que...", émojis à outrance. Termine toujours par une invitation vers ${BINGEKI_URL}.
 
 Voici les épisodes d'anime sortis aujourd'hui :
 {{DATA}}
@@ -28,7 +30,7 @@ Puis 5-7 hashtags pertinents (anime, titres, communauté).
 Réponds STRICTEMENT en JSON, rien d'autre :
 {"caption": "...", "hashtags": "#... #... #..."}`,
 
-    weekly: `Tu écris pour la page Instagram de Bingeki. Contexte: post récap hebdo TOP 3, notes moyennes calculées à partir de VOS users Bingeki.
+    weekly: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post récap hebdo TOP 3, notes moyennes calculées à partir de VOS users Bingeki.
 
 TOP 3 de la semaine :
 {{DATA}}
@@ -43,7 +45,7 @@ Puis 5 hashtags.
 JSON strict :
 {"caption": "...", "hashtags": "..."}`,
 
-    favorite: `Tu écris pour la page Instagram de Bingeki. Contexte: post "coup de cœur communauté", anime(s) le mieux noté par les users cette semaine.
+    favorite: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post "coup de cœur communauté", anime(s) le mieux noté par les users cette semaine.
 
 {{DATA}}
 
@@ -57,7 +59,7 @@ Puis 5 hashtags.
 JSON strict :
 {"caption": "...", "hashtags": "..."}`,
 
-    newseason: `Tu écris pour la page Instagram de Bingeki. Contexte: annonce du démarrage d'une nouvelle saison d'un anime attendu.
+    newseason: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: annonce du démarrage d'une nouvelle saison d'un anime attendu.
 
 Anime :
 {{DATA}}

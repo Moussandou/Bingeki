@@ -277,7 +277,7 @@ function outroSlide({ ctaMain, ctaSub, index, total }) {
             <div class="halftone-white"></div>
             <div class="outro-cta">${escape(ctaMain)}</div>
             <div class="outro-btn">${escape(ctaSub)}</div>
-            <div class="outro-url">bingeki.app</div>
+            <div class="outro-url">bingeki.web.app</div>
         </div>
         ${slideIdxBadge(index, total)}
     `);
