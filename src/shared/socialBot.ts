@@ -30,6 +30,12 @@ export interface PostSourceData {
     stats?: Record<string, unknown>;
 }
 
+export interface CaptionVariant {
+    caption: string;
+    hashtags: string;
+    generatedAt: number;
+}
+
 export interface PendingPost {
     id: string;
     type: PostType;
@@ -40,6 +46,9 @@ export interface PendingPost {
     title: string;
     caption: string;
     hashtags: string;
+
+    /** Previous caption+hashtags, kept for A/B comparison after a regenerate. */
+    variantB?: CaptionVariant;
 
     slides: PostSlide[];
     sourceData: PostSourceData;

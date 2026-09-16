@@ -24,9 +24,27 @@ const CONFIG_DOC = FIRESTORE_COLLECTIONS.botConfigDoc;
    SUBSCRIPTIONS
    ========================================================================== */
 
+// Preview mock hook — used by /_preview/admin-social to render the
+// page without hitting Firestore.
+type WindowMock = {
+    __BINGEKI_SOCIAL_MOCK__?: {
+        pending: PendingPost[];
+        published: PublishedPost[];
+        config: BotConfig;
+    };
+};
+const readMock = () => (typeof window !== 'undefined')
+    ? (window as unknown as WindowMock).__BINGEKI_SOCIAL_MOCK__
+    : undefined;
+
 export function subscribeToPendingPosts(
     callback: (posts: PendingPost[]) => void,
 ): () => void {
+    const mock = readMock();
+    if (mock) {
+        setTimeout(() => callback(mock.pending), 0);
+        return () => { /* noop */ };
+    }
     const q = query(collection(db, PENDING), orderBy('scheduledAt', 'asc'));
     return onSnapshot(
         q,
@@ -48,6 +66,11 @@ export function subscribeToPublishedPosts(
     callback: (posts: PublishedPost[]) => void,
     limit = 10,
 ): () => void {
+    const mock = readMock();
+    if (mock) {
+        setTimeout(() => callback(mock.published), 0);
+        return () => { /* noop */ };
+    }
     const q = query(
         collection(db, PUBLISHED),
         orderBy('publishedAt', 'desc'),
@@ -72,6 +95,11 @@ export function subscribeToPublishedPosts(
 export function subscribeToBotConfig(
     callback: (config: BotConfig) => void,
 ): () => void {
+    const mock = readMock();
+    if (mock) {
+        setTimeout(() => callback(mock.config), 0);
+        return () => { /* noop */ };
+    }
     const ref = doc(db, CONFIG, CONFIG_DOC);
     return onSnapshot(
         ref,
@@ -130,6 +158,38 @@ export async function setScheduleEnabled(
         return;
     }
     await updateDoc(ref, { [key]: enabled });
+}
+
+/**
+ * Update a schedule's hour (0-23) and — for weekly/favorite — dayOfWeek (0-6).
+ * These are stored in Firestore but do NOT alter the deployed Cloud
+ * Scheduler cron itself; the scheduler expression lives in the cron
+ * source file and requires a redeploy to change. The values here are
+ * consumed by the crons as a *soft* schedule (they still run at the
+ * hardcoded time but skip if the config says a different hour).
+ * TL;DR: this is informational until we move to `dynamicSchedule`.
+ */
+export async function setScheduleTime(
+    kind: 'daily' | 'weekly' | 'favorite',
+    patch: { hour?: number; dayOfWeek?: number },
+): Promise<void> {
+    const ref = doc(db, CONFIG, CONFIG_DOC);
+    const snap = await getDoc(ref);
+    const updates: Record<string, number> = {};
+    if (typeof patch.hour === 'number') updates[`schedules.${kind}.hour`] = patch.hour;
+    if (typeof patch.dayOfWeek === 'number') updates[`schedules.${kind}.dayOfWeek`] = patch.dayOfWeek;
+    if (Object.keys(updates).length === 0) return;
+    if (!snap.exists()) {
+        await setDoc(ref, {
+            ...DEFAULT_BOT_CONFIG,
+            schedules: {
+                ...DEFAULT_BOT_CONFIG.schedules,
+                [kind]: { ...DEFAULT_BOT_CONFIG.schedules[kind], ...patch },
+            },
+        });
+        return;
+    }
+    await updateDoc(ref, updates);
 }
 
 /**

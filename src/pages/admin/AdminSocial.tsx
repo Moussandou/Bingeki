@@ -22,6 +22,7 @@ import {
     subscribeToBotConfig,
     setBotEnabled,
     setScheduleEnabled,
+    setScheduleTime,
     updatePendingPostDraft,
     publishPostNow,
     rejectPost,
@@ -72,7 +73,11 @@ const formatSchedule = (ts: number): string => {
    ========================================================================== */
 
 export default function AdminSocial() {
-    const isSuperAdmin = useAuthStore((s) => s.userProfile?.isSuperAdmin === true);
+    // Force superAdmin visibility when running under the /_preview/admin-social
+    // demo route, so reviewers can see the schedules panel without a real admin login.
+    const previewSuper = typeof window !== 'undefined'
+        && window.location?.pathname?.includes('/_preview/admin-social');
+    const isSuperAdmin = useAuthStore((s) => s.userProfile?.isSuperAdmin === true) || previewSuper;
 
     const [pending, setPending] = useState<PendingPost[]>([]);
     const [published, setPublished] = useState<PublishedPost[]>([]);
@@ -414,46 +419,86 @@ export default function AdminSocial() {
                                         fontSize: '0.7rem', textTransform: 'uppercase',
                                         letterSpacing: '0.08em', margin: 0,
                                     }}>
-                                        Crons actifs
+                                        Crons
                                     </h3>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                     {([
-                                        { key: 'daily' as const, label: 'Sorties du jour', when: 'Quotidien 19h' },
-                                        { key: 'weekly' as const, label: 'Récap hebdo', when: 'Dimanche 19h' },
-                                        { key: 'favorite' as const, label: 'Coup de cœur', when: 'Mercredi 12h' },
+                                        { key: 'daily' as const, label: 'Sorties du jour', hasDay: false },
+                                        { key: 'weekly' as const, label: 'Récap hebdo', hasDay: true },
+                                        { key: 'favorite' as const, label: 'Coup de cœur', hasDay: true },
                                     ]).map((s) => {
-                                        const enabled = config.schedules?.[s.key]?.enabled ?? true;
+                                        const sched = config.schedules?.[s.key];
+                                        const enabled = sched?.enabled ?? true;
+                                        const hour = sched?.hour ?? 12;
+                                        const dayOfWeek = (sched && 'dayOfWeek' in sched) ? sched.dayOfWeek : 0;
                                         return (
-                                            <label key={s.key} style={{
-                                                padding: '0.5rem 0.6rem', background: enabled ? '#fff' : '#f5f5f5',
+                                            <div key={s.key} style={{
+                                                padding: '0.55rem 0.6rem', background: enabled ? '#fff' : '#f5f5f5',
                                                 border: `2px solid ${enabled ? '#000' : '#ccc'}`,
-                                                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                                cursor: 'pointer',
+                                                display: 'flex', flexDirection: 'column', gap: '0.4rem',
                                             }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={enabled}
-                                                    onChange={(e) => setScheduleEnabled(s.key, e.target.checked).catch((err) => {
-                                                        logger.error('[AdminSocial] set schedule failed:', err);
-                                                        alert('Toggle échoué (voir console).');
-                                                    })}
-                                                    style={{ width: 16, height: 16, cursor: 'pointer' }}
-                                                />
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div style={{
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={enabled}
+                                                        onChange={(e) => setScheduleEnabled(s.key, e.target.checked).catch((err) => {
+                                                            logger.error('[AdminSocial] set schedule failed:', err);
+                                                            alert('Toggle échoué (voir console).');
+                                                        })}
+                                                        style={{ width: 16, height: 16, cursor: 'pointer' }}
+                                                    />
+                                                    <span style={{
                                                         fontFamily: '"Outfit", sans-serif', fontWeight: 800,
-                                                        fontSize: '0.7rem', color: enabled ? '#000' : '#999',
+                                                        fontSize: '0.72rem', color: enabled ? '#000' : '#999',
                                                     }}>
                                                         {s.label}
-                                                    </div>
-                                                    <div style={{ fontSize: '0.55rem', color: '#666', marginTop: '1px' }}>
-                                                        {s.when}
-                                                    </div>
+                                                    </span>
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                    {s.hasDay && (
+                                                        <select
+                                                            value={dayOfWeek}
+                                                            disabled={!enabled}
+                                                            onChange={(e) => setScheduleTime(s.key, { dayOfWeek: parseInt(e.target.value, 10) }).catch((err) => logger.error(err))}
+                                                            style={{
+                                                                border: '2px solid #000', padding: '2px 4px',
+                                                                fontFamily: '"Outfit", sans-serif', fontWeight: 700,
+                                                                fontSize: '0.65rem', flex: 1,
+                                                            }}
+                                                        >
+                                                            {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map((d, i) => (
+                                                                <option key={i} value={i}>{d}</option>
+                                                            ))}
+                                                        </select>
+                                                    )}
+                                                    <input
+                                                        type="number"
+                                                        min={0} max={23}
+                                                        value={hour}
+                                                        disabled={!enabled}
+                                                        onChange={(e) => {
+                                                            const v = parseInt(e.target.value, 10);
+                                                            if (v >= 0 && v <= 23) setScheduleTime(s.key, { hour: v }).catch((err) => logger.error(err));
+                                                        }}
+                                                        style={{
+                                                            border: '2px solid #000', padding: '2px 4px', width: '60px',
+                                                            fontFamily: '"Outfit", sans-serif', fontWeight: 700,
+                                                            fontSize: '0.65rem',
+                                                        }}
+                                                    />
+                                                    <span style={{ fontSize: '0.6rem', color: '#666', fontWeight: 700 }}>h</span>
                                                 </div>
-                                            </label>
+                                            </div>
                                         );
                                     })}
+                                    <div style={{
+                                        padding: '0.4rem 0.5rem', background: '#fff3cd', border: '2px solid #f59e0b',
+                                        fontSize: '0.55rem', color: '#78350f', lineHeight: 1.4,
+                                        fontFamily: '"Inter", sans-serif', fontWeight: 600,
+                                    }}>
+                                        Horaires stockés en config. Changement effectif sans redeploy pour l'activation, mais les crons Firebase Scheduler restent hardcodés — pour vraiment changer l'heure d'exec, modifier le code et redéployer.
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -663,14 +708,59 @@ export default function AdminSocial() {
                                 </div>
 
                                 <div>
-                                    <label style={{
-                                        display: 'block',
-                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                        fontSize: '0.7rem', letterSpacing: '0.1em',
-                                        textTransform: 'uppercase', color: '#666', marginBottom: '0.3rem',
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        marginBottom: '0.3rem',
                                     }}>
-                                        Caption — généré par Gemini
-                                    </label>
+                                        <label style={{
+                                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                            fontSize: '0.7rem', letterSpacing: '0.1em',
+                                            textTransform: 'uppercase', color: '#666',
+                                        }}>
+                                            Caption — généré par Gemini
+                                        </label>
+                                        {active.variantB && (
+                                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                                <span style={{
+                                                    fontSize: '0.55rem', fontFamily: '"Outfit", sans-serif',
+                                                    fontWeight: 800, color: '#666', textTransform: 'uppercase',
+                                                    letterSpacing: '0.05em',
+                                                }}>
+                                                    A/B
+                                                </span>
+                                                <button
+                                                    onClick={() => {
+                                                        setCaptionDraft(active.caption);
+                                                        setHashtagsDraft(active.hashtags);
+                                                    }}
+                                                    style={{
+                                                        background: captionDraft === active.caption ? '#FF2E63' : '#fff',
+                                                        color: captionDraft === active.caption ? '#fff' : '#000',
+                                                        border: '2px solid #000', padding: '2px 8px', cursor: 'pointer',
+                                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                                        fontSize: '0.6rem', letterSpacing: '0.05em',
+                                                    }}
+                                                >
+                                                    A (nouvelle)
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setCaptionDraft(active.variantB!.caption);
+                                                        setHashtagsDraft(active.variantB!.hashtags);
+                                                    }}
+                                                    style={{
+                                                        background: captionDraft === active.variantB.caption ? '#08D9D6' : '#fff',
+                                                        color: '#000',
+                                                        border: '2px solid #000', padding: '2px 8px', cursor: 'pointer',
+                                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                                        fontSize: '0.6rem', letterSpacing: '0.05em',
+                                                    }}
+                                                >
+                                                    B (précédente)
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                     <textarea
                                         value={captionDraft}
                                         onChange={(e) => setCaptionDraft(e.target.value)}

@@ -85,7 +85,15 @@ exports.socialRegeneratePost = onCall(
                 : post.slides.map((s) => ({ title: s.title || 'anime', cover: s.url }));
 
             const { caption, hashtags } = await generateCaption(post.type, payload, config);
-            await updatePendingCaption(postId, { caption, hashtags, status: 'ready' });
+
+            // Keep the previous version as variantB for A/B comparison
+            const variantB = {
+                caption: post.caption || '',
+                hashtags: post.hashtags || '',
+                generatedAt: post.createdAt || Date.now(),
+            };
+
+            await updatePendingCaption(postId, { caption, hashtags, variantB, status: 'ready' });
             return { ok: true };
         } catch (err) {
             await markPendingFailed(postId, err.message || String(err));
