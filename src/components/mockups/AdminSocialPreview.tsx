@@ -80,6 +80,29 @@ Toute la liste et vos progressions sur Bingeki.`,
         platforms: { insta: true, tiktok: true, x: false },
     },
     {
+        id: 'demo-4', type: 'favorite',
+        createdAt: Date.now() - 5400_000,
+        scheduledAt: Date.now() + 3600_000 * 8,
+        status: 'ready',
+        title: 'Coup de cœur · Solo Leveling',
+        caption: `Vous avez parlé — et le verdict est sans appel.
+
+Solo Leveling S2 domine la semaine avec 9.6/10 chez nos 3 200 watchers. La barre est officiellement rehaussée pour tout le reste de la saison.
+
+Vous l'avez déjà ajouté à votre liste ? Sinon, c'est ici : https://bingeki.web.app`,
+        hashtags: '#sololeveling #coupdecoeur #anime2026 #bingeki #a1pictures',
+        slides: [
+            { format: 'feed', url: 'https://cdn.myanimelist.net/images/anime/1448/147351l.jpg', index: 0 },
+        ],
+        sourceData: {
+            animeIds: [58567],
+            animes: [
+                { mal_id: 58567, title: 'Solo Leveling', cover: 'https://cdn.myanimelist.net/images/anime/1448/147351l.jpg', avg: 9.6, count: 3200 },
+            ],
+        },
+        platforms: { insta: true, tiktok: true, x: false },
+    },
+    {
         id: 'demo-3', type: 'weekly',
         createdAt: Date.now() - 10800_000,
         scheduledAt: Date.now() + 3600_000 * 96,

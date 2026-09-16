@@ -175,8 +175,15 @@ const CSS = `
         background: #000;
         display: flex; flex-direction: column;
         align-items: center; justify-content: center;
-        text-align: center; padding: 100px 60px;
+        text-align: center; padding: 80px 60px;
     }
+    .outro-logo {
+        width: 140px; height: 140px;
+        border: 6px solid #fff; box-shadow: 10px 10px 0 ${ROSE};
+        background: #fff; margin-bottom: 40px; padding: 12px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .outro-logo img { width: 100%; height: 100%; object-fit: contain; }
     .outro-cta {
         font-family: 'Outfit'; font-weight: 900;
         font-size: 126px; line-height: 0.92; letter-spacing: -5px;
@@ -185,7 +192,7 @@ const CSS = `
         overflow-wrap: break-word; word-break: break-word; max-width: 100%;
     }
     .outro-btn {
-        margin-top: 50px;
+        margin-top: 40px;
         background: ${ROSE}; color: #fff; border: 6px solid #fff;
         padding: 26px 48px; box-shadow: 10px 10px 0 #fff;
         font-family: 'Outfit'; font-weight: 900;
@@ -193,7 +200,7 @@ const CSS = `
         text-transform: uppercase;
     }
     .outro-url {
-        margin-top: 60px;
+        margin-top: 50px;
         font-family: 'Outfit'; font-weight: 900;
         font-size: 58px; letter-spacing: -2px; color: #fff;
     }
@@ -334,11 +341,14 @@ function infoSlide({ eyebrow, titleMain, titleAccent, items = [], index, total }
 /* =============================================================== */
 /* OUTRO SLIDE                                                     */
 /* =============================================================== */
+const LOGO_URL = 'https://bingeki.web.app/logo.png';
+
 function outroSlide({ ctaMain, ctaSub, index, total }) {
     return docShell(`
         <div class="outro-container">
             <div class="speedlines"></div>
             <div class="halftone-white"></div>
+            <div class="outro-logo"><img src="${LOGO_URL}" alt=""></div>
             <div class="outro-cta">${escape(ctaMain)}</div>
             <div class="outro-btn">${escape(ctaSub)}</div>
             <div class="outro-url">bingeki.web.app</div>
