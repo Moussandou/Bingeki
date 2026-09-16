@@ -66,24 +66,16 @@ async function pollPublishStatus(publishId, accessToken, maxWaitMs = 60_000) {
     throw new Error('TikTok publish timeout');
 }
 
-/**
- * @param {Array<{url:string, format:string}>} slides
- * @param {string} caption
- * @param {{accessToken:string}} auth
- */
-async function publishToTikTok(slides, caption, auth) {
-    if (!slides?.length) throw new Error('No slides to publish');
-    if (!auth?.accessToken) throw new Error('Missing TikTok access token');
-
+async function publishAsPhoto(slides, caption, accessToken) {
     // Prefer story-format (9:16) for TikTok, fall back to feed
     const preferred = slides.filter((s) => s.format === 'story');
-    const items = (preferred.length ? preferred : slides).slice(0, 35); // TT cap is 35 photos
+    const items = (preferred.length ? preferred : slides).slice(0, 35);
 
     const init = await postJson(
         `${TIKTOK_API}/v2/post/publish/content/init/`,
         {
             post_info: {
-                title: caption.slice(0, 90), // TT titles are short
+                title: caption.slice(0, 90),
                 description: caption,
                 disable_comment: false,
                 privacy_level: 'PUBLIC_TO_EVERYONE',
@@ -97,18 +89,69 @@ async function publishToTikTok(slides, caption, auth) {
             post_mode: 'DIRECT_POST',
             media_type: 'PHOTO',
         },
-        auth.accessToken,
+        accessToken,
     );
 
     const publishId = init?.data?.publish_id;
     if (!publishId) throw new Error('TikTok init did not return publish_id');
+    const status = await pollPublishStatus(publishId, accessToken);
+    return { id: status.post_id || publishId, publishedAt: Date.now() };
+}
 
-    const status = await pollPublishStatus(publishId, auth.accessToken);
+async function publishAsVideo(slides, caption, accessToken) {
+    // Lazy-require to avoid loading ffmpeg on cold starts that don't need video.
+    const { renderSlideshowVideo } = require('../generators/videoRenderer');
 
-    return {
-        id: status.post_id || publishId,
-        publishedAt: Date.now(),
-    };
+    const storySlides = slides.filter((s) => s.format === 'story');
+    if (storySlides.length === 0) {
+        throw new Error('TikTok video mode requires story-format slides (1080x1920)');
+    }
+    // Order slides by index
+    storySlides.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+
+    const { url: videoUrl } = await renderSlideshowVideo(storySlides, {
+        perSlideSeconds: 3,
+    });
+
+    const init = await postJson(
+        `${TIKTOK_API}/v2/post/publish/video/init/`,
+        {
+            post_info: {
+                title: caption.slice(0, 2200),
+                privacy_level: 'PUBLIC_TO_EVERYONE',
+                disable_duet: false,
+                disable_comment: false,
+                disable_stitch: false,
+                video_cover_timestamp_ms: 1000,
+            },
+            source_info: {
+                source: 'PULL_FROM_URL',
+                video_url: videoUrl,
+            },
+        },
+        accessToken,
+    );
+
+    const publishId = init?.data?.publish_id;
+    if (!publishId) throw new Error('TikTok video init did not return publish_id');
+    const status = await pollPublishStatus(publishId, accessToken);
+    return { id: status.post_id || publishId, publishedAt: Date.now(), videoUrl };
+}
+
+/**
+ * @param {Array<{url:string, format:string, index?:number}>} slides
+ * @param {string} caption
+ * @param {{accessToken:string, mode?:'photo'|'video'}} auth
+ */
+async function publishToTikTok(slides, caption, auth) {
+    if (!slides?.length) throw new Error('No slides to publish');
+    if (!auth?.accessToken) throw new Error('Missing TikTok access token');
+
+    const mode = auth.mode === 'video' ? 'video' : 'photo';
+    if (mode === 'video') {
+        return publishAsVideo(slides, caption, auth.accessToken);
+    }
+    return publishAsPhoto(slides, caption, auth.accessToken);
 }
 
 module.exports = { publishToTikTok };

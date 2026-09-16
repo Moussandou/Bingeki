@@ -95,7 +95,14 @@ export interface BotConfig {
     };
     platforms: {
         insta: { accountId: string; tokenRef: string; enabled: boolean };
-        tiktok: { accountId: string; tokenRef: string; enabled: boolean };
+        tiktok: {
+            accountId: string;
+            tokenRef: string;
+            enabled: boolean;
+            /** 'photo' = photo carousel (default, fast, no ffmpeg).
+             *  'video' = slideshow MP4 rendered via ffmpeg (heavier). */
+            mode?: 'photo' | 'video';
+        };
     };
     gemini: {
         model: string;
@@ -113,7 +120,7 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
     },
     platforms: {
         insta: { accountId: '', tokenRef: '', enabled: false },
-        tiktok: { accountId: '', tokenRef: '', enabled: false },
+        tiktok: { accountId: '', tokenRef: '', enabled: false, mode: 'photo' },
     },
     gemini: {
         model: 'gemini-flash-latest',

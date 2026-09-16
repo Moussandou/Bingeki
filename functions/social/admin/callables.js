@@ -107,7 +107,12 @@ exports.socialRegeneratePost = onCall(
    ========================================================================== */
 
 exports.socialPublishNow = onCall(
-    { secrets: [INSTA_PAGE_TOKEN, TIKTOK_ACCESS_TOKEN] },
+    {
+        secrets: [INSTA_PAGE_TOKEN, TIKTOK_ACCESS_TOKEN],
+        // Video slideshow via ffmpeg needs headroom; photo mode is fine on defaults.
+        memory: '2GiB',
+        timeoutSeconds: 540,
+    },
     async (request) => {
         await assertAdminOrThrow(request);
         const { postId } = request.data || {};
@@ -155,7 +160,10 @@ exports.socialPublishNow = onCall(
                 results.tiktok = await publishToTikTok(
                     post.slides,
                     combinedCaption,
-                    { accessToken: process.env.TIKTOK_ACCESS_TOKEN },
+                    {
+                        accessToken: process.env.TIKTOK_ACCESS_TOKEN,
+                        mode: config.platforms?.tiktok?.mode || 'photo',
+                    },
                 );
             } catch (err) {
                 console.error(`[social/publishNow] TikTok failed for ${postId}:`, err);
