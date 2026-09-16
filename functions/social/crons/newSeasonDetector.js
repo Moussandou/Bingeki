@@ -11,6 +11,7 @@ const { detectNewSeasons } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost } = require('../shared/firestore');
+const { notifyPendingPost } = require('../shared/discord');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
@@ -39,10 +40,11 @@ exports.newSeasonDetector = onSchedule(
                 const { caption, hashtags } = await generateCaption('newseason', anime, config);
                 const slides = await renderSlides('newseason', anime, ['feed', 'story']);
 
+                const title = `${anime.title} · Announcement`;
                 const id = await createPendingPost({
                     type: 'newseason',
                     scheduledAt: Date.now() + 3600_000,
-                    title: `${anime.title} · Announcement`,
+                    title,
                     caption,
                     hashtags,
                     slides,
@@ -50,6 +52,7 @@ exports.newSeasonDetector = onSchedule(
                     platforms: { insta: true, tiktok: true, x: false },
                 });
                 console.log(`[social/newSeasonDetector] created pending ${id} for ${anime.title}`);
+                await notifyPendingPost(config, { type: 'newseason', title, postId: id, slidesCount: slides.length });
             } catch (err) {
                 console.error(`[social/newSeasonDetector] failed for ${anime.title}:`, err);
             }

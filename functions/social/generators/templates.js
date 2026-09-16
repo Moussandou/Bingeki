@@ -1,236 +1,476 @@
 /**
- * generators/templates.js — HTML templates for the 4 post types.
+ * generators/templates.js — HTML templates that mirror the React
+ * mockups in src/components/mockups/SocialPostMockup.tsx.
  *
- * These are simplified versions of the React mockups in
- * src/components/mockups/SocialPostMockup.tsx, converted to
- * standalone HTML with inline CSS so Puppeteer can render them at
- * 1080×1350 (feed) or 1080×1920 (story).
- *
- * Every template receives { anime, index, total, format } and returns
- * a full HTML document string.
+ * All slides render at either 1080x1350 (feed) or 1080x1920 (story).
+ * Sizes below are proportional to a 1080-wide canvas.
  */
 
-const BASE_STYLES = `
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-        font-family: Inter, -apple-system, sans-serif;
-        color: #000; background: #000;
-        width: 100%; height: 100vh; overflow: hidden;
-        position: relative;
-    }
-    .cover {
-        position: absolute; inset: 0;
-        background-size: cover; background-position: center;
-    }
-    .overlay {
-        position: absolute; inset: 0;
-        background: linear-gradient(180deg,
-            rgba(0,0,0,0.6) 0%,
-            rgba(0,0,0,0.05) 30%,
-            rgba(0,0,0,0.05) 55%,
-            rgba(0,0,0,0.95) 100%);
-    }
-    .ribbon {
-        position: absolute; top: 30px; left: 30px;
-        background: #FF2E63; color: #fff;
-        border: 4px solid #000; box-shadow: 8px 8px 0 #000;
-        padding: 12px 24px;
-        font-family: Outfit, sans-serif; font-weight: 900;
-        font-size: 24px; letter-spacing: 0.1em; text-transform: uppercase;
-    }
-    .brand {
-        position: absolute; top: 30px; right: 30px;
-        background: #fff; color: #000; border: 4px solid #000;
-        padding: 8px 16px;
-        font-family: Outfit, sans-serif; font-weight: 900;
-        font-size: 20px; letter-spacing: -0.5px;
-    }
-    .index-badge {
-        position: absolute; top: 30px; right: 200px;
-        background: #08D9D6; color: #000; border: 4px solid #000;
-        padding: 8px 14px;
-        font-family: Outfit, sans-serif; font-weight: 900;
-        font-size: 18px;
-    }
-    .bottom {
-        position: absolute; bottom: 40px; left: 40px; right: 40px;
-        color: #fff;
-    }
-    .meta {
-        display: inline-block;
-        background: #fff; color: #000; border: 4px solid #000;
-        padding: 6px 14px; margin-bottom: 16px;
-        font-family: Outfit, sans-serif; font-weight: 900;
-        font-size: 22px; letter-spacing: 0.05em;
-    }
-    .title {
-        font-family: Outfit, sans-serif; font-weight: 900;
-        font-size: 78px; line-height: 0.95; letter-spacing: -3px;
-        text-transform: uppercase;
-        text-shadow: 4px 4px 0 rgba(0,0,0,0.9);
-    }
-    .subtitle {
-        margin-top: 12px;
-        font-family: Outfit, sans-serif; font-weight: 800;
-        font-size: 26px; letter-spacing: 0.05em;
-        text-transform: uppercase; color: #08D9D6;
-    }
-    /* Intro slide */
-    .intro-bg {
-        background: #f5f5f5; color: #000;
-        position: absolute; inset: 0;
-        background-image: radial-gradient(#000 4px, transparent 4.5px);
-        background-size: 40px 40px;
-    }
-    .intro-content {
-        position: absolute; inset: 0;
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: center;
-        text-align: center; padding: 60px;
-    }
-    .intro-badge {
-        display: inline-block;
-        background: #000; color: #fff; border: 4px solid #000;
-        padding: 10px 20px;
-        font-family: Outfit, sans-serif; font-weight: 900;
-        font-size: 24px; letter-spacing: 0.1em;
-        margin-bottom: 40px;
-    }
-    .intro-title {
-        font-family: Outfit, sans-serif; font-weight: 900;
-        font-size: 96px; line-height: 0.9; letter-spacing: -4px;
-        text-transform: uppercase;
-    }
-    .intro-title .accent {
-        color: #FF2E63; text-shadow: 4px 4px 0 #000;
-        display: inline-block; transform: rotate(-2deg);
-    }
-    .intro-subtitle {
-        margin-top: 32px; font-family: Inter, sans-serif;
-        font-size: 28px; color: #666; font-weight: 600;
-    }
-    .intro-swipe {
-        position: absolute; bottom: 40px; right: 60px;
-        font-family: Outfit, sans-serif; font-weight: 900;
-        font-size: 24px; color: #666; letter-spacing: 0.1em;
-    }
-`;
+const ROSE = '#FF2E63';
+const CYAN = '#08D9D6';
+const DARK = '#0a0a0a';
 
 const escape = (s) => String(s ?? '').replace(/[<>&"']/g, (c) => ({
     '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;',
 }[c]));
 
-function introSlide({ badge, titleMain, titleAccent, subtitle }) {
-    return `<!doctype html><html><head><style>${BASE_STYLES}</style></head><body>
-        <div class="intro-bg"></div>
-        <div class="intro-content">
-            <div class="intro-badge">${escape(badge)}</div>
-            <div class="intro-title">${escape(titleMain)} <span class="accent">${escape(titleAccent)}</span></div>
-            <div class="intro-subtitle">${escape(subtitle)}</div>
-        </div>
-        <div class="intro-swipe">SWIPE →</div>
-    </body></html>`;
+/**
+ * Common CSS: manga aesthetic (thick black borders, halftone patterns,
+ * bold Outfit typography). Fonts loaded from Google Fonts because the
+ * Puppeteer runtime doesn't ship them locally.
+ */
+const CSS = `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@400;700;800;900&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+        width: 100%; height: 100%; margin: 0; padding: 0;
+        font-family: 'Inter', -apple-system, sans-serif;
+        color: #000; overflow: hidden;
+    }
+    .slide {
+        position: relative; width: 100vw; height: 100vh;
+        overflow: hidden; background: #f5f5f5;
+    }
+    .cover-img {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        object-fit: cover; z-index: 1;
+    }
+    .cover-fallback {
+        position: absolute; inset: 0; z-index: 0;
+    }
+    .halftone-black {
+        position: absolute; inset: 0; opacity: 0.1; pointer-events: none;
+        background-image: radial-gradient(#000 4px, transparent 5px);
+        background-size: 42px 42px; z-index: 2;
+    }
+    .halftone-white {
+        position: absolute; inset: 0; opacity: 0.18; pointer-events: none;
+        background-image: radial-gradient(#fff 3px, transparent 4px);
+        background-size: 32px 32px; z-index: 3;
+    }
+    .speedlines {
+        position: absolute; inset: 0; opacity: 0.18; pointer-events: none;
+        background: repeating-conic-gradient(from 0deg at 50% 50%,
+            transparent 0deg 10deg, ${ROSE} 10deg 12deg);
+        z-index: 2;
+    }
+    .cover-overlay {
+        position: absolute; inset: 0; z-index: 4;
+        background: linear-gradient(180deg,
+            rgba(0,0,0,0.55) 0%,
+            rgba(0,0,0,0.05) 30%,
+            rgba(0,0,0,0.05) 55%,
+            rgba(0,0,0,0.95) 100%);
+    }
+
+    /* Chips */
+    .chip {
+        display: inline-flex; align-items: center; gap: 12px;
+        border: 6px solid #000; padding: 14px 28px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 34px; letter-spacing: 3.5px;
+        text-transform: uppercase; line-height: 1;
+        white-space: nowrap;
+    }
+    .chip-dark { background: #000; color: #fff; }
+    .chip-rose { background: ${ROSE}; color: #fff; }
+    .chip-cyan { background: ${CYAN}; color: #000; }
+    .chip-white { background: #fff; color: #000; }
+
+    /* Ribbon (top-left, with hard shadow) */
+    .ribbon {
+        position: absolute; top: 60px; left: 60px; z-index: 6;
+        display: inline-flex; align-items: center; gap: 14px;
+        border: 6px solid #000; padding: 20px 34px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 42px; letter-spacing: 4px;
+        text-transform: uppercase; line-height: 1;
+        box-shadow: 14px 14px 0 #000;
+    }
+    .ribbon-rose { background: ${ROSE}; color: #fff; }
+    .ribbon-cyan { background: ${CYAN}; color: #000; }
+    .ribbon-dark { background: #000; color: #fff; border-color: #fff; }
+
+    /* Brand top-right */
+    .brand {
+        position: absolute; top: 60px; right: 60px; z-index: 6;
+        background: #fff; color: #000; border: 5px solid #000;
+        padding: 14px 24px; box-shadow: 10px 10px 0 #000;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 34px; letter-spacing: -1px; line-height: 1;
+    }
+
+    /* Bottom content block */
+    .bottom-block {
+        position: absolute; left: 60px; right: 60px; bottom: 60px;
+        z-index: 6; color: #fff;
+    }
+    .meta-row {
+        display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+    }
+    .meta-chip {
+        display: inline-flex; align-items: center;
+        background: #fff; color: #000; border: 5px solid #000;
+        padding: 10px 20px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 28px; letter-spacing: 1.5px;
+        text-transform: uppercase; line-height: 1;
+    }
+    .meta-chip-cyan { background: ${CYAN}; }
+    .meta-chip-rose { background: ${ROSE}; color: #fff; }
+    .title {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 138px; line-height: 0.9; letter-spacing: -6px;
+        text-transform: uppercase;
+        text-shadow: 6px 6px 0 #000;
+    }
+    .subtitle {
+        margin-top: 18px;
+        font-family: 'Outfit'; font-weight: 800;
+        font-size: 44px; letter-spacing: 3px;
+        text-transform: uppercase; color: ${CYAN};
+    }
+
+    /* INTRO slide (light, halftone) */
+    .intro-container {
+        position: absolute; inset: 0; z-index: 5;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        text-align: center; padding: 120px 80px;
+    }
+    .intro-title {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 170px; line-height: 0.9; letter-spacing: -8px;
+        text-transform: uppercase; color: #000;
+    }
+    .intro-title .accent {
+        color: ${ROSE};
+        text-shadow: 8px 8px 0 #000;
+        display: inline-block;
+        transform: rotate(-3deg);
+    }
+    .intro-sub {
+        margin-top: 48px;
+        font-family: 'Inter'; font-weight: 600;
+        font-size: 40px; color: #555;
+        max-width: 900px; line-height: 1.35;
+    }
+    .intro-swipe {
+        position: absolute; right: 60px; bottom: 60px; z-index: 6;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 36px; color: #666; letter-spacing: 5px;
+    }
+    .intro-brand {
+        position: absolute; left: 60px; bottom: 60px; z-index: 6;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 40px; color: #000; letter-spacing: -1px;
+    }
+
+    /* OUTRO slide (dark with speedlines) */
+    .outro-container {
+        position: absolute; inset: 0; z-index: 5;
+        background: #000;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        text-align: center; padding: 80px;
+    }
+    .outro-cta {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 168px; line-height: 0.9; letter-spacing: -8px;
+        text-transform: uppercase; color: #fff;
+        text-shadow: 8px 8px 0 ${ROSE};
+    }
+    .outro-btn {
+        margin-top: 60px;
+        background: ${ROSE}; color: #fff; border: 6px solid #fff;
+        padding: 32px 60px; box-shadow: 12px 12px 0 #fff;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 52px; letter-spacing: 4px;
+        text-transform: uppercase;
+    }
+    .outro-url {
+        margin-top: 80px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 68px; letter-spacing: -2px; color: #fff;
+    }
+
+    /* Slide index badge (bottom-right) */
+    .slide-idx {
+        position: absolute; bottom: 60px; right: 60px; z-index: 7;
+        background: #fff; color: #000; border: 5px solid #000;
+        padding: 8px 18px; box-shadow: 6px 6px 0 #000;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 30px; letter-spacing: 1px;
+    }
+`;
+
+function docShell(inner) {
+    return `<!doctype html><html lang="fr"><head>
+        <meta charset="utf-8">
+        <style>${CSS}</style>
+    </head><body><div class="slide">${inner}</div></body></html>`;
 }
 
-function animeSlide({ cover, ribbon, meta, title, subtitle, index, total }) {
-    return `<!doctype html><html><head><style>${BASE_STYLES}</style></head><body>
-        <div class="cover" style="background-image: url('${escape(cover)}');"></div>
-        <div class="overlay"></div>
-        ${ribbon ? `<div class="ribbon">${escape(ribbon)}</div>` : ''}
-        ${index && total ? `<div class="index-badge">${index}/${total}</div>` : ''}
+function coverBlock(cover, fallbackGradient = 'linear-gradient(180deg, #1a1a1a 0%, #FF2E63 100%)') {
+    return `
+        <div class="cover-fallback" style="background: ${fallbackGradient};"></div>
+        ${cover ? `<img class="cover-img" src="${escape(cover)}" alt="">` : ''}
+        <div class="cover-overlay"></div>
+    `;
+}
+
+function slideIdxBadge(index, total) {
+    if (!index || !total) return '';
+    return `<div class="slide-idx">${index}/${total}</div>`;
+}
+
+/* =============================================================== */
+/* INTRO SLIDE                                                     */
+/* =============================================================== */
+function introSlide({ badge, badgeVariant = 'chip-dark', titleMain, titleAccent, subtitle, index, total }) {
+    return docShell(`
+        <div class="halftone-black"></div>
+        <div class="intro-container">
+            <div class="chip ${badgeVariant}" style="margin-bottom: 60px;">${escape(badge)}</div>
+            <div class="intro-title">${escape(titleMain)} <span class="accent">${escape(titleAccent)}</span></div>
+            <div class="intro-sub">${escape(subtitle)}</div>
+        </div>
+        <div class="intro-brand">Bingeki</div>
+        <div class="intro-swipe">SWIPE →</div>
+        ${slideIdxBadge(index, total)}
+    `);
+}
+
+/* =============================================================== */
+/* ANIME BANNER SLIDE                                              */
+/* =============================================================== */
+function animeSlide({ cover, fallbackGradient, ribbon, ribbonVariant = 'ribbon-rose', metas = [], title, subtitle, index, total }) {
+    const metaChips = metas.map((m) => {
+        const cls = m.variant === 'cyan' ? 'meta-chip-cyan' : m.variant === 'rose' ? 'meta-chip-rose' : '';
+        return `<div class="meta-chip ${cls}">${escape(m.text)}</div>`;
+    }).join('');
+
+    return docShell(`
+        ${coverBlock(cover, fallbackGradient)}
+        ${ribbon ? `<div class="ribbon ${ribbonVariant}">${escape(ribbon)}</div>` : ''}
         <div class="brand">Bingeki</div>
-        <div class="bottom">
-            ${meta ? `<div class="meta">${escape(meta)}</div>` : ''}
+        <div class="bottom-block">
+            ${metas.length ? `<div class="meta-row">${metaChips}</div>` : ''}
             <div class="title">${escape(title)}</div>
             ${subtitle ? `<div class="subtitle">${escape(subtitle)}</div>` : ''}
         </div>
-    </body></html>`;
+        ${slideIdxBadge(index, total)}
+    `);
 }
 
-/**
- * Build a list of {html, name} for one post.
- */
+/* =============================================================== */
+/* OUTRO SLIDE                                                     */
+/* =============================================================== */
+function outroSlide({ ctaMain, ctaSub, index, total }) {
+    return docShell(`
+        <div class="outro-container">
+            <div class="speedlines"></div>
+            <div class="halftone-white"></div>
+            <div class="outro-cta">${escape(ctaMain)}</div>
+            <div class="outro-btn">${escape(ctaSub)}</div>
+            <div class="outro-url">bingeki.app</div>
+        </div>
+        ${slideIdxBadge(index, total)}
+    `);
+}
+
+/* =============================================================== */
+/* PER-TYPE ASSEMBLY                                               */
+/* =============================================================== */
+
+const DAY_FR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+const MONTH_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+function todayLabel() {
+    const d = new Date();
+    return `${DAY_FR[d.getDay()]} ${d.getDate()} ${MONTH_FR[d.getMonth()]}`;
+}
+
+function isoWeek(d = new Date()) {
+    const start = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil(((d - start) / 86400000 + start.getDay() + 1) / 7);
+}
+
+function fallback(index) {
+    const gradients = [
+        'linear-gradient(180deg, #1a1a1a 0%, #FF2E63 100%)',
+        'linear-gradient(180deg, #08D9D6 0%, #252A34 100%)',
+        'linear-gradient(180deg, #FF2E63 0%, #FF0844 100%)',
+        'linear-gradient(180deg, #252A34 0%, #08D9D6 100%)',
+        'linear-gradient(180deg, #FF2E63 0%, #08D9D6 100%)',
+    ];
+    return gradients[index % gradients.length];
+}
+
 function buildSlidesHTML(type, data) {
     const slides = [];
 
     if (type === 'daily') {
+        const arr = Array.isArray(data) ? data : [data];
+        const total = arr.length + 2;
         slides.push({
             name: 'intro',
             html: introSlide({
                 badge: 'SORTIES DU JOUR',
+                badgeVariant: 'chip-dark',
                 titleMain: "Aujourd'hui,",
-                titleAccent: `${data.length} épisodes`,
-                subtitle: new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
+                titleAccent: `${arr.length} épisodes`,
+                subtitle: `${todayLabel()} · Swipe pour voir la liste`,
+                index: 1, total,
             }),
         });
-        data.forEach((a, i) => slides.push({
+        arr.forEach((a, i) => slides.push({
             name: `anime-${i + 1}`,
             html: animeSlide({
                 cover: a.cover,
+                fallbackGradient: fallback(i),
                 ribbon: 'NEW EP',
-                meta: `S${a.season || '?'} · ÉPISODE ${a.currentEpisode || '?'}`,
+                ribbonVariant: 'ribbon-rose',
+                metas: [
+                    { text: `${a.currentEpisode ? `ÉPISODE ${a.currentEpisode}` : 'NOUVEL ÉPISODE'}` },
+                ],
                 title: a.title,
-                subtitle: 'JEUDI',
-                index: i + 2, total: data.length + 1,
+                subtitle: todayLabel().toUpperCase(),
+                index: i + 2, total,
             }),
         }));
+        slides.push({
+            name: 'outro',
+            html: outroSlide({
+                ctaMain: 'Suis ta liste',
+                ctaSub: 'Ouvrir Bingeki →',
+                index: total, total,
+            }),
+        });
     }
 
     if (type === 'weekly') {
+        const arr = Array.isArray(data) ? data : [data];
+        const total = arr.length + 2;
         slides.push({
             name: 'intro',
             html: introSlide({
                 badge: 'RÉCAP HEBDO',
+                badgeVariant: 'chip-rose',
                 titleMain: 'Le',
                 titleAccent: 'TOP 3',
-                subtitle: 'De la semaine · Bingeki',
+                subtitle: `Semaine ${isoWeek()} — élu par vous, watchers Bingeki`,
+                index: 1, total,
             }),
         });
-        data.forEach((a, i) => slides.push({
-            name: `top-${a.rank || i + 1}`,
+        arr.forEach((a, i) => slides.push({
+            name: `top-${i + 1}`,
             html: animeSlide({
                 cover: a.cover,
+                fallbackGradient: fallback(i),
                 ribbon: `#${i + 1}`,
-                meta: `${a.avg} ★ · ${a.count} WATCHERS`,
+                ribbonVariant: i === 0 ? 'ribbon-rose' : i === 1 ? 'ribbon-dark' : 'ribbon-cyan',
+                metas: [
+                    { text: `${a.avg} ★`, variant: 'cyan' },
+                    { text: `${a.count} WATCHERS` },
+                ],
                 title: a.title,
-                index: i + 2, total: data.length + 1,
+                subtitle: 'CETTE SEMAINE',
+                index: i + 2, total,
             }),
         }));
+        slides.push({
+            name: 'outro',
+            html: outroSlide({
+                ctaMain: 'Note tes anime',
+                ctaSub: 'Rejoins Bingeki →',
+                index: total, total,
+            }),
+        });
     }
 
     if (type === 'favorite') {
-        const isTie = data.length > 1;
+        const arr = Array.isArray(data) ? data : [data];
+        const isTie = arr.length > 1;
+        const total = arr.length + 2;
         slides.push({
             name: 'intro',
             html: introSlide({
                 badge: isTie ? 'COUPS DE CŒUR' : 'COUP DE CŒUR',
-                titleMain: 'La commu',
-                titleAccent: 'a adoré',
-                subtitle: `Semaine ${new Date().toISOString().slice(0, 10)}`,
+                badgeVariant: 'chip-cyan',
+                titleMain: isTie ? `${arr.length}` : 'La commu',
+                titleAccent: isTie ? 'ex æquo' : 'a adoré',
+                subtitle: isTie
+                    ? `Semaine ${isoWeek()} · ${arr.length} animes à la même note`
+                    : `Semaine ${isoWeek()} · choix des watchers Bingeki`,
+                index: 1, total,
             }),
         });
-        data.forEach((a, i) => slides.push({
+        arr.forEach((a, i) => slides.push({
             name: `fav-${i + 1}`,
             html: animeSlide({
                 cover: a.cover,
-                ribbon: isTie ? `EX ÆQUO ${i + 1}/${data.length}` : `${a.avg} ★`,
-                meta: `${a.count} WATCHERS`,
+                fallbackGradient: fallback(i),
+                ribbon: isTie ? `EX ÆQUO · ${i + 1}/${arr.length}` : `${a.avg} ★`,
+                ribbonVariant: 'ribbon-cyan',
+                metas: [
+                    { text: `${a.count} WATCHERS`, variant: 'rose' },
+                ],
                 title: a.title,
                 subtitle: 'CETTE SEMAINE',
-                index: i + 2, total: data.length + 1,
+                index: i + 2, total,
             }),
         }));
+        slides.push({
+            name: 'outro',
+            html: outroSlide({
+                ctaMain: isTie ? 'Découvre-les' : 'Découvre-le',
+                ctaSub: 'Ajouter à ma liste →',
+                index: total, total,
+            }),
+        });
     }
 
     if (type === 'newseason') {
+        const total = 3;
         slides.push({
             name: 'announcement',
             html: animeSlide({
                 cover: data.cover,
+                fallbackGradient: 'linear-gradient(180deg, #1a1a1a 0%, #FF0844 100%)',
                 ribbon: "C'EST PARTI",
-                meta: 'NOUVELLE SAISON',
+                ribbonVariant: 'ribbon-rose',
+                metas: [
+                    { text: 'NOUVELLE SAISON', variant: 'cyan' },
+                    { text: data.airing_from ? new Date(data.airing_from).toLocaleDateString('fr-FR').toUpperCase() : todayLabel().toUpperCase() },
+                ],
                 title: data.title,
-                subtitle: `${data.episodes || '?'} ÉPISODES · ${(data.studios || []).slice(0, 1).join('') || 'STUDIO'}`,
+                subtitle: (data.studios || []).slice(0, 1).join('') || '',
+                index: 1, total,
+            }),
+        });
+        slides.push({
+            name: 'info',
+            html: introSlide({
+                badge: 'FICHE SAISON',
+                badgeVariant: 'chip-rose',
+                titleMain: data.title.split(' ').slice(0, 2).join(' '),
+                titleAccent: 'S2',
+                subtitle: [
+                    (data.studios || []).length ? `Studio ${data.studios.join(', ')}` : null,
+                    data.episodes ? `${data.episodes} épisodes prévus` : null,
+                    data.score ? `S1 notée ${data.score}/10` : null,
+                ].filter(Boolean).join(' · '),
+                index: 2, total,
+            }),
+        });
+        slides.push({
+            name: 'outro',
+            html: outroSlide({
+                ctaMain: 'Ne rate pas le S2',
+                ctaSub: 'Ajouter à ma liste →',
+                index: 3, total,
             }),
         });
     }
@@ -238,4 +478,4 @@ function buildSlidesHTML(type, data) {
     return slides;
 }
 
-module.exports = { buildSlidesHTML, introSlide, animeSlide };
+module.exports = { buildSlidesHTML, introSlide, animeSlide, outroSlide };

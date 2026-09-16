@@ -21,6 +21,7 @@ import {
     subscribeToPublishedPosts,
     subscribeToBotConfig,
     setBotEnabled,
+    setScheduleEnabled,
     updatePendingPostDraft,
     publishPostNow,
     rejectPost,
@@ -86,6 +87,8 @@ export default function AdminSocial() {
     const [platformsDraft, setPlatformsDraft] = useState<PostPlatforms>({ insta: false, tiktok: false, x: false });
     const [savingDraft, setSavingDraft] = useState(false);
     const [actionBusy, setActionBusy] = useState<string | null>(null);
+    const [slideFormat, setSlideFormat] = useState<'feed' | 'story'>('feed');
+    const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
 
     // Subscribe to Firestore
     useEffect(() => {
@@ -120,6 +123,7 @@ export default function AdminSocial() {
             setCaptionDraft(active.caption);
             setHashtagsDraft(active.hashtags);
             setPlatformsDraft(active.platforms);
+            setActiveSlideIndex(0);
         }
     }, [active?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -211,7 +215,11 @@ export default function AdminSocial() {
         }
     };
 
-    const cover = active?.slides.find((s) => s.format === 'feed')?.url ?? active?.slides[0]?.url;
+    // Filter slides by active format for preview
+    const previewSlides = active?.slides.filter((s) => s.format === slideFormat) ?? [];
+    const currentSlide = previewSlides[activeSlideIndex] ?? previewSlides[0];
+    const cover = currentSlide?.url;
+    const hasStory = active?.slides.some((s) => s.format === 'story') ?? false;
 
     return (
         <div style={{
@@ -395,6 +403,61 @@ export default function AdminSocial() {
                             </div>
                         </div>
 
+                        {/* Schedules config — superAdmin only */}
+                        {isSuperAdmin && (
+                            <div>
+                                <div style={{
+                                    borderTop: '2px dashed #ccc', paddingTop: '0.75rem', marginBottom: '0.5rem',
+                                }}>
+                                    <h3 style={{
+                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                        fontSize: '0.7rem', textTransform: 'uppercase',
+                                        letterSpacing: '0.08em', margin: 0,
+                                    }}>
+                                        Crons actifs
+                                    </h3>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                    {([
+                                        { key: 'daily' as const, label: 'Sorties du jour', when: 'Quotidien 19h' },
+                                        { key: 'weekly' as const, label: 'Récap hebdo', when: 'Dimanche 19h' },
+                                        { key: 'favorite' as const, label: 'Coup de cœur', when: 'Mercredi 12h' },
+                                    ]).map((s) => {
+                                        const enabled = config.schedules?.[s.key]?.enabled ?? true;
+                                        return (
+                                            <label key={s.key} style={{
+                                                padding: '0.5rem 0.6rem', background: enabled ? '#fff' : '#f5f5f5',
+                                                border: `2px solid ${enabled ? '#000' : '#ccc'}`,
+                                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                                cursor: 'pointer',
+                                            }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={enabled}
+                                                    onChange={(e) => setScheduleEnabled(s.key, e.target.checked).catch((err) => {
+                                                        logger.error('[AdminSocial] set schedule failed:', err);
+                                                        alert('Toggle échoué (voir console).');
+                                                    })}
+                                                    style={{ width: 16, height: 16, cursor: 'pointer' }}
+                                                />
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{
+                                                        fontFamily: '"Outfit", sans-serif', fontWeight: 800,
+                                                        fontSize: '0.7rem', color: enabled ? '#000' : '#999',
+                                                    }}>
+                                                        {s.label}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.55rem', color: '#666', marginTop: '1px' }}>
+                                                        {s.when}
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         {published.length > 0 && (
                             <div>
                                 <div style={{
@@ -467,39 +530,117 @@ export default function AdminSocial() {
                             gridTemplateColumns: '260px 1fr', gap: '1.2rem',
                         }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {/* Format toggle */}
+                                {hasStory && (
+                                    <div style={{
+                                        display: 'flex', border: '2px solid #000',
+                                        background: '#fff', padding: '2px',
+                                    }}>
+                                        {(['feed', 'story'] as const).map((f) => (
+                                            <button
+                                                key={f}
+                                                onClick={() => { setSlideFormat(f); setActiveSlideIndex(0); }}
+                                                style={{
+                                                    flex: 1, padding: '0.35rem 0.5rem',
+                                                    background: slideFormat === f ? '#000' : 'transparent',
+                                                    color: slideFormat === f ? '#fff' : '#000',
+                                                    border: 'none', cursor: 'pointer',
+                                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                                    fontSize: '0.65rem', letterSpacing: '0.1em',
+                                                    textTransform: 'uppercase',
+                                                }}
+                                            >
+                                                {f === 'feed' ? 'Feed 4:5' : 'Story 9:16'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Big preview — use the actual rendered slide URL */}
                                 <div style={{
-                                    width: '260px', height: '325px',
+                                    width: '260px',
+                                    height: slideFormat === 'story' ? '462px' : '325px',
                                     border: '3px solid #000', boxShadow: '5px 5px 0 #000',
                                     background: '#000', position: 'relative', overflow: 'hidden',
                                 }}>
-                                    {cover && (
+                                    {cover ? (
                                         <img src={cover} alt="" style={{
                                             position: 'absolute', inset: 0,
                                             width: '100%', height: '100%', objectFit: 'cover',
                                         }} />
+                                    ) : (
+                                        <div style={{
+                                            position: 'absolute', inset: 0,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: '#666', fontSize: '0.7rem', textAlign: 'center', padding: '1rem',
+                                        }}>
+                                            Aucune slide {slideFormat} disponible
+                                        </div>
                                     )}
-                                    <div aria-hidden style={{
-                                        position: 'absolute', inset: 0,
-                                        background: 'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.05) 55%, rgba(0,0,0,0.95) 100%)',
-                                    }} />
-                                    <div style={{
-                                        position: 'absolute', bottom: '12px', left: '12px', right: '12px',
-                                        color: '#fff',
-                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                        fontSize: '1.1rem', letterSpacing: '-0.6px', lineHeight: 1,
-                                        textTransform: 'uppercase',
-                                        textShadow: '2px 2px 0 rgba(0,0,0,0.9)',
-                                    }}>
-                                        {active.title}
-                                    </div>
                                 </div>
+
+                                {/* Slide navigation dots */}
+                                {previewSlides.length > 1 && (
+                                    <div style={{
+                                        display: 'flex', justifyContent: 'center', gap: '4px',
+                                        padding: '0.3rem 0',
+                                    }}>
+                                        {previewSlides.map((_, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => setActiveSlideIndex(i)}
+                                                style={{
+                                                    width: '18px', height: '10px',
+                                                    background: i === activeSlideIndex ? '#FF2E63' : '#fff',
+                                                    border: '2px solid #000', cursor: 'pointer', padding: 0,
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Thumbnails row */}
+                                {previewSlides.length > 1 && (
+                                    <div style={{
+                                        display: 'flex', gap: '0.3rem', flexWrap: 'wrap',
+                                    }}>
+                                        {previewSlides.map((s, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => setActiveSlideIndex(i)}
+                                                style={{
+                                                    width: '48px', height: '60px', padding: 0,
+                                                    border: i === activeSlideIndex ? '3px solid #FF2E63' : '2px solid #000',
+                                                    background: '#000', cursor: 'pointer',
+                                                    overflow: 'hidden', position: 'relative',
+                                                }}
+                                            >
+                                                <img src={s.url} alt="" style={{
+                                                    position: 'absolute', inset: 0,
+                                                    width: '100%', height: '100%', objectFit: 'cover',
+                                                }} />
+                                                <span style={{
+                                                    position: 'absolute', top: '2px', right: '2px',
+                                                    background: '#fff', color: '#000',
+                                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                                    fontSize: '0.55rem', padding: '1px 3px',
+                                                    border: '1px solid #000',
+                                                }}>
+                                                    {i + 1}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
                                 <div style={{
                                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                     padding: '0.4rem 0.6rem', border: '2px solid #000', background: '#fff',
-                                    fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: '0.65rem',
+                                    fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: '0.6rem',
                                     color: '#666', textTransform: 'uppercase',
                                 }}>
-                                    {active.slides.length} slide{active.slides.length > 1 ? 's' : ''} · {active.slides.filter((s) => s.format === 'feed').length} feed / {active.slides.filter((s) => s.format === 'story').length} story
+                                    <span>Slide {activeSlideIndex + 1} / {previewSlides.length}</span>
+                                    <span>{active.slides.filter((s) => s.format === 'feed').length}F / {active.slides.filter((s) => s.format === 'story').length}S</span>
                                 </div>
                             </div>
 

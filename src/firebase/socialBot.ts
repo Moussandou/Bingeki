@@ -108,6 +108,31 @@ export async function setBotEnabled(enabled: boolean): Promise<void> {
 }
 
 /**
+ * Toggle a single scheduled cron on/off. Effect is immediate: each
+ * cron reads the config at the top and skips if disabled.
+ * superAdmin only per Firestore rules.
+ */
+export async function setScheduleEnabled(
+    kind: 'daily' | 'weekly' | 'favorite',
+    enabled: boolean,
+): Promise<void> {
+    const ref = doc(db, CONFIG, CONFIG_DOC);
+    const snap = await getDoc(ref);
+    const key = `schedules.${kind}.enabled`;
+    if (!snap.exists()) {
+        await setDoc(ref, {
+            ...DEFAULT_BOT_CONFIG,
+            schedules: {
+                ...DEFAULT_BOT_CONFIG.schedules,
+                [kind]: { ...DEFAULT_BOT_CONFIG.schedules[kind], enabled },
+            },
+        });
+        return;
+    }
+    await updateDoc(ref, { [key]: enabled });
+}
+
+/**
  * Save inline edits (caption / hashtags / platforms) on a pending post.
  * Admin can call this while validating a post before publish.
  */

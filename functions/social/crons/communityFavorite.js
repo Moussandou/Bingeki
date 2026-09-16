@@ -10,6 +10,7 @@ const { computeCommunityFavorites } = require('../generators/stats');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost } = require('../shared/firestore');
+const { notifyPendingPost } = require('../shared/discord');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
@@ -51,5 +52,6 @@ exports.communityFavorite = onSchedule(
             platforms: { insta: true, tiktok: true, x: false },
         });
         console.log(`[social/communityFavorite] created pending ${id} — ${favorites.length} winners`);
+        await notifyPendingPost(config, { type: 'favorite', title, postId: id, slidesCount: slides.length });
     },
 );

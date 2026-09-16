@@ -9,6 +9,7 @@ const { computeWeeklyTop } = require('../generators/stats');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost } = require('../shared/firestore');
+const { notifyPendingPost } = require('../shared/discord');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
@@ -42,10 +43,11 @@ exports.weeklyRecap = onSchedule(
 
         const scheduledAt = Date.now() + 3600_000; // publish 1h after generation
 
+        const title = `Récap semaine ${weekNumber}`;
         const id = await createPendingPost({
             type: 'weekly',
             scheduledAt,
-            title: `Récap semaine ${weekNumber}`,
+            title,
             caption,
             hashtags,
             slides,
@@ -53,5 +55,6 @@ exports.weeklyRecap = onSchedule(
             platforms: { insta: true, tiktok: true, x: false },
         });
         console.log(`[social/weeklyRecap] created pending ${id} — ${top3.length} entries`);
+        await notifyPendingPost(config, { type: 'weekly', title, postId: id, slidesCount: slides.length });
     },
 );

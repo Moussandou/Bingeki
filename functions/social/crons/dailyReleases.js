@@ -10,6 +10,7 @@ const { fetchTodaysReleases } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost, isDuplicateRecentPost } = require('../shared/firestore');
+const { notifyPendingPost } = require('../shared/discord');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
@@ -54,10 +55,11 @@ exports.dailyReleases = onSchedule(
         nextEvening.setHours(20, 0, 0, 0);
         if (nextEvening.getTime() < Date.now()) nextEvening.setDate(nextEvening.getDate() + 1);
 
+        const title = `Sorties du jour · ${dateStr}`;
         const id = await createPendingPost({
             type: 'daily',
             scheduledAt: nextEvening.getTime(),
-            title: `Sorties du jour · ${dateStr}`,
+            title,
             caption,
             hashtags,
             slides,
@@ -65,5 +67,6 @@ exports.dailyReleases = onSchedule(
             platforms: { insta: true, tiktok: true, x: false },
         });
         console.log(`[social/dailyReleases] created pending ${id}`);
+        await notifyPendingPost(config, { type: 'daily', title, postId: id, slidesCount: slides.length });
     },
 );
