@@ -93,6 +93,8 @@ const AdminEngagementAnalytics = lazy(() => import('@/pages/admin/analytics/Enga
 const AdminRetentionAnalytics = lazy(() => import('@/pages/admin/analytics/Retention'));
 const AdminHealth = lazy(() => import('@/pages/admin/Health'));
 const AdminOrga = lazy(() => import('@/pages/admin/orga/OrgaPage'));
+const AdminSocial = lazy(() => import('@/pages/admin/AdminSocial'));
+const AdminSocialPreview = lazy(() => import('@/components/mockups/AdminSocialPreview'));
 
 
 const LanguageManager = () => {
@@ -232,6 +234,7 @@ function App() {
               <Route path="credits" element={<Credits />} />
 
               <Route path="donors" element={<Donors />} />
+              <Route path="_preview/admin-social" element={<AdminSocialPreview />} />
               <Route path="lens" element={<Lens />} />
               <Route path="news" element={<NewsIndex />} />
               <Route path="news/article/:slug" element={<NewsArticle />} />
@@ -257,6 +260,7 @@ function App() {
                 <Route path="health" element={<AdminHealth />} />
                 <Route path="audit" element={<Navigate to="../health?tab=audit" replace />} />
                 <Route path="orga" element={<AdminOrga />} />
+                <Route path="social" element={<AdminSocial />} />
               </Route>
 
 
