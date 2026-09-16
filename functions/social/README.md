@@ -25,8 +25,9 @@ functions/social/
 │   ├── stats.js         # Requêtes Firestore users pour top hebdo & favs
 │   └── renderer.js      # HTML → PNG via Puppeteer
 ├── publishers/          # Publie sur les réseaux après validation admin
-│   ├── instagram.js     # Meta Graph API (Content Publishing)
-│   └── tiktok.js        # TikTok Content Posting API
+│   ├── buffer.js        # Buffer GraphQL API — publisher actif (IG + TikTok)
+│   ├── instagram.js     # [deprecated] Meta Graph API direct (kept for reference)
+│   └── tiktok.js        # [deprecated] TikTok Content Posting API direct (kept for reference)
 ├── admin/               # Callables déclenchées depuis /admin/social
 │   ├── listPending.js
 │   ├── publishNow.js
@@ -43,7 +44,9 @@ functions/social/
   prompts + Puppeteer renderer branché sur les composants React mockups
   convertis en templates HTML standalone.
 - **Phase 3** : câbler les 4 crons sur Cloud Scheduler.
-- **Phase 4** : OAuth Meta + TikTok (tokens en Secret Manager), publishers.
+- **Phase 4** : publishers via Buffer (`BUFFER_API_KEY` en Secret Manager,
+  `bufferChannelId` par plateforme dans `social_bot_config/singleton`).
+  Les publishers Meta/TikTok directs sont conservés en deprecated au cas où.
 - **Phase 5** : callables admin + polling reach j+1/j+7.
 
 ## Sécurité

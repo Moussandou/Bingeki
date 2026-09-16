@@ -19,12 +19,13 @@ const {
     movePendingToPublished,
 } = require('../shared/firestore');
 const { generateCaption } = require('../generators/gemini');
-const { publishToInstagram } = require('../publishers/instagram');
-const { publishToTikTok } = require('../publishers/tiktok');
+const {
+    publishToInstagram: bufferPublishInstagram,
+    publishToTikTok: bufferPublishTikTok,
+} = require('../publishers/buffer');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
-const INSTA_PAGE_TOKEN = defineSecret('INSTA_PAGE_TOKEN');
-const TIKTOK_ACCESS_TOKEN = defineSecret('TIKTOK_ACCESS_TOKEN');
+const BUFFER_API_KEY = defineSecret('BUFFER_API_KEY');
 
 async function assertAdminOrThrow(request) {
     const uid = request?.auth?.uid;
@@ -131,8 +132,9 @@ exports.socialRegeneratePost = onCall(
 
 exports.socialPublishNow = onCall(
     {
-        secrets: [INSTA_PAGE_TOKEN, TIKTOK_ACCESS_TOKEN],
-        // Video slideshow via ffmpeg needs headroom; photo mode is fine on defaults.
+        secrets: [BUFFER_API_KEY],
+        // Video slideshow via ffmpeg still runs locally before we hand the
+        // MP4 URL to Buffer, so keep the same headroom as the direct path.
         memory: '2GiB',
         timeoutSeconds: 540,
     },
@@ -158,40 +160,57 @@ exports.socialPublishNow = onCall(
 
         const combinedCaption = `${post.caption || ''}\n\n${post.hashtags || ''}`.trim();
         const results = { insta: null, tiktok: null };
+        const apiKey = process.env.BUFFER_API_KEY;
 
-        // Instagram
+        // Instagram (via Buffer)
         if (post.platforms?.insta) {
+            const channelId = config.platforms?.insta?.bufferChannelId;
+            if (!channelId) {
+                await markPendingFailed(postId, 'Instagram: missing bufferChannelId in config');
+                throw new HttpsError(
+                    'failed-precondition',
+                    'Missing Buffer channelId for Instagram in bot_config.platforms.insta.bufferChannelId',
+                );
+            }
             try {
-                results.insta = await publishToInstagram(
+                results.insta = await bufferPublishInstagram(
                     post.slides,
                     combinedCaption,
                     {
-                        accountId: config.platforms?.insta?.accountId,
-                        accessToken: process.env.INSTA_PAGE_TOKEN,
+                        apiKey,
+                        channelId,
                         mode: config.platforms?.insta?.mode || 'photo',
                     },
                 );
             } catch (err) {
-                console.error(`[social/publishNow] Instagram failed for ${postId}:`, err);
+                console.error(`[social/publishNow] Buffer→Instagram failed for ${postId}:`, err);
                 await markPendingFailed(postId, `Instagram: ${err.message || err}`);
                 throw new HttpsError('internal', `Instagram publish failed: ${err.message || err}`);
             }
         }
 
-        // TikTok
+        // TikTok (via Buffer)
         if (post.platforms?.tiktok) {
+            const channelId = config.platforms?.tiktok?.bufferChannelId;
+            if (!channelId) {
+                await markPendingFailed(postId, 'TikTok: missing bufferChannelId in config');
+                throw new HttpsError(
+                    'failed-precondition',
+                    'Missing Buffer channelId for TikTok in bot_config.platforms.tiktok.bufferChannelId',
+                );
+            }
             try {
-                results.tiktok = await publishToTikTok(
+                results.tiktok = await bufferPublishTikTok(
                     post.slides,
                     combinedCaption,
                     {
-                        accessToken: process.env.TIKTOK_ACCESS_TOKEN,
+                        apiKey,
+                        channelId,
                         mode: config.platforms?.tiktok?.mode || 'photo',
                     },
                 );
             } catch (err) {
-                console.error(`[social/publishNow] TikTok failed for ${postId}:`, err);
-                // Instagram may have succeeded — don't rollback, just record the partial failure
+                console.error(`[social/publishNow] Buffer→TikTok failed for ${postId}:`, err);
                 await markPendingFailed(postId, `TikTok: ${err.message || err}`);
                 throw new HttpsError('internal', `TikTok publish failed: ${err.message || err}`);
             }

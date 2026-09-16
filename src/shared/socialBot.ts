@@ -101,6 +101,9 @@ export interface BotConfig {
             /** 'photo' = carousel of feed images (default, fast).
              *  'video' = Reel from a story-slides MP4 (ffmpeg + slower). */
             mode?: 'photo' | 'video';
+            /** Buffer channel id for this Instagram account. Required when
+             *  publishing via Buffer (BUFFER_API_KEY secret). */
+            bufferChannelId?: string;
         };
         tiktok: {
             accountId: string;
@@ -109,6 +112,9 @@ export interface BotConfig {
             /** 'photo' = photo carousel (default, fast, no ffmpeg).
              *  'video' = slideshow MP4 rendered via ffmpeg (heavier). */
             mode?: 'photo' | 'video';
+            /** Buffer channel id for this TikTok account. Required when
+             *  publishing via Buffer (BUFFER_API_KEY secret). */
+            bufferChannelId?: string;
         };
     };
     gemini: {

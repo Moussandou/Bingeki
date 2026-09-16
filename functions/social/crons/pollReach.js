@@ -1,13 +1,19 @@
 /**
- * cron pollReach — poll Instagram Insights for every published post at
- * j+1 (24h after publish) and j+7 (168h after publish). Writes results
- * into `social_published_posts/{id}.reach.insta`.
+ * cron pollReach — poll Instagram Insights at j+1 / j+7 after publish.
  *
- * TikTok insights aren't polled here — the API is more restrictive and
- * requires per-video insights calls with specific permissions.
+ * ⚠️ DEPRECATED (2026-09) — this cron hits Meta Graph API directly
+ * using media IDs it expected from the old direct publisher. We now
+ * publish via Buffer, so `results.insta.id` is a Buffer post id and
+ * this code cannot resolve it against Meta anymore.
  *
- * Runs every 6h, only touches posts whose reach isn't populated yet
- * for the current milestone.
+ * TODO: migrate to Buffer analytics — Buffer exposes per-post metrics
+ * through its GraphQL API (`postMetrics` query, see Buffer docs
+ * `examples/get-post-metrics.html`). Once migrated, drop `INSTA_PAGE_TOKEN`
+ * entirely and query metrics for both Instagram and TikTok in one place.
+ *
+ * Kept in the tree unregistered so the code (and the reach schema in
+ * Firestore) survives the rewrite. Re-export from `index.js` after the
+ * migration.
  */
 
 const admin = require('firebase-admin');

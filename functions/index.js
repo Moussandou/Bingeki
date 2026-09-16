@@ -80,13 +80,14 @@ const socialDaily = require("./social/crons/dailyReleases");
 const socialWeekly = require("./social/crons/weeklyRecap");
 const socialFavorite = require("./social/crons/communityFavorite");
 const socialNewSeason = require("./social/crons/newSeasonDetector");
-const socialPollReach = require("./social/crons/pollReach");
 const socialCallables = require("./social/admin/callables");
 exports.socialDailyReleases = socialDaily.dailyReleases;
 exports.socialWeeklyRecap = socialWeekly.weeklyRecap;
 exports.socialCommunityFavorite = socialFavorite.communityFavorite;
 exports.socialNewSeasonDetector = socialNewSeason.newSeasonDetector;
-exports.socialPollReach = socialPollReach.pollReach;
+// socialPollReach unregistered — Meta-direct implementation is incompatible
+// with Buffer-published posts. See functions/social/crons/pollReach.js for
+// the Buffer analytics migration TODO.
 exports.socialPublishNow = socialCallables.socialPublishNow;
 exports.socialRejectPost = socialCallables.socialRejectPost;
 exports.socialRegeneratePost = socialCallables.socialRegeneratePost;
