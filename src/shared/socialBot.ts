@@ -94,7 +94,14 @@ export interface BotConfig {
         favorite: { dayOfWeek: number; hour: number; enabled: boolean };
     };
     platforms: {
-        insta: { accountId: string; tokenRef: string; enabled: boolean };
+        insta: {
+            accountId: string;
+            tokenRef: string;
+            enabled: boolean;
+            /** 'photo' = carousel of feed images (default, fast).
+             *  'video' = Reel from a story-slides MP4 (ffmpeg + slower). */
+            mode?: 'photo' | 'video';
+        };
         tiktok: {
             accountId: string;
             tokenRef: string;
@@ -119,7 +126,7 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
         favorite: { dayOfWeek: 3, hour: 12, enabled: true },
     },
     platforms: {
-        insta: { accountId: '', tokenRef: '', enabled: false },
+        insta: { accountId: '', tokenRef: '', enabled: false, mode: 'photo' },
         tiktok: { accountId: '', tokenRef: '', enabled: false, mode: 'photo' },
     },
     gemini: {

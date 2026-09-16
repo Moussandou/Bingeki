@@ -24,6 +24,7 @@ import {
     setBotEnabled,
     setScheduleEnabled,
     setScheduleTime,
+    setPlatformMode,
     updatePendingPostDraft,
     publishPostNow,
     rejectPost,
@@ -412,6 +413,35 @@ export default function AdminSocial() {
                                 <div className={s.cronNotice}>
                                     Horaires stockés en config. Changer l'heure d'exécution demande de modifier le code du cron et de redéployer.
                                 </div>
+
+                                {/* Publish mode per platform */}
+                                {([
+                                    { key: 'insta' as const, label: 'Instagram', icon: <Camera size={12} /> },
+                                    { key: 'tiktok' as const, label: 'TikTok', icon: <Music2 size={12} /> },
+                                ]).map((p) => {
+                                    const mode = config.platforms?.[p.key]?.mode ?? 'photo';
+                                    return (
+                                        <div key={p.key} className={s.platformModeRow}>
+                                            <div className={s.platformModeLabel}>
+                                                {p.icon} {p.label} — mode publication
+                                            </div>
+                                            <div className={s.modeSegmented}>
+                                                <button
+                                                    onClick={() => setPlatformMode(p.key, 'photo').catch((err) => logger.error(err))}
+                                                    className={mode === 'photo' ? s.active : ''}
+                                                >
+                                                    Carousel photo
+                                                </button>
+                                                <button
+                                                    onClick={() => setPlatformMode(p.key, 'video').catch((err) => logger.error(err))}
+                                                    className={mode === 'video' ? `${s.active} ${s.cyan}` : ''}
+                                                >
+                                                    {p.key === 'insta' ? 'Reel vidéo' : 'Vidéo'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
 

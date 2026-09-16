@@ -27,17 +27,45 @@ const CONFIG_DOC = FIRESTORE_COLLECTIONS.botConfigDoc;
    ========================================================================== */
 
 // Preview mock hook — used by /_preview/admin-social to render the
-// page without hitting Firestore.
-type WindowMock = {
-    __BINGEKI_SOCIAL_MOCK__?: {
-        pending: PendingPost[];
-        published: PublishedPost[];
-        config: BotConfig;
-    };
+// page without hitting Firestore. Writes also target the mock and
+// re-fire any registered subscribe callbacks so the UI stays reactive
+// end-to-end without touching the network.
+type MockState = {
+    pending: PendingPost[];
+    published: PublishedPost[];
+    config: BotConfig;
 };
-const readMock = () => (typeof window !== 'undefined')
+type WindowMock = { __BINGEKI_SOCIAL_MOCK__?: MockState };
+
+const readMock = (): MockState | undefined => (typeof window !== 'undefined')
     ? (window as unknown as WindowMock).__BINGEKI_SOCIAL_MOCK__
     : undefined;
+
+type MockKind = 'pending' | 'published' | 'config';
+type MockSub =
+    | { kind: 'pending'; cb: (posts: PendingPost[]) => void }
+    | { kind: 'published'; cb: (posts: PublishedPost[]) => void }
+    | { kind: 'config'; cb: (config: BotConfig) => void };
+
+const mockSubs: MockSub[] = [];
+
+function registerMockSub(sub: MockSub) {
+    mockSubs.push(sub);
+    return () => {
+        const idx = mockSubs.indexOf(sub);
+        if (idx >= 0) mockSubs.splice(idx, 1);
+    };
+}
+
+function fireMock(kind: MockKind) {
+    const mock = readMock();
+    if (!mock) return;
+    for (const sub of mockSubs) {
+        if (sub.kind === 'pending' && kind === 'pending') sub.cb(mock.pending);
+        else if (sub.kind === 'published' && kind === 'published') sub.cb(mock.published);
+        else if (sub.kind === 'config' && kind === 'config') sub.cb(mock.config);
+    }
+}
 
 export function subscribeToPendingPosts(
     callback: (posts: PendingPost[]) => void,
@@ -45,7 +73,7 @@ export function subscribeToPendingPosts(
     const mock = readMock();
     if (mock) {
         setTimeout(() => callback(mock.pending), 0);
-        return () => { /* noop */ };
+        return registerMockSub({ kind: 'pending', cb: callback });
     }
     const q = query(collection(db, PENDING), orderBy('scheduledAt', 'asc'));
     return onSnapshot(
@@ -71,7 +99,7 @@ export function subscribeToPublishedPosts(
     const mock = readMock();
     if (mock) {
         setTimeout(() => callback(mock.published), 0);
-        return () => { /* noop */ };
+        return registerMockSub({ kind: 'published', cb: callback });
     }
     const q = query(
         collection(db, PUBLISHED),
@@ -100,7 +128,7 @@ export function subscribeToBotConfig(
     const mock = readMock();
     if (mock) {
         setTimeout(() => callback(mock.config), 0);
-        return () => { /* noop */ };
+        return registerMockSub({ kind: 'config', cb: callback });
     }
     const ref = doc(db, CONFIG, CONFIG_DOC);
     return onSnapshot(
@@ -128,6 +156,12 @@ export function subscribeToBotConfig(
  * Creates the singleton doc with defaults if it doesn't exist yet.
  */
 export async function setBotEnabled(enabled: boolean): Promise<void> {
+    const mock = readMock();
+    if (mock) {
+        mock.config = { ...mock.config, enabled };
+        fireMock('config');
+        return;
+    }
     const ref = doc(db, CONFIG, CONFIG_DOC);
     const snap = await getDoc(ref);
     if (!snap.exists()) {
@@ -146,6 +180,18 @@ export async function setScheduleEnabled(
     kind: 'daily' | 'weekly' | 'favorite',
     enabled: boolean,
 ): Promise<void> {
+    const mock = readMock();
+    if (mock) {
+        mock.config = {
+            ...mock.config,
+            schedules: {
+                ...mock.config.schedules,
+                [kind]: { ...mock.config.schedules[kind], enabled },
+            },
+        };
+        fireMock('config');
+        return;
+    }
     const ref = doc(db, CONFIG, CONFIG_DOC);
     const snap = await getDoc(ref);
     const key = `schedules.${kind}.enabled`;
@@ -163,6 +209,43 @@ export async function setScheduleEnabled(
 }
 
 /**
+ * Set the publish mode of a platform (photo carousel vs Reel/video).
+ * Read at publish time by socialPublishNow.
+ * superAdmin only per Firestore rules.
+ */
+export async function setPlatformMode(
+    platform: 'insta' | 'tiktok',
+    mode: 'photo' | 'video',
+): Promise<void> {
+    const mock = readMock();
+    if (mock) {
+        mock.config = {
+            ...mock.config,
+            platforms: {
+                ...mock.config.platforms,
+                [platform]: { ...mock.config.platforms[platform], mode },
+            },
+        };
+        fireMock('config');
+        return;
+    }
+    const ref = doc(db, CONFIG, CONFIG_DOC);
+    const snap = await getDoc(ref);
+    const key = `platforms.${platform}.mode`;
+    if (!snap.exists()) {
+        await setDoc(ref, {
+            ...DEFAULT_BOT_CONFIG,
+            platforms: {
+                ...DEFAULT_BOT_CONFIG.platforms,
+                [platform]: { ...DEFAULT_BOT_CONFIG.platforms[platform], mode },
+            },
+        });
+        return;
+    }
+    await updateDoc(ref, { [key]: mode });
+}
+
+/**
  * Update a schedule's hour (0-23) and — for weekly/favorite — dayOfWeek (0-6).
  * These are stored in Firestore but do NOT alter the deployed Cloud
  * Scheduler cron itself; the scheduler expression lives in the cron
@@ -175,6 +258,18 @@ export async function setScheduleTime(
     kind: 'daily' | 'weekly' | 'favorite',
     patch: { hour?: number; dayOfWeek?: number },
 ): Promise<void> {
+    const mock = readMock();
+    if (mock) {
+        mock.config = {
+            ...mock.config,
+            schedules: {
+                ...mock.config.schedules,
+                [kind]: { ...mock.config.schedules[kind], ...patch },
+            },
+        };
+        fireMock('config');
+        return;
+    }
     const ref = doc(db, CONFIG, CONFIG_DOC);
     const snap = await getDoc(ref);
     const updates: Record<string, number> = {};
@@ -208,6 +303,14 @@ export async function updatePendingPostDraft(
         sourceData?: PostSourceData;
     },
 ): Promise<void> {
+    const mock = readMock();
+    if (mock) {
+        mock.pending = mock.pending.map((p) =>
+            p.id === postId ? { ...p, ...patch } : p
+        );
+        fireMock('pending');
+        return;
+    }
     const ref = doc(db, PENDING, postId);
     await updateDoc(ref, patch);
 }

@@ -145,6 +145,7 @@ exports.socialPublishNow = onCall(
                     {
                         accountId: config.platforms?.insta?.accountId,
                         accessToken: process.env.INSTA_PAGE_TOKEN,
+                        mode: config.platforms?.insta?.mode || 'photo',
                     },
                 );
             } catch (err) {

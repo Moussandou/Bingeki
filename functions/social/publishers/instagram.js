@@ -45,25 +45,24 @@ async function getJson(url) {
     return json;
 }
 
-/**
- * @param {Array<{url:string}>} slides — must have at least 1 slide.
- * @param {string} caption — combined caption + hashtags.
- * @param {{accountId:string, accessToken:string}} auth
- */
-async function publishToInstagram(slides, caption, auth) {
-    if (!slides?.length) throw new Error('No slides to publish');
-    if (!auth?.accountId || !auth?.accessToken) throw new Error('Missing Instagram credentials');
+async function fetchPermalink(igUrl, mediaId, accessToken) {
+    const detail = await getJson(
+        `${GRAPH}/${mediaId}?fields=permalink,timestamp&access_token=${accessToken}`,
+    );
+    return detail.permalink || '';
+}
 
+/**
+ * Photo carousel (up to 10 items). Uses the FEED slides (4:5).
+ */
+async function publishAsPhotoCarousel(slides, caption, auth) {
     const feedSlides = slides.filter((s) => s.format === 'feed');
     if (feedSlides.length === 0) throw new Error('No feed slides for Instagram');
 
     const { accountId, accessToken } = auth;
     const igUrl = `${GRAPH}/${accountId}`;
-
-    // Instagram supports up to 10 carousel items
     const items = feedSlides.slice(0, 10);
 
-    // Step 1 & 2: create item containers (single-image posts use no carousel)
     let creationId;
     if (items.length === 1) {
         const container = await postJson(`${igUrl}/media`, {
@@ -91,23 +90,85 @@ async function publishToInstagram(slides, caption, auth) {
         creationId = carousel.id;
     }
 
-    // Step 3: publish
     const publish = await postJson(`${igUrl}/media_publish`, {
         creation_id: creationId,
         access_token: accessToken,
     });
     const mediaId = publish.id;
+    const permalink = await fetchPermalink(igUrl, mediaId, accessToken);
 
-    // Step 4: get permalink
-    const detail = await getJson(
-        `${GRAPH}/${mediaId}?fields=permalink,timestamp&access_token=${accessToken}`,
-    );
+    return { id: mediaId, permalink, publishedAt: Date.now() };
+}
 
-    return {
-        id: mediaId,
-        permalink: detail.permalink || '',
-        publishedAt: Date.now(),
-    };
+/**
+ * Reel (video). Renders a 9:16 slideshow MP4 from the story slides
+ * via the shared videoRenderer, then publishes as REELS.
+ *
+ * Polling required: Meta returns status_code='FINISHED' when the video
+ * is ready to publish (typically 20–60s for short reels).
+ */
+async function publishAsReel(slides, caption, auth) {
+    const { renderSlideshowVideo } = require('../generators/videoRenderer');
+
+    const storySlides = slides.filter((s) => s.format === 'story');
+    if (storySlides.length === 0) {
+        throw new Error('Instagram Reel mode requires story-format slides (1080x1920)');
+    }
+    storySlides.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+
+    const { url: videoUrl } = await renderSlideshowVideo(storySlides, {
+        perSlideSeconds: 3,
+    });
+
+    const { accountId, accessToken } = auth;
+    const igUrl = `${GRAPH}/${accountId}`;
+
+    // Create the reel container
+    const container = await postJson(`${igUrl}/media`, {
+        media_type: 'REELS',
+        video_url: videoUrl,
+        caption,
+        share_to_feed: true,
+        access_token: accessToken,
+    });
+    const creationId = container.id;
+
+    // Poll until Meta has finished processing
+    const start = Date.now();
+    const maxWait = 180_000; // 3 min
+    while (Date.now() - start < maxWait) {
+        const status = await getJson(
+            `${GRAPH}/${creationId}?fields=status_code,status&access_token=${accessToken}`,
+        );
+        if (status.status_code === 'FINISHED') break;
+        if (status.status_code === 'ERROR') {
+            throw new Error(`Meta reel processing failed: ${status.status || 'unknown'}`);
+        }
+        await new Promise((r) => setTimeout(r, 5000));
+    }
+
+    // Publish
+    const publish = await postJson(`${igUrl}/media_publish`, {
+        creation_id: creationId,
+        access_token: accessToken,
+    });
+    const mediaId = publish.id;
+    const permalink = await fetchPermalink(igUrl, mediaId, accessToken);
+
+    return { id: mediaId, permalink, publishedAt: Date.now(), videoUrl };
+}
+
+/**
+ * @param {Array<{url:string, format:string, index?:number}>} slides
+ * @param {string} caption
+ * @param {{accountId:string, accessToken:string, mode?:'photo'|'video'}} auth
+ */
+async function publishToInstagram(slides, caption, auth) {
+    if (!slides?.length) throw new Error('No slides to publish');
+    if (!auth?.accountId || !auth?.accessToken) throw new Error('Missing Instagram credentials');
+    const mode = auth.mode === 'video' ? 'video' : 'photo';
+    if (mode === 'video') return publishAsReel(slides, caption, auth);
+    return publishAsPhotoCarousel(slides, caption, auth);
 }
 
 module.exports = { publishToInstagram };

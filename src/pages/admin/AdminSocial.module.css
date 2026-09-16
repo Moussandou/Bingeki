@@ -357,6 +357,55 @@
     font-weight: 600;
 }
 
+.platformModeRow {
+    padding: 10px;
+    background: #fff;
+    border: 2px solid #000;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.platformModeLabel {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 0.72rem;
+}
+
+.modeSegmented {
+    display: flex;
+    border: 2px solid #000;
+    background: #fff;
+}
+
+.modeSegmented button {
+    flex: 1;
+    padding: 4px 6px;
+    background: transparent;
+    color: #000;
+    border: none;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    fontfont-size: 0.65rem;
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.modeSegmented button.active {
+    background: #FF2E63;
+    color: #fff;
+}
+
+.modeSegmented button.active.cyan {
+    background: #08D9D6;
+    color: #000;
+}
+
 /* ==========================================================================
    PREVIEW COLUMN
    ========================================================================== */
