@@ -53,11 +53,11 @@ const CSS = `
     .intro-swipe { position: absolute; right: 60px; bottom: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 32px; color: #666; letter-spacing: 4px; }
     .intro-brand { position: absolute; left: 60px; bottom: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 38px; color: #000; letter-spacing: -1px; }
     .outro-container { position: absolute; inset: 0; z-index: 5; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 80px 60px; }
-    .outro-logo { width: 140px; height: 140px; border: 6px solid #fff; box-shadow: 10px 10px 0 ${ROSE}; background: #fff; margin-bottom: 40px; padding: 12px; display: flex; align-items: center; justify-content: center; }
+    .outro-logo { width: 320px; height: 320px; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; filter: drop-shadow(8px 8px 0 ${ROSE}); }
     .outro-logo img { width: 100%; height: 100%; object-fit: contain; }
-    .outro-cta { font-family: 'Outfit'; font-weight: 900; font-size: 126px; line-height: 0.92; letter-spacing: -5px; text-transform: uppercase; color: #fff; text-shadow: 6px 6px 0 ${ROSE}; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
-    .outro-btn { margin-top: 40px; background: ${ROSE}; color: #fff; border: 6px solid #fff; padding: 26px 48px; box-shadow: 10px 10px 0 #fff; font-family: 'Outfit'; font-weight: 900; font-size: 44px; letter-spacing: 3px; text-transform: uppercase; }
-    .outro-url { margin-top: 50px; font-family: 'Outfit'; font-weight: 900; font-size: 58px; letter-spacing: -2px; color: #fff; }
+    .outro-cta { font-family: 'Outfit'; font-weight: 900; font-size: 110px; line-height: 0.92; letter-spacing: -5px; text-transform: uppercase; color: #fff; text-shadow: 6px 6px 0 ${ROSE}; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
+    .outro-btn { margin-top: 34px; background: ${ROSE}; color: #fff; border: 6px solid #fff; padding: 22px 44px; box-shadow: 10px 10px 0 #fff; font-family: 'Outfit'; font-weight: 900; font-size: 40px; letter-spacing: 3px; text-transform: uppercase; }
+    .outro-url { margin-top: 40px; font-family: 'Outfit'; font-weight: 900; font-size: 54px; letter-spacing: -2px; color: #fff; }
     .slide-idx { position: absolute; bottom: 60px; right: 60px; z-index: 7; background: #fff; color: #000; border: 5px solid #000; padding: 8px 18px; box-shadow: 6px 6px 0 #000; font-family: 'Outfit'; font-weight: 900; font-size: 30px; letter-spacing: 1px; }
 
     /* INFO slide (fiche technique — rows label/value on halftone bg) */

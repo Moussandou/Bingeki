@@ -178,31 +178,30 @@ const CSS = `
         text-align: center; padding: 80px 60px;
     }
     .outro-logo {
-        width: 140px; height: 140px;
-        border: 6px solid #fff; box-shadow: 10px 10px 0 ${ROSE};
-        background: #fff; margin-bottom: 40px; padding: 12px;
+        width: 320px; height: 320px; margin-bottom: 24px;
         display: flex; align-items: center; justify-content: center;
+        filter: drop-shadow(8px 8px 0 ${ROSE});
     }
     .outro-logo img { width: 100%; height: 100%; object-fit: contain; }
     .outro-cta {
         font-family: 'Outfit'; font-weight: 900;
-        font-size: 126px; line-height: 0.92; letter-spacing: -5px;
+        font-size: 110px; line-height: 0.92; letter-spacing: -5px;
         text-transform: uppercase; color: #fff;
         text-shadow: 6px 6px 0 ${ROSE};
         overflow-wrap: break-word; word-break: break-word; max-width: 100%;
     }
     .outro-btn {
-        margin-top: 40px;
+        margin-top: 34px;
         background: ${ROSE}; color: #fff; border: 6px solid #fff;
-        padding: 26px 48px; box-shadow: 10px 10px 0 #fff;
+        padding: 22px 44px; box-shadow: 10px 10px 0 #fff;
         font-family: 'Outfit'; font-weight: 900;
-        font-size: 44px; letter-spacing: 3px;
+        font-size: 40px; letter-spacing: 3px;
         text-transform: uppercase;
     }
     .outro-url {
-        margin-top: 50px;
+        margin-top: 40px;
         font-family: 'Outfit'; font-weight: 900;
-        font-size: 58px; letter-spacing: -2px; color: #fff;
+        font-size: 54px; letter-spacing: -2px; color: #fff;
     }
 
     /* Slide index badge (bottom-right) */
