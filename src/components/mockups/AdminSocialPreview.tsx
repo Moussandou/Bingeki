@@ -47,7 +47,15 @@ Toute la liste et vos progressions sur Bingeki.`,
             { format: 'story', url: 'https://cdn.myanimelist.net/images/anime/10/78745l.jpg', index: 4 },
             { format: 'story', url: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg', index: 5 },
         ],
-        sourceData: { animeIds: [31964, 52991, 21, 57334] },
+        sourceData: {
+            animeIds: [31964, 52991, 21, 57334],
+            animes: [
+                { mal_id: 31964, title: 'My Hero Academia', cover: 'https://cdn.myanimelist.net/images/anime/10/78745l.jpg', currentEpisode: 12 },
+                { mal_id: 52991, title: 'Frieren', cover: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg', currentEpisode: 24 },
+                { mal_id: 21, title: 'One Piece', cover: 'https://cdn.myanimelist.net/images/anime/1244/138851l.jpg', currentEpisode: 1108 },
+                { mal_id: 57334, title: 'Dandadan', cover: 'https://cdn.myanimelist.net/images/anime/1584/143719l.jpg', currentEpisode: 9 },
+            ],
+        },
         platforms: { insta: true, tiktok: true, x: false },
     },
     {
@@ -63,7 +71,12 @@ Toute la liste et vos progressions sur Bingeki.`,
         slides: [
             { format: 'feed', url: 'https://cdn.myanimelist.net/images/anime/1806/126216l.jpg', index: 0 },
         ],
-        sourceData: { animeIds: [44511] },
+        sourceData: {
+            animeIds: [44511],
+            animes: [
+                { mal_id: 44511, title: 'Chainsaw Man', cover: 'https://cdn.myanimelist.net/images/anime/1806/126216l.jpg', studios: ['MAPPA'], episodes: 12, score: 8.7 },
+            ],
+        },
         platforms: { insta: true, tiktok: true, x: false },
     },
     {
@@ -83,7 +96,15 @@ Merci aux 6 800+ watchers qui ont noté leurs épisodes cette semaine. Vous avez
         slides: [
             { format: 'feed', url: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg', index: 0 },
         ],
-        sourceData: { weekNumber: 11 },
+        sourceData: {
+            weekNumber: 11,
+            animeIds: [52991, 57334, 49596],
+            animes: [
+                { mal_id: 52991, title: 'Frieren', cover: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg', avg: 9.4, count: 2847 },
+                { mal_id: 57334, title: 'Dandadan', cover: 'https://cdn.myanimelist.net/images/anime/1584/143719l.jpg', avg: 9.1, count: 2103 },
+                { mal_id: 49596, title: 'Blue Lock', cover: 'https://cdn.myanimelist.net/images/anime/1258/126929l.jpg', avg: 8.9, count: 1876 },
+            ],
+        },
         platforms: { insta: true, tiktok: false, x: false },
     },
 ];

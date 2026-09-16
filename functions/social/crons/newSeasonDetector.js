@@ -41,6 +41,15 @@ exports.newSeasonDetector = onSchedule(
                 const slides = await renderSlides('newseason', anime, ['feed', 'story']);
 
                 const title = `${anime.title} · Announcement`;
+                const animesSnapshot = [{
+                    mal_id: anime.mal_id,
+                    title: anime.title,
+                    cover: anime.cover,
+                    studios: anime.studios || [],
+                    episodes: anime.episodes ?? null,
+                    score: anime.score ?? null,
+                    airing_from: anime.aired_from ?? null,
+                }];
                 const id = await createPendingPost({
                     type: 'newseason',
                     scheduledAt: Date.now() + 3600_000,
@@ -48,7 +57,7 @@ exports.newSeasonDetector = onSchedule(
                     caption,
                     hashtags,
                     slides,
-                    sourceData: { animeIds: [anime.mal_id] },
+                    sourceData: { animeIds: [anime.mal_id], animes: animesSnapshot },
                     platforms: { insta: true, tiktok: true, x: false },
                 });
                 console.log(`[social/newSeasonDetector] created pending ${id} for ${anime.title}`);

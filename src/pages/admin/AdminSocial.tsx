@@ -16,6 +16,7 @@ import { logger } from '@/utils/logger';
 import { useAuthStore } from '@/store/authStore';
 import type { PendingPost, PublishedPost, BotConfig, PostType, PostPlatforms } from '@/shared/socialBot';
 import { POST_TYPE_LABELS, POST_TYPE_COLORS, DEFAULT_BOT_CONFIG } from '@/shared/socialBot';
+import { SlideHtmlPreview } from '@/components/admin/SlideHtmlPreview';
 import {
     subscribeToPendingPosts,
     subscribeToPublishedPosts,
@@ -225,6 +226,13 @@ export default function AdminSocial() {
     const currentSlide = previewSlides[activeSlideIndex] ?? previewSlides[0];
     const cover = currentSlide?.url;
     const hasStory = active?.slides.some((s) => s.format === 'story') ?? false;
+
+    // Data available to re-render the slides in the browser (via SlideHtmlPreview)
+    const animesForLive = active?.sourceData?.animes;
+    const useLivePreview = Boolean(animesForLive && animesForLive.length > 0);
+    const livePreviewData = useLivePreview && animesForLive
+        ? (active!.type === 'newseason' ? animesForLive[0] : animesForLive)
+        : null;
 
     return (
         <div style={{
@@ -601,28 +609,38 @@ export default function AdminSocial() {
                                     </div>
                                 )}
 
-                                {/* Big preview — use the actual rendered slide URL */}
-                                <div style={{
-                                    width: '260px',
-                                    height: slideFormat === 'story' ? '462px' : '325px',
-                                    border: '3px solid #000', boxShadow: '5px 5px 0 #000',
-                                    background: '#000', position: 'relative', overflow: 'hidden',
-                                }}>
-                                    {cover ? (
-                                        <img src={cover} alt="" style={{
-                                            position: 'absolute', inset: 0,
-                                            width: '100%', height: '100%', objectFit: 'cover',
-                                        }} />
-                                    ) : (
-                                        <div style={{
-                                            position: 'absolute', inset: 0,
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            color: '#666', fontSize: '0.7rem', textAlign: 'center', padding: '1rem',
-                                        }}>
-                                            Aucune slide {slideFormat} disponible
-                                        </div>
-                                    )}
-                                </div>
+                                {/* Big preview — live HTML render if data available, else <img> of the Puppeteer PNG */}
+                                {useLivePreview && livePreviewData ? (
+                                    <SlideHtmlPreview
+                                        type={active.type}
+                                        data={livePreviewData}
+                                        slideIndex={activeSlideIndex}
+                                        format={slideFormat}
+                                        width={260}
+                                    />
+                                ) : (
+                                    <div style={{
+                                        width: '260px',
+                                        height: slideFormat === 'story' ? '462px' : '325px',
+                                        border: '3px solid #000', boxShadow: '5px 5px 0 #000',
+                                        background: '#000', position: 'relative', overflow: 'hidden',
+                                    }}>
+                                        {cover ? (
+                                            <img src={cover} alt="" style={{
+                                                position: 'absolute', inset: 0,
+                                                width: '100%', height: '100%', objectFit: 'cover',
+                                            }} />
+                                        ) : (
+                                            <div style={{
+                                                position: 'absolute', inset: 0,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: '#666', fontSize: '0.7rem', textAlign: 'center', padding: '1rem',
+                                            }}>
+                                                Aucune slide {slideFormat} disponible
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Slide navigation dots */}
                                 {previewSlides.length > 1 && (

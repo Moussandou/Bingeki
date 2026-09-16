@@ -44,6 +44,13 @@ exports.weeklyRecap = onSchedule(
         const scheduledAt = Date.now() + 3600_000; // publish 1h after generation
 
         const title = `Récap semaine ${weekNumber}`;
+        const animes = top3.map((a) => ({
+            mal_id: a.mal_id,
+            title: a.title,
+            cover: a.cover,
+            avg: a.avg,
+            count: a.count,
+        }));
         const id = await createPendingPost({
             type: 'weekly',
             scheduledAt,
@@ -51,7 +58,7 @@ exports.weeklyRecap = onSchedule(
             caption,
             hashtags,
             slides,
-            sourceData: { weekNumber, animeIds: top3.map((a) => a.mal_id) },
+            sourceData: { weekNumber, animeIds: top3.map((a) => a.mal_id), animes },
             platforms: { insta: true, tiktok: true, x: false },
         });
         console.log(`[social/weeklyRecap] created pending ${id} — ${top3.length} entries`);

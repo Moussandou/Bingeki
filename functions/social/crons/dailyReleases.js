@@ -56,6 +56,12 @@ exports.dailyReleases = onSchedule(
         if (nextEvening.getTime() < Date.now()) nextEvening.setDate(nextEvening.getDate() + 1);
 
         const title = `Sorties du jour · ${dateStr}`;
+        const animes = finalList.map((a) => ({
+            mal_id: a.mal_id,
+            title: a.title,
+            cover: a.cover,
+            currentEpisode: a.currentEpisode ?? null,
+        }));
         const id = await createPendingPost({
             type: 'daily',
             scheduledAt: nextEvening.getTime(),
@@ -63,7 +69,7 @@ exports.dailyReleases = onSchedule(
             caption,
             hashtags,
             slides,
-            sourceData: { animeIds },
+            sourceData: { animeIds, animes },
             platforms: { insta: true, tiktok: true, x: false },
         });
         console.log(`[social/dailyReleases] created pending ${id}`);

@@ -24,10 +24,26 @@ export interface PostPlatforms {
     x: boolean;
 }
 
+export interface PostSourceAnime {
+    mal_id?: number;
+    title: string;
+    cover?: string;
+    currentEpisode?: number;
+    avg?: number;
+    count?: number;
+    studios?: string[];
+    episodes?: number;
+    score?: number;
+    airing_from?: string;
+}
+
 export interface PostSourceData {
     animeIds?: number[];
     weekNumber?: number;
     stats?: Record<string, unknown>;
+    /** Complete anime info snapshotted at cron time so the admin panel can
+     *  re-render the slides live (feature added in phase-1 polish v3). */
+    animes?: PostSourceAnime[];
 }
 
 export interface CaptionVariant {

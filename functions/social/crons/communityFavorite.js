@@ -41,6 +41,13 @@ exports.communityFavorite = onSchedule(
             ? `${favorites.length} coups de cœur ex æquo`
             : `Coup de cœur · ${favorites[0].title}`;
 
+        const animes = favorites.map((a) => ({
+            mal_id: a.mal_id,
+            title: a.title,
+            cover: a.cover,
+            avg: a.avg,
+            count: a.count,
+        }));
         const id = await createPendingPost({
             type: 'favorite',
             scheduledAt: Date.now() + 3600_000,
@@ -48,7 +55,7 @@ exports.communityFavorite = onSchedule(
             caption,
             hashtags,
             slides,
-            sourceData: { animeIds: favorites.map((a) => a.mal_id) },
+            sourceData: { animeIds: favorites.map((a) => a.mal_id), animes },
             platforms: { insta: true, tiktok: true, x: false },
         });
         console.log(`[social/communityFavorite] created pending ${id} — ${favorites.length} winners`);
