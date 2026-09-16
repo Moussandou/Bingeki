@@ -170,7 +170,11 @@ export default function AdminSocial() {
     const puppeteerSlides = active?.slides.filter((sl) => sl.format === slideFormat) ?? [];
     const hasTemplate = templateSlides.length > 0;
     const slideCount = hasTemplate ? templateSlides.length : puppeteerSlides.length;
-    const hasStory = active?.slides.some((sl) => sl.format === 'story') ?? true;
+    // The templates always know how to render both formats; the puppeteer
+    // fallback only exposes what's actually in Firestore.
+    const hasStory = hasTemplate
+        ? true
+        : (active?.slides.some((sl) => sl.format === 'story') ?? true);
 
     // Clamp active index if slideCount shrinks
     useEffect(() => {
