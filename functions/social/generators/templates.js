@@ -206,6 +206,47 @@ const CSS = `
         font-family: 'Outfit'; font-weight: 900;
         font-size: 30px; letter-spacing: 1px;
     }
+
+    /* INFO slide (fiche technique — rows label/value on halftone bg) */
+    .info-head {
+        position: absolute; top: 60px; left: 60px; right: 60px; z-index: 5;
+    }
+    .info-eyebrow {
+        font-family: 'Outfit'; font-weight: 800;
+        font-size: 30px; letter-spacing: 8px;
+        text-transform: uppercase; color: #666;
+    }
+    .info-title {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 96px; line-height: 0.95; letter-spacing: -4px;
+        text-transform: uppercase; margin-top: 12px; color: #000;
+        overflow-wrap: break-word; word-break: break-word;
+    }
+    .info-title .accent {
+        color: ${ROSE}; text-shadow: 5px 5px 0 #000;
+        display: inline-block; transform: rotate(-3deg);
+    }
+    .info-rows {
+        position: absolute; top: 340px; bottom: 160px;
+        left: 60px; right: 60px; z-index: 5;
+        display: flex; flex-direction: column; gap: 22px;
+        justify-content: center;
+    }
+    .info-row {
+        background: #fff; border: 5px solid #000; box-shadow: 8px 8px 0 #000;
+        padding: 26px 34px; display: flex; align-items: center;
+        justify-content: space-between; gap: 20px;
+    }
+    .info-label {
+        font-family: 'Outfit'; font-weight: 800;
+        font-size: 30px; letter-spacing: 3px;
+        text-transform: uppercase; color: #666;
+    }
+    .info-value {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 48px; letter-spacing: -1.5px;
+        color: ${ROSE}; text-align: right;
+    }
 `;
 
 function docShell(inner) {
@@ -263,6 +304,29 @@ function animeSlide({ cover, fallbackGradient, ribbon, ribbonVariant = 'ribbon-r
             <div class="title">${escape(title)}</div>
             ${subtitle ? `<div class="subtitle">${escape(subtitle)}</div>` : ''}
         </div>
+        ${slideIdxBadge(index, total)}
+    `);
+}
+
+/* =============================================================== */
+/* INFO SLIDE                                                      */
+/* =============================================================== */
+function infoSlide({ eyebrow, titleMain, titleAccent, items = [], index, total }) {
+    const rows = items.map((it) => `
+        <div class="info-row">
+            <span class="info-label">${escape(it.label)}</span>
+            <span class="info-value">${escape(it.value)}</span>
+        </div>
+    `).join('');
+    return docShell(`
+        <div class="halftone-black"></div>
+        <div class="info-head">
+            <div class="info-eyebrow">${escape(eyebrow)}</div>
+            <div class="info-title">${escape(titleMain)} <span class="accent">${escape(titleAccent)}</span></div>
+        </div>
+        <div class="info-rows">${rows}</div>
+        <div class="intro-brand">Bingeki</div>
+        <div class="intro-swipe">SWIPE →</div>
         ${slideIdxBadge(index, total)}
     `);
 }
@@ -454,18 +518,21 @@ function buildSlidesHTML(type, data) {
                 index: 1, total,
             }),
         });
+        const infoItems = [];
+        if ((data.studios || []).length) infoItems.push({ label: 'Studio', value: data.studios.join(', ') });
+        if (data.episodes) infoItems.push({ label: 'Épisodes prévus', value: String(data.episodes) });
+        if (data.score) infoItems.push({ label: 'Note S1', value: `${data.score} ★` });
+        infoItems.push({ label: 'Sortie', value: data.airing_from
+            ? new Date(data.airing_from).toLocaleDateString('fr-FR')
+            : 'Cette semaine' });
+
         slides.push({
             name: 'info',
-            html: introSlide({
-                badge: 'FICHE SAISON',
-                badgeVariant: 'chip-rose',
+            html: infoSlide({
+                eyebrow: 'Fiche saison',
                 titleMain: data.title.split(' ').slice(0, 2).join(' '),
                 titleAccent: 'S2',
-                subtitle: [
-                    (data.studios || []).length ? `Studio ${data.studios.join(', ')}` : null,
-                    data.episodes ? `${data.episodes} épisodes prévus` : null,
-                    data.score ? `S1 notée ${data.score}/10` : null,
-                ].filter(Boolean).join(' · '),
+                items: infoItems,
                 index: 2, total,
             }),
         });
