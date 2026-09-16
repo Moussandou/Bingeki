@@ -38,7 +38,7 @@ TOP 3 de la semaine :
 Rédige une caption (max 400 caractères) qui :
 1. Célèbre le classement.
 2. Souligne que ce sont LES USERS qui ont fait le classement (fierté commu).
-3. Termine par un appel à noter/commenter.
+3. Termine par un appel à noter/commenter et inclus ${BINGEKI_URL} dans la caption (obligatoire).
 
 Puis 5 hashtags.
 
@@ -52,7 +52,7 @@ JSON strict :
 Rédige une caption (max 350 caractères) qui :
 1. Célèbre l'anime (ou les animes s'il y a égalité).
 2. Mentionne la note et le nombre de watchers Bingeki.
-3. Invite à l'ajouter à sa liste.
+3. Invite à l'ajouter à sa liste sur ${BINGEKI_URL} (l'URL doit apparaître dans la caption, obligatoire).
 
 Puis 5 hashtags.
 
@@ -67,7 +67,7 @@ Anime :
 Rédige une caption (max 400 caractères) qui :
 1. Accroche façon "hype" (le retour tant attendu, etc.).
 2. Mentionne le studio et la note de la précédente saison (si dispo).
-3. Termine par une question aux fans.
+3. Termine par une question aux fans et inclus ${BINGEKI_URL} dans la caption (obligatoire, pour tracker la saison).
 
 Puis 5-6 hashtags avec le nom de l'anime.
 
@@ -106,6 +106,12 @@ function parseGeminiResponse(text) {
         throw new Error('Gemini response missing caption/hashtags');
     }
     return obj;
+}
+
+function ensureBingekiUrl(caption) {
+    if (caption.includes('bingeki.web.app') || caption.includes(BINGEKI_URL)) return caption;
+    const trimmed = caption.trimEnd();
+    return `${trimmed}\n\n${BINGEKI_URL}`;
 }
 
 /**
@@ -147,7 +153,8 @@ async function generateCaption(type, data, config) {
     const text = body?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error('Gemini response empty');
 
-    return parseGeminiResponse(text);
+    const parsed = parseGeminiResponse(text);
+    return { ...parsed, caption: ensureBingekiUrl(parsed.caption) };
 }
 
-module.exports = { generateCaption, PROMPTS, parseGeminiResponse, serializeData };
+module.exports = { generateCaption, PROMPTS, parseGeminiResponse, serializeData, ensureBingekiUrl };

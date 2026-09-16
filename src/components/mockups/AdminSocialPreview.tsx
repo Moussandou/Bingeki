@@ -37,7 +37,7 @@ const MOCK_PENDING: PendingPost[] = [
 
 Vous suivez lesquels cette saison ? Dites-nous en commentaires 👇
 
-Toute la liste et vos progressions sur Bingeki.`,
+Toute la liste et vos progressions sur https://bingeki.web.app`,
         hashtags: '#anime #mha #frieren #onepiece #dandadan #bingeki #animefr',
         slides: [
             { format: 'feed', url: 'https://cdn.myanimelist.net/images/anime/10/78745l.jpg', index: 0 },
@@ -66,7 +66,9 @@ Toute la liste et vos progressions sur Bingeki.`,
         title: "Chainsaw Man S2 · Announcement",
         caption: `Chainsaw Man revient. Le S2 débarque vendredi et on trépigne autant que vous.
 
-12 épisodes prévus, MAPPA aux commandes, la barre est haute après une S1 à 8.7/10. On l'ajoute déjà à notre liste — et vous ?`,
+12 épisodes prévus, MAPPA aux commandes, la barre est haute après une S1 à 8.7/10. On l'ajoute déjà à notre liste — et vous ?
+
+Track la saison en direct : https://bingeki.web.app`,
         hashtags: '#chainsawman #mappa #anime2026 #newseason #bingeki',
         slides: [
             { format: 'feed', url: 'https://cdn.myanimelist.net/images/anime/1806/126216l.jpg', index: 0 },
@@ -114,7 +116,9 @@ Vous l'avez déjà ajouté à votre liste ? Sinon, c'est ici : https://bingeki.w
 🥈 Dandadan — 9.1/10
 🥉 Blue Lock — 8.9/10
 
-Merci aux 6 800+ watchers qui ont noté leurs épisodes cette semaine. Vous avez fait le classement.`,
+Merci aux 6 800+ watchers qui ont noté leurs épisodes cette semaine. Vous avez fait le classement.
+
+Notez vos épisodes sur https://bingeki.web.app`,
         hashtags: '#animeweeklyrecap #frieren #dandadan #bluelock #bingeki',
         slides: [
             { format: 'feed', url: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg', index: 0 },
