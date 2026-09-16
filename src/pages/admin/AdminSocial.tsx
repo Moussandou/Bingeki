@@ -1,12 +1,11 @@
 /**
- * Admin Social Bot page — post validation & publishing UI
+ * Admin Social Bot page — post validation & publishing UI.
  *
- * Phase 2: branché sur Firestore live (subscribeToPendingPosts /
- * subscribeToBotConfig / subscribeToPublishedPosts). Les actions
- * Publier / Rejeter / Régénérer appellent les callables backend qui
- * seront implémentées en Phase 4.
+ * Responsive: desktop grid (sidebar + preview + edit), tablet narrows
+ * both cols, mobile stacks everything vertically. All layout lives in
+ * AdminSocial.module.css so media queries can do their job.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     Calendar, TrendingUp, Sparkles, Camera, Music2, MessageSquare,
     RefreshCw, Save, Trash2, Send, Clock, CheckCircle2, Users, Power, PowerOff,
@@ -14,11 +13,10 @@ import {
 } from 'lucide-react';
 import { logger } from '@/utils/logger';
 import { useAuthStore } from '@/store/authStore';
-import type { PendingPost, PublishedPost, BotConfig, PostType, PostPlatforms } from '@/shared/socialBot';
+import type { PendingPost, PublishedPost, BotConfig, PostType, PostPlatforms, PostSourceAnime } from '@/shared/socialBot';
 import { POST_TYPE_LABELS, POST_TYPE_COLORS, DEFAULT_BOT_CONFIG } from '@/shared/socialBot';
-import { SlideHtmlPreview } from '@/components/admin/SlideHtmlPreview';
-import { SlidesEditor } from '@/components/admin/SlidesEditor';
-import type { PostSourceAnime } from '@/shared/socialBot';
+import { buildSlidesHTML } from '@/shared/socialTemplates';
+import type { AnimeSlideData } from '@/shared/socialTemplates';
 import {
     subscribeToPendingPosts,
     subscribeToPublishedPosts,
@@ -31,9 +29,12 @@ import {
     rejectPost,
     regeneratePost,
 } from '@/firebase/socialBot';
+import { SlideHtmlPreview } from '@/components/admin/SlideHtmlPreview';
+import { SlidesEditor } from '@/components/admin/SlidesEditor';
+import s from './AdminSocial.module.css';
 
 /* ==========================================================================
-   UI PIECES
+   HELPERS
    ========================================================================== */
 
 const TYPE_ICONS: Record<PostType, React.ReactNode> = {
@@ -46,13 +47,10 @@ const TYPE_ICONS: Record<PostType, React.ReactNode> = {
 const TypeBadge: React.FC<{ type: PostType }> = ({ type }) => {
     const colors = POST_TYPE_COLORS[type];
     return (
-        <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-            background: colors.bg, color: colors.text, border: '2px solid #000',
-            padding: '0.15rem 0.45rem',
-            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-            fontSize: '0.55rem', letterSpacing: '0.1em', textTransform: 'uppercase',
-        }}>
+        <div
+            className={s.typeBadge}
+            style={{ background: colors.bg, color: colors.text }}
+        >
             {TYPE_ICONS[type]} {POST_TYPE_LABELS[type]}
         </div>
     );
@@ -71,16 +69,23 @@ const formatSchedule = (ts: number): string => {
     return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 };
 
+const animesToTemplateData = (
+    type: PostType,
+    animes: PostSourceAnime[],
+): AnimeSlideData | AnimeSlideData[] | null => {
+    if (!animes || animes.length === 0) return null;
+    if (type === 'newseason') return animes[0];
+    return animes;
+};
+
 /* ==========================================================================
    PAGE
    ========================================================================== */
 
 export default function AdminSocial() {
-    // Force superAdmin visibility when running under the /_preview/admin-social
-    // demo route, so reviewers can see the schedules panel without a real admin login.
     const previewSuper = typeof window !== 'undefined'
         && window.location?.pathname?.includes('/_preview/admin-social');
-    const isSuperAdmin = useAuthStore((s) => s.userProfile?.isSuperAdmin === true) || previewSuper;
+    const isSuperAdmin = useAuthStore((state) => state.userProfile?.isSuperAdmin === true) || previewSuper;
 
     const [pending, setPending] = useState<PendingPost[]>([]);
     const [published, setPublished] = useState<PublishedPost[]>([]);
@@ -89,7 +94,6 @@ export default function AdminSocial() {
 
     const [activeId, setActiveId] = useState<string | null>(null);
 
-    // Draft state (unsaved edits)
     const [captionDraft, setCaptionDraft] = useState<string>('');
     const [hashtagsDraft, setHashtagsDraft] = useState<string>('');
     const [platformsDraft, setPlatformsDraft] = useState<PostPlatforms>({ insta: false, tiktok: false, x: false });
@@ -98,7 +102,7 @@ export default function AdminSocial() {
     const [slideFormat, setSlideFormat] = useState<'feed' | 'story'>('feed');
     const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
 
-    // Subscribe to Firestore
+    // Subscribe
     useEffect(() => {
         const unsubPending = subscribeToPendingPosts((posts) => {
             setPending(posts);
@@ -113,19 +117,16 @@ export default function AdminSocial() {
         };
     }, []);
 
-    // Auto-select first pending post
     useEffect(() => {
         if (!activeId && pending.length > 0) {
             setActiveId(pending[0].id);
         } else if (activeId && !pending.find((p) => p.id === activeId)) {
-            // Selected post was removed (published/rejected)
             setActiveId(pending[0]?.id ?? null);
         }
     }, [pending, activeId]);
 
     const active = pending.find((p) => p.id === activeId) ?? null;
 
-    // Reset drafts when switching post
     useEffect(() => {
         if (active) {
             setCaptionDraft(active.caption);
@@ -142,6 +143,31 @@ export default function AdminSocial() {
         || platformsDraft.tiktok !== active.platforms.tiktok
         || platformsDraft.x !== active.platforms.x
     ));
+
+    /* --------------- Slides derivation ---------------
+       Template drives navigation when we have sourceData.animes
+       (intro + N animes + outro). Fallback to Firestore-stored slide
+       URLs (Puppeteer PNGs) otherwise. */
+    const animesForLive = active?.sourceData?.animes;
+    const templateData = active && animesForLive
+        ? animesToTemplateData(active.type, animesForLive)
+        : null;
+    const templateSlides = useMemo(() => {
+        if (!active || !templateData) return [];
+        return buildSlidesHTML(active.type, templateData);
+    }, [active?.type, templateData, active]);
+
+    const puppeteerSlides = active?.slides.filter((sl) => sl.format === slideFormat) ?? [];
+    const hasTemplate = templateSlides.length > 0;
+    const slideCount = hasTemplate ? templateSlides.length : puppeteerSlides.length;
+    const hasStory = active?.slides.some((sl) => sl.format === 'story') ?? true;
+
+    // Clamp active index if slideCount shrinks
+    useEffect(() => {
+        if (activeSlideIndex >= slideCount && slideCount > 0) {
+            setActiveSlideIndex(0);
+        }
+    }, [slideCount, activeSlideIndex]);
 
     const togglePlatform = (key: keyof PostPlatforms) => {
         setPlatformsDraft((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -239,84 +265,34 @@ export default function AdminSocial() {
         }
     };
 
-    // Filter slides by active format for preview
-    const previewSlides = active?.slides.filter((s) => s.format === slideFormat) ?? [];
-    const currentSlide = previewSlides[activeSlideIndex] ?? previewSlides[0];
-    const cover = currentSlide?.url;
-    const hasStory = active?.slides.some((s) => s.format === 'story') ?? false;
-
-    // Data available to re-render the slides in the browser (via SlideHtmlPreview)
-    const animesForLive = active?.sourceData?.animes;
-    const useLivePreview = Boolean(animesForLive && animesForLive.length > 0);
-    const livePreviewData = useLivePreview && animesForLive
-        ? (active!.type === 'newseason' ? animesForLive[0] : animesForLive)
-        : null;
+    /* ==========================================================================
+       RENDER
+       ========================================================================== */
 
     return (
-        <div style={{
-            padding: '20px', background: '#f5f5f5', minHeight: '100vh',
-            color: '#000', fontFamily: '"Inter", sans-serif',
-        }}>
-            <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-                {/* Header */}
-                <div style={{
-                    background: '#000', color: '#fff', padding: '0.9rem 1.2rem',
-                    border: '3px solid #000', boxShadow: '6px 6px 0 #000',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    marginBottom: '1.5rem',
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                        <div style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                            background: '#FF2E63', color: '#fff', border: '2px solid #fff',
-                            padding: '0.2rem 0.5rem',
-                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                            fontSize: '0.65rem', letterSpacing: '0.1em',
-                        }}>
-                            SOCIAL BOT
-                        </div>
-                        <h1 style={{
-                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                            fontSize: '1.2rem', letterSpacing: '-0.5px', margin: 0,
-                        }}>
-                            Validation des publications
-                        </h1>
+        <div className={s.page}>
+            <div className={s.container}>
+
+                {/* HEADER */}
+                <div className={s.header}>
+                    <div className={s.headerLeft}>
+                        <span className={s.brandChip}>SOCIAL BOT</span>
+                        <h1 className={s.headerTitle}>Validation des publications</h1>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <div style={{
-                            background: '#FF2E63', color: '#fff', border: '2px solid #fff',
-                            padding: '0.2rem 0.55rem',
-                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                            fontSize: '0.7rem',
-                        }}>
-                            <Clock size={11} style={{ verticalAlign: '-2px' }} /> {pending.length} EN ATTENTE
-                        </div>
-                        <div style={{
-                            background: '#08D9D6', color: '#000', border: '2px solid #fff',
-                            padding: '0.2rem 0.55rem',
-                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                            fontSize: '0.7rem',
-                        }}>
-                            <CheckCircle2 size={11} style={{ verticalAlign: '-2px' }} /> {published.length} PUBLIÉS
-                        </div>
+                    <div className={s.headerBadges}>
+                        <span className={s.statChip}>
+                            <Clock size={11} /> {pending.length} EN ATTENTE
+                        </span>
+                        <span className={`${s.statChip} ${s.cyan}`}>
+                            <CheckCircle2 size={11} /> {published.length} PUBLIÉS
+                        </span>
                         <button
                             onClick={handleToggleKillSwitch}
-                            title={
-                                !isSuperAdmin ? 'superAdmin uniquement' :
-                                    config.enabled ? 'Kill-switch — désactiver le bot' : 'Activer le bot'
-                            }
                             disabled={!isSuperAdmin}
-                            style={{
-                                background: config.enabled ? '#08D9D6' : '#ef4444',
-                                color: config.enabled ? '#000' : '#fff',
-                                border: '2px solid #fff',
-                                cursor: isSuperAdmin ? 'pointer' : 'not-allowed',
-                                opacity: isSuperAdmin ? 1 : 0.6,
-                                padding: '0.25rem 0.6rem',
-                                fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                fontSize: '0.7rem', letterSpacing: '0.05em',
-                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                            }}
+                            title={!isSuperAdmin
+                                ? 'superAdmin uniquement'
+                                : config.enabled ? 'Kill-switch — désactiver' : 'Activer le bot'}
+                            className={`${s.killSwitch} ${config.enabled ? s.enabled : s.disabled}`}
                         >
                             {config.enabled ? <Power size={11} /> : <PowerOff size={11} />}
                             {config.enabled ? 'BOT ACTIF' : 'BOT DÉSACTIVÉ'}
@@ -325,301 +301,168 @@ export default function AdminSocial() {
                 </div>
 
                 {!config.enabled && (
-                    <div style={{
-                        background: '#fff3cd', border: '3px solid #f59e0b', boxShadow: '4px 4px 0 #000',
-                        padding: '0.7rem 1rem', marginBottom: '1rem',
-                        fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: '0.8rem',
-                    }}>
+                    <div className={s.banner}>
                         Kill-switch actif — les crons ne génèrent plus de posts, aucune publication automatique.
                     </div>
                 )}
 
-                {/* Body : 2 columns */}
-                <div style={{
-                    display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.2rem',
-                }}>
-                    {/* Sidebar */}
-                    <aside style={{
-                        background: '#fff', border: '3px solid #000', boxShadow: '6px 6px 0 #000',
-                        padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem',
-                        height: 'fit-content', position: 'sticky', top: '20px',
-                    }}>
-                        <div>
-                            <div style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                marginBottom: '0.5rem',
-                            }}>
-                                <h3 style={{
-                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                    fontSize: '0.75rem', textTransform: 'uppercase',
-                                    letterSpacing: '0.08em', margin: 0,
-                                }}>
-                                    En attente
-                                </h3>
-                                <span style={{
-                                    background: '#000', color: '#fff', border: '2px solid #000',
-                                    padding: '1px 6px',
-                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                    fontSize: '0.65rem',
-                                }}>
-                                    {pending.length}
-                                </span>
+                {/* BODY */}
+                <div className={s.body}>
+
+                    {/* SIDEBAR */}
+                    <aside className={s.sidebar}>
+
+                        {/* Pending list */}
+                        <div className={s.sidebarSection}>
+                            <div className={s.sectionHead}>
+                                <h3 className={s.sectionTitle}>En attente</h3>
+                                <span className={s.sectionCount}>{pending.length}</span>
                             </div>
                             {loading && (
-                                <div style={{
-                                    padding: '1rem', textAlign: 'center', color: '#666',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-                                    fontSize: '0.8rem',
-                                }}>
+                                <div className={s.emptyBox}>
                                     <Loader2 size={14} className="animate-spin" /> Chargement...
                                 </div>
                             )}
                             {!loading && pending.length === 0 && (
-                                <div style={{
-                                    padding: '1rem', textAlign: 'center', color: '#666',
-                                    border: '2px dashed #ccc', fontSize: '0.75rem', lineHeight: 1.4,
-                                }}>
+                                <div className={s.emptyBox}>
                                     Aucun post en attente.<br />
                                     Le prochain cron déposera un post ici.
                                 </div>
                             )}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                {pending.map((p) => {
-                                    const selected = p.id === activeId;
-                                    const thumb = p.slides.find((s) => s.format === 'feed')?.url ?? p.slides[0]?.url;
-                                    return (
-                                        <button
-                                            key={p.id}
-                                            onClick={() => setActiveId(p.id)}
-                                            style={{
-                                                textAlign: 'left', cursor: 'pointer',
-                                                display: 'flex', gap: '0.6rem', padding: '0.6rem',
-                                                background: selected ? '#000' : '#fff',
-                                                color: selected ? '#fff' : '#000',
-                                                border: '3px solid #000',
-                                                boxShadow: selected ? 'inset 0 0 0 2px #FF2E63' : '3px 3px 0 #000',
-                                            }}
-                                        >
-                                            <div style={{
-                                                width: '44px', height: '58px', flexShrink: 0,
-                                                background: '#252A34', border: '2px solid #000',
-                                                position: 'relative', overflow: 'hidden',
-                                            }}>
-                                                {thumb && (
-                                                    <img src={thumb} alt="" style={{
-                                                        position: 'absolute', inset: 0,
-                                                        width: '100%', height: '100%', objectFit: 'cover',
-                                                    }} />
-                                                )}
+                            {pending.map((p) => {
+                                const selected = p.id === activeId;
+                                const thumb = p.slides.find((sl) => sl.format === 'feed')?.url ?? p.slides[0]?.url;
+                                return (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => setActiveId(p.id)}
+                                        className={`${s.postThumb} ${selected ? s.selected : ''}`}
+                                    >
+                                        <div className={s.thumbCover}>
+                                            {thumb && <img src={thumb} alt="" />}
+                                        </div>
+                                        <div className={s.thumbInfo}>
+                                            <TypeBadge type={p.type} />
+                                            <div className={s.thumbTitle}>{p.title}</div>
+                                            <div className={s.thumbMeta}>
+                                                <Clock size={9} /> {formatSchedule(p.scheduledAt)}
                                             </div>
-                                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                                <TypeBadge type={p.type} />
-                                                <div style={{
-                                                    fontFamily: '"Outfit", sans-serif', fontWeight: 800,
-                                                    fontSize: '0.7rem', lineHeight: 1.1,
-                                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                                }}>
-                                                    {p.title}
-                                                </div>
-                                                <div style={{
-                                                    fontSize: '0.6rem', color: selected ? '#08D9D6' : '#666',
-                                                    fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem',
-                                                }}>
-                                                    <Clock size={9} /> {formatSchedule(p.scheduledAt)}
-                                                </div>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                                        </div>
+                                    </button>
+                                );
+                            })}
                         </div>
 
-                        {/* Schedules config — superAdmin only */}
+                        {/* Schedules — superAdmin only */}
                         {isSuperAdmin && (
-                            <div>
-                                <div style={{
-                                    borderTop: '2px dashed #ccc', paddingTop: '0.75rem', marginBottom: '0.5rem',
-                                }}>
-                                    <h3 style={{
-                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                        fontSize: '0.7rem', textTransform: 'uppercase',
-                                        letterSpacing: '0.08em', margin: 0,
-                                    }}>
-                                        Crons
-                                    </h3>
+                            <div className={s.sidebarSection}>
+                                <div className={s.sectionHead}>
+                                    <h3 className={s.sectionTitle}>Crons</h3>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    {([
-                                        { key: 'daily' as const, label: 'Sorties du jour', hasDay: false },
-                                        { key: 'weekly' as const, label: 'Récap hebdo', hasDay: true },
-                                        { key: 'favorite' as const, label: 'Coup de cœur', hasDay: true },
-                                    ]).map((s) => {
-                                        const sched = config.schedules?.[s.key];
-                                        const enabled = sched?.enabled ?? true;
-                                        const hour = sched?.hour ?? 12;
-                                        const dayOfWeek = (sched && 'dayOfWeek' in sched) ? sched.dayOfWeek : 0;
-                                        return (
-                                            <div key={s.key} style={{
-                                                padding: '0.55rem 0.6rem', background: enabled ? '#fff' : '#f5f5f5',
-                                                border: `2px solid ${enabled ? '#000' : '#ccc'}`,
-                                                display: 'flex', flexDirection: 'column', gap: '0.4rem',
-                                            }}>
-                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={enabled}
-                                                        onChange={(e) => setScheduleEnabled(s.key, e.target.checked).catch((err) => {
-                                                            logger.error('[AdminSocial] set schedule failed:', err);
-                                                            alert('Toggle échoué (voir console).');
-                                                        })}
-                                                        style={{ width: 16, height: 16, cursor: 'pointer' }}
-                                                    />
-                                                    <span style={{
-                                                        fontFamily: '"Outfit", sans-serif', fontWeight: 800,
-                                                        fontSize: '0.72rem', color: enabled ? '#000' : '#999',
-                                                    }}>
-                                                        {s.label}
-                                                    </span>
-                                                </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                                    {s.hasDay && (
-                                                        <select
-                                                            value={dayOfWeek}
-                                                            disabled={!enabled}
-                                                            onChange={(e) => setScheduleTime(s.key, { dayOfWeek: parseInt(e.target.value, 10) }).catch((err) => logger.error(err))}
-                                                            style={{
-                                                                border: '2px solid #000', padding: '2px 4px',
-                                                                fontFamily: '"Outfit", sans-serif', fontWeight: 700,
-                                                                fontSize: '0.65rem', flex: 1,
-                                                            }}
-                                                        >
-                                                            {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map((d, i) => (
-                                                                <option key={i} value={i}>{d}</option>
-                                                            ))}
-                                                        </select>
-                                                    )}
-                                                    <input
-                                                        type="number"
-                                                        min={0} max={23}
-                                                        value={hour}
+                                {([
+                                    { key: 'daily' as const, label: 'Sorties du jour', hasDay: false },
+                                    { key: 'weekly' as const, label: 'Récap hebdo', hasDay: true },
+                                    { key: 'favorite' as const, label: 'Coup de cœur', hasDay: true },
+                                ]).map((row) => {
+                                    const sched = config.schedules?.[row.key];
+                                    const enabled = sched?.enabled ?? true;
+                                    const hour = sched?.hour ?? 12;
+                                    const dayOfWeek = (sched && 'dayOfWeek' in sched) ? sched.dayOfWeek : 0;
+                                    return (
+                                        <div key={row.key} className={`${s.cronRow} ${enabled ? s.enabled : s.disabled}`}>
+                                            <label className={s.cronLabel}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={enabled}
+                                                    onChange={(e) => setScheduleEnabled(row.key, e.target.checked).catch((err) => {
+                                                        logger.error('[AdminSocial] set schedule failed:', err);
+                                                        alert('Toggle échoué.');
+                                                    })}
+                                                    style={{ width: 16, height: 16 }}
+                                                />
+                                                {row.label}
+                                            </label>
+                                            <div className={s.cronTime}>
+                                                {row.hasDay && (
+                                                    <select
+                                                        value={dayOfWeek}
                                                         disabled={!enabled}
-                                                        onChange={(e) => {
-                                                            const v = parseInt(e.target.value, 10);
-                                                            if (v >= 0 && v <= 23) setScheduleTime(s.key, { hour: v }).catch((err) => logger.error(err));
-                                                        }}
-                                                        style={{
-                                                            border: '2px solid #000', padding: '2px 4px', width: '60px',
-                                                            fontFamily: '"Outfit", sans-serif', fontWeight: 700,
-                                                            fontSize: '0.65rem',
-                                                        }}
-                                                    />
-                                                    <span style={{ fontSize: '0.6rem', color: '#666', fontWeight: 700 }}>h</span>
-                                                </div>
+                                                        onChange={(e) => setScheduleTime(row.key, { dayOfWeek: parseInt(e.target.value, 10) }).catch((err) => logger.error(err))}
+                                                    >
+                                                        {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map((d, i) => (
+                                                            <option key={i} value={i}>{d}</option>
+                                                        ))}
+                                                    </select>
+                                                )}
+                                                <input
+                                                    type="number"
+                                                    min={0} max={23}
+                                                    value={hour}
+                                                    disabled={!enabled}
+                                                    onChange={(e) => {
+                                                        const v = parseInt(e.target.value, 10);
+                                                        if (v >= 0 && v <= 23) setScheduleTime(row.key, { hour: v }).catch((err) => logger.error(err));
+                                                    }}
+                                                />
+                                                <span style={{ fontSize: '0.65rem', color: '#666', fontWeight: 700 }}>h</span>
                                             </div>
-                                        );
-                                    })}
-                                    <div style={{
-                                        padding: '0.4rem 0.5rem', background: '#fff3cd', border: '2px solid #f59e0b',
-                                        fontSize: '0.55rem', color: '#78350f', lineHeight: 1.4,
-                                        fontFamily: '"Inter", sans-serif', fontWeight: 600,
-                                    }}>
-                                        Horaires stockés en config. Changement effectif sans redeploy pour l'activation, mais les crons Firebase Scheduler restent hardcodés — pour vraiment changer l'heure d'exec, modifier le code et redéployer.
-                                    </div>
+                                        </div>
+                                    );
+                                })}
+                                <div className={s.cronNotice}>
+                                    Horaires stockés en config. Changer l'heure d'exécution demande de modifier le code du cron et de redéployer.
                                 </div>
                             </div>
                         )}
 
+                        {/* Recently published */}
                         {published.length > 0 && (
-                            <div>
-                                <div style={{
-                                    borderTop: '2px dashed #ccc', paddingTop: '0.75rem', marginBottom: '0.5rem',
-                                }}>
-                                    <h3 style={{
-                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                        fontSize: '0.7rem', textTransform: 'uppercase',
-                                        letterSpacing: '0.08em', margin: 0,
-                                    }}>
-                                        Derniers publiés
-                                    </h3>
+                            <div className={s.sidebarSection}>
+                                <div className={s.sectionHead}>
+                                    <h3 className={s.sectionTitle}>Derniers publiés</h3>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                    {published.map((p) => (
-                                        <div key={p.id} style={{
-                                            padding: '0.5rem 0.6rem', background: '#f5f5f5',
-                                            border: '2px solid #ccc',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                        }}>
-                                            <div style={{ minWidth: 0 }}>
-                                                <div style={{
-                                                    fontFamily: '"Outfit", sans-serif', fontWeight: 800,
-                                                    fontSize: '0.7rem', color: '#333',
-                                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                                }}>
-                                                    {p.title}
-                                                </div>
-                                                <div style={{ fontSize: '0.6rem', color: '#666', marginTop: '2px' }}>
-                                                    {formatSchedule(p.publishedAt)}
-                                                </div>
-                                            </div>
-                                            {p.reach?.insta?.impressions && (
-                                                <div style={{
-                                                    background: '#08D9D6', color: '#000', border: '2px solid #000',
-                                                    padding: '1px 5px',
-                                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                                    fontSize: '0.6rem',
-                                                }}>
-                                                    {(p.reach.insta.impressions / 1000).toFixed(1)}K
-                                                </div>
-                                            )}
+                                {published.map((p) => (
+                                    <div key={p.id} className={s.publishedItem}>
+                                        <div className={s.thumbInfo}>
+                                            <div className={s.thumbTitle}>{p.title}</div>
+                                            <div className={s.thumbMeta}>{formatSchedule(p.publishedAt)}</div>
                                         </div>
-                                    ))}
-                                </div>
+                                        {p.reach?.insta?.impressions && (
+                                            <span className={`${s.statChip} ${s.cyan}`} style={{ padding: '1px 6px', fontSize: '0.6rem' }}>
+                                                {(p.reach.insta.impressions / 1000).toFixed(1)}K
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </aside>
 
-                    {/* Preview panel */}
+                    {/* MAIN PANEL */}
                     {!active ? (
-                        <div style={{
-                            background: '#fff', border: '3px solid #000', boxShadow: '6px 6px 0 #000',
-                            padding: '3rem', textAlign: 'center', color: '#666',
-                        }}>
+                        <div className={s.mainPanel} style={{ display: 'block', textAlign: 'center', padding: '3rem' }}>
                             <div style={{
                                 fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                fontSize: '1.2rem', color: '#000', marginBottom: '0.5rem',
+                                fontSize: '1.2rem', marginBottom: '0.5rem',
                             }}>
                                 Rien à valider pour l'instant
                             </div>
-                            <div style={{ fontSize: '0.85rem' }}>
+                            <div style={{ fontSize: '0.85rem', color: '#666' }}>
                                 Le bot déposera un post à valider dès le prochain cron.
                             </div>
                         </div>
                     ) : (
-                        <div style={{
-                            background: '#fff', border: '3px solid #000', boxShadow: '6px 6px 0 #000',
-                            padding: '1.2rem', display: 'grid',
-                            gridTemplateColumns: '260px 1fr', gap: '1.2rem',
-                        }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                {/* Format toggle */}
+                        <div className={s.mainPanel}>
+
+                            {/* Preview column */}
+                            <div className={s.previewCol}>
                                 {hasStory && (
-                                    <div style={{
-                                        display: 'flex', border: '2px solid #000',
-                                        background: '#fff', padding: '2px',
-                                    }}>
+                                    <div className={s.formatToggle}>
                                         {(['feed', 'story'] as const).map((f) => (
                                             <button
                                                 key={f}
                                                 onClick={() => { setSlideFormat(f); setActiveSlideIndex(0); }}
-                                                style={{
-                                                    flex: 1, padding: '0.35rem 0.5rem',
-                                                    background: slideFormat === f ? '#000' : 'transparent',
-                                                    color: slideFormat === f ? '#fff' : '#000',
-                                                    border: 'none', cursor: 'pointer',
-                                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                                    fontSize: '0.65rem', letterSpacing: '0.1em',
-                                                    textTransform: 'uppercase',
-                                                }}
+                                                className={slideFormat === f ? s.active : ''}
                                             >
                                                 {f === 'feed' ? 'Feed 4:5' : 'Story 9:16'}
                                             </button>
@@ -627,164 +470,100 @@ export default function AdminSocial() {
                                     </div>
                                 )}
 
-                                {/* Big preview — live HTML render if data available, else <img> of the Puppeteer PNG */}
-                                {useLivePreview && livePreviewData ? (
-                                    <SlideHtmlPreview
-                                        type={active.type}
-                                        data={livePreviewData}
-                                        slideIndex={activeSlideIndex}
-                                        format={slideFormat}
-                                        width={260}
-                                    />
-                                ) : (
-                                    <div style={{
-                                        width: '260px',
-                                        height: slideFormat === 'story' ? '462px' : '325px',
-                                        border: '3px solid #000', boxShadow: '5px 5px 0 #000',
-                                        background: '#000', position: 'relative', overflow: 'hidden',
-                                    }}>
-                                        {cover ? (
-                                            <img src={cover} alt="" style={{
-                                                position: 'absolute', inset: 0,
-                                                width: '100%', height: '100%', objectFit: 'cover',
-                                            }} />
-                                        ) : (
-                                            <div style={{
-                                                position: 'absolute', inset: 0,
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                color: '#666', fontSize: '0.7rem', textAlign: 'center', padding: '1rem',
-                                            }}>
-                                                Aucune slide {slideFormat} disponible
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                <div className={`${s.previewFrame} ${slideFormat === 'story' ? s.story : ''}`}>
+                                    {hasTemplate && templateData ? (
+                                        <SlideHtmlPreview
+                                            type={active.type}
+                                            data={templateData}
+                                            slideIndex={activeSlideIndex}
+                                            format={slideFormat}
+                                            width={slideFormat === 'story' ? 260 : 300}
+                                        />
+                                    ) : puppeteerSlides[activeSlideIndex] ? (
+                                        <img src={puppeteerSlides[activeSlideIndex].url} alt="" style={{
+                                            position: 'absolute', inset: 0,
+                                            width: '100%', height: '100%', objectFit: 'cover',
+                                        }} />
+                                    ) : (
+                                        <div style={{
+                                            position: 'absolute', inset: 0,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: '#666', fontSize: '0.75rem', textAlign: 'center', padding: '1rem',
+                                        }}>
+                                            Aucune slide {slideFormat}
+                                        </div>
+                                    )}
+                                </div>
 
-                                {/* Slide navigation dots */}
-                                {previewSlides.length > 1 && (
-                                    <div style={{
-                                        display: 'flex', justifyContent: 'center', gap: '4px',
-                                        padding: '0.3rem 0',
-                                    }}>
-                                        {previewSlides.map((_, i) => (
+                                {slideCount > 1 && (
+                                    <div className={s.dotNav}>
+                                        {Array.from({ length: slideCount }).map((_, i) => (
                                             <button
                                                 key={i}
                                                 onClick={() => setActiveSlideIndex(i)}
-                                                style={{
-                                                    width: '18px', height: '10px',
-                                                    background: i === activeSlideIndex ? '#FF2E63' : '#fff',
-                                                    border: '2px solid #000', cursor: 'pointer', padding: 0,
-                                                }}
+                                                className={i === activeSlideIndex ? s.active : ''}
+                                                aria-label={`Slide ${i + 1}`}
                                             />
                                         ))}
                                     </div>
                                 )}
 
-                                {/* Thumbnails row */}
-                                {previewSlides.length > 1 && (
-                                    <div style={{
-                                        display: 'flex', gap: '0.3rem', flexWrap: 'wrap',
-                                    }}>
-                                        {previewSlides.map((s, i) => (
+                                {slideCount > 1 && (
+                                    <div className={s.thumbRow}>
+                                        {Array.from({ length: slideCount }).map((_, i) => (
                                             <button
                                                 key={i}
                                                 onClick={() => setActiveSlideIndex(i)}
-                                                style={{
-                                                    width: '48px', height: '60px', padding: 0,
-                                                    border: i === activeSlideIndex ? '3px solid #FF2E63' : '2px solid #000',
-                                                    background: '#000', cursor: 'pointer',
-                                                    overflow: 'hidden', position: 'relative',
-                                                }}
+                                                className={`${s.thumbSlide} ${slideFormat === 'story' ? s.story : ''} ${i === activeSlideIndex ? s.active : ''}`}
                                             >
-                                                <img src={s.url} alt="" style={{
-                                                    position: 'absolute', inset: 0,
-                                                    width: '100%', height: '100%', objectFit: 'cover',
-                                                }} />
-                                                <span style={{
-                                                    position: 'absolute', top: '2px', right: '2px',
-                                                    background: '#fff', color: '#000',
-                                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                                    fontSize: '0.55rem', padding: '1px 3px',
-                                                    border: '1px solid #000',
-                                                }}>
-                                                    {i + 1}
-                                                </span>
+                                                <span className={s.idx}>{i + 1}</span>
+                                                {hasTemplate && templateData ? (
+                                                    <SlideHtmlPreview
+                                                        type={active.type}
+                                                        data={templateData}
+                                                        slideIndex={i}
+                                                        format={slideFormat}
+                                                        width={64}
+                                                    />
+                                                ) : puppeteerSlides[i]?.url ? (
+                                                    <img src={puppeteerSlides[i].url} alt="" style={{
+                                                        position: 'absolute', inset: 0,
+                                                        width: '100%', height: '100%', objectFit: 'cover',
+                                                    }} />
+                                                ) : null}
                                             </button>
                                         ))}
                                     </div>
                                 )}
 
-                                <div style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    padding: '0.4rem 0.6rem', border: '2px solid #000', background: '#fff',
-                                    fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: '0.6rem',
-                                    color: '#666', textTransform: 'uppercase',
-                                }}>
-                                    <span>Slide {activeSlideIndex + 1} / {previewSlides.length}</span>
-                                    <span>{active.slides.filter((s) => s.format === 'feed').length}F / {active.slides.filter((s) => s.format === 'story').length}S</span>
+                                <div className={s.slideCounter}>
+                                    <span>Slide {activeSlideIndex + 1} / {slideCount}</span>
+                                    <span>{slideFormat.toUpperCase()}</span>
                                 </div>
-
-                                {/* Slides editor (only when we have sourceData.animes to edit) */}
-                                {animesForLive && animesForLive.length > 0 && (
-                                    <SlidesEditor
-                                        type={active.type}
-                                        animes={animesForLive}
-                                        onSave={handleSaveSlides}
-                                    />
-                                )}
                             </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', minWidth: 0 }}>
+                            {/* Edit column */}
+                            <div className={s.editCol}>
                                 <div>
                                     <TypeBadge type={active.type} />
-                                    <h2 style={{
-                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                        fontSize: '1.4rem', letterSpacing: '-0.8px',
-                                        margin: '0.4rem 0 0.3rem', textTransform: 'uppercase',
-                                    }}>
-                                        {active.title}
-                                    </h2>
-                                    <div style={{
-                                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                        fontSize: '0.75rem', color: '#666', fontWeight: 600,
-                                    }}>
+                                    <h2 className={s.postTitle}>{active.title}</h2>
+                                    <div className={s.postSchedule}>
                                         <Clock size={12} /> Programmé — {formatSchedule(active.scheduledAt)}
                                     </div>
                                 </div>
 
-                                <div>
-                                    <div style={{
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                        marginBottom: '0.3rem',
-                                    }}>
-                                        <label style={{
-                                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                            fontSize: '0.7rem', letterSpacing: '0.1em',
-                                            textTransform: 'uppercase', color: '#666',
-                                        }}>
-                                            Caption — généré par Gemini
-                                        </label>
+                                <div className={s.fieldGroup}>
+                                    <div className={s.fieldLabel}>
+                                        <span>Caption — généré par Gemini</span>
                                         {active.variantB && (
-                                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                                <span style={{
-                                                    fontSize: '0.55rem', fontFamily: '"Outfit", sans-serif',
-                                                    fontWeight: 800, color: '#666', textTransform: 'uppercase',
-                                                    letterSpacing: '0.05em',
-                                                }}>
-                                                    A/B
-                                                </span>
+                                            <div className={s.abToggle}>
+                                                <span style={{ fontSize: '0.55rem', fontWeight: 800, color: '#666', letterSpacing: '0.05em' }}>A/B</span>
                                                 <button
                                                     onClick={() => {
                                                         setCaptionDraft(active.caption);
                                                         setHashtagsDraft(active.hashtags);
                                                     }}
-                                                    style={{
-                                                        background: captionDraft === active.caption ? '#FF2E63' : '#fff',
-                                                        color: captionDraft === active.caption ? '#fff' : '#000',
-                                                        border: '2px solid #000', padding: '2px 8px', cursor: 'pointer',
-                                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                                        fontSize: '0.6rem', letterSpacing: '0.05em',
-                                                    }}
+                                                    className={captionDraft === active.caption ? s.activeA : ''}
                                                 >
                                                     A (nouvelle)
                                                 </button>
@@ -793,13 +572,7 @@ export default function AdminSocial() {
                                                         setCaptionDraft(active.variantB!.caption);
                                                         setHashtagsDraft(active.variantB!.hashtags);
                                                     }}
-                                                    style={{
-                                                        background: captionDraft === active.variantB.caption ? '#08D9D6' : '#fff',
-                                                        color: '#000',
-                                                        border: '2px solid #000', padding: '2px 8px', cursor: 'pointer',
-                                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                                        fontSize: '0.6rem', letterSpacing: '0.05em',
-                                                    }}
+                                                    className={captionDraft === active.variantB.caption ? s.activeB : ''}
                                                 >
                                                     B (précédente)
                                                 </button>
@@ -810,133 +583,62 @@ export default function AdminSocial() {
                                         value={captionDraft}
                                         onChange={(e) => setCaptionDraft(e.target.value)}
                                         rows={6}
-                                        style={{
-                                            width: '100%',
-                                            background: '#fff', border: '3px solid #000', boxShadow: '3px 3px 0 #000',
-                                            padding: '0.7rem 0.85rem',
-                                            fontSize: '0.8rem', lineHeight: 1.5, color: '#1a1a1a',
-                                            fontFamily: '"Inter", sans-serif', resize: 'vertical',
-                                        }}
+                                        className={s.captionArea}
                                     />
                                 </div>
 
-                                <div>
-                                    <label style={{
-                                        display: 'block',
-                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                        fontSize: '0.7rem', letterSpacing: '0.1em',
-                                        textTransform: 'uppercase', color: '#666', marginBottom: '0.3rem',
-                                    }}>
-                                        Hashtags
-                                    </label>
+                                <div className={s.fieldGroup}>
+                                    <label className={s.fieldLabel}>Hashtags</label>
                                     <input
                                         value={hashtagsDraft}
                                         onChange={(e) => setHashtagsDraft(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            background: '#fff', border: '3px solid #000', boxShadow: '3px 3px 0 #000',
-                                            padding: '0.6rem 0.85rem',
-                                            fontSize: '0.78rem', lineHeight: 1.5, color: '#FF2E63', fontWeight: 700,
-                                            fontFamily: '"Inter", sans-serif',
-                                        }}
+                                        className={s.hashtagsInput}
                                     />
                                 </div>
 
-                                <div>
-                                    <div style={{
-                                        fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                        fontSize: '0.7rem', letterSpacing: '0.1em',
-                                        textTransform: 'uppercase', color: '#666', marginBottom: '0.3rem',
-                                    }}>
-                                        Publication sur
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <div className={s.fieldGroup}>
+                                    <label className={s.fieldLabel}>Publication sur</label>
+                                    <div className={s.platformRow}>
                                         {([
                                             { key: 'insta' as const, label: 'Instagram', icon: <Camera size={13} />, auto: true },
                                             { key: 'tiktok' as const, label: 'TikTok', icon: <Music2 size={13} />, auto: true },
                                             { key: 'x' as const, label: 'X (manuel)', icon: <MessageSquare size={13} />, auto: false },
                                         ]).map((p) => {
                                             const enabled = platformsDraft[p.key];
+                                            const cls = !enabled ? '' : p.auto ? s.enabled : s.enabledManual;
                                             return (
                                                 <button
                                                     key={p.key}
                                                     onClick={() => togglePlatform(p.key)}
-                                                    style={{
-                                                        display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                                        background: enabled ? (p.auto ? '#000' : '#666') : '#fff',
-                                                        color: enabled ? '#fff' : '#999',
-                                                        border: '2px solid #000', cursor: 'pointer',
-                                                        padding: '0.35rem 0.6rem',
-                                                        fontFamily: '"Outfit", sans-serif', fontWeight: 800,
-                                                        fontSize: '0.7rem',
-                                                    }}
+                                                    className={`${s.platformChip} ${cls}`}
                                                 >
                                                     {p.icon} {p.label}
-                                                    {enabled && !p.auto && (
-                                                        <span style={{
-                                                            marginLeft: '0.2rem', fontSize: '0.55rem',
-                                                            background: '#FF2E63', color: '#fff',
-                                                            padding: '1px 4px', letterSpacing: '0.05em',
-                                                        }}>
-                                                            COPY
-                                                        </span>
-                                                    )}
+                                                    {enabled && !p.auto && <span className={s.copyMark}>COPY</span>}
                                                 </button>
                                             );
                                         })}
                                     </div>
                                 </div>
 
-                                <div style={{
-                                    display: 'flex', gap: '0.5rem', flexWrap: 'wrap',
-                                    paddingTop: '0.4rem', borderTop: '2px dashed #ccc', alignItems: 'center',
-                                }}>
+                                <div className={s.actionRow}>
                                     <button
                                         onClick={handleRegenerate}
                                         disabled={actionBusy === 'regen'}
-                                        style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                            background: '#fff', color: '#000', border: '2px solid #000',
-                                            boxShadow: '3px 3px 0 #000',
-                                            padding: '0.5rem 0.85rem',
-                                            cursor: actionBusy === 'regen' ? 'wait' : 'pointer',
-                                            opacity: actionBusy === 'regen' ? 0.6 : 1,
-                                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                            fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase',
-                                        }}
+                                        className={s.actionBtn}
                                     >
                                         <RefreshCw size={13} /> Régénérer
                                     </button>
                                     <button
                                         onClick={handleSaveDraft}
                                         disabled={!dirty || savingDraft}
-                                        style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                            background: dirty ? '#08D9D6' : '#fff',
-                                            color: dirty ? '#000' : '#999',
-                                            border: '2px solid #000',
-                                            boxShadow: '3px 3px 0 #000',
-                                            padding: '0.5rem 0.85rem',
-                                            cursor: dirty && !savingDraft ? 'pointer' : 'not-allowed',
-                                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                            fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase',
-                                        }}
+                                        className={`${s.actionBtn} ${dirty ? s.save : ''}`}
                                     >
                                         <Save size={13} /> {dirty ? 'Sauver édits' : 'Aucun changement'}
                                     </button>
                                     <button
                                         onClick={handleReject}
                                         disabled={actionBusy === 'reject'}
-                                        style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                            background: '#fff', color: '#000', border: '2px solid #000',
-                                            boxShadow: '3px 3px 0 #000',
-                                            padding: '0.5rem 0.85rem',
-                                            cursor: actionBusy === 'reject' ? 'wait' : 'pointer',
-                                            opacity: actionBusy === 'reject' ? 0.6 : 1,
-                                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                            fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase',
-                                        }}
+                                        className={s.actionBtn}
                                     >
                                         <Trash2 size={13} /> Rejeter
                                     </button>
@@ -944,21 +646,20 @@ export default function AdminSocial() {
                                         onClick={handlePublish}
                                         disabled={!config.enabled || actionBusy === 'publish' || dirty}
                                         title={dirty ? 'Sauve tes édits avant de publier' : ''}
-                                        style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                            background: config.enabled && !dirty ? '#FF2E63' : '#ccc',
-                                            color: '#fff', border: '2px solid #000',
-                                            boxShadow: '3px 3px 0 #000',
-                                            padding: '0.5rem 1.1rem',
-                                            cursor: config.enabled && !dirty && actionBusy !== 'publish' ? 'pointer' : 'not-allowed',
-                                            fontFamily: '"Outfit", sans-serif', fontWeight: 900,
-                                            fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase',
-                                            marginLeft: 'auto',
-                                        }}
+                                        className={`${s.actionBtn} ${s.publish}`}
                                     >
                                         <Send size={13} /> {actionBusy === 'publish' ? 'Publication...' : 'Publier maintenant'}
                                     </button>
                                 </div>
+
+                                {/* Slides editor */}
+                                {animesForLive && animesForLive.length > 0 && (
+                                    <SlidesEditor
+                                        type={active.type}
+                                        animes={animesForLive}
+                                        onSave={handleSaveSlides}
+                                    />
+                                )}
                             </div>
                         </div>
                     )}
