@@ -18,7 +18,8 @@
  *                             we verify a first end-to-end publish)
  */
 
-import * as admin from 'firebase-admin';
+import { initializeApp, cert, applicationDefault } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import * as dotenv from 'dotenv';
 import { resolve } from 'path';
 
@@ -30,13 +31,13 @@ if (!process.env.FIREBASE_APPLICATION_CREDENTIALS) {
     );
 }
 
-admin.initializeApp({
+initializeApp({
     credential: process.env.FIREBASE_APPLICATION_CREDENTIALS
-        ? admin.credential.cert(resolve(process.env.FIREBASE_APPLICATION_CREDENTIALS))
-        : admin.credential.applicationDefault(),
+        ? cert(resolve(process.env.FIREBASE_APPLICATION_CREDENTIALS))
+        : applicationDefault(),
 });
 
-const db = admin.firestore();
+const db = getFirestore();
 
 const INSTA_CHANNEL = process.env.INSTA_BUFFER_CHANNEL_ID || '6aaad254ea19ca0bde5b9a1d';
 const TIKTOK_CHANNEL = process.env.TIKTOK_BUFFER_CHANNEL_ID || '';

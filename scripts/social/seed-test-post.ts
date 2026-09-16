@@ -14,19 +14,20 @@
  *     npm run social:seed-test-post
  */
 
-import * as admin from 'firebase-admin';
+import { initializeApp, cert, applicationDefault } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import * as dotenv from 'dotenv';
 import { resolve } from 'path';
 
 dotenv.config();
 
-admin.initializeApp({
+initializeApp({
     credential: process.env.FIREBASE_APPLICATION_CREDENTIALS
-        ? admin.credential.cert(resolve(process.env.FIREBASE_APPLICATION_CREDENTIALS))
-        : admin.credential.applicationDefault(),
+        ? cert(resolve(process.env.FIREBASE_APPLICATION_CREDENTIALS))
+        : applicationDefault(),
 });
 
-const db = admin.firestore();
+const db = getFirestore();
 
 const now = Date.now();
 
