@@ -44,18 +44,18 @@ const CSS = `
     .meta-chip { display: inline-flex; align-items: center; background: #fff; color: #000; border: 5px solid #000; padding: 10px 20px; font-family: 'Outfit'; font-weight: 900; font-size: 28px; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1; }
     .meta-chip-cyan { background: ${CYAN}; }
     .meta-chip-rose { background: ${ROSE}; color: #fff; }
-    .title { font-family: 'Outfit'; font-weight: 900; font-size: 138px; line-height: 0.9; letter-spacing: -6px; text-transform: uppercase; text-shadow: 6px 6px 0 #000; }
-    .subtitle { margin-top: 18px; font-family: 'Outfit'; font-weight: 800; font-size: 44px; letter-spacing: 3px; text-transform: uppercase; color: ${CYAN}; }
-    .intro-container { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 120px 80px; }
-    .intro-title { font-family: 'Outfit'; font-weight: 900; font-size: 170px; line-height: 0.9; letter-spacing: -8px; text-transform: uppercase; color: #000; }
-    .intro-title .accent { color: ${ROSE}; text-shadow: 8px 8px 0 #000; display: inline-block; transform: rotate(-3deg); }
-    .intro-sub { margin-top: 48px; font-family: 'Inter'; font-weight: 600; font-size: 40px; color: #555; max-width: 900px; line-height: 1.35; }
-    .intro-swipe { position: absolute; right: 60px; bottom: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 36px; color: #666; letter-spacing: 5px; }
-    .intro-brand { position: absolute; left: 60px; bottom: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 40px; color: #000; letter-spacing: -1px; }
-    .outro-container { position: absolute; inset: 0; z-index: 5; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 80px; }
-    .outro-cta { font-family: 'Outfit'; font-weight: 900; font-size: 168px; line-height: 0.9; letter-spacing: -8px; text-transform: uppercase; color: #fff; text-shadow: 8px 8px 0 ${ROSE}; }
-    .outro-btn { margin-top: 60px; background: ${ROSE}; color: #fff; border: 6px solid #fff; padding: 32px 60px; box-shadow: 12px 12px 0 #fff; font-family: 'Outfit'; font-weight: 900; font-size: 52px; letter-spacing: 4px; text-transform: uppercase; }
-    .outro-url { margin-top: 80px; font-family: 'Outfit'; font-weight: 900; font-size: 68px; letter-spacing: -2px; color: #fff; }
+    .title { font-family: 'Outfit'; font-weight: 900; font-size: 108px; line-height: 0.95; letter-spacing: -4px; text-transform: uppercase; text-shadow: 5px 5px 0 #000; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
+    .subtitle { margin-top: 18px; font-family: 'Outfit'; font-weight: 800; font-size: 40px; letter-spacing: 2px; text-transform: uppercase; color: ${CYAN}; overflow-wrap: break-word; }
+    .intro-container { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 100px 60px; }
+    .intro-title { font-family: 'Outfit'; font-weight: 900; font-size: 130px; line-height: 0.92; letter-spacing: -5px; text-transform: uppercase; color: #000; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
+    .intro-title .accent { color: ${ROSE}; text-shadow: 6px 6px 0 #000; display: inline-block; transform: rotate(-3deg); }
+    .intro-sub { margin-top: 42px; font-family: 'Inter'; font-weight: 600; font-size: 38px; color: #555; max-width: 900px; line-height: 1.35; }
+    .intro-swipe { position: absolute; right: 60px; bottom: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 32px; color: #666; letter-spacing: 4px; }
+    .intro-brand { position: absolute; left: 60px; bottom: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 38px; color: #000; letter-spacing: -1px; }
+    .outro-container { position: absolute; inset: 0; z-index: 5; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 100px 60px; }
+    .outro-cta { font-family: 'Outfit'; font-weight: 900; font-size: 126px; line-height: 0.92; letter-spacing: -5px; text-transform: uppercase; color: #fff; text-shadow: 6px 6px 0 ${ROSE}; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
+    .outro-btn { margin-top: 50px; background: ${ROSE}; color: #fff; border: 6px solid #fff; padding: 26px 48px; box-shadow: 10px 10px 0 #fff; font-family: 'Outfit'; font-weight: 900; font-size: 44px; letter-spacing: 3px; text-transform: uppercase; }
+    .outro-url { margin-top: 60px; font-family: 'Outfit'; font-weight: 900; font-size: 58px; letter-spacing: -2px; color: #fff; }
     .slide-idx { position: absolute; bottom: 60px; right: 60px; z-index: 7; background: #fff; color: #000; border: 5px solid #000; padding: 8px 18px; box-shadow: 6px 6px 0 #000; font-family: 'Outfit'; font-weight: 900; font-size: 30px; letter-spacing: 1px; }
 `;
 

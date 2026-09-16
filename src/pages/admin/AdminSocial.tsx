@@ -477,7 +477,6 @@ export default function AdminSocial() {
                                             data={templateData}
                                             slideIndex={activeSlideIndex}
                                             format={slideFormat}
-                                            width={slideFormat === 'story' ? 260 : 300}
                                         />
                                     ) : puppeteerSlides[activeSlideIndex] ? (
                                         <img src={puppeteerSlides[activeSlideIndex].url} alt="" style={{
@@ -523,7 +522,6 @@ export default function AdminSocial() {
                                                         data={templateData}
                                                         slideIndex={i}
                                                         format={slideFormat}
-                                                        width={64}
                                                     />
                                                 ) : puppeteerSlides[i]?.url ? (
                                                     <img src={puppeteerSlides[i].url} alt="" style={{
