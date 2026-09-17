@@ -120,7 +120,6 @@ export function introSlide({
         </div>
         <div class="intro-brand">Bingeki</div>
         <div class="intro-swipe">SWIPE →</div>
-        ${slideIdxBadge(index, total)}
     `);
 }
 

@@ -306,7 +306,7 @@ function slideIdxBadge(index, total) {
 /* =============================================================== */
 /* INTRO SLIDE                                                     */
 /* =============================================================== */
-function introSlide({ badge, badgeVariant = 'chip-dark', titleMain, titleAccent, subtitle, index, total }) {
+function introSlide({ badge, badgeVariant = 'chip-dark', titleMain, titleAccent, subtitle }) {
     return docShell(`
         <div class="halftone-black"></div>
         <div class="intro-container">
@@ -316,7 +316,6 @@ function introSlide({ badge, badgeVariant = 'chip-dark', titleMain, titleAccent,
         </div>
         <div class="intro-brand">Bingeki</div>
         <div class="intro-swipe">SWIPE →</div>
-        ${slideIdxBadge(index, total)}
     `);
 }
 
