@@ -99,10 +99,14 @@ function parseGeminiResponse(text) {
     } catch {
         // Fallback: find the first {...} block
         const match = cleaned.match(/\{[\s\S]*\}/);
-        if (!match) throw new Error('Gemini response is not JSON');
+        if (!match) {
+            console.error('[social/gemini] raw response was not JSON:', text.slice(0, 500));
+            throw new Error('Gemini response is not JSON');
+        }
         obj = JSON.parse(match[0]);
     }
     if (typeof obj.caption !== 'string' || typeof obj.hashtags !== 'string') {
+        console.error('[social/gemini] parsed obj missing fields:', JSON.stringify(obj).slice(0, 300));
         throw new Error('Gemini response missing caption/hashtags');
     }
     return obj;
@@ -114,13 +118,40 @@ function ensureBingekiUrl(caption) {
     return `${trimmed}\n\n${BINGEKI_URL}`;
 }
 
+const { fallbackCaption } = require('./fallbackCaption');
+
+/**
+ * Public API. Tries Gemini first, falls back to a deterministic template
+ * caption on any failure (Gemini 5xx, model deprecated, malformed JSON,
+ * missing env var, timeout). This keeps the cron unblocked when Google
+ * throttles or breaks its own model aliases.
+ *
+ * On failure the returned object has a `viaFallback: true` marker so
+ * callers (or a Discord webhook) can flag it if desired.
+ *
+ * @param {'daily'|'weekly'|'favorite'|'newseason'} type
+ * @param {object|Array} data
+ * @param {{gemini:{model:string}}} config
+ * @returns {Promise<{caption:string, hashtags:string, viaFallback?:boolean}>}
+ */
+async function generateCaption(type, data, config) {
+    try {
+        return await generateCaptionFromGemini(type, data, config);
+    } catch (err) {
+        console.warn(
+            `[social/gemini] falling back to template caption (type=${type}): ${err.message || err}`,
+        );
+        return { ...fallbackCaption(type, data), viaFallback: true };
+    }
+}
+
 /**
  * @param {'daily'|'weekly'|'favorite'|'newseason'} type
  * @param {object|Array} data
  * @param {{gemini:{model:string}}} config
  * @returns {Promise<{caption:string, hashtags:string}>}
  */
-async function generateCaption(type, data, config) {
+async function generateCaptionFromGemini(type, data, config) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
@@ -173,4 +204,11 @@ async function generateCaption(type, data, config) {
     return { ...parsed, caption: ensureBingekiUrl(parsed.caption) };
 }
 
-module.exports = { generateCaption, PROMPTS, parseGeminiResponse, serializeData, ensureBingekiUrl };
+module.exports = {
+    generateCaption,
+    generateCaptionFromGemini,
+    PROMPTS,
+    parseGeminiResponse,
+    serializeData,
+    ensureBingekiUrl,
+};
