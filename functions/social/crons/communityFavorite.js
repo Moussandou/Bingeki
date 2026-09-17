@@ -16,7 +16,10 @@ const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
 exports.communityFavorite = onSchedule(
     {
-        schedule: '0 12 * * 3',
+        // Sunday 21h Europe/Paris — 2h after the weekly recap, so the
+        // TOP 3 and the community favorite feel like a coordinated
+        // Sunday evening drop rather than two disconnected slots.
+        schedule: '0 21 * * 0',
         timeZone: 'Europe/Paris',
         retryCount: 1,
         secrets: [GEMINI_API_KEY],

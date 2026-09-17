@@ -59,6 +59,8 @@ const TypeBadge: React.FC<{ type: PostType }> = ({ type }) => {
     );
 };
 
+const DAY_NAMES_FULL = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+
 const formatSchedule = (ts: number): string => {
     if (!ts) return '—';
     const d = new Date(ts);
@@ -67,7 +69,12 @@ const formatSchedule = (ts: number): string => {
     if (sameDay) return `Aujourd'hui ${d.getHours()}h${String(d.getMinutes()).padStart(2, '0')}`;
     const days = Math.round((ts - now.getTime()) / 86_400_000);
     if (days === 1) return `Demain ${d.getHours()}h`;
-    if (days > 1 && days < 7) return `Dans ${days}j · ${d.getHours()}h`;
+    if (days > 1 && days < 7) {
+        // Explicit day name is far less ambiguous than "Dans Nj".
+        const day = DAY_NAMES_FULL[d.getDay()];
+        const dm = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+        return `${day.charAt(0).toUpperCase()}${day.slice(1)} ${dm} · ${d.getHours()}h`;
+    }
     if (days < 0 && days > -7) return `Il y a ${Math.abs(days)}j`;
     return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 };
