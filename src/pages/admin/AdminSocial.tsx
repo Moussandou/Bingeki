@@ -111,6 +111,13 @@ const nextDailyAt = (hour: number): Date => {
     return out;
 };
 
+const TYPE_DESCRIPTIONS: Record<NextRun['key'], string> = {
+    daily: 'Carrousel des épisodes d\'anime qui sortent aujourd\'hui, triés par note.',
+    newseason: 'Annonce quand une nouvelle saison d\'un anime démarre (studio, épisodes, note S1).',
+    weekly: 'TOP 3 des anime les mieux notés par les watchers Bingeki cette semaine.',
+    favorite: 'Coup de cœur communautaire : l\'anime préféré des users Bingeki cette semaine.',
+};
+
 const computeNextRuns = (config: BotConfig): NextRun[] => {
     const runs: NextRun[] = [];
     if (config.schedules?.daily?.enabled !== false) {
@@ -126,7 +133,7 @@ const computeNextRuns = (config: BotConfig): NextRun[] => {
         key: 'newseason',
         label: 'Nouvelle saison',
         ts: nextDailyAt(8).getTime(),
-        detail: 'seulement si une saison démarre',
+        detail: 'seulement si une saison démarre ce jour-là',
     });
     if (config.schedules?.weekly?.enabled !== false) {
         runs.push({
@@ -467,7 +474,7 @@ export default function AdminSocial() {
                                     key={run.key}
                                     style={{
                                         display: 'flex', flexDirection: 'column',
-                                        gap: '2px', padding: '8px 10px',
+                                        gap: '4px', padding: '10px',
                                         borderTop: '1px dashed rgba(0,0,0,0.08)',
                                     }}
                                 >
@@ -490,9 +497,17 @@ export default function AdminSocial() {
                                             {formatSchedule(run.ts)}
                                         </div>
                                     </div>
+                                    <div style={{
+                                        fontSize: '0.68rem', color: '#555', lineHeight: 1.35,
+                                    }}>
+                                        {TYPE_DESCRIPTIONS[run.key]}
+                                    </div>
                                     {run.detail && (
-                                        <div style={{ fontSize: '0.65rem', color: '#999', fontStyle: 'italic' }}>
-                                            {run.detail}
+                                        <div style={{
+                                            fontSize: '0.62rem', color: '#999',
+                                            fontStyle: 'italic', marginTop: 2,
+                                        }}>
+                                            ↳ {run.detail}
                                         </div>
                                     )}
                                 </div>
