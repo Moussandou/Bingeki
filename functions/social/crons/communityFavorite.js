@@ -20,6 +20,8 @@ exports.communityFavorite = onSchedule(
         timeZone: 'Europe/Paris',
         retryCount: 1,
         secrets: [GEMINI_API_KEY],
+        memory: '1GiB',
+        timeoutSeconds: 300,
     },
     async () => {
         const config = await loadBotConfig();

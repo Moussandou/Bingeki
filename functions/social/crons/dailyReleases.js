@@ -20,6 +20,10 @@ exports.dailyReleases = onSchedule(
         timeZone: 'Europe/Paris',
         retryCount: 1,
         secrets: [GEMINI_API_KEY],
+        // Puppeteer + @sparticuz/chromium routinely need >256 MiB just
+        // to boot the headless browser. Give the render enough headroom.
+        memory: '1GiB',
+        timeoutSeconds: 300,
     },
     async () => {
         const config = await loadBotConfig();
