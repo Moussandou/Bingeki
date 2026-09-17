@@ -104,7 +104,7 @@ function toIsoDueAt(scheduleAt) {
     return String(scheduleAt);
 }
 
-async function createBufferPost({ channelId, text, assets, dueAt, apiKey }) {
+async function createBufferPost({ channelId, text, assets, dueAt, apiKey, metadata }) {
     const input = {
         text,
         channelId,
@@ -113,11 +113,12 @@ async function createBufferPost({ channelId, text, assets, dueAt, apiKey }) {
         dueAt,
         assets,
     };
+    if (metadata) input.metadata = metadata;
     const data = await graphql(CREATE_POST_MUTATION, { input }, apiKey);
     const payload = data.createPost;
     if (!payload) throw new Error('Buffer: empty createPost response');
-    if (payload.__typename === 'MutationError') {
-        throw new Error(`Buffer validation: ${payload.message}`);
+    if (payload.__typename === 'MutationError' || payload.__typename === 'InvalidInputError') {
+        throw new Error(`Buffer validation (${payload.__typename}): ${payload.message}`);
     }
     if (payload.__typename !== 'PostActionSuccess' || !payload.post?.id) {
         throw new Error(`Buffer: unexpected response ${JSON.stringify(payload).slice(0, 200)}`);
@@ -141,12 +142,23 @@ async function publishToInstagram(slides, caption, auth) {
         ? await buildVideoAssets(slides, 'story')
         : buildImageAssets(slides, 'feed');
 
+    // Buffer requires an Instagram post type: 'post' (feed image/carousel),
+    // 'reel' (video), or 'story'. shouldShareToFeed is enabled by default
+    // so Reels also appear on the profile grid.
+    const metadata = {
+        instagram: {
+            type: mode === 'video' ? 'reel' : 'post',
+            shouldShareToFeed: true,
+        },
+    };
+
     const post = await createBufferPost({
         channelId: auth.channelId,
         text: caption,
         assets,
         dueAt: toIsoDueAt(auth.scheduleAt),
         apiKey: auth.apiKey,
+        metadata,
     });
 
     return {
