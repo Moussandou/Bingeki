@@ -104,12 +104,15 @@ interface IntroArgs {
     titleMain: string;
     titleAccent: string;
     subtitle: string;
+    /** Kept for call-site backwards compat with the previous signature.
+     *  The intro slide intentionally does not render the N/N badge (the
+     *  SWIPE → arrow already signals a carousel). */
     index?: number;
     total?: number;
 }
 
 export function introSlide({
-    badge, badgeVariant = 'chip-dark', titleMain, titleAccent, subtitle, index, total,
+    badge, badgeVariant = 'chip-dark', titleMain, titleAccent, subtitle,
 }: IntroArgs): string {
     return docShell(`
         <div class="halftone-black"></div>
