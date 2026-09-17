@@ -60,6 +60,8 @@ const CREATE_POST_MUTATION = /* GraphQL */ `
 `;
 
 async function graphql(query, variables, apiKey) {
+    // Buffer's TikTok integration internally uploads to TikTok's servers
+    // during createPost; that can push well past 30s. Give it 90s.
     const res = await fetch(BUFFER_ENDPOINT, {
         method: 'POST',
         headers: {
@@ -67,7 +69,7 @@ async function graphql(query, variables, apiKey) {
             Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({ query, variables }),
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(90_000),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok || body?.errors?.length) {

@@ -160,32 +160,29 @@ exports.socialPublishNow = onCall(
 
         const combinedCaption = `${post.caption || ''}\n\n${post.hashtags || ''}`.trim();
         const results = { insta: null, tiktok: null };
+        const errors = {};
         const apiKey = process.env.BUFFER_API_KEY;
 
         // Instagram (via Buffer)
         if (post.platforms?.insta) {
             const channelId = config.platforms?.insta?.bufferChannelId;
             if (!channelId) {
-                await markPendingFailed(postId, 'Instagram: missing bufferChannelId in config');
-                throw new HttpsError(
-                    'failed-precondition',
-                    'Missing Buffer channelId for Instagram in bot_config.platforms.insta.bufferChannelId',
-                );
-            }
-            try {
-                results.insta = await bufferPublishInstagram(
-                    post.slides,
-                    combinedCaption,
-                    {
-                        apiKey,
-                        channelId,
-                        mode: config.platforms?.insta?.mode || 'photo',
-                    },
-                );
-            } catch (err) {
-                console.error(`[social/publishNow] Buffer→Instagram failed for ${postId}:`, err);
-                await markPendingFailed(postId, `Instagram: ${err.message || err}`);
-                throw new HttpsError('internal', `Instagram publish failed: ${err.message || err}`);
+                errors.insta = 'missing bufferChannelId in config';
+            } else {
+                try {
+                    results.insta = await bufferPublishInstagram(
+                        post.slides,
+                        combinedCaption,
+                        {
+                            apiKey,
+                            channelId,
+                            mode: config.platforms?.insta?.mode || 'photo',
+                        },
+                    );
+                } catch (err) {
+                    console.error(`[social/publishNow] Buffer→Instagram failed for ${postId}:`, err);
+                    errors.insta = err.message || String(err);
+                }
             }
         }
 
@@ -193,30 +190,43 @@ exports.socialPublishNow = onCall(
         if (post.platforms?.tiktok) {
             const channelId = config.platforms?.tiktok?.bufferChannelId;
             if (!channelId) {
-                await markPendingFailed(postId, 'TikTok: missing bufferChannelId in config');
-                throw new HttpsError(
-                    'failed-precondition',
-                    'Missing Buffer channelId for TikTok in bot_config.platforms.tiktok.bufferChannelId',
-                );
-            }
-            try {
-                results.tiktok = await bufferPublishTikTok(
-                    post.slides,
-                    combinedCaption,
-                    {
-                        apiKey,
-                        channelId,
-                        mode: config.platforms?.tiktok?.mode || 'photo',
-                    },
-                );
-            } catch (err) {
-                console.error(`[social/publishNow] Buffer→TikTok failed for ${postId}:`, err);
-                await markPendingFailed(postId, `TikTok: ${err.message || err}`);
-                throw new HttpsError('internal', `TikTok publish failed: ${err.message || err}`);
+                errors.tiktok = 'missing bufferChannelId in config';
+            } else {
+                try {
+                    results.tiktok = await bufferPublishTikTok(
+                        post.slides,
+                        combinedCaption,
+                        {
+                            apiKey,
+                            channelId,
+                            mode: config.platforms?.tiktok?.mode || 'photo',
+                        },
+                    );
+                } catch (err) {
+                    console.error(`[social/publishNow] Buffer→TikTok failed for ${postId}:`, err);
+                    errors.tiktok = err.message || String(err);
+                }
             }
         }
 
-        await movePendingToPublished(postId, results, request.auth.uid);
-        return { ok: true, results };
+        const anySuccess = Object.values(results).some((r) => r);
+        const hasErrors = Object.keys(errors).length > 0;
+
+        // Partial-success policy: if at least one platform published, move
+        // the post to `published` with results + errors recorded, so the
+        // admin sees what worked and what didn't and can retry manually.
+        // If nothing succeeded, keep it in `pending` marked as failed.
+        if (anySuccess) {
+            await movePendingToPublished(postId, results, request.auth.uid, {
+                errors: hasErrors ? errors : null,
+            });
+            return { ok: true, results, errors: hasErrors ? errors : undefined };
+        }
+
+        const summary = Object.entries(errors)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(' · ');
+        await markPendingFailed(postId, summary);
+        throw new HttpsError('internal', `Publish failed on every platform — ${summary}`);
     },
 );

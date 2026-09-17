@@ -31,7 +31,7 @@ async function createPendingPost(post) {
  * Move a pending post to the published collection after successful
  * publish on all target platforms.
  */
-async function movePendingToPublished(postId, results, publishedBy) {
+async function movePendingToPublished(postId, results, publishedBy, extras = {}) {
     const db = admin.firestore();
     const pendingRef = db.collection(COLLECTIONS.pending).doc(postId);
     const snap = await pendingRef.get();
@@ -44,6 +44,10 @@ async function movePendingToPublished(postId, results, publishedBy) {
         publishedAt: Date.now(),
         publishedBy,
         results,
+        // When one platform succeeded but another failed, keep the
+        // per-platform errors alongside the successful results so the
+        // admin sees the partial state at a glance.
+        ...(extras.errors ? { errors: extras.errors } : {}),
     });
     batch.delete(pendingRef);
     await batch.commit();
