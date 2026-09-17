@@ -23,6 +23,9 @@ const CSS = `
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; color: #000; overflow: hidden; }
     .slide { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #f5f5f5; }
+    .cover-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; filter: blur(28px) saturate(1.35) brightness(0.55); transform: scale(1.15); }
+    .cover-card { position: absolute; top: 7%; left: 50%; transform: translateX(-50%) rotate(-1.5deg); height: 52vh; aspect-ratio: 2 / 3; z-index: 5; border: 8px solid #000; box-shadow: 18px 18px 0 #000; background: #000; overflow: hidden; }
+    .cover-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .cover-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
     .cover-fallback { position: absolute; inset: 0; z-index: 0; }
     .halftone-black { position: absolute; inset: 0; opacity: 0.1; pointer-events: none; background-image: radial-gradient(#000 4px, transparent 5px); background-size: 42px 42px; z-index: 2; }
@@ -83,8 +86,10 @@ function docShell(inner: string): string {
 function coverBlock(cover: string | undefined, fallbackGradient = 'linear-gradient(180deg, #1a1a1a 0%, #FF2E63 100%)'): string {
     return `
         <div class="cover-fallback" style="background: ${fallbackGradient};"></div>
-        ${cover ? `<img class="cover-img" src="${escape(cover)}" alt="">` : ''}
+        ${cover ? `<img class="cover-bg" src="${escape(cover)}" alt="">` : ''}
+        <div class="halftone-black"></div>
         <div class="cover-overlay"></div>
+        ${cover ? `<div class="cover-card"><img src="${escape(cover)}" alt=""></div>` : ''}
     `;
 }
 

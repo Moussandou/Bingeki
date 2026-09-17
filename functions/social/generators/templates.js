@@ -31,6 +31,32 @@ const CSS = `
         position: relative; width: 100vw; height: 100vh;
         overflow: hidden; background: #f5f5f5;
     }
+    /* Cover: two layers because anime posters from MAL/AniList top out
+       at ~460x650. Stretching to 1080x1920 gives visible pixels. We
+       instead show a blurred version at full slide as ambient background,
+       then a sharp version at its native size inside a manga frame in
+       the upper half of the slide. */
+    .cover-bg {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        object-fit: cover; z-index: 1;
+        filter: blur(28px) saturate(1.35) brightness(0.55);
+        transform: scale(1.15); /* hide blur edge bleed */
+    }
+    .cover-card {
+        position: absolute; top: 7%; left: 50%;
+        transform: translateX(-50%) rotate(-1.5deg);
+        height: 52vh; aspect-ratio: 2 / 3;
+        z-index: 5;
+        border: 8px solid #000;
+        box-shadow: 18px 18px 0 #000;
+        background: #000;
+        overflow: hidden;
+    }
+    .cover-card img {
+        width: 100%; height: 100%; object-fit: cover;
+        display: block;
+    }
+    /* Kept for backwards compatibility with the intro/outro layers. */
     .cover-img {
         position: absolute; inset: 0; width: 100%; height: 100%;
         object-fit: cover; z-index: 1;
@@ -265,8 +291,10 @@ function docShell(inner) {
 function coverBlock(cover, fallbackGradient = 'linear-gradient(180deg, #1a1a1a 0%, #FF2E63 100%)') {
     return `
         <div class="cover-fallback" style="background: ${fallbackGradient};"></div>
-        ${cover ? `<img class="cover-img" src="${escape(cover)}" alt="">` : ''}
+        ${cover ? `<img class="cover-bg" src="${escape(cover)}" alt="">` : ''}
+        <div class="halftone-black"></div>
         <div class="cover-overlay"></div>
+        ${cover ? `<div class="cover-card"><img src="${escape(cover)}" alt=""></div>` : ''}
     `;
 }
 
