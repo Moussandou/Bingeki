@@ -130,23 +130,39 @@ async function generateCaption(type, data, config) {
     const prompt = template.replace('{{DATA}}', serializeData(type, data));
     const model = config?.gemini?.model || 'gemini-flash-latest';
 
-    const res = await fetch(GEMINI_ENDPOINT(model, apiKey), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(30_000),
-        body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: {
-                temperature: 0.85,
-                maxOutputTokens: 800,
-                responseMimeType: 'application/json',
-            },
-        }),
-    });
+    // Gemini flash frequently returns 503 UNAVAILABLE or 429 during
+    // regional traffic spikes. Retry with exponential backoff on those
+    // transient statuses; other errors bubble up immediately.
+    const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+    const MAX_ATTEMPTS = 4;
+    let res;
+    let lastErrBody = '';
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+        res = await fetch(GEMINI_ENDPOINT(model, apiKey), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(30_000),
+            body: JSON.stringify({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.85,
+                    maxOutputTokens: 800,
+                    responseMimeType: 'application/json',
+                },
+            }),
+        });
+        if (res.ok) break;
+        lastErrBody = await res.text().catch(() => '');
+        if (!RETRYABLE.has(res.status) || attempt === MAX_ATTEMPTS) break;
+        const delayMs = 1000 * 2 ** (attempt - 1) + Math.floor(Math.random() * 500);
+        console.warn(
+            `[social/gemini] ${res.status} on attempt ${attempt}/${MAX_ATTEMPTS}, retrying in ${delayMs}ms`,
+        );
+        await new Promise((r) => setTimeout(r, delayMs));
+    }
 
     if (!res.ok) {
-        const errBody = await res.text().catch(() => '');
-        throw new Error(`Gemini API ${res.status}: ${errBody.slice(0, 300)}`);
+        throw new Error(`Gemini API ${res.status}: ${lastErrBody.slice(0, 300)}`);
     }
 
     const body = await res.json();
