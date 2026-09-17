@@ -81,6 +81,76 @@ const animesToTemplateData = (
     return animes;
 };
 
+// --- Next-cron timeline ---------------------------------------------------
+// Crons run in Europe/Paris via Cloud Scheduler. The admin runs in whatever
+// timezone the user is in, so we build the next-run Date directly in the
+// browser's local time — close enough for a "when is my next post ?" hint.
+
+interface NextRun {
+    key: 'daily' | 'weekly' | 'favorite' | 'newseason';
+    label: string;
+    ts: number;
+    detail?: string;
+}
+
+const dayOfNext = (target: number, hour: number): Date => {
+    const now = new Date();
+    const out = new Date(now);
+    out.setHours(hour, 0, 0, 0);
+    const diff = (target - now.getDay() + 7) % 7;
+    if (diff === 0 && out.getTime() <= now.getTime()) out.setDate(out.getDate() + 7);
+    else out.setDate(out.getDate() + diff);
+    return out;
+};
+
+const nextDailyAt = (hour: number): Date => {
+    const now = new Date();
+    const out = new Date(now);
+    out.setHours(hour, 0, 0, 0);
+    if (out.getTime() <= now.getTime()) out.setDate(out.getDate() + 1);
+    return out;
+};
+
+const computeNextRuns = (config: BotConfig): NextRun[] => {
+    const runs: NextRun[] = [];
+    if (config.schedules?.daily?.enabled !== false) {
+        runs.push({
+            key: 'daily',
+            label: 'Sorties du jour',
+            ts: nextDailyAt(config.schedules?.daily?.hour ?? 19).getTime(),
+        });
+    }
+    // Newseason detector runs daily at 08:00 (hardcoded in the cron file)
+    // and only produces a draft if Jikan flags a season starting today.
+    runs.push({
+        key: 'newseason',
+        label: 'Nouvelle saison',
+        ts: nextDailyAt(8).getTime(),
+        detail: 'seulement si une saison démarre',
+    });
+    if (config.schedules?.weekly?.enabled !== false) {
+        runs.push({
+            key: 'weekly',
+            label: 'Récap hebdo',
+            ts: dayOfNext(
+                config.schedules?.weekly?.dayOfWeek ?? 0,
+                config.schedules?.weekly?.hour ?? 19,
+            ).getTime(),
+        });
+    }
+    if (config.schedules?.favorite?.enabled !== false) {
+        runs.push({
+            key: 'favorite',
+            label: 'Coup de cœur',
+            ts: dayOfNext(
+                config.schedules?.favorite?.dayOfWeek ?? 3,
+                config.schedules?.favorite?.hour ?? 12,
+            ).getTime(),
+        });
+    }
+    return runs.sort((a, b) => a.ts - b.ts);
+};
+
 /* ==========================================================================
    PAGE
    ========================================================================== */
@@ -385,6 +455,48 @@ export default function AdminSocial() {
                                     </button>
                                 );
                             })}
+                        </div>
+
+                        {/* Prochaines créations automatiques — visible à tous les admins */}
+                        <div className={s.sidebarSection}>
+                            <div className={s.sectionHead}>
+                                <h3 className={s.sectionTitle}>Prochains posts auto</h3>
+                            </div>
+                            {computeNextRuns(config).map((run) => (
+                                <div
+                                    key={run.key}
+                                    style={{
+                                        display: 'flex', flexDirection: 'column',
+                                        gap: '2px', padding: '8px 10px',
+                                        borderTop: '1px dashed rgba(0,0,0,0.08)',
+                                    }}
+                                >
+                                    <div style={{
+                                        display: 'flex', justifyContent: 'space-between',
+                                        alignItems: 'center', gap: '8px',
+                                    }}>
+                                        <div style={{
+                                            fontFamily: '"Outfit", sans-serif', fontWeight: 800,
+                                            fontSize: '0.75rem', textTransform: 'uppercase',
+                                            letterSpacing: '0.05em',
+                                        }}>
+                                            {run.label}
+                                        </div>
+                                        <div style={{
+                                            fontSize: '0.7rem', color: '#666', fontWeight: 700,
+                                            whiteSpace: 'nowrap',
+                                        }}>
+                                            <Clock size={9} style={{ display: 'inline', marginRight: 3 }} />
+                                            {formatSchedule(run.ts)}
+                                        </div>
+                                    </div>
+                                    {run.detail && (
+                                        <div style={{ fontSize: '0.65rem', color: '#999', fontStyle: 'italic' }}>
+                                            {run.detail}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
 
                         {/* Schedules — superAdmin only */}
