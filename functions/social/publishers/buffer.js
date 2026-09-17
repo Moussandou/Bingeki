@@ -184,9 +184,13 @@ async function publishToTikTok(slides, caption, auth) {
         throw new Error('Buffer: missing apiKey or channelId (TikTok)');
     }
     const mode = auth.mode === 'video' ? 'video' : 'photo';
+    // TikTok photo carousels post as a slideshow that gets letterboxed
+    // whatever ratio we upload, but Hugo prefers the 4:5 feed cards over
+    // the 9:16 story cards for visual parity with the Instagram post.
+    // Videos still use story (9:16) since that's TikTok's native ratio.
     const assets = mode === 'video'
         ? await buildVideoAssets(slides, 'story')
-        : buildImageAssets(slides, 'story');
+        : buildImageAssets(slides, 'feed');
 
     const post = await createBufferPost({
         channelId: auth.channelId,
