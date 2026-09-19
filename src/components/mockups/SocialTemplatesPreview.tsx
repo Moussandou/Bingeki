@@ -30,11 +30,11 @@ const SAMPLES: Sample[] = [
             "Carrousel des épisodes d'anime qui sortent aujourd'hui, triés par note. Généré tous les soirs.",
         cadence: 'Chaque jour · 19h',
         data: [
-            { mal_id: 52991, title: 'Frieren', cover: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg', currentEpisode: 24 },
-            { mal_id: 31964, title: 'My Hero Academia', cover: 'https://cdn.myanimelist.net/images/anime/10/78745l.jpg', currentEpisode: 12 },
-            { mal_id: 21, title: 'One Piece', cover: 'https://cdn.myanimelist.net/images/anime/1244/138851l.jpg', currentEpisode: 1108 },
-            { mal_id: 57334, title: 'Dandadan', cover: 'https://cdn.myanimelist.net/images/anime/1584/143719l.jpg', currentEpisode: 9 },
-            { mal_id: 49596, title: 'Blue Lock', cover: 'https://cdn.myanimelist.net/images/anime/1258/126929l.jpg', currentEpisode: 5 },
+            { title: 'Frieren', cover: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg', currentEpisode: 24 },
+            { title: 'My Hero Academia', cover: 'https://cdn.myanimelist.net/images/anime/10/78745l.jpg', currentEpisode: 12 },
+            { title: 'One Piece', cover: 'https://cdn.myanimelist.net/images/anime/1244/138851l.jpg', currentEpisode: 1108 },
+            { title: 'Dandadan', cover: 'https://cdn.myanimelist.net/images/anime/1584/143719l.jpg', currentEpisode: 9 },
+            { title: 'Blue Lock', cover: 'https://cdn.myanimelist.net/images/anime/1258/126929l.jpg', currentEpisode: 5 },
         ],
     },
     {
@@ -66,7 +66,6 @@ const SAMPLES: Sample[] = [
             "Annonce quand une nouvelle saison d'un anime attendu démarre. Studio, épisodes prévus, note de la S1.",
         cadence: 'Détecté auto · matin 8h',
         data: {
-            mal_id: 44511,
             title: 'Chainsaw Man',
             cover: 'https://cdn.myanimelist.net/images/anime/1806/126216l.jpg',
             studios: ['MAPPA'],
