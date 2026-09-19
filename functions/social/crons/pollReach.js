@@ -23,7 +23,7 @@ const ONE_DAY = 24 * 3600_000;
 const LOOKBACK_MS = 30 * ONE_DAY;
 
 const POST_METRICS_QUERY = /* GraphQL */ `
-    query GetPostMetrics($input: PostIdInput!) {
+    query GetPostMetrics($input: PostInput!) {
         post(input: $input) {
             id
             channelId
