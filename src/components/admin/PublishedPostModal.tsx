@@ -71,26 +71,15 @@ function extractMetrics(reach: PlatformReach | undefined): MetricEntry[] {
     return out;
 }
 
-/** j+1 / j+7 / j+30 badges — which milestones did the cron already hit? */
-function milestoneBadges(reach: PublishedPost['reach'], platform: 'insta' | 'tiktok') {
-    const captured = [
-        reach?.[`${platform}_j1`] && 'J+1',
-        reach?.[`${platform}_j7`] && 'J+7',
-        reach?.[`${platform}_j30`] && 'J+30',
-    ].filter(Boolean) as string[];
-    return captured;
-}
-
 interface PlatformPanelProps {
     label: 'Instagram' | 'TikTok';
     icon: React.ReactNode;
     headBg?: string;
     reach: PlatformReach | undefined;
-    milestones: string[];
     permalink?: string;
 }
 
-function PlatformPanel({ label, icon, headBg, reach, milestones, permalink }: PlatformPanelProps) {
+function PlatformPanel({ label, icon, headBg, reach, permalink }: PlatformPanelProps) {
     const metrics = extractMetrics(reach);
     const capturedAt = reach?.capturedAt as number | undefined;
 
@@ -98,19 +87,6 @@ function PlatformPanel({ label, icon, headBg, reach, milestones, permalink }: Pl
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div className={s.analyticsPlatformHead} style={headBg ? { background: headBg } : undefined}>
                 {icon} {label}
-                {milestones.length > 0 && (
-                    <span style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
-                        {milestones.map((m) => (
-                            <span key={m} style={{
-                                background: 'rgba(255,255,255,0.25)',
-                                padding: '2px 6px',
-                                fontSize: '0.62rem',
-                                fontWeight: 700,
-                                borderRadius: '2px',
-                            }}>{m}</span>
-                        ))}
-                    </span>
-                )}
             </div>
 
             {metrics.length > 0 ? (
@@ -129,7 +105,7 @@ function PlatformPanel({ label, icon, headBg, reach, milestones, permalink }: Pl
                     padding: '10px', background: '#f5f5f5', border: '1px dashed #ccc',
                     fontSize: '0.7rem', color: '#666',
                 }}>
-                    Aucune stat capturée. Le cron pollReach interroge Buffer à J+1, J+7 et J+30 après publication.
+                    Aucune stat capturée. Le cron pollReach interroge Buffer toutes les 6h.
                 </div>
             )}
 
@@ -285,7 +261,6 @@ export function PublishedPostModal({ post, onClose }: Props) {
                         label="Instagram"
                         icon={<Camera size={13} />}
                         reach={igReach}
-                        milestones={milestoneBadges(post.reach, 'insta')}
                         permalink={post.results.insta.permalink}
                     />
                 )}
@@ -296,7 +271,6 @@ export function PublishedPostModal({ post, onClose }: Props) {
                         icon={<Music2 size={13} />}
                         headBg="#FF2E63"
                         reach={ttReach}
-                        milestones={milestoneBadges(post.reach, 'tiktok')}
                     />
                 )}
             </div>

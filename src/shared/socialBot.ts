@@ -89,8 +89,6 @@ export interface PublishedPost extends PendingPost {
     reach?: {
         insta?: PlatformReach;
         tiktok?: PlatformReach;
-        insta_j1?: boolean; insta_j7?: boolean; insta_j30?: boolean;
-        tiktok_j1?: boolean; tiktok_j7?: boolean; tiktok_j30?: boolean;
     };
 }
 

@@ -1,14 +1,14 @@
 /**
- * cron pollReach — poll Buffer post metrics at j+1 / j+7 / j+30 after publish.
+ * cron pollReach — refresh Buffer post metrics on every published post.
  *
  * Buffer's Publish API exposes per-post metrics through a single GraphQL
- * `post` query — same endpoint for Instagram and TikTok. Result payload:
+ * `post(input: {id})` query. The metrics are cumulative and Buffer keeps
+ * them updated on their side, so we just re-fetch on every tick — no need
+ * for milestone windows. Every 6h we walk every post from the last 30
+ * days and overwrite `reach.<platform>` with the latest snapshot.
  *
- *   { id, channelId, metrics: [{type, name, value, unit}], metricsUpdatedAt }
- *
- * We normalize `metrics[]` to a flat `{ [name]: value }` map per platform,
- * and stamp `${platform}_${milestone}` booleans so a post is polled at
- * most once per milestone.
+ * Buffer returns `metrics[]` as generic `{type, name, value, unit}`. We
+ * keep the raw list and flatten by name for cheap admin lookups.
  */
 
 const admin = require('firebase-admin');
@@ -20,6 +20,7 @@ const { withCronHealth } = require('../shared/cronHealth');
 
 const BUFFER_API_KEY = defineSecret('BUFFER_API_KEY');
 const ONE_DAY = 24 * 3600_000;
+const LOOKBACK_MS = 30 * ONE_DAY;
 
 const POST_METRICS_QUERY = /* GraphQL */ `
     query GetPostMetrics($input: PostIdInput!) {
@@ -31,12 +32,6 @@ const POST_METRICS_QUERY = /* GraphQL */ `
         }
     }
 `;
-
-const MILESTONES = [
-    { key: 'j1', delayMs: ONE_DAY },
-    { key: 'j7', delayMs: 7 * ONE_DAY },
-    { key: 'j30', delayMs: 30 * ONE_DAY },
-];
 
 const PLATFORMS = ['insta', 'tiktok'];
 
@@ -62,45 +57,50 @@ async function fetchMetrics(postId, apiKey) {
     };
 }
 
-async function pollPlatformMilestone(platform, milestone, apiKey) {
+async function refreshAll(apiKey) {
     const db = admin.firestore();
     const now = Date.now();
-    const cutoffMs = milestone.delayMs;
 
-    // Grab posts that hit this milestone in the last 24h and haven't been polled yet.
     const snap = await db.collection(COLLECTIONS.published)
-        .where('publishedAt', '<=', now - cutoffMs)
-        .where('publishedAt', '>', now - cutoffMs - ONE_DAY)
+        .where('publishedAt', '>=', now - LOOKBACK_MS)
         .get();
 
     let updated = 0;
     let skipped = 0;
+    let failed = 0;
     for (const doc of snap.docs) {
         const post = doc.data();
-        const bufferPostId = post?.results?.[platform]?.id;
-        if (!bufferPostId) { skipped += 1; continue; }
-        if (post?.reach?.[`${platform}_${milestone.key}`]) { skipped += 1; continue; }
+        const reachPatch = { ...(post.reach || {}) };
+        let touchedAnyPlatform = false;
 
-        try {
-            const { raw, flat, updatedAt } = await fetchMetrics(bufferPostId, apiKey);
-            const reachPatch = {
-                ...(post.reach || {}),
-                [platform]: {
-                    ...(post.reach?.[platform] || {}),
+        for (const platform of PLATFORMS) {
+            const bufferPostId = post?.results?.[platform]?.id;
+            if (!bufferPostId) continue;
+            try {
+                const { raw, flat, updatedAt } = await fetchMetrics(bufferPostId, apiKey);
+                reachPatch[platform] = {
+                    ...(reachPatch[platform] || {}),
                     ...flat,
                     raw,
                     metricsUpdatedAt: updatedAt,
                     capturedAt: now,
-                },
-                [`${platform}_${milestone.key}`]: true,
-            };
+                };
+                touchedAnyPlatform = true;
+            } catch (err) {
+                console.error(`[social/pollReach] ${platform} failed for ${doc.id}:`, err.message || err);
+                failed += 1;
+            }
+        }
+
+        if (touchedAnyPlatform) {
             await doc.ref.update({ reach: reachPatch });
             updated += 1;
-        } catch (err) {
-            console.error(`[social/pollReach] ${platform}/${milestone.key} failed for ${doc.id}:`, err.message || err);
+        } else {
+            skipped += 1;
         }
     }
-    console.log(`[social/pollReach] ${platform}/${milestone.key}: updated ${updated}, skipped ${skipped} of ${snap.size}`);
+    console.log(`[social/pollReach] refreshed ${updated}, skipped ${skipped} (no buffer id), failed ${failed} of ${snap.size} posts in the last 30 days`);
+    return { updated, skipped, failed, total: snap.size };
 }
 
 async function runPollReach() {
@@ -110,12 +110,8 @@ async function runPollReach() {
             console.error('[social/pollReach] BUFFER_API_KEY not configured, aborting');
             return { note: 'BUFFER_API_KEY missing' };
         }
-        for (const platform of PLATFORMS) {
-            for (const milestone of MILESTONES) {
-                await pollPlatformMilestone(platform, milestone, apiKey);
-            }
-        }
-        return { note: 'polled all platforms x milestones' };
+        const { updated, skipped, failed, total } = await refreshAll(apiKey);
+        return { note: `${updated}/${total} refreshed · ${skipped} skipped · ${failed} failed` };
     });
 }
 
