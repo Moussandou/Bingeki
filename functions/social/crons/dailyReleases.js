@@ -16,7 +16,9 @@ const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
 exports.dailyReleases = onSchedule(
     {
-        schedule: '0 19 * * *',
+        // 10h Europe/Paris — post publié en matinée pour que la commu
+        // sache dès son café ce qui sort dans la journée + à quelle heure.
+        schedule: '0 10 * * *',
         timeZone: 'Europe/Paris',
         retryCount: 1,
         secrets: [GEMINI_API_KEY],
