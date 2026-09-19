@@ -77,7 +77,9 @@
     "description_1": "<strong>Bingeki</strong> est né d'une passion pour le manga et l'envie de créer une expérience utilisateur unique.",
     "description_2": "Développé avec amour, café et beaucoup de CSS. Ce projet est une démonstration de ce qui est possible quand on mélange design brutaliste et technologies modernes.",
     "made_with": "Fait avec",
-    "in_marseille": "à Marseille"
+    "in_marseille": "à Marseille",
+    "team_title": "L'ÉQUIPE",
+    "team_subtitle": "Aux côtés de Moussandou, les co-fondateurs qui font vivre Bingeki au quotidien."
   },
   "donors": {
     "title": "NOS HÉROS",

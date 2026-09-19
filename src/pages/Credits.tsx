@@ -4,6 +4,71 @@ import { Globe, Code, Heart } from 'lucide-react';
 import { GithubIcon, LinkedinIcon } from '@/components/ui/BrandIcons';
 import { useTranslation } from 'react-i18next';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { getMemberColor } from '@/types/orga';
+
+interface Member {
+    name: string;
+    displayName: string;
+    role: string;
+    github: string;
+    linkedin: string;
+    portfolio?: string;
+    photoUrl?: string;
+}
+
+const TEAM: Member[] = [
+    {
+        name: 'Hugo',
+        displayName: 'Hugo Remtoula',
+        role: 'CO-FONDATEUR',
+        github: 'https://github.com/yotaoo',
+        linkedin: 'https://www.linkedin.com/in/hugo-remtoula-020a192b5/',
+    },
+    {
+        name: 'Maxime',
+        displayName: 'Maxime Finaud',
+        role: 'CO-FONDATEUR',
+        github: 'https://github.com/Max-Relax',
+        linkedin: 'https://www.linkedin.com/in/finaudmaxime/',
+    },
+    {
+        name: 'Yanis',
+        displayName: 'Yanis Hadjedj',
+        role: 'CO-FONDATEUR',
+        github: 'https://github.com/picardz',
+        linkedin: 'https://www.linkedin.com/in/hadjedjys/',
+    },
+];
+
+function TeamCard({ member }: { member: Member }) {
+    const accent = getMemberColor(member.name);
+    const avatarUrl = member.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(member.name)}`;
+    return (
+        <div className={styles.memberCard} style={{ '--member-accent': accent } as React.CSSProperties}>
+            <div className={styles.memberAvatar}>
+                <OptimizedImage
+                    src={avatarUrl}
+                    alt={member.displayName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    fallback={avatarUrl}
+                />
+            </div>
+            <h3 className={styles.memberName}>{member.displayName}</h3>
+            <span className={styles.memberRole}>{member.role}</span>
+
+            <div className={styles.memberSocials}>
+                <a href={member.github} target="_blank" rel="noopener noreferrer"
+                    className={styles.memberSocialBtn} aria-label={`GitHub ${member.displayName}`}>
+                    <GithubIcon size={18} />
+                </a>
+                <a href={member.linkedin} target="_blank" rel="noopener noreferrer"
+                    className={styles.memberSocialBtn} aria-label={`LinkedIn ${member.displayName}`}>
+                    <LinkedinIcon size={18} />
+                </a>
+            </div>
+        </div>
+    );
+}
 
 export default function Credits() {
     const { t } = useTranslation();
@@ -22,7 +87,7 @@ export default function Credits() {
                         <div className={styles.profileSection}>
                             <div className={styles.avatar}>
                                 <OptimizedImage
-                                    src="https://media.licdn.com/dms/image/v2/D4E03AQGgqVvXfXyq2A/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1718206192135?e=1741219200&v=beta&t=7y2y2y2y2y2y2y2y2y2y2y2y2y2y2y2y2y2y2y2y2y2"
+                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Moussandou`}
                                     alt="Moussandou"
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     fallback={`https://api.dicebear.com/7.x/avataaars/svg?seed=Moussandou`}
@@ -62,6 +127,17 @@ export default function Credits() {
                             <a href="https://moussandou.github.io/Portfolio/" target="_blank" rel="noopener noreferrer" className={styles.socialBtn}>
                                 <Globe size={20} /> Portfolio
                             </a>
+                        </div>
+                    </div>
+
+                    {/* L'équipe — co-fondateurs à côté de Mouss */}
+                    <div className={styles.teamSection}>
+                        <h2 className={styles.teamHeader}>{t('credits.team_title')}</h2>
+                        <p className={styles.teamSubtitle}>{t('credits.team_subtitle')}</p>
+                        <div className={styles.teamGrid}>
+                            {TEAM.map((m) => (
+                                <TeamCard key={m.name} member={m} />
+                            ))}
                         </div>
                     </div>
                 </div>

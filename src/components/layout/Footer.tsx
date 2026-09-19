@@ -72,7 +72,8 @@ export function Footer() {
                     >
                         <GithubIcon size={20} />
                     </a>
-                    <a href="https://www.linkedin.com/in/moussandou" target="_blank" rel="noopener noreferrer"
+                    <a href="https://www.linkedin.com/company/bingeki/" target="_blank" rel="noopener noreferrer"
+                        title="LinkedIn Bingeki"
                         className={styles.socialIcon}
                     >
                         <LinkedinIcon size={20} />
