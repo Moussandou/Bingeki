@@ -206,6 +206,126 @@
 }
 
 /* ============================================
+   CO-FONDATEURS — inside Mouss's card
+   ============================================ */
+
+.coSection {
+    margin: 2.5rem 0 3rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 3px dashed var(--color-border-heavy);
+}
+
+.coHeader {
+    text-align: center;
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: 1.35rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 1.75rem;
+    opacity: 0.85;
+}
+
+.coGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 700px) {
+    .coGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.coChip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.85rem;
+    padding: 1.5rem 1rem;
+    background: var(--color-surface);
+    border: 3px solid var(--color-border-heavy);
+    box-shadow: 6px 6px 0 var(--member-accent, var(--color-primary));
+    transition: transform 0.15s, box-shadow 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.coChip:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0 var(--member-accent, var(--color-primary));
+}
+
+.coAvatar {
+    width: 78px;
+    height: 78px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 3px solid var(--color-border-heavy);
+    overflow: hidden;
+    background: var(--color-surface);
+    box-shadow: 3px 3px 0 var(--member-accent, var(--color-primary));
+}
+
+.coInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.coName {
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    color: var(--color-text);
+    line-height: 1;
+    letter-spacing: -0.5px;
+}
+
+.coRole {
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    color: #000;
+    background: var(--member-accent, var(--color-border-heavy));
+    padding: 4px 10px;
+    border: 2px solid var(--color-border-heavy);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.coSocials {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.coSocialBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: var(--color-text);
+    text-decoration: none;
+    border: 2px solid var(--color-border-heavy);
+    background: var(--color-surface);
+    transition: background 0.15s, transform 0.15s;
+}
+
+.coSocialBtn:hover {
+    background: var(--member-accent, var(--color-primary));
+    color: #000;
+    transform: translate(-2px, -2px);
+    box-shadow: 2px 2px 0 var(--color-shadow-solid);
+}
+
+/* ============================================
    MOUSS's big original card (top of the page)
    ============================================ */
 

@@ -39,12 +39,12 @@ const COFOUNDERS: Member[] = [
     },
 ];
 
-function CoFounderCard({ member }: { member: Member }) {
+function CoFounderChip({ member }: { member: Member }) {
     const accent = getMemberColor(member.name);
     const avatarUrl = member.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(member.name)}`;
     return (
-        <div className={styles.memberCard} style={{ '--member-accent': accent } as React.CSSProperties}>
-            <div className={styles.memberAvatar}>
+        <div className={styles.coChip} style={{ '--member-accent': accent } as React.CSSProperties}>
+            <div className={styles.coAvatar}>
                 <OptimizedImage
                     src={avatarUrl}
                     alt={member.displayName}
@@ -52,17 +52,18 @@ function CoFounderCard({ member }: { member: Member }) {
                     fallback={avatarUrl}
                 />
             </div>
-            <h3 className={styles.memberName}>{member.displayName}</h3>
-            <span className={styles.memberRole}>{member.role}</span>
-
-            <div className={styles.memberSocials}>
+            <div className={styles.coInfo}>
+                <div className={styles.coName}>{member.displayName}</div>
+                <div className={styles.coRole}>{member.role}</div>
+            </div>
+            <div className={styles.coSocials}>
                 <a href={member.github} target="_blank" rel="noopener noreferrer"
-                    className={styles.memberSocialBtn} aria-label={`GitHub ${member.displayName}`}>
-                    <GithubIcon size={20} />
+                    className={styles.coSocialBtn} aria-label={`GitHub ${member.displayName}`}>
+                    <GithubIcon size={16} />
                 </a>
                 <a href={member.linkedin} target="_blank" rel="noopener noreferrer"
-                    className={styles.memberSocialBtn} aria-label={`LinkedIn ${member.displayName}`}>
-                    <LinkedinIcon size={20} />
+                    className={styles.coSocialBtn} aria-label={`LinkedIn ${member.displayName}`}>
+                    <LinkedinIcon size={16} />
                 </a>
             </div>
         </div>
@@ -97,6 +98,16 @@ export default function Credits() {
                             <span className={styles.role}>{t('credits.role')}</span>
                         </div>
 
+                        {/* Co-créateurs — placés juste sous Mouss */}
+                        <div className={styles.coSection}>
+                            <div className={styles.coHeader}>— L'ÉQUIPE —</div>
+                            <div className={styles.coGrid}>
+                                {COFOUNDERS.map((m) => (
+                                    <CoFounderChip key={m.name} member={m} />
+                                ))}
+                            </div>
+                        </div>
+
                         <div className={styles.description}>
                             <p dangerouslySetInnerHTML={{ __html: t('credits.description_1') }} />
                             <p style={{ marginTop: '1rem' }}>
@@ -127,17 +138,6 @@ export default function Credits() {
                             <a href="https://moussandou.github.io/Portfolio/" target="_blank" rel="noopener noreferrer" className={styles.socialBtn}>
                                 <Globe size={20} /> Portfolio
                             </a>
-                        </div>
-                    </div>
-
-                    {/* Co-fondateurs */}
-                    <div className={styles.teamSection}>
-                        <h2 className={styles.teamHeader}>L'ÉQUIPE</h2>
-                        <p className={styles.teamSubtitle}>{t('credits.team_subtitle')}</p>
-                        <div className={styles.teamGrid}>
-                            {COFOUNDERS.map((m) => (
-                                <CoFounderCard key={m.name} member={m} />
-                            ))}
                         </div>
                     </div>
                 </div>
