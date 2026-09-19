@@ -80,9 +80,70 @@ async function detectNewSeasons() {
     return candidates;
 }
 
+/**
+ * Fetch every currently-airing TV anime, then for each one grab its
+ * episode list from /anime/{id}/episodes and keep the episodes whose
+ * air date is within the last 7 days. MAL's per-episode `score` is on
+ * a 0-5 scale (different from the /10 overall anime score), so we
+ * multiply by 2 to normalise to /10 for consistency with the rest of
+ * Bingeki's captions.
+ *
+ * Warning: this makes ~40-60 Jikan calls (1 per airing show). Only run
+ * from a weekly cron, not a daily one.
+ */
+async function fetchWeeklyTopEpisodes(limit = 3) {
+    const raw = await jikanFetch('/seasons/now?filter=tv', true);
+    const airing = (raw?.data || []).map(normalizeAnime).filter(Boolean);
+
+    const weekAgo = Date.now() - 7 * 24 * 3600_000;
+    const now = Date.now();
+    const candidates = [];
+
+    for (const anime of airing) {
+        try {
+            const epRaw = await jikanFetch(`/anime/${anime.mal_id}/episodes`);
+            const episodes = epRaw?.data || [];
+            for (const ep of episodes) {
+                if (!ep.aired || !ep.score) continue;
+                const airedAt = new Date(ep.aired).getTime();
+                if (airedAt < weekAgo || airedAt > now) continue;
+
+                candidates.push({
+                    mal_id: anime.mal_id,
+                    title: anime.title,
+                    cover: anime.cover,
+                    episodeNumber: ep.mal_id,
+                    episodeTitle: ep.title || '',
+                    airedAt: ep.aired,
+                    scoreOn5: ep.score,
+                    scoreOn10: Number((ep.score * 2).toFixed(2)),
+                    filler: !!ep.filler,
+                    recap: !!ep.recap,
+                });
+            }
+        } catch (err) {
+            console.warn(
+                `[social/jikan] episodes fetch failed for ${anime.mal_id} (${anime.title}):`,
+                err.message || err,
+            );
+        }
+    }
+
+    // Prefer non-filler, non-recap episodes when scores tie
+    candidates.sort((a, b) => {
+        if (b.scoreOn10 !== a.scoreOn10) return b.scoreOn10 - a.scoreOn10;
+        if (a.filler !== b.filler) return a.filler ? 1 : -1;
+        if (a.recap !== b.recap) return a.recap ? 1 : -1;
+        return 0;
+    });
+
+    return candidates.slice(0, limit);
+}
+
 module.exports = {
     fetchTodaysReleases,
     fetchAnimeById,
     detectNewSeasons,
+    fetchWeeklyTopEpisodes,
     normalizeAnime,
 };

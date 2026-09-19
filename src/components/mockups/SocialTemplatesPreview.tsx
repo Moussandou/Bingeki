@@ -53,10 +53,33 @@ const SAMPLES: Sample[] = [
         type: 'favorite',
         label: 'Coup de cœur',
         description:
-            "L'anime préféré des watchers Bingeki cette semaine. Un post célébration mono-focus.",
+            "TOP 3 des épisodes d'anime les mieux notés sur MAL cette semaine. Notes converties sur /10.",
         cadence: 'Chaque dimanche · 21h',
         data: [
-            { title: 'Solo Leveling', cover: 'https://cdn.myanimelist.net/images/anime/1448/147351l.jpg', avg: 9.6, count: 3200 },
+            {
+                title: 'Frieren',
+                cover: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg',
+                avg: 9.36,
+                count: 24,
+                episodeNumber: 24,
+                episodeTitle: 'Une aventure sans regret',
+            } as AnimeSlideData,
+            {
+                title: 'Dandadan',
+                cover: 'https://cdn.myanimelist.net/images/anime/1584/143719l.jpg',
+                avg: 9.24,
+                count: 9,
+                episodeNumber: 9,
+                episodeTitle: 'La confrontation finale',
+            } as AnimeSlideData,
+            {
+                title: 'Blue Lock',
+                cover: 'https://cdn.myanimelist.net/images/anime/1258/126929l.jpg',
+                avg: 9.10,
+                count: 5,
+                episodeNumber: 5,
+                episodeTitle: 'Un pas de plus',
+            } as AnimeSlideData,
         ],
     },
     {

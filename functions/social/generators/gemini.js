@@ -45,16 +45,18 @@ Puis 5 hashtags.
 JSON strict :
 {"caption": "...", "hashtags": "..."}`,
 
-    favorite: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post "coup de cœur communauté", anime(s) le mieux noté par les users cette semaine.
+    favorite: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post "coup de cœur de la semaine" — TOP 3 des épisodes sortis cette semaine, notés par la communauté MyAnimeList (source : Jikan API, notes converties sur /10).
 
+TOP 3 des épisodes :
 {{DATA}}
 
-Rédige une caption (max 350 caractères) qui :
-1. Célèbre l'anime (ou les animes s'il y a égalité).
-2. Mentionne la note et le nombre de watchers Bingeki.
-3. Invite à l'ajouter à sa liste sur ${BINGEKI_URL} (l'URL doit apparaître dans la caption, obligatoire).
+Rédige une caption (max 400 caractères) qui :
+1. Accroche façon "les 3 pépites de la semaine" (sans dire "coup de cœur", on veut du frais).
+2. Cite les 3 anime par leur nom + numéro d'épisode.
+3. Précise que les notes viennent de MAL (source communautaire de référence).
+4. Invite à ajouter les animes à sa liste sur ${BINGEKI_URL} (l'URL doit apparaître dans la caption, obligatoire).
 
-Puis 5 hashtags.
+Puis 5 hashtags avec les noms d'anime.
 
 JSON strict :
 {"caption": "...", "hashtags": "..."}`,
@@ -82,7 +84,11 @@ function serializeData(type, data) {
         case 'weekly':
             return data.map((a, i) => `${i + 1}. ${a.title} — ${a.avg}/10 (${a.count} notes)`).join('\n');
         case 'favorite':
-            return data.map((a) => `- ${a.title} — ${a.avg}/10 (${a.count} watchers)`).join('\n');
+            return data.map((a, i) => {
+                const ep = a.episodeNumber ? ` — Épisode ${a.episodeNumber}` : '';
+                const t = a.episodeTitle ? ` "${a.episodeTitle}"` : '';
+                return `${i + 1}. ${a.title}${ep}${t} — ${a.avg}/10 sur MAL`;
+            }).join('\n');
         case 'newseason':
             return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus${data.previousScore ? `, S1 notée ${data.previousScore}/10` : ''}`;
         default:

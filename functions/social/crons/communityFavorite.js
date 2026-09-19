@@ -1,12 +1,16 @@
 /**
- * cron communityFavorite — coup(s) de cœur communauté. Mercredi 12h.
- * Support 1 à N animes en cas d'égalité.
+ * cron communityFavorite — TOP 3 des épisodes de la semaine les mieux
+ * notés sur MAL. Sunday 21h Europe/Paris (2h après le récap hebdo).
+ *
+ * Data source : Jikan /anime/{id}/episodes → note MAL individuelle par
+ * épisode (échelle 0-5, on multiplie par 2 pour afficher /10 en cohérence
+ * avec les autres posts Bingeki).
  */
 
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
-const { computeCommunityFavorites } = require('../generators/stats');
+const { fetchWeeklyTopEpisodes } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost } = require('../shared/firestore');
@@ -16,9 +20,6 @@ const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
 exports.communityFavorite = onSchedule(
     {
-        // Sunday 21h Europe/Paris — 2h after the weekly recap, so the
-        // TOP 3 and the community favorite feel like a coordinated
-        // Sunday evening drop rather than two disconnected slots.
         schedule: '0 21 * * 0',
         timeZone: 'Europe/Paris',
         retryCount: 1,
@@ -33,26 +34,29 @@ exports.communityFavorite = onSchedule(
             return;
         }
 
-        const favorites = await computeCommunityFavorites();
-        if (favorites.length === 0) {
-            console.log('[social/communityFavorite] no qualified entries this week');
+        const episodes = await fetchWeeklyTopEpisodes(3);
+        if (episodes.length === 0) {
+            console.log('[social/communityFavorite] no scored episodes found in the last 7 days');
             return;
         }
 
-        const { caption, hashtags } = await generateCaption('favorite', favorites, config);
-        const slides = await renderSlides('favorite', favorites, ['feed', 'story']);
-
-        const title = favorites.length > 1
-            ? `${favorites.length} coups de cœur ex æquo`
-            : `Coup de cœur · ${favorites[0].title}`;
-
-        const animes = favorites.map((a) => ({
-            mal_id: a.mal_id,
-            title: a.title,
-            cover: a.cover,
-            avg: a.avg,
-            count: a.count,
+        // Data shape reused by generator/templates: each entry has
+        // title + cover + a `count`-like scalar for the metrics chip.
+        const items = episodes.map((ep) => ({
+            mal_id: ep.mal_id,
+            title: ep.title,
+            cover: ep.cover,
+            avg: ep.scoreOn10,
+            count: ep.episodeNumber,
+            episodeNumber: ep.episodeNumber,
+            episodeTitle: ep.episodeTitle,
         }));
+
+        const { caption, hashtags } = await generateCaption('favorite', items, config);
+        const slides = await renderSlides('favorite', items, ['feed', 'story']);
+
+        const title = `TOP 3 épisodes · Semaine`;
+
         const id = await createPendingPost({
             type: 'favorite',
             scheduledAt: Date.now() + 3600_000,
@@ -60,10 +64,13 @@ exports.communityFavorite = onSchedule(
             caption,
             hashtags,
             slides,
-            sourceData: { animeIds: favorites.map((a) => a.mal_id), animes },
+            sourceData: {
+                animeIds: items.map((a) => a.mal_id),
+                animes: items,
+            },
             platforms: { insta: true, tiktok: true, x: false },
         });
-        console.log(`[social/communityFavorite] created pending ${id} — ${favorites.length} winners`);
+        console.log(`[social/communityFavorite] created pending ${id} — ${items.length} episodes`);
         await notifyPendingPost(config, { type: 'favorite', title, postId: id, slidesCount: slides.length });
     },
 );

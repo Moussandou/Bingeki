@@ -428,18 +428,15 @@ export function buildSlidesHTML(type: PostType, data: AnimeSlideData | AnimeSlid
 
     if (type === 'favorite') {
         const arr = Array.isArray(data) ? data : [data];
-        const isTie = arr.length > 1;
         const total = arr.length + 2;
         slides.push({
             name: 'intro',
             html: introSlide({
                 typeLabel: `Anime · Semaine ${isoWeek()}`,
-                chipText: isTie ? 'COUPS DE CŒUR' : 'COUP DE CŒUR',
-                titleMain: isTie ? `${arr.length}` : 'La commu',
-                titleAccent: isTie ? 'ex æquo' : 'a adoré',
-                subtitle: isTie
-                    ? `${arr.length} animes à la même note →`
-                    : 'Choix des watchers Bingeki →',
+                chipText: 'COUP DE CŒUR',
+                titleMain: 'Le',
+                titleAccent: 'TOP 3',
+                subtitle: 'Épisodes les mieux notés cette semaine →',
                 miniCovers: arr.map((a) => a.cover).filter(Boolean) as string[],
             }),
         });
@@ -448,20 +445,28 @@ export function buildSlidesHTML(type: PostType, data: AnimeSlideData | AnimeSlid
             html: animeSlide({
                 cover: a.cover,
                 fallbackGradient: fallback(i),
-                ribbon: isTie ? `EX ÆQUO · ${i + 1}/${arr.length}` : `${a.avg ?? '?'} ★`,
-                ribbonVariant: 'ribbon-cyan',
+                ribbon: `#${i + 1}`,
+                ribbonVariant: i === 0 ? 'ribbon-rose' : i === 1 ? 'ribbon-dark' : 'ribbon-cyan',
                 metas: [
-                    { text: `${a.count ?? 0} WATCHERS`, variant: 'rose' },
+                    { text: `${a.avg ?? '?'} ★`, variant: 'cyan' },
+                    {
+                        text: (a as { episodeNumber?: number }).episodeNumber
+                            ? `ÉPISODE ${(a as { episodeNumber?: number }).episodeNumber}`
+                            : 'ÉPISODE',
+                        variant: 'rose',
+                    },
                 ],
                 title: a.title,
-                subtitle: 'CETTE SEMAINE',
+                subtitle: (a as { episodeTitle?: string }).episodeTitle
+                    ? String((a as { episodeTitle?: string }).episodeTitle).slice(0, 44).toUpperCase()
+                    : 'CETTE SEMAINE',
                 index: i + 2, total,
             }),
         }));
         slides.push({
             name: 'outro',
             html: outroSlide({
-                ctaMain: isTie ? 'Découvre-les' : 'Découvre-le',
+                ctaMain: 'Découvre-les',
                 ctaSub: 'Ajouter à ma liste →',
                 index: total, total,
             }),

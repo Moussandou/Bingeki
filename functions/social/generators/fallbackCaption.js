@@ -51,22 +51,24 @@ function weeklyCaption(animes) {
     return { caption, hashtags: tags };
 }
 
-function favoriteCaption(animes) {
-    if (animes.length === 1) {
-        const a = animes[0];
-        const caption =
-            `Le coup de cœur de la semaine : ${a.title} — ${a.avg}/10 chez ${a.count} watchers Bingeki.\n\n` +
-            `À ajouter à votre liste sur ${URL}`;
-        const tags = `#coupdecoeur #${slug(a.title)} #anime #bingeki #animefr`;
-        return { caption, hashtags: tags };
+function favoriteCaption(episodes) {
+    if (!episodes.length) {
+        return {
+            caption: `Aucune pépite cette semaine — le retour de vos anime prend forme sur ${URL}`,
+            hashtags: '#anime #bingeki #animefr',
+        };
     }
-    // Multiple ties
-    const titles = animes.map((a) => a.title).join(' & ');
+    const lines = episodes.slice(0, 3).map((ep, i) => {
+        const num = ep.episodeNumber ? ` ép. ${ep.episodeNumber}` : '';
+        return `${['🥇', '🥈', '🥉'][i] || `${i + 1}.`} ${ep.title}${num} — ${ep.avg}/10`;
+    }).join('\n');
     const caption =
-        `Coup de cœur de la semaine — égalité entre ${titles} chez nos watchers Bingeki.\n\n` +
-        `À ajouter à votre liste sur ${URL}`;
-    const tags = ['#coupdecoeur', '#anime', '#bingeki']
-        .concat(animes.slice(0, 2).map((a) => `#${slug(a.title)}`).filter((t) => t !== '#'))
+        `Les 3 pépites de la semaine selon MAL :\n\n${lines}\n\n` +
+        `Ajoute-les à ta liste sur ${URL}`;
+    const tags = ['#anime', '#bingeki', '#animefr', '#coupdecoeur']
+        .concat(
+            episodes.slice(0, 3).map((a) => `#${slug(a.title)}`).filter((t) => t !== '#'),
+        )
         .join(' ');
     return { caption, hashtags: tags };
 }
