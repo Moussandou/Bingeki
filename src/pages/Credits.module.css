@@ -32,17 +32,43 @@
     z-index: 2;
 }
 
-.teamGrid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1.75rem;
-    max-width: 1300px;
-    margin: 0 auto;
+.teamSection {
+    max-width: 1100px;
+    margin: 5rem auto 0;
     position: relative;
     z-index: 2;
 }
 
-@media (max-width: 1080px) {
+.teamHeader {
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1;
+    text-shadow: 3px 3px 0 var(--color-primary);
+    transform: rotate(-1deg);
+    margin-bottom: 0.75rem;
+}
+
+.teamSubtitle {
+    font-family: var(--font-body);
+    text-align: center;
+    font-size: 1.05rem;
+    opacity: 0.7;
+    max-width: 550px;
+    margin: 0 auto 3rem;
+    line-height: 1.5;
+}
+
+.teamGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+@media (max-width: 900px) {
     .teamGrid {
         grid-template-columns: repeat(2, 1fr);
     }

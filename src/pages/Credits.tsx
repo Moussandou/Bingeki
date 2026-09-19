@@ -12,19 +12,10 @@ interface Member {
     role: string;
     github: string;
     linkedin: string;
-    portfolio?: string;
     photoUrl?: string;
 }
 
-const TEAM: Member[] = [
-    {
-        name: 'Moussandou',
-        displayName: 'Moussandou',
-        role: 'CRÉATEUR & DEV',
-        github: 'https://github.com/Moussandou',
-        linkedin: 'https://www.linkedin.com/in/moussandou',
-        portfolio: 'https://moussandou.github.io/Portfolio/',
-    },
+const COFOUNDERS: Member[] = [
     {
         name: 'Hugo',
         displayName: 'Hugo',
@@ -48,7 +39,7 @@ const TEAM: Member[] = [
     },
 ];
 
-function TeamCard({ member }: { member: Member }) {
+function CoFounderCard({ member }: { member: Member }) {
     const accent = getMemberColor(member.name);
     const avatarUrl = member.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(member.name)}`;
     return (
@@ -61,7 +52,7 @@ function TeamCard({ member }: { member: Member }) {
                     fallback={avatarUrl}
                 />
             </div>
-            <h2 className={styles.memberName}>{member.displayName}</h2>
+            <h3 className={styles.memberName}>{member.displayName}</h3>
             <span className={styles.memberRole}>{member.role}</span>
 
             <div className={styles.memberSocials}>
@@ -73,12 +64,6 @@ function TeamCard({ member }: { member: Member }) {
                     className={styles.memberSocialBtn} aria-label={`LinkedIn ${member.displayName}`}>
                     <LinkedinIcon size={20} />
                 </a>
-                {member.portfolio && (
-                    <a href={member.portfolio} target="_blank" rel="noopener noreferrer"
-                        className={styles.memberSocialBtn} aria-label={`Portfolio ${member.displayName}`}>
-                        <Globe size={20} />
-                    </a>
-                )}
             </div>
         </div>
     );
@@ -91,26 +76,34 @@ export default function Credits() {
         <Layout>
             <div className={styles.creditsContainer}>
                 {/* Background Details */}
-                <div style={{ position: 'absolute', top: '10%', left: '-5%', fontSize: '15rem', opacity: 0.05, fontWeight: 900, transform: 'rotate(10deg)', pointerEvents: 'none' }}>TEAM</div>
+                <div style={{ position: 'absolute', top: '10%', left: '-5%', fontSize: '15rem', opacity: 0.05, fontWeight: 900, transform: 'rotate(10deg)', pointerEvents: 'none' }}>DEV</div>
                 <div style={{ position: 'absolute', bottom: '10%', right: '-5%', fontSize: '15rem', opacity: 0.05, fontWeight: 900, transform: 'rotate(-10deg)', pointerEvents: 'none' }}>BUILD</div>
 
                 <div className="container">
                     <h1 className={styles.title}>{t('credits.title')}</h1>
 
-                    <div className={styles.intro}>
-                        <p dangerouslySetInnerHTML={{ __html: t('credits.description_1') }} />
-                        <p style={{ marginTop: '1rem' }}>
-                            {t('credits.description_2')}
-                        </p>
-                    </div>
+                    {/* Mouss's original big card */}
+                    <div className={styles.card}>
+                        <div className={styles.profileSection}>
+                            <div className={styles.avatar}>
+                                <OptimizedImage
+                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Moussandou`}
+                                    alt="Moussandou"
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    fallback={`https://api.dicebear.com/7.x/avataaars/svg?seed=Moussandou`}
+                                />
+                            </div>
+                            <h2 className={styles.name}>Moussandou</h2>
+                            <span className={styles.role}>CRÉATEUR &amp; DEV</span>
+                        </div>
 
-                    <div className={styles.teamGrid}>
-                        {TEAM.map((m) => (
-                            <TeamCard key={m.name} member={m} />
-                        ))}
-                    </div>
+                        <div className={styles.description}>
+                            <p dangerouslySetInnerHTML={{ __html: t('credits.description_1') }} />
+                            <p style={{ marginTop: '1rem' }}>
+                                {t('credits.description_2')}
+                            </p>
+                        </div>
 
-                    <div className={styles.outro}>
                         <div className={styles.techStack}>
                             <div className={styles.techTag} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Code size={16} /> REACT</div>
                             <div className={styles.techTag}>TYPESCRIPT</div>
@@ -120,10 +113,31 @@ export default function Credits() {
                             <div className={styles.techTag}>ZUSTAND</div>
                         </div>
 
-                        <div className={styles.madeWith}>
-                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                {t('credits.made_with')} <Heart size={16} fill="currentColor" /> {t('credits.in_marseille')}
-                            </span>
+                        <div style={{ textAlign: 'center', margin: '2rem 0', fontStyle: 'italic', opacity: 0.7 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>{t('credits.made_with')} <Heart size={16} fill="currentColor" /> {t('credits.in_marseille')}</span>
+                        </div>
+
+                        <div className={styles.socialLinks}>
+                            <a href="https://github.com/Moussandou" target="_blank" rel="noopener noreferrer" className={styles.socialBtn}>
+                                <GithubIcon size={20} /> GitHub
+                            </a>
+                            <a href="https://www.linkedin.com/in/moussandou" target="_blank" rel="noopener noreferrer" className={styles.socialBtn}>
+                                <LinkedinIcon size={20} /> LinkedIn
+                            </a>
+                            <a href="https://moussandou.github.io/Portfolio/" target="_blank" rel="noopener noreferrer" className={styles.socialBtn}>
+                                <Globe size={20} /> Portfolio
+                            </a>
+                        </div>
+                    </div>
+
+                    {/* Co-fondateurs */}
+                    <div className={styles.teamSection}>
+                        <h2 className={styles.teamHeader}>L'ÉQUIPE</h2>
+                        <p className={styles.teamSubtitle}>{t('credits.team_subtitle')}</p>
+                        <div className={styles.teamGrid}>
+                            {COFOUNDERS.map((m) => (
+                                <CoFounderCard key={m.name} member={m} />
+                            ))}
                         </div>
                     </div>
                 </div>
