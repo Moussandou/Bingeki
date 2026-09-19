@@ -80,10 +80,37 @@ export interface PublishedPost extends PendingPost {
         insta: { id: string; permalink: string; publishedAt: number } | null;
         tiktok: { id: string; publishedAt: number } | null;
     };
+    /** Per-platform error messages from a partial publish. Empty/absent
+     *  when everything published cleanly. Present values mean at least
+     *  one platform failed and can be retried via socialRetryPublish. */
+    errors?: { insta?: string; tiktok?: string } | null;
+    lastRetryAt?: number;
+    lastRetryBy?: string;
     reach?: {
-        insta?: { impressions: number; likes: number; comments: number; capturedAt: number };
-        tiktok?: { views: number; likes: number; capturedAt: number };
+        insta?: PlatformReach;
+        tiktok?: PlatformReach;
+        insta_j1?: boolean; insta_j7?: boolean; insta_j30?: boolean;
+        tiktok_j1?: boolean; tiktok_j7?: boolean; tiktok_j30?: boolean;
     };
+}
+
+/** Metrics captured from Buffer's postMetrics query. Buffer returns a
+ *  generic `metrics[]` array — we keep the raw list and also flatten
+ *  each metric by name for cheap lookup (impressions, reach, likes,
+ *  comments, shares, saves, views, etc — set of names depends on the
+ *  platform). */
+export interface PlatformReach {
+    [metric: string]: number | string | BufferMetric[] | null | undefined;
+    raw?: BufferMetric[];
+    capturedAt?: number;
+    metricsUpdatedAt?: string | null;
+}
+
+export interface BufferMetric {
+    type?: string;
+    name: string;
+    value: number;
+    unit?: string;
 }
 
 export interface BotConfig {
@@ -161,4 +188,30 @@ export const FIRESTORE_COLLECTIONS = {
     publishedPosts: 'social_published_posts',
     botConfig: 'social_bot_config',
     botConfigDoc: 'singleton',
+    cronHealth: 'social_cron_health',
+    archivedPosts: 'social_archived_posts',
 } as const;
+
+export type CronId = 'dailyReleases' | 'weeklyRecap' | 'communityFavorite' | 'newSeasonDetector' | 'pollReach' | 'cleanupPending';
+
+export const CRON_META: Record<CronId, { label: string; schedule: string; description: string }> = {
+    dailyReleases:     { label: 'Sorties du jour',      schedule: 'Tous les jours · 10h',       description: 'Top 5 des épisodes qui sortent aujourd\'hui.' },
+    weeklyRecap:       { label: 'Récap hebdo',          schedule: 'Dimanche · 19h',             description: 'Top 3 anime notés par la communauté cette semaine.' },
+    communityFavorite: { label: 'Coup de cœur',         schedule: 'Dimanche · 21h',             description: 'Top 3 épisodes les mieux notés sur MAL cette semaine.' },
+    newSeasonDetector: { label: 'Nouvelle saison',      schedule: 'Tous les jours · 8h',        description: 'Détecte les nouvelles saisons qui démarrent aujourd\'hui.' },
+    pollReach:         { label: 'Analytics reach',      schedule: 'Toutes les 6h',              description: 'Poll Buffer pour les métriques à J+1, J+7, J+30.' },
+    cleanupPending:    { label: 'Cleanup pending',      schedule: 'Tous les jours · 4h',        description: 'Archive les posts en attente non validés depuis 3 jours.' },
+};
+
+export interface CronHealth {
+    cronId: CronId;
+    lastRunAt?: number;
+    lastRunEndAt?: number;
+    lastDurationMs?: number;
+    lastStatus?: 'running' | 'success' | 'error';
+    lastError?: string | null;
+    lastPostId?: string | null;
+    lastNote?: string | null;
+    successCount?: number;
+    errorCount?: number;
+}

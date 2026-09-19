@@ -59,4 +59,67 @@ async function notifyPendingPost(config, { type, title, postId, slidesCount = 0 
     }
 }
 
-module.exports = { notifyPendingPost };
+async function sendWebhook(webhook, payload) {
+    try {
+        const res = await fetch(webhook, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(10_000),
+        });
+        if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            console.error(`[discord] webhook ${res.status}: ${body.slice(0, 300)}`);
+            return { ok: false, status: res.status };
+        }
+        return { ok: true };
+    } catch (err) {
+        console.error('[discord] webhook failed:', err.message || err);
+        return { ok: false, error: String(err) };
+    }
+}
+
+/**
+ * Notify when a publish attempt failed on ONE or MORE platforms.
+ * `errors` shape: { insta?: string, tiktok?: string }.
+ * `partial` = true when at least one other platform succeeded.
+ */
+async function notifyPublishError(config, { title, postId, errors, partial, publishedBy }) {
+    const webhook = config?.discordWebhook;
+    if (!webhook) return { skipped: 'no webhook configured' };
+
+    const failedPlatforms = Object.keys(errors).join(', ');
+    const color = partial ? 0xF59E0B : 0xDC2626;
+    const emoji = partial ? '⚠️' : '❌';
+    const heading = partial
+        ? `${emoji} Publish partiel — ${title}`
+        : `${emoji} Publish échoué — ${title}`;
+    const description = partial
+        ? `Une plateforme a échoué mais le post est publié ailleurs. Retry possible depuis /admin/social.`
+        : `Aucune plateforme n'a réussi. Le post reste en attente pour retry manuel.`;
+
+    const errorFields = Object.entries(errors).map(([platform, msg]) => ({
+        name: platform,
+        value: `\`${String(msg).slice(0, 900)}\``,
+        inline: false,
+    }));
+
+    const embed = {
+        title: heading,
+        description,
+        color,
+        fields: [
+            { name: 'Plateformes en échec', value: failedPlatforms, inline: true },
+            { name: 'ID', value: postId, inline: true },
+            ...errorFields,
+        ],
+        footer: { text: `Publish par ${publishedBy || '—'} · ${new Date().toLocaleString('fr-FR')}` },
+    };
+
+    return sendWebhook(webhook, {
+        content: partial ? undefined : `🚨 Publish complètement échoué sur **${failedPlatforms}**`,
+        embeds: [embed],
+    });
+}
+
+module.exports = { notifyPendingPost, notifyPublishError };

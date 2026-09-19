@@ -9,6 +9,8 @@ const COLLECTIONS = {
     published: 'social_published_posts',
     config: 'social_bot_config',
     configDoc: 'singleton',
+    cronHealth: 'social_cron_health',
+    archived: 'social_archived_posts',
 };
 
 /**
@@ -105,6 +107,27 @@ async function isDuplicateRecentPost(type, animeIds, sinceMs = 24 * 3600_000) {
     return false;
 }
 
+/**
+ * Move a pending post to the archived collection. Used by the cleanup
+ * cron to sweep pending posts that were never validated + by admin
+ * actions that need to preserve history rather than hard-delete.
+ */
+async function archivePending(postId, reason) {
+    const db = admin.firestore();
+    const pendingRef = db.collection(COLLECTIONS.pending).doc(postId);
+    const snap = await pendingRef.get();
+    if (!snap.exists) return false;
+    const batch = db.batch();
+    batch.set(db.collection(COLLECTIONS.archived).doc(postId), {
+        ...snap.data(),
+        archivedAt: Date.now(),
+        archiveReason: reason || 'unspecified',
+    });
+    batch.delete(pendingRef);
+    await batch.commit();
+    return true;
+}
+
 module.exports = {
     COLLECTIONS,
     createPendingPost,
@@ -114,4 +137,5 @@ module.exports = {
     deletePending,
     updatePendingCaption,
     isDuplicateRecentPost,
+    archivePending,
 };

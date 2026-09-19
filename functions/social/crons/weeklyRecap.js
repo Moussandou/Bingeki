@@ -10,29 +10,22 @@ const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost } = require('../shared/firestore');
 const { notifyPendingPost } = require('../shared/discord');
+const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
-exports.weeklyRecap = onSchedule(
-    {
-        schedule: '0 19 * * 0',
-        timeZone: 'Europe/Paris',
-        retryCount: 1,
-        secrets: [GEMINI_API_KEY],
-        memory: '1GiB',
-        timeoutSeconds: 300,
-    },
-    async () => {
+async function runWeeklyRecap() {
+    return withCronHealth('weeklyRecap', async () => {
         const config = await loadBotConfig();
         if (isKilled(config) || !config.schedules?.weekly?.enabled) {
             console.log('[social/weeklyRecap] skipped — kill-switch or schedule disabled');
-            return;
+            return { note: 'skipped: kill-switch or schedule disabled' };
         }
 
         const top3 = await computeWeeklyTop(3);
         if (top3.length === 0) {
             console.log('[social/weeklyRecap] no qualified entries this week');
-            return;
+            return { note: 'no qualified entries' };
         }
 
         const { caption, hashtags } = await generateCaption('weekly', top3, config);
@@ -65,5 +58,19 @@ exports.weeklyRecap = onSchedule(
         });
         console.log(`[social/weeklyRecap] created pending ${id} — ${top3.length} entries`);
         await notifyPendingPost(config, { type: 'weekly', title, postId: id, slidesCount: slides.length });
+        return { postId: id, note: `top ${top3.length}` };
+    });
+}
+
+exports.runWeeklyRecap = runWeeklyRecap;
+exports.weeklyRecap = onSchedule(
+    {
+        schedule: '0 19 * * 0',
+        timeZone: 'Europe/Paris',
+        retryCount: 1,
+        secrets: [GEMINI_API_KEY],
+        memory: '1GiB',
+        timeoutSeconds: 300,
     },
+    runWeeklyRecap,
 );

@@ -15,29 +15,22 @@ const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost } = require('../shared/firestore');
 const { notifyPendingPost } = require('../shared/discord');
+const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
-exports.communityFavorite = onSchedule(
-    {
-        schedule: '0 21 * * 0',
-        timeZone: 'Europe/Paris',
-        retryCount: 1,
-        secrets: [GEMINI_API_KEY],
-        memory: '1GiB',
-        timeoutSeconds: 300,
-    },
-    async () => {
+async function runCommunityFavorite() {
+    return withCronHealth('communityFavorite', async () => {
         const config = await loadBotConfig();
         if (isKilled(config) || !config.schedules?.favorite?.enabled) {
             console.log('[social/communityFavorite] skipped — kill-switch or schedule disabled');
-            return;
+            return { note: 'skipped: kill-switch or schedule disabled' };
         }
 
         const episodes = await fetchWeeklyTopEpisodes(3);
         if (episodes.length === 0) {
             console.log('[social/communityFavorite] no scored episodes found in the last 7 days');
-            return;
+            return { note: 'no scored episodes' };
         }
 
         // Data shape reused by generator/templates: each entry has
@@ -73,5 +66,19 @@ exports.communityFavorite = onSchedule(
         });
         console.log(`[social/communityFavorite] created pending ${id} — ${items.length} episodes`);
         await notifyPendingPost(config, { type: 'favorite', title, postId: id, slidesCount: slides.length });
+        return { postId: id, note: `top ${items.length} episodes` };
+    });
+}
+
+exports.runCommunityFavorite = runCommunityFavorite;
+exports.communityFavorite = onSchedule(
+    {
+        schedule: '0 21 * * 0',
+        timeZone: 'Europe/Paris',
+        retryCount: 1,
+        secrets: [GEMINI_API_KEY],
+        memory: '1GiB',
+        timeoutSeconds: 300,
     },
+    runCommunityFavorite,
 );

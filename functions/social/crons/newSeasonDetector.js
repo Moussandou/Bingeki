@@ -12,31 +12,25 @@ const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost } = require('../shared/firestore');
 const { notifyPendingPost } = require('../shared/discord');
+const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
-exports.newSeasonDetector = onSchedule(
-    {
-        schedule: '0 8 * * *',
-        timeZone: 'Europe/Paris',
-        retryCount: 1,
-        secrets: [GEMINI_API_KEY],
-        memory: '1GiB',
-        timeoutSeconds: 300,
-    },
-    async () => {
+async function runNewSeasonDetector() {
+    return withCronHealth('newSeasonDetector', async () => {
         const config = await loadBotConfig();
         if (isKilled(config)) {
             console.log('[social/newSeasonDetector] skipped — kill-switch');
-            return;
+            return { note: 'skipped: kill-switch' };
         }
 
         const candidates = await detectNewSeasons();
         if (candidates.length === 0) {
             console.log('[social/newSeasonDetector] no new season detected today');
-            return;
+            return { note: 'no new season' };
         }
 
+        let lastPostId = null;
         for (const anime of candidates) {
             try {
                 const { caption, hashtags } = await generateCaption('newseason', anime, config);
@@ -64,9 +58,24 @@ exports.newSeasonDetector = onSchedule(
                 });
                 console.log(`[social/newSeasonDetector] created pending ${id} for ${anime.title}`);
                 await notifyPendingPost(config, { type: 'newseason', title, postId: id, slidesCount: slides.length });
+                lastPostId = id;
             } catch (err) {
                 console.error(`[social/newSeasonDetector] failed for ${anime.title}:`, err);
             }
         }
+        return { postId: lastPostId, note: `${candidates.length} candidate(s)` };
+    });
+}
+
+exports.runNewSeasonDetector = runNewSeasonDetector;
+exports.newSeasonDetector = onSchedule(
+    {
+        schedule: '0 8 * * *',
+        timeZone: 'Europe/Paris',
+        retryCount: 1,
+        secrets: [GEMINI_API_KEY],
+        memory: '1GiB',
+        timeoutSeconds: 300,
     },
+    runNewSeasonDetector,
 );

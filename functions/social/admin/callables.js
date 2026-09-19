@@ -23,6 +23,7 @@ const {
     publishToInstagram: bufferPublishInstagram,
     publishToTikTok: bufferPublishTikTok,
 } = require('../publishers/buffer');
+const { notifyPublishError } = require('../shared/discord');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 const BUFFER_API_KEY = defineSecret('BUFFER_API_KEY');
@@ -220,6 +221,15 @@ exports.socialPublishNow = onCall(
             await movePendingToPublished(postId, results, request.auth.uid, {
                 errors: hasErrors ? errors : null,
             });
+            if (hasErrors) {
+                await notifyPublishError(config, {
+                    title: post.title,
+                    postId,
+                    errors,
+                    partial: true,
+                    publishedBy: request.auth.uid,
+                });
+            }
             return { ok: true, results, errors: hasErrors ? errors : undefined };
         }
 
@@ -227,6 +237,150 @@ exports.socialPublishNow = onCall(
             .map(([k, v]) => `${k}: ${v}`)
             .join(' · ');
         await markPendingFailed(postId, summary);
+        await notifyPublishError(config, {
+            title: post.title,
+            postId,
+            errors,
+            partial: false,
+            publishedBy: request.auth.uid,
+        });
         throw new HttpsError('internal', `Publish failed on every platform — ${summary}`);
+    },
+);
+
+/* ==========================================================================
+   RETRY PUBLISH — replay ONLY the failed platforms of a partially-published post
+   ========================================================================== */
+
+exports.socialRetryPublish = onCall(
+    {
+        secrets: [BUFFER_API_KEY],
+        memory: '2GiB',
+        timeoutSeconds: 540,
+    },
+    async (request) => {
+        await assertAdminOrThrow(request);
+        const { postId } = request.data || {};
+        if (!postId || typeof postId !== 'string') {
+            throw new HttpsError('invalid-argument', 'postId is required');
+        }
+
+        const db = admin.firestore();
+        // Retry targets a post that already lives in `published` with per-platform
+        // errors (partial success) — those are the only ones with something to
+        // retry. A fully-failed post stays in `pending` and uses socialPublishNow.
+        const publishedRef = db.collection(COLLECTIONS.published).doc(postId);
+        const snap = await publishedRef.get();
+        if (!snap.exists) {
+            throw new HttpsError('not-found', `published post ${postId} not found — use publishNow if it's still pending`);
+        }
+        const post = snap.data();
+        const existingErrors = post.errors || {};
+        const failedPlatforms = Object.keys(existingErrors);
+        if (failedPlatforms.length === 0) {
+            return { ok: true, results: post.results, note: 'nothing to retry' };
+        }
+
+        const config = await loadBotConfig();
+        if (isKilled(config)) {
+            throw new HttpsError('failed-precondition', 'Kill-switch is active');
+        }
+
+        const apiKey = process.env.BUFFER_API_KEY;
+        const combinedCaption = `${post.caption || ''}\n\n${post.hashtags || ''}`.trim();
+        const results = { ...(post.results || {}) };
+        const remainingErrors = { ...existingErrors };
+
+        for (const platform of failedPlatforms) {
+            const channelId = config.platforms?.[platform]?.bufferChannelId;
+            if (!channelId) {
+                remainingErrors[platform] = 'missing bufferChannelId in config';
+                continue;
+            }
+            const publisher = platform === 'insta'
+                ? bufferPublishInstagram
+                : platform === 'tiktok'
+                    ? bufferPublishTikTok
+                    : null;
+            if (!publisher) {
+                remainingErrors[platform] = `unknown platform ${platform}`;
+                continue;
+            }
+            try {
+                results[platform] = await publisher(post.slides, combinedCaption, {
+                    apiKey,
+                    channelId,
+                    mode: config.platforms?.[platform]?.mode || 'photo',
+                });
+                delete remainingErrors[platform];
+            } catch (err) {
+                console.error(`[social/retryPublish] ${platform} still failing for ${postId}:`, err);
+                remainingErrors[platform] = err.message || String(err);
+            }
+        }
+
+        const stillFailing = Object.keys(remainingErrors).length > 0;
+        await publishedRef.update({
+            results,
+            errors: stillFailing ? remainingErrors : null,
+            lastRetryAt: Date.now(),
+            lastRetryBy: request.auth.uid,
+        });
+
+        if (stillFailing) {
+            await notifyPublishError(config, {
+                title: post.title,
+                postId,
+                errors: remainingErrors,
+                partial: Object.values(results).some((r) => r),
+                publishedBy: request.auth.uid,
+            });
+        }
+
+        return { ok: true, results, errors: stillFailing ? remainingErrors : undefined };
+    },
+);
+
+/* ==========================================================================
+   TRIGGER CRON — run a scheduled cron on demand for testing/demo
+   ========================================================================== */
+
+const { runDailyReleases } = require('../crons/dailyReleases');
+const { runWeeklyRecap } = require('../crons/weeklyRecap');
+const { runCommunityFavorite } = require('../crons/communityFavorite');
+const { runNewSeasonDetector } = require('../crons/newSeasonDetector');
+const { runPollReach } = require('../crons/pollReach');
+const { runCleanupPending } = require('../crons/cleanupPending');
+
+const CRON_RUNNERS = {
+    dailyReleases: runDailyReleases,
+    weeklyRecap: runWeeklyRecap,
+    communityFavorite: runCommunityFavorite,
+    newSeasonDetector: runNewSeasonDetector,
+    pollReach: runPollReach,
+    cleanupPending: runCleanupPending,
+};
+
+exports.socialTriggerCron = onCall(
+    {
+        secrets: [GEMINI_API_KEY, BUFFER_API_KEY],
+        memory: '1GiB',
+        timeoutSeconds: 300,
+    },
+    async (request) => {
+        await assertAdminOrThrow(request);
+        const { cronId } = request.data || {};
+        const runner = CRON_RUNNERS[cronId];
+        if (!runner) {
+            throw new HttpsError('invalid-argument', `Unknown cronId "${cronId}". Valid: ${Object.keys(CRON_RUNNERS).join(', ')}`);
+        }
+        console.log(`[social/triggerCron] uid=${request.auth.uid} cronId=${cronId}`);
+        try {
+            const result = await runner();
+            return { ok: true, result: result || null };
+        } catch (err) {
+            console.error(`[social/triggerCron] ${cronId} failed:`, err);
+            throw new HttpsError('internal', `${cronId} failed: ${err.message || err}`);
+        }
     },
 );

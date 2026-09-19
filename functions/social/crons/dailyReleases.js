@@ -11,33 +11,22 @@ const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost, isDuplicateRecentPost } = require('../shared/firestore');
 const { notifyPendingPost } = require('../shared/discord');
+const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
-exports.dailyReleases = onSchedule(
-    {
-        // 10h Europe/Paris — post publié en matinée pour que la commu
-        // sache dès son café ce qui sort dans la journée + à quelle heure.
-        schedule: '0 10 * * *',
-        timeZone: 'Europe/Paris',
-        retryCount: 1,
-        secrets: [GEMINI_API_KEY],
-        // Puppeteer + @sparticuz/chromium routinely need >256 MiB just
-        // to boot the headless browser. Give the render enough headroom.
-        memory: '1GiB',
-        timeoutSeconds: 300,
-    },
-    async () => {
+async function runDailyReleases() {
+    return withCronHealth('dailyReleases', async () => {
         const config = await loadBotConfig();
         if (isKilled(config) || !config.schedules?.daily?.enabled) {
             console.log('[social/dailyReleases] skipped — kill-switch or schedule disabled');
-            return;
+            return { note: 'skipped: kill-switch or schedule disabled' };
         }
 
         const releases = await fetchTodaysReleases();
         if (releases.length === 0) {
             console.log('[social/dailyReleases] no releases today');
-            return;
+            return { note: 'no releases today' };
         }
 
         // Cap to the 5 highest-scoring for the post
@@ -50,7 +39,7 @@ exports.dailyReleases = onSchedule(
         const animeIds = finalList.map((a) => a.mal_id);
         if (await isDuplicateRecentPost('daily', animeIds, 12 * 3600_000)) {
             console.log('[social/dailyReleases] duplicate skipped');
-            return;
+            return { note: 'duplicate skipped' };
         }
 
         const { caption, hashtags } = await generateCaption('daily', finalList, config);
@@ -80,5 +69,23 @@ exports.dailyReleases = onSchedule(
         });
         console.log(`[social/dailyReleases] created pending ${id}`);
         await notifyPendingPost(config, { type: 'daily', title, postId: id, slidesCount: slides.length });
+        return { postId: id, note: `${finalList.length} anime(s)` };
+    });
+}
+
+exports.runDailyReleases = runDailyReleases;
+exports.dailyReleases = onSchedule(
+    {
+        // 10h Europe/Paris — post publié en matinée pour que la commu
+        // sache dès son café ce qui sort dans la journée + à quelle heure.
+        schedule: '0 10 * * *',
+        timeZone: 'Europe/Paris',
+        retryCount: 1,
+        secrets: [GEMINI_API_KEY],
+        // Puppeteer + @sparticuz/chromium routinely need >256 MiB just
+        // to boot the headless browser. Give the render enough headroom.
+        memory: '1GiB',
+        timeoutSeconds: 300,
     },
+    runDailyReleases,
 );

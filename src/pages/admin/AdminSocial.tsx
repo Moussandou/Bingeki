@@ -34,6 +34,7 @@ import { SlideHtmlPreview } from '@/components/admin/SlideHtmlPreview';
 import { SlidesEditor } from '@/components/admin/SlidesEditor';
 import { PublishedPostModal } from '@/components/admin/PublishedPostModal';
 import { RejectModal } from '@/components/admin/RejectModal';
+import { CronHealthPanel } from '@/components/admin/CronHealthPanel';
 import s from './AdminSocial.module.css';
 
 /* ==========================================================================
@@ -631,29 +632,56 @@ export default function AdminSocial() {
                             </div>
                         )}
 
+                        {/* Cron health + manual triggers */}
+                        <div className={s.sidebarSection}>
+                            <CronHealthPanel />
+                        </div>
+
                         {/* Recently published */}
                         {published.length > 0 && (
                             <div className={s.sidebarSection}>
                                 <div className={s.sectionHead}>
                                     <h3 className={s.sectionTitle}>Derniers publiés</h3>
                                 </div>
-                                {published.map((p) => (
-                                    <button
-                                        key={p.id}
-                                        onClick={() => setAnalyticsPost(p)}
-                                        className={s.publishedItem}
-                                    >
-                                        <div className={s.thumbInfo}>
-                                            <div className={s.thumbTitle}>{p.title}</div>
-                                            <div className={s.thumbMeta}>{formatSchedule(p.publishedAt)}</div>
-                                        </div>
-                                        {p.reach?.insta?.impressions && (
-                                            <span className={`${s.statChip} ${s.cyan}`} style={{ padding: '1px 6px', fontSize: '0.6rem' }}>
-                                                {(p.reach.insta.impressions / 1000).toFixed(1)}K
-                                            </span>
-                                        )}
-                                    </button>
-                                ))}
+                                {published.map((p) => {
+                                    const igImpressions = typeof p.reach?.insta?.impressions === 'number'
+                                        ? p.reach.insta.impressions
+                                        : null;
+                                    const hasErrors = p.errors && Object.keys(p.errors).length > 0;
+                                    return (
+                                        <button
+                                            key={p.id}
+                                            onClick={() => setAnalyticsPost(p)}
+                                            className={s.publishedItem}
+                                        >
+                                            <div className={s.thumbInfo}>
+                                                <div className={s.thumbTitle}>
+                                                    {p.title}
+                                                    {hasErrors && (
+                                                        <span style={{
+                                                            marginLeft: 6,
+                                                            background: '#dc2626',
+                                                            color: '#fff',
+                                                            padding: '1px 5px',
+                                                            fontSize: '0.55rem',
+                                                            fontWeight: 900,
+                                                            letterSpacing: 1,
+                                                            textTransform: 'uppercase',
+                                                            borderRadius: 2,
+                                                            verticalAlign: 'middle',
+                                                        }}>ÉCHEC</span>
+                                                    )}
+                                                </div>
+                                                <div className={s.thumbMeta}>{formatSchedule(p.publishedAt)}</div>
+                                            </div>
+                                            {igImpressions !== null && (
+                                                <span className={`${s.statChip} ${s.cyan}`} style={{ padding: '1px 6px', fontSize: '0.6rem' }}>
+                                                    {(igImpressions / 1000).toFixed(1)}K
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         )}
                     </aside>

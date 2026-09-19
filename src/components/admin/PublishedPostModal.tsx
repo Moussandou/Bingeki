@@ -1,10 +1,14 @@
 /**
  * PublishedPostModal — analytics detail for a published social post.
- * Shows per-platform reach (impressions, reach, likes, comments, saves,
- * shares if captured) and links to the platform permalinks.
+ * Reads reach as the flat metrics map + raw Buffer `metrics[]` array
+ * captured by the pollReach cron, so it works whatever names Buffer
+ * happens to return per platform.
  */
-import { X, Camera, Music2, ExternalLink } from 'lucide-react';
-import type { PublishedPost } from '@/shared/socialBot';
+import { useState } from 'react';
+import { X, Camera, Music2, ExternalLink, Clock, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
+import type { PublishedPost, PlatformReach, BufferMetric } from '@/shared/socialBot';
+import { retryPublish } from '@/firebase/socialBot';
+import { logger } from '@/utils/logger';
 import s from '@/pages/admin/AdminSocial.module.css';
 
 interface Props {
@@ -23,9 +27,158 @@ const dateTime = (ts: number | undefined): string =>
         ? new Date(ts).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
         : '—';
 
+/** Buffer names are snake_case or camelCase depending on platform.
+ *  Map what we know into friendly French labels; anything else is
+ *  displayed as-is, humanised. */
+const PRETTY_LABELS: Record<string, string> = {
+    impressions: 'Impressions',
+    reach: 'Portée',
+    likes: 'Likes',
+    comments: 'Commentaires',
+    saves: 'Enregistrés',
+    saved: 'Enregistrés',
+    shares: 'Partages',
+    views: 'Vues',
+    video_views: 'Vues vidéo',
+    plays: 'Lectures',
+    profile_visits: 'Visites profil',
+    total_interactions: 'Interactions',
+    engagement: 'Engagement',
+    engagement_rate: 'Taux engagement',
+    follows: 'Nouveaux abonnés',
+};
+
+const humanize = (name: string): string =>
+    PRETTY_LABELS[name] || name.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+
+interface MetricEntry { name: string; value: number; unit?: string }
+
+/** Extract displayable metrics from a PlatformReach: prefer the raw
+ *  `metrics[]` (has unit info); fall back to the flat map keys. */
+function extractMetrics(reach: PlatformReach | undefined): MetricEntry[] {
+    if (!reach) return [];
+    if (Array.isArray(reach.raw) && reach.raw.length > 0) {
+        return (reach.raw as BufferMetric[])
+            .filter((m) => m?.name && typeof m.value === 'number')
+            .map((m) => ({ name: m.name, value: m.value, unit: m.unit }));
+    }
+    const skip = new Set(['raw', 'capturedAt', 'metricsUpdatedAt']);
+    const out: MetricEntry[] = [];
+    for (const [k, v] of Object.entries(reach)) {
+        if (skip.has(k)) continue;
+        if (typeof v === 'number') out.push({ name: k, value: v });
+    }
+    return out;
+}
+
+/** j+1 / j+7 / j+30 badges — which milestones did the cron already hit? */
+function milestoneBadges(reach: PublishedPost['reach'], platform: 'insta' | 'tiktok') {
+    const captured = [
+        reach?.[`${platform}_j1`] && 'J+1',
+        reach?.[`${platform}_j7`] && 'J+7',
+        reach?.[`${platform}_j30`] && 'J+30',
+    ].filter(Boolean) as string[];
+    return captured;
+}
+
+interface PlatformPanelProps {
+    label: 'Instagram' | 'TikTok';
+    icon: React.ReactNode;
+    headBg?: string;
+    reach: PlatformReach | undefined;
+    milestones: string[];
+    permalink?: string;
+}
+
+function PlatformPanel({ label, icon, headBg, reach, milestones, permalink }: PlatformPanelProps) {
+    const metrics = extractMetrics(reach);
+    const capturedAt = reach?.capturedAt as number | undefined;
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className={s.analyticsPlatformHead} style={headBg ? { background: headBg } : undefined}>
+                {icon} {label}
+                {milestones.length > 0 && (
+                    <span style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                        {milestones.map((m) => (
+                            <span key={m} style={{
+                                background: 'rgba(255,255,255,0.25)',
+                                padding: '2px 6px',
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                borderRadius: '2px',
+                            }}>{m}</span>
+                        ))}
+                    </span>
+                )}
+            </div>
+
+            {metrics.length > 0 ? (
+                <div className={s.analyticsGrid}>
+                    {metrics.map((m) => (
+                        <div key={m.name} className={s.analyticsCell}>
+                            <span className={s.analyticsLabel}>{humanize(m.name)}</span>
+                            <span className={s.analyticsValue}>
+                                {fmt(m.value)}{m.unit === 'PERCENT' ? '%' : ''}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div style={{
+                    padding: '10px', background: '#f5f5f5', border: '1px dashed #ccc',
+                    fontSize: '0.7rem', color: '#666',
+                }}>
+                    Aucune stat capturée. Le cron pollReach interroge Buffer à J+1, J+7 et J+30 après publication.
+                </div>
+            )}
+
+            {capturedAt && (
+                <div style={{ fontSize: '0.65rem', color: '#888', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={10} /> Capturé {dateTime(capturedAt)}
+                </div>
+            )}
+
+            {permalink && (
+                <a
+                    href={permalink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={s.modalLink}
+                >
+                    <ExternalLink size={12} /> Voir sur {label}
+                </a>
+            )}
+        </div>
+    );
+}
+
 export function PublishedPostModal({ post, onClose }: Props) {
     const igReach = post.reach?.insta;
     const ttReach = post.reach?.tiktok;
+    const errors = post.errors || null;
+    const hasErrors = errors && Object.keys(errors).length > 0;
+    const [retrying, setRetrying] = useState(false);
+    const [retryMessage, setRetryMessage] = useState<string | null>(null);
+
+    const handleRetry = async () => {
+        if (retrying) return;
+        setRetrying(true);
+        setRetryMessage(null);
+        try {
+            const res = await retryPublish(post.id);
+            if (res.errors && Object.keys(res.errors).length > 0) {
+                setRetryMessage(`Partiel — reste en échec: ${Object.keys(res.errors).join(', ')}`);
+            } else {
+                setRetryMessage('Retry OK, toutes les plateformes publiées.');
+            }
+        } catch (err) {
+            logger.error('[PublishedPostModal] retry failed:', err);
+            setRetryMessage(err instanceof Error ? err.message : String(err));
+        } finally {
+            setRetrying(false);
+        }
+    };
 
     return (
         <div
@@ -40,6 +193,9 @@ export function PublishedPostModal({ post, onClose }: Props) {
                         <h2 className={s.modalTitle}>{post.title}</h2>
                         <div style={{ fontSize: '0.72rem', color: '#666', marginTop: '4px' }}>
                             Publié {dateTime(post.publishedAt)}
+                            {post.lastRetryAt && (
+                                <span> · Dernier retry {dateTime(post.lastRetryAt)}</span>
+                            )}
                         </div>
                     </div>
                     <button onClick={onClose} className={s.modalClose} aria-label="Fermer">
@@ -47,78 +203,101 @@ export function PublishedPostModal({ post, onClose }: Props) {
                     </button>
                 </div>
 
-                {/* Instagram */}
-                {post.results?.insta && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div className={s.analyticsPlatformHead}>
-                            <Camera size={13} /> Instagram
-                        </div>
-                        <div className={s.analyticsGrid}>
-                            <div className={s.analyticsCell}>
-                                <span className={s.analyticsLabel}>Impressions</span>
-                                <span className={s.analyticsValue}>{fmt(igReach?.impressions)}</span>
+                {hasErrors && (
+                    <div style={{
+                        background: '#fef2f2',
+                        border: '2px solid #dc2626',
+                        padding: '12px',
+                        marginBottom: '4px',
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 12,
+                            marginBottom: 8,
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                fontFamily: 'Outfit, sans-serif',
+                                fontWeight: 900,
+                                fontSize: '0.78rem',
+                                color: '#991b1b',
+                                textTransform: 'uppercase',
+                                letterSpacing: 2,
+                            }}>
+                                <AlertTriangle size={14} /> Publish partiel · à retenter
                             </div>
-                            <div className={s.analyticsCell}>
-                                <span className={s.analyticsLabel}>Reach</span>
-                                <span className={s.analyticsValue}>{fmt((igReach as { reach?: number })?.reach)}</span>
-                            </div>
-                            <div className={s.analyticsCell}>
-                                <span className={s.analyticsLabel}>Likes</span>
-                                <span className={s.analyticsValue}>{fmt(igReach?.likes)}</span>
-                            </div>
-                            <div className={s.analyticsCell}>
-                                <span className={s.analyticsLabel}>Commentaires</span>
-                                <span className={s.analyticsValue}>{fmt(igReach?.comments)}</span>
-                            </div>
-                            <div className={s.analyticsCell}>
-                                <span className={s.analyticsLabel}>Enregistrés</span>
-                                <span className={s.analyticsValue}>{fmt((igReach as { saved?: number })?.saved)}</span>
-                            </div>
-                            <div className={s.analyticsCell}>
-                                <span className={s.analyticsLabel}>Partages</span>
-                                <span className={s.analyticsValue}>{fmt((igReach as { shares?: number })?.shares)}</span>
-                            </div>
-                        </div>
-                        {post.results.insta.permalink && (
-                            <a
-                                href={post.results.insta.permalink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={s.modalLink}
+                            <button
+                                onClick={handleRetry}
+                                disabled={retrying}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    background: retrying ? '#ccc' : '#dc2626',
+                                    color: '#fff',
+                                    border: 'none',
+                                    padding: '6px 12px',
+                                    fontFamily: 'Outfit, sans-serif',
+                                    fontWeight: 800,
+                                    fontSize: '0.68rem',
+                                    letterSpacing: 1,
+                                    textTransform: 'uppercase',
+                                    cursor: retrying ? 'not-allowed' : 'pointer',
+                                }}
                             >
-                                <ExternalLink size={12} /> Voir sur Instagram
-                            </a>
+                                {retrying ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                                Retry publish
+                            </button>
+                        </div>
+                        {Object.entries(errors).map(([platform, msg]) => (
+                            <div key={platform} style={{
+                                marginTop: 6,
+                                padding: '6px 8px',
+                                background: '#fff',
+                                border: '1px solid #fca5a5',
+                                fontSize: '0.7rem',
+                                fontFamily: 'monospace',
+                                color: '#7f1d1d',
+                                wordBreak: 'break-word',
+                            }}>
+                                <strong>{platform}:</strong> {msg}
+                            </div>
+                        ))}
+                        {retryMessage && (
+                            <div style={{
+                                marginTop: 8,
+                                padding: '6px 8px',
+                                background: '#fff',
+                                border: '1px solid #94a3b8',
+                                fontSize: '0.72rem',
+                                color: '#334155',
+                            }}>{retryMessage}</div>
                         )}
                     </div>
                 )}
 
-                {/* TikTok */}
-                {post.results?.tiktok && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div className={s.analyticsPlatformHead} style={{ background: '#FF2E63' }}>
-                            <Music2 size={13} /> TikTok
-                        </div>
-                        <div className={s.analyticsGrid}>
-                            <div className={s.analyticsCell}>
-                                <span className={s.analyticsLabel}>Vues</span>
-                                <span className={s.analyticsValue}>{fmt(ttReach?.views)}</span>
-                            </div>
-                            <div className={s.analyticsCell}>
-                                <span className={s.analyticsLabel}>Likes</span>
-                                <span className={s.analyticsValue}>{fmt(ttReach?.likes)}</span>
-                            </div>
-                        </div>
-                    </div>
+                {post.results?.insta && (
+                    <PlatformPanel
+                        label="Instagram"
+                        icon={<Camera size={13} />}
+                        reach={igReach}
+                        milestones={milestoneBadges(post.reach, 'insta')}
+                        permalink={post.results.insta.permalink}
+                    />
                 )}
 
-                {!post.reach && (
-                    <div style={{
-                        padding: '12px', background: '#fff3cd', border: '2px solid #f59e0b',
-                        fontSize: '0.75rem', color: '#78350f', fontWeight: 600,
-                    }}>
-                        Les stats sont capturées à j+1 puis j+7 par le cron pollReach.
-                        Rien ici pour l'instant.
-                    </div>
+                {post.results?.tiktok && (
+                    <PlatformPanel
+                        label="TikTok"
+                        icon={<Music2 size={13} />}
+                        headBg="#FF2E63"
+                        reach={ttReach}
+                        milestones={milestoneBadges(post.reach, 'tiktok')}
+                    />
                 )}
             </div>
         </div>

@@ -13,7 +13,7 @@ import {
 import { db } from './config';
 import { logger } from '@/utils/logger';
 import type {
-    PendingPost, PublishedPost, BotConfig, PostPlatforms, PostSourceData,
+    PendingPost, PublishedPost, BotConfig, PostPlatforms, PostSourceData, CronHealth, CronId,
 } from '@/shared/socialBot';
 import { DEFAULT_BOT_CONFIG, FIRESTORE_COLLECTIONS } from '@/shared/socialBot';
 
@@ -21,6 +21,7 @@ const PENDING = FIRESTORE_COLLECTIONS.pendingPosts;
 const PUBLISHED = FIRESTORE_COLLECTIONS.publishedPosts;
 const CONFIG = FIRESTORE_COLLECTIONS.botConfig;
 const CONFIG_DOC = FIRESTORE_COLLECTIONS.botConfigDoc;
+const CRON_HEALTH = FIRESTORE_COLLECTIONS.cronHealth;
 
 /* ==========================================================================
    SUBSCRIPTIONS
@@ -355,3 +356,44 @@ export const regeneratePost = (postId: string) =>
         'socialRegeneratePost',
         { postId },
     );
+
+export const triggerCron = (cronId: CronId) =>
+    callAdminFn<{ cronId: CronId }, { ok: true; result: { postId?: string; note?: string } | null }>(
+        'socialTriggerCron',
+        { cronId },
+    );
+
+export const retryPublish = (postId: string) =>
+    callAdminFn<
+        { postId: string },
+        { ok: true; results: PublishedPost['results']; errors?: Record<string, string> }
+    >('socialRetryPublish', { postId });
+
+/**
+ * Live subscription to per-cron health records. The collection lives at
+ * `social_cron_health/<cronId>` and is written by every cron via
+ * `withCronHealth` (functions/social/shared/cronHealth.js).
+ */
+export function subscribeToCronHealth(
+    callback: (records: Record<string, CronHealth>) => void,
+): () => void {
+    const mock = readMock();
+    if (mock) {
+        setTimeout(() => callback({}), 0);
+        return () => {};
+    }
+    return onSnapshot(
+        collection(db, CRON_HEALTH),
+        (snap) => {
+            const out: Record<string, CronHealth> = {};
+            for (const d of snap.docs) {
+                out[d.id] = { cronId: d.id as CronId, ...(d.data() as Omit<CronHealth, 'cronId'>) };
+            }
+            callback(out);
+        },
+        (error) => {
+            logger.error('[SocialBot] cron health subscription error:', error);
+            callback({});
+        },
+    );
+}
