@@ -49,12 +49,48 @@ const CSS = `
     .meta-chip-rose { background: ${ROSE}; color: #fff; }
     .title { font-family: 'Outfit'; font-weight: 900; font-size: 108px; line-height: 0.95; letter-spacing: -4px; text-transform: uppercase; text-shadow: 5px 5px 0 #000; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
     .subtitle { margin-top: 18px; font-family: 'Outfit'; font-weight: 800; font-size: 40px; letter-spacing: 2px; text-transform: uppercase; color: ${CYAN}; overflow-wrap: break-word; }
-    .intro-container { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 100px 60px; }
-    .intro-title { font-family: 'Outfit'; font-weight: 900; font-size: 130px; line-height: 0.92; letter-spacing: -5px; text-transform: uppercase; color: #000; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
-    .intro-title .accent { color: ${ROSE}; text-shadow: 6px 6px 0 #000; display: inline-block; transform: rotate(-3deg); }
-    .intro-sub { margin-top: 42px; font-family: 'Inter'; font-weight: 600; font-size: 38px; color: #555; max-width: 900px; line-height: 1.35; }
-    .intro-swipe { position: absolute; right: 60px; bottom: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 32px; color: #666; letter-spacing: 4px; }
-    .intro-brand { position: absolute; left: 60px; bottom: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 38px; color: #000; letter-spacing: -1px; }
+    .intro-slide { background: #f5f0e6; }
+    .intro-halftone-corner-top { position: absolute; top: 0; left: 0; width: 500px; height: 500px; background-image: radial-gradient(#000 4px, transparent 5px); background-size: 34px 34px; opacity: 0.22; -webkit-mask-image: radial-gradient(circle at 0 0, #000 40%, transparent 70%); mask-image: radial-gradient(circle at 0 0, #000 40%, transparent 70%); z-index: 2; }
+    .intro-halftone-corner-bot { position: absolute; bottom: 0; right: 0; width: 500px; height: 500px; background-image: radial-gradient(#000 4px, transparent 5px); background-size: 34px 34px; opacity: 0.22; -webkit-mask-image: radial-gradient(circle at 100% 100%, #000 40%, transparent 70%); mask-image: radial-gradient(circle at 100% 100%, #000 40%, transparent 70%); z-index: 2; }
+    .intro-type-label { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); font-family: 'Outfit'; font-weight: 900; font-size: 32px; letter-spacing: 8px; text-transform: uppercase; color: #000; opacity: 0.85; z-index: 5; display: flex; align-items: center; gap: 18px; white-space: nowrap; }
+    .intro-type-label::before, .intro-type-label::after { content: ''; width: 60px; height: 3px; background: #000; }
+    .intro-datebar { position: absolute; top: 220px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 10px 24px; font-family: 'Outfit'; font-weight: 800; font-size: 26px; letter-spacing: 4px; z-index: 5; white-space: nowrap; }
+    .intro-chip { display: inline-flex; align-items: center; gap: 12px; border: 6px solid #000; padding: 20px 34px; font-family: 'Outfit'; font-weight: 900; font-size: 40px; letter-spacing: 4px; text-transform: uppercase; line-height: 1; white-space: nowrap; box-shadow: 8px 8px 0 #000; background: #000; color: #fff; }
+    .intro-container { position: absolute; top: 50%; left: 60px; right: 60px; transform: translateY(-58%); display: flex; flex-direction: column; align-items: center; gap: 44px; z-index: 5; }
+    .intro-title { font-family: 'Outfit'; font-weight: 900; font-size: 148px; line-height: 0.9; letter-spacing: -6px; text-align: center; text-transform: uppercase; color: #000; }
+    .intro-title .accent { display: inline-block; color: ${ROSE}; text-shadow: 7px 7px 0 #000; transform: rotate(-3deg); }
+    .intro-sub { font-family: 'Outfit'; font-weight: 800; font-size: 34px; letter-spacing: 3px; text-transform: uppercase; color: #444; text-align: center; }
+    .intro-covers { position: absolute; bottom: 220px; left: 60px; right: 60px; z-index: 4; display: flex; gap: 14px; justify-content: center; align-items: flex-end; }
+    .intro-cover { width: 152px; height: 216px; border: 4px solid #000; box-shadow: 6px 6px 0 #000; background: #333; background-size: cover; background-position: center; }
+    .intro-cover.r1 { transform: rotate(-2deg); }
+    .intro-cover.r2 { transform: rotate(3deg); margin-top: -6px; }
+    .intro-cover.r3 { transform: rotate(-1deg); margin-top: 4px; }
+    .intro-cover.r4 { transform: rotate(2deg); margin-top: -4px; }
+    .intro-cover.extra { transform: rotate(-3deg); margin-top: 8px; background: ${ROSE}; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Outfit'; font-weight: 900; font-size: 60px; }
+    .intro-swipe { position: absolute; right: 60px; bottom: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 34px; color: #444; letter-spacing: 5px; }
+    .intro-brand { position: absolute; left: 60px; bottom: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 42px; color: #000; letter-spacing: -1px; }
+    .intro-brand::before { content: '★ '; color: ${ROSE}; }
+    .pl-lun .intro-chip { background: #000; color: #fff; }
+    .pl-lun .intro-title .accent { color: ${ROSE}; text-shadow: 7px 7px 0 #000; }
+    .pl-lun .intro-cover.extra { background: ${ROSE}; color: #fff; }
+    .pl-mar .intro-chip { background: ${ROSE}; color: #fff; }
+    .pl-mar .intro-title .accent { color: #000; text-shadow: 7px 7px 0 ${ROSE}; }
+    .pl-mar .intro-cover.extra { background: #000; color: ${ROSE}; }
+    .pl-mer .intro-chip { background: #fff; color: #000; }
+    .pl-mer .intro-title .accent { color: ${ROSE}; text-shadow: 7px 7px 0 #000; }
+    .pl-mer .intro-cover.extra { background: ${ROSE}; color: #000; }
+    .pl-jeu .intro-chip { background: #000; color: #fff; }
+    .pl-jeu .intro-title .accent { color: #000; text-shadow: 7px 7px 0 ${ROSE}; }
+    .pl-jeu .intro-cover.extra { background: #000; color: ${ROSE}; border-color: ${ROSE}; }
+    .pl-ven .intro-chip { background: ${ROSE}; color: #000; }
+    .pl-ven .intro-title .accent { color: ${ROSE}; text-shadow: 7px 7px 0 #000; }
+    .pl-ven .intro-cover.extra { background: #fff; color: ${ROSE}; border-color: ${ROSE}; }
+    .pl-sam .intro-chip { background: #fff; color: #000; }
+    .pl-sam .intro-title .accent { color: #000; text-shadow: 7px 7px 0 ${ROSE}; }
+    .pl-sam .intro-cover.extra { background: #000; color: ${ROSE}; }
+    .pl-dim .intro-chip { background: #000; color: ${ROSE}; border-color: ${ROSE}; box-shadow: 8px 8px 0 ${ROSE}; }
+    .pl-dim .intro-title .accent { color: ${ROSE}; text-shadow: 7px 7px 0 #000; }
+    .pl-dim .intro-cover.extra { background: ${ROSE}; color: #000; border-color: #fff; }
     .outro-container { position: absolute; inset: 0; z-index: 5; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 80px 60px; }
     .outro-logo { width: 320px; height: 320px; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; filter: drop-shadow(8px 8px 0 ${ROSE}); }
     .outro-logo img { width: 100%; height: 100%; object-fit: contain; }
@@ -99,27 +135,81 @@ function slideIdxBadge(index?: number, total?: number): string {
 }
 
 interface IntroArgs {
-    badge: string;
+    /** Optional overrides for the old signature; new call sites should use
+     *  the new fields below. Kept so we don't break existing weekly/favorite
+     *  callers mid-refactor. */
+    badge?: string;
     badgeVariant?: BadgeVariant;
-    titleMain: string;
-    titleAccent: string;
-    subtitle: string;
-    /** Kept for call-site backwards compat with the previous signature.
-     *  The intro slide intentionally does not render the N/N badge (the
-     *  SWIPE → arrow already signals a carousel). */
+    subtitle?: string;
+    heroCover?: string;
     index?: number;
     total?: number;
+    /** Bandeau haut. Défaut "Épisodes anime · aujourd'hui". */
+    typeLabel?: string;
+    /** Texte de la chip principale (badge). */
+    chipText?: string;
+    titleMain: string;
+    titleAccent: string;
+    /** Covers d'anime affichées en strip en bas (max 4 + "+N"). */
+    miniCovers?: string[];
+    /** Date affichée dans la datebar + utilisée pour sélectionner la
+     *  palette de couleur. Défaut = new Date() côté serveur. */
+    date?: Date;
+    paletteOverride?: 'pl-lun' | 'pl-mar' | 'pl-mer' | 'pl-jeu' | 'pl-ven' | 'pl-sam' | 'pl-dim';
+}
+
+const PALETTE_KEYS = ['pl-dim', 'pl-lun', 'pl-mar', 'pl-mer', 'pl-jeu', 'pl-ven', 'pl-sam'] as const;
+
+function pickPalette(date: Date): typeof PALETTE_KEYS[number] {
+    return PALETTE_KEYS[date.getDay()];
+}
+
+function frenchDatebar(date: Date): string {
+    const days = ['DIMANCHE', 'LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI'];
+    const months = ['JAN', 'FÉV', 'MARS', 'AVR', 'MAI', 'JUIN', 'JUIL', 'AOÛT', 'SEPT', 'OCT', 'NOV', 'DÉC'];
+    return `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]}`;
+}
+
+function coversStrip(covers: string[] = []): string {
+    if (!covers.length) return '';
+    const shown = covers.slice(0, 4);
+    const extra = covers.length - 4;
+    const cells = shown.map((c, i) =>
+        `<div class="intro-cover r${i + 1}" style="background-image: url('${escape(c)}');"></div>`,
+    );
+    if (extra > 0) cells.push(`<div class="intro-cover extra">+${extra}</div>`);
+    return `<div class="intro-covers">${cells.join('')}</div>`;
 }
 
 export function introSlide({
-    badge, badgeVariant = 'chip-dark', titleMain, titleAccent, subtitle,
+    typeLabel = "Épisodes anime · aujourd'hui",
+    chipText = '',
+    titleMain,
+    titleAccent,
+    subtitle = 'La liste juste après →',
+    miniCovers = [],
+    date,
+    paletteOverride,
+    // legacy fallback:
+    badge,
 }: IntroArgs): string {
+    const now = date ?? new Date();
+    const palette = paletteOverride ?? pickPalette(now);
+    const chip = chipText || badge || '';
     return docShell(`
+        <div class="intro-slide ${palette}" style="position:absolute; inset:0; z-index:0;"></div>
+        <div class="intro-halftone-corner-top"></div>
+        <div class="intro-halftone-corner-bot"></div>
         <div class="halftone-black"></div>
-        <div class="intro-container">
-            <div class="chip ${badgeVariant}" style="margin-bottom: 60px;">${escape(badge)}</div>
-            <div class="intro-title">${escape(titleMain)} <span class="accent">${escape(titleAccent)}</span></div>
-            <div class="intro-sub">${escape(subtitle)}</div>
+        <div class="intro-type-label ${palette}">${escape(typeLabel)}</div>
+        <div class="intro-datebar ${palette}">${escape(frenchDatebar(now))}</div>
+        <div class="${palette}">
+            <div class="intro-container">
+                <div class="intro-chip">${escape(chip)}</div>
+                <div class="intro-title">${escape(titleMain)} <span class="accent">${escape(titleAccent)}</span></div>
+                <div class="intro-sub">${escape(subtitle)}</div>
+            </div>
+            ${coversStrip(miniCovers)}
         </div>
         <div class="intro-brand">Bingeki</div>
         <div class="intro-swipe">SWIPE →</div>
@@ -263,12 +353,12 @@ export function buildSlidesHTML(type: PostType, data: AnimeSlideData | AnimeSlid
         slides.push({
             name: 'intro',
             html: introSlide({
-                badge: 'SORTIES DU JOUR',
-                badgeVariant: 'chip-dark',
-                titleMain: "Aujourd'hui,",
-                titleAccent: `${arr.length} épisodes`,
-                subtitle: `${todayLabel()} · Swipe pour voir la liste`,
-                index: 1, total,
+                typeLabel: "Épisodes anime · aujourd'hui",
+                chipText: 'SORTIES DU JOUR',
+                titleMain: `${arr.length}`,
+                titleAccent: 'épisodes',
+                subtitle: 'La liste juste après →',
+                miniCovers: arr.map((a) => a.cover).filter(Boolean) as string[],
             }),
         });
         arr.forEach((a, i) => slides.push({
@@ -302,12 +392,12 @@ export function buildSlidesHTML(type: PostType, data: AnimeSlideData | AnimeSlid
         slides.push({
             name: 'intro',
             html: introSlide({
-                badge: 'RÉCAP HEBDO',
-                badgeVariant: 'chip-rose',
+                typeLabel: `Anime · Semaine ${isoWeek()}`,
+                chipText: 'RÉCAP HEBDO',
                 titleMain: 'Le',
                 titleAccent: 'TOP 3',
-                subtitle: `Semaine ${isoWeek()} — élu par vous, watchers Bingeki`,
-                index: 1, total,
+                subtitle: 'Élu par les watchers Bingeki →',
+                miniCovers: arr.map((a) => a.cover).filter(Boolean) as string[],
             }),
         });
         arr.forEach((a, i) => slides.push({
@@ -343,14 +433,14 @@ export function buildSlidesHTML(type: PostType, data: AnimeSlideData | AnimeSlid
         slides.push({
             name: 'intro',
             html: introSlide({
-                badge: isTie ? 'COUPS DE CŒUR' : 'COUP DE CŒUR',
-                badgeVariant: 'chip-cyan',
+                typeLabel: `Anime · Semaine ${isoWeek()}`,
+                chipText: isTie ? 'COUPS DE CŒUR' : 'COUP DE CŒUR',
                 titleMain: isTie ? `${arr.length}` : 'La commu',
                 titleAccent: isTie ? 'ex æquo' : 'a adoré',
                 subtitle: isTie
-                    ? `Semaine ${isoWeek()} · ${arr.length} animes à la même note`
-                    : `Semaine ${isoWeek()} · choix des watchers Bingeki`,
-                index: 1, total,
+                    ? `${arr.length} animes à la même note →`
+                    : 'Choix des watchers Bingeki →',
+                miniCovers: arr.map((a) => a.cover).filter(Boolean) as string[],
             }),
         });
         arr.forEach((a, i) => slides.push({
