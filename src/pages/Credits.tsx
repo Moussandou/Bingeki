@@ -20,7 +20,7 @@ const TEAM: Member[] = [
     {
         name: 'Moussandou',
         displayName: 'Moussandou',
-        role: 'CRÉATEUR',
+        role: 'CRÉATEUR & DEV',
         github: 'https://github.com/Moussandou',
         linkedin: 'https://www.linkedin.com/in/moussandou',
         portfolio: 'https://moussandou.github.io/Portfolio/',
@@ -28,21 +28,21 @@ const TEAM: Member[] = [
     {
         name: 'Hugo',
         displayName: 'Hugo',
-        role: 'CO-CRÉATEUR',
+        role: 'CO-CRÉATEUR & DEV',
         github: 'https://github.com/yotaoo',
         linkedin: 'https://www.linkedin.com/in/hugo-remtoula-020a192b5/',
     },
     {
         name: 'Maxime',
         displayName: 'Maxime',
-        role: 'CO-CRÉATEUR',
+        role: 'CO-CRÉATEUR & DEV',
         github: 'https://github.com/Max-Relax',
         linkedin: 'https://www.linkedin.com/in/finaudmaxime/',
     },
     {
         name: 'Yanis',
         displayName: 'Yanis',
-        role: 'CO-CRÉATEUR',
+        role: 'CO-CRÉATEUR & DEV',
         github: 'https://github.com/picardz',
         linkedin: 'https://www.linkedin.com/in/hadjedjys/',
     },
