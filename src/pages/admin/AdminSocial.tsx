@@ -519,6 +519,25 @@ export default function AdminSocial() {
                                     )}
                                 </div>
                             ))}
+                            <a
+                                href="/fr/_preview/social-templates"
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    gap: 8, padding: '12px 10px',
+                                    marginTop: 6,
+                                    background: '#000', color: '#fff',
+                                    textDecoration: 'none',
+                                    fontFamily: '"Outfit", sans-serif', fontWeight: 900,
+                                    fontSize: '0.72rem', letterSpacing: '0.08em',
+                                    textTransform: 'uppercase',
+                                    border: '3px solid #000',
+                                    boxShadow: '4px 4px 0 #000',
+                                }}
+                            >
+                                👁  Voir des exemples de chaque type  →
+                            </a>
                         </div>
 
                         {/* Schedules — superAdmin only */}
