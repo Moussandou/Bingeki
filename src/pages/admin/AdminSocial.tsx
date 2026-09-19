@@ -122,7 +122,7 @@ const TYPE_DESCRIPTIONS: Record<NextRun['key'], string> = {
     daily: 'Carrousel des épisodes d\'anime qui sortent aujourd\'hui, triés par note.',
     newseason: 'Annonce quand une nouvelle saison d\'un anime démarre (studio, épisodes, note S1).',
     weekly: 'TOP 3 des anime les mieux notés par les watchers Bingeki cette semaine.',
-    favorite: 'Coup de cœur communautaire : l\'anime préféré des users Bingeki cette semaine.',
+    favorite: 'TOP 3 des épisodes d\'anime les mieux notés sur MAL cette semaine (notes converties sur /10).',
 };
 
 const computeNextRuns = (config: BotConfig): NextRun[] => {
