@@ -647,24 +647,29 @@ function buildSlidesHTML(type, data) {
                 miniCovers: arr.map((a) => a.cover).filter(Boolean),
             }),
         });
-        arr.forEach((a, i) => slides.push({
-            name: `fav-${i + 1}`,
-            html: animeSlide({
-                cover: a.cover,
-                fallbackGradient: fallback(i),
-                ribbon: `#${i + 1}`,
-                ribbonVariant: i === 0 ? 'ribbon-rose' : i === 1 ? 'ribbon-dark' : 'ribbon-cyan',
-                metas: [
-                    { text: `${a.avg} ★`, variant: 'cyan' },
-                    { text: a.episodeNumber ? `ÉPISODE ${a.episodeNumber}` : 'ÉPISODE', variant: 'rose' },
-                ],
-                title: a.title,
-                subtitle: a.episodeTitle
-                    ? String(a.episodeTitle).slice(0, 44).toUpperCase()
-                    : 'CETTE SEMAINE',
-                index: i + 2, total,
-            }),
-        }));
+        arr.forEach((a, i) => {
+            const epLabel = a.season
+                ? `S${a.season} · ÉP ${a.episodeNumber ?? '?'}`
+                : (a.episodeNumber ? `ÉPISODE ${a.episodeNumber}` : 'ÉPISODE');
+            slides.push({
+                name: `fav-${i + 1}`,
+                html: animeSlide({
+                    cover: a.cover,
+                    fallbackGradient: fallback(i),
+                    ribbon: `#${i + 1}`,
+                    ribbonVariant: i === 0 ? 'ribbon-rose' : i === 1 ? 'ribbon-dark' : 'ribbon-cyan',
+                    metas: [
+                        { text: `${a.avg} ★`, variant: 'cyan' },
+                        { text: epLabel, variant: 'rose' },
+                    ],
+                    title: a.title,
+                    subtitle: a.episodeTitle
+                        ? String(a.episodeTitle).slice(0, 44).toUpperCase()
+                        : 'CETTE SEMAINE',
+                    index: i + 2, total,
+                }),
+            });
+        });
         slides.push({
             name: 'outro',
             html: outroSlide({

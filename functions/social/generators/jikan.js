@@ -81,6 +81,35 @@ async function detectNewSeasons() {
 }
 
 /**
+ * Extract the season number from a MAL title string.
+ * "Solo Leveling Season 2 Arc" → { cleanTitle: 'Solo Leveling', season: 2 }
+ * "Chainsaw Man Part II"        → { cleanTitle: 'Chainsaw Man',  season: 2 }
+ * "Frieren"                     → { cleanTitle: 'Frieren',       season: null }
+ */
+function parseSeasonFromTitle(title) {
+    if (!title) return { cleanTitle: title, season: null };
+    const roman = { II: 2, III: 3, IV: 4, V: 5, VI: 6, VII: 7, VIII: 8, IX: 9, X: 10 };
+    const patterns = [
+        /\s+Season\s+(\d+)(?:\s+.*)?$/i,
+        /\s+(\d+)(?:st|nd|rd|th)?\s+Season(?:\s+.*)?$/i,
+        /\s+S(\d+)$/i,
+        /\s+Part\s+(\d+|II|III|IV|V|VI|VII|VIII|IX|X)(?:\s+.*)?$/i,
+        /\s+(II|III|IV|V|VI|VII|VIII|IX|X)(?:\s+.*)?$/,
+    ];
+    for (const p of patterns) {
+        const m = title.match(p);
+        if (m) {
+            const raw = m[1].toUpperCase();
+            const num = roman[raw] || parseInt(raw, 10);
+            if (!Number.isFinite(num)) continue;
+            const cleanTitle = title.replace(p, '').trim();
+            return { cleanTitle: cleanTitle || title, season: num };
+        }
+    }
+    return { cleanTitle: title, season: null };
+}
+
+/**
  * Fetch every currently-airing TV anime, then for each one grab its
  * episode list from /anime/{id}/episodes and keep the episodes whose
  * air date is within the last 7 days. MAL's per-episode `score` is on
@@ -108,9 +137,12 @@ async function fetchWeeklyTopEpisodes(limit = 3) {
                 const airedAt = new Date(ep.aired).getTime();
                 if (airedAt < weekAgo || airedAt > now) continue;
 
+                const { cleanTitle, season } = parseSeasonFromTitle(anime.title);
                 candidates.push({
                     mal_id: anime.mal_id,
-                    title: anime.title,
+                    title: cleanTitle,
+                    fullTitle: anime.title,
+                    season,
                     cover: anime.cover,
                     episodeNumber: ep.mal_id,
                     episodeTitle: ep.title || '',
@@ -145,5 +177,6 @@ module.exports = {
     fetchAnimeById,
     detectNewSeasons,
     fetchWeeklyTopEpisodes,
+    parseSeasonFromTitle,
     normalizeAnime,
 };

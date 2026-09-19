@@ -50,6 +50,7 @@ exports.communityFavorite = onSchedule(
             count: ep.episodeNumber,
             episodeNumber: ep.episodeNumber,
             episodeTitle: ep.episodeTitle,
+            season: ep.season, // number | null — inferred from the MAL title
         }));
 
         const { caption, hashtags } = await generateCaption('favorite', items, config);

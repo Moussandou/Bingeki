@@ -59,8 +59,9 @@ function favoriteCaption(episodes) {
         };
     }
     const lines = episodes.slice(0, 3).map((ep, i) => {
+        const s = ep.season ? ` S${ep.season}` : '';
         const num = ep.episodeNumber ? ` ép. ${ep.episodeNumber}` : '';
-        return `${['🥇', '🥈', '🥉'][i] || `${i + 1}.`} ${ep.title}${num} — ${ep.avg}/10`;
+        return `${['🥇', '🥈', '🥉'][i] || `${i + 1}.`} ${ep.title}${s}${num} — ${ep.avg}/10`;
     }).join('\n');
     const caption =
         `Les 3 pépites de la semaine selon MAL :\n\n${lines}\n\n` +

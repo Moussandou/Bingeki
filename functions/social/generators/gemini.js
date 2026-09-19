@@ -85,9 +85,10 @@ function serializeData(type, data) {
             return data.map((a, i) => `${i + 1}. ${a.title} — ${a.avg}/10 (${a.count} notes)`).join('\n');
         case 'favorite':
             return data.map((a, i) => {
+                const season = a.season ? ` S${a.season}` : '';
                 const ep = a.episodeNumber ? ` — Épisode ${a.episodeNumber}` : '';
                 const t = a.episodeTitle ? ` "${a.episodeTitle}"` : '';
-                return `${i + 1}. ${a.title}${ep}${t} — ${a.avg}/10 sur MAL`;
+                return `${i + 1}. ${a.title}${season}${ep}${t} — ${a.avg}/10 sur MAL`;
             }).join('\n');
         case 'newseason':
             return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus${data.previousScore ? `, S1 notée ${data.previousScore}/10` : ''}`;

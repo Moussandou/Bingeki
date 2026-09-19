@@ -440,29 +440,30 @@ export function buildSlidesHTML(type: PostType, data: AnimeSlideData | AnimeSlid
                 miniCovers: arr.map((a) => a.cover).filter(Boolean) as string[],
             }),
         });
-        arr.forEach((a, i) => slides.push({
-            name: `fav-${i + 1}`,
-            html: animeSlide({
-                cover: a.cover,
-                fallbackGradient: fallback(i),
-                ribbon: `#${i + 1}`,
-                ribbonVariant: i === 0 ? 'ribbon-rose' : i === 1 ? 'ribbon-dark' : 'ribbon-cyan',
-                metas: [
-                    { text: `${a.avg ?? '?'} ★`, variant: 'cyan' },
-                    {
-                        text: (a as { episodeNumber?: number }).episodeNumber
-                            ? `ÉPISODE ${(a as { episodeNumber?: number }).episodeNumber}`
-                            : 'ÉPISODE',
-                        variant: 'rose',
-                    },
-                ],
-                title: a.title,
-                subtitle: (a as { episodeTitle?: string }).episodeTitle
-                    ? String((a as { episodeTitle?: string }).episodeTitle).slice(0, 44).toUpperCase()
-                    : 'CETTE SEMAINE',
-                index: i + 2, total,
-            }),
-        }));
+        arr.forEach((a, i) => {
+            const extra = a as { episodeNumber?: number; season?: number | null; episodeTitle?: string };
+            const epLabel = extra.season
+                ? `S${extra.season} · ÉP ${extra.episodeNumber ?? '?'}`
+                : (extra.episodeNumber ? `ÉPISODE ${extra.episodeNumber}` : 'ÉPISODE');
+            slides.push({
+                name: `fav-${i + 1}`,
+                html: animeSlide({
+                    cover: a.cover,
+                    fallbackGradient: fallback(i),
+                    ribbon: `#${i + 1}`,
+                    ribbonVariant: i === 0 ? 'ribbon-rose' : i === 1 ? 'ribbon-dark' : 'ribbon-cyan',
+                    metas: [
+                        { text: `${a.avg ?? '?'} ★`, variant: 'cyan' },
+                        { text: epLabel, variant: 'rose' },
+                    ],
+                    title: a.title,
+                    subtitle: extra.episodeTitle
+                        ? String(extra.episodeTitle).slice(0, 44).toUpperCase()
+                        : 'CETTE SEMAINE',
+                    index: i + 2, total,
+                }),
+            });
+        });
         slides.push({
             name: 'outro',
             html: outroSlide({
