@@ -81,6 +81,7 @@ function SampleCard({ sample }: { sample: Sample }) {
     return (
         <div style={{
             background: '#fff',
+            color: '#000',
             border: '4px solid #000',
             boxShadow: '10px 10px 0 #000',
             padding: '28px 24px',
@@ -133,6 +134,7 @@ function SampleCard({ sample }: { sample: Sample }) {
                     <div key={i} style={{
                         flex: '0 0 auto',
                         width: 200,
+                        aspectRatio: '4 / 5',
                         border: '3px solid #000',
                         background: '#f5f0e6',
                         overflow: 'hidden',
