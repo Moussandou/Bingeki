@@ -1,3 +1,7 @@
+/* ============================================
+   PAGE CONTAINER
+   ============================================ */
+
 .creditsContainer {
     min-height: 100vh;
     padding: 6rem 2rem;
@@ -9,7 +13,7 @@
 }
 
 .title {
-    font-size: clamp(3rem, 10vw, 6rem);
+    font-size: clamp(2.5rem, 10vw, 6rem);
     font-weight: 900;
     text-transform: uppercase;
     line-height: 0.9;
@@ -21,161 +25,69 @@
     transform: rotate(-1deg);
 }
 
-.intro {
-    max-width: 720px;
-    margin: 0 auto 3.5rem;
-    font-family: var(--font-body);
-    font-size: 1.1rem;
-    line-height: 1.6;
-    text-align: center;
-    position: relative;
-    z-index: 2;
-}
+/* ============================================
+   MOUSS's big card
+   ============================================ */
 
-.teamSection {
-    max-width: 1100px;
-    margin: 5rem auto 0;
-    position: relative;
-    z-index: 2;
-}
-
-.teamHeader {
-    font-size: clamp(2rem, 6vw, 3.5rem);
-    font-weight: 900;
-    text-transform: uppercase;
-    text-align: center;
-    line-height: 1;
-    text-shadow: 3px 3px 0 var(--color-primary);
-    transform: rotate(-1deg);
-    margin-bottom: 0.75rem;
-}
-
-.teamSubtitle {
-    font-family: var(--font-body);
-    text-align: center;
-    font-size: 1.05rem;
-    opacity: 0.7;
-    max-width: 550px;
-    margin: 0 auto 3rem;
-    line-height: 1.5;
-}
-
-.teamGrid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2rem;
-    max-width: 1100px;
-    margin: 0 auto;
-}
-
-@media (max-width: 900px) {
-    .teamGrid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 560px) {
-    .teamGrid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.memberCard {
+.card {
     background: var(--color-surface);
     border: 4px solid var(--color-border-heavy);
     box-shadow: 8px 8px 0 var(--color-shadow-solid);
-    padding: 3rem 2rem;
+    padding: 3rem;
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+    box-sizing: border-box;
+}
+
+.profileSection {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    transition: transform 0.2s, box-shadow 0.2s;
-    position: relative;
+    margin-bottom: 3rem;
 }
 
-.memberCard::before {
-    content: '';
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    width: 8px;
-    height: calc(100% + 8px);
-    background: var(--member-accent, var(--color-primary));
-    z-index: -1;
-}
-
-.memberCard:hover {
-    transform: translate(-4px, -4px);
-    box-shadow: 12px 12px 0 var(--color-shadow-solid);
-}
-
-.memberAvatar {
+.avatar {
     width: 150px;
     height: 150px;
     border-radius: 50%;
     border: 4px solid var(--color-border-heavy);
     overflow: hidden;
     margin-bottom: 2rem;
-    box-shadow: 4px 4px 0 var(--member-accent, var(--color-primary));
-    background: var(--color-surface);
+    box-shadow: 4px 4px 0 var(--color-primary);
+    flex-shrink: 0;
 }
 
-.memberName {
-    font-size: 2rem;
+.name {
+    font-size: 2.5rem;
     font-weight: 900;
     text-transform: uppercase;
     margin-bottom: 1rem;
     line-height: 1;
-    letter-spacing: -1px;
+    word-break: break-word;
 }
 
-.memberRole {
+.role {
     font-family: var(--font-body);
-    font-size: 0.95rem;
+    font-size: 1.2rem;
     background: var(--color-border-heavy);
     color: var(--color-text-inverse);
     padding: 0.5rem 1rem;
     font-weight: 700;
-    letter-spacing: 1px;
-    display: inline-block;
     transform: rotate(-2deg);
-    margin-bottom: 2rem;
-    white-space: nowrap;
-}
-
-.memberSocials {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: auto;
-    flex-wrap: wrap;
-    justify-content: center;
-    width: 100%;
-}
-
-.memberSocialBtn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 52px;
-    height: 52px;
-    color: var(--color-text);
-    text-decoration: none;
-    border: 3px solid var(--color-border-heavy);
-    background: var(--member-accent, var(--color-primary));
-    transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.memberSocialBtn:hover {
-    transform: translate(-3px, -3px);
-    box-shadow: 4px 4px 0 var(--color-shadow-solid);
-}
-
-.outro {
-    max-width: 720px;
-    margin: 4rem auto 0;
+    display: inline-block;
     text-align: center;
-    position: relative;
-    z-index: 2;
+}
+
+.description {
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    max-width: 600px;
+    margin: 2rem auto;
+    text-align: center;
 }
 
 .techStack {
@@ -197,12 +109,32 @@
     text-transform: uppercase;
 }
 
-.madeWith {
-    text-align: center;
-    margin: 2rem 0;
-    font-style: italic;
-    opacity: 0.7;
-    font-family: var(--font-body);
+.socialLinks {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 3rem;
+    flex-wrap: wrap;
+}
+
+.socialBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--color-text);
+    font-weight: 800;
+    text-decoration: none;
+    padding: 1rem 2rem;
+    border: 3px solid var(--color-border-heavy);
+    background: var(--color-primary);
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-transform: uppercase;
+}
+
+.socialBtn:hover {
+    transform: translate(-4px, -4px);
+    box-shadow: 4px 4px 0 var(--color-shadow-solid);
 }
 
 /* ============================================
@@ -232,12 +164,6 @@
     gap: 1rem;
 }
 
-@media (max-width: 700px) {
-    .coGrid {
-        grid-template-columns: 1fr;
-    }
-}
-
 .coChip {
     display: flex;
     flex-direction: column;
@@ -251,6 +177,7 @@
     transition: transform 0.15s, box-shadow 0.15s;
     width: 100%;
     box-sizing: border-box;
+    min-width: 0;
 }
 
 .coChip:hover {
@@ -274,6 +201,7 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    max-width: 100%;
 }
 
 .coName {
@@ -297,6 +225,9 @@
     border: 2px solid var(--color-border-heavy);
     text-transform: uppercase;
     white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .coSocials {
@@ -326,97 +257,156 @@
 }
 
 /* ============================================
-   MOUSS's big original card (top of the page)
+   RESPONSIVE
    ============================================ */
 
-.card {
-    background: var(--color-surface);
-    border: 4px solid var(--color-border-heavy);
-    box-shadow: 8px 8px 0 var(--color-shadow-solid);
-    padding: 3rem;
-    max-width: 800px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 2;
+/* Tablet — pad tighten */
+@media (max-width: 900px) {
+    .creditsContainer {
+        padding: 5rem 1.5rem;
+    }
+    .card {
+        padding: 2.5rem 1.75rem;
+    }
+    .coChip {
+        padding: 1.25rem 0.75rem;
+        gap: 0.75rem;
+    }
+    .coAvatar {
+        width: 68px;
+        height: 68px;
+    }
+    .coName {
+        font-size: 1.1rem;
+    }
+    .coRole {
+        font-size: 0.65rem;
+        padding: 3px 8px;
+        letter-spacing: 1px;
+    }
+    .coSocialBtn {
+        width: 32px;
+        height: 32px;
+    }
 }
 
-.profileSection {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    margin-bottom: 3rem;
-}
-
-.avatar {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    border: 4px solid var(--color-border-heavy);
-    overflow: hidden;
-    margin-bottom: 2rem;
-    box-shadow: 4px 4px 0 var(--color-primary);
-    flex-shrink: 0;
-}
-
-.name {
-    font-size: 2.5rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    margin-bottom: 1rem;
-}
-
-.role {
-    font-family: var(--font-body);
-    font-size: 1.2rem;
-    background: var(--color-border-heavy);
-    color: var(--color-text-inverse);
-    padding: 0.5rem 1rem;
-    font-weight: 700;
-    transform: rotate(-2deg);
-    display: inline-block;
-}
-
-.description {
-    font-family: var(--font-body);
-    font-size: 1.1rem;
-    line-height: 1.6;
-    max-width: 600px;
-    margin: 2rem auto;
-    text-align: center;
-}
-
-.socialLinks {
-    display: flex;
-    justify-content: center;
-    gap: 1.5rem;
-    margin-top: 3rem;
-}
-
-.socialBtn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--color-text);
-    font-weight: 800;
-    text-decoration: none;
-    padding: 1rem 2rem;
-    border: 3px solid var(--color-border-heavy);
-    background: var(--color-primary);
-    transition: transform 0.2s, box-shadow 0.2s;
-    text-transform: uppercase;
-}
-
-.socialBtn:hover {
-    transform: translate(-4px, -4px);
-    box-shadow: 4px 4px 0 var(--color-shadow-solid);
-}
-
-@media (max-width: 768px) {
-    .memberCard {
+/* Mobile — coGrid becomes 1 col + Mouss avatar smaller */
+@media (max-width: 600px) {
+    .creditsContainer {
+        padding: 4rem 1rem;
+    }
+    .card {
         padding: 2rem 1.25rem;
     }
-    .memberName {
-        font-size: 1.4rem;
+    .profileSection {
+        margin-bottom: 2rem;
+    }
+    .avatar {
+        width: 120px;
+        height: 120px;
+        margin-bottom: 1.5rem;
+    }
+    .name {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+    .role {
+        font-size: 1rem;
+        padding: 0.4rem 0.85rem;
+    }
+    .description {
+        font-size: 1rem;
+    }
+    .techTag {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.85rem;
+    }
+    .socialLinks {
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-top: 2rem;
+    }
+    .socialBtn {
+        justify-content: center;
+        padding: 0.85rem 1rem;
+        font-size: 0.9rem;
+    }
+    .coHeader {
+        font-size: 1.15rem;
+        letter-spacing: 3px;
+    }
+    .coGrid {
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+    }
+    .coChip {
+        flex-direction: row;
+        text-align: left;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    .coAvatar {
+        width: 60px;
+        height: 60px;
+    }
+    .coInfo {
+        flex: 1;
+        min-width: 0;
+        align-items: flex-start;
+        text-align: left;
+    }
+    .coName {
+        font-size: 1.15rem;
+    }
+    .coRole {
+        font-size: 0.62rem;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.2;
+    }
+    .coSocials {
+        margin-top: 0;
+        flex-shrink: 0;
+    }
+}
+
+/* Petit mobile — encore plus compact */
+@media (max-width: 400px) {
+    .creditsContainer {
+        padding: 3.5rem 0.75rem;
+    }
+    .title {
+        font-size: 2.75rem;
+    }
+    .card {
+        padding: 1.5rem 1rem;
+    }
+    .avatar {
+        width: 100px;
+        height: 100px;
+    }
+    .name {
+        font-size: 1.75rem;
+    }
+    .coChip {
+        gap: 0.75rem;
+        padding: 0.85rem;
+    }
+    .coAvatar {
+        width: 52px;
+        height: 52px;
+    }
+    .coName {
+        font-size: 1rem;
+    }
+    .coRole {
+        font-size: 0.58rem;
+        letter-spacing: 0.8px;
+        padding: 2px 6px;
+    }
+    .coSocialBtn {
+        width: 30px;
+        height: 30px;
     }
 }
