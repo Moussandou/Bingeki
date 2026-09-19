@@ -95,6 +95,7 @@ const AdminHealth = lazy(() => import('@/pages/admin/Health'));
 const AdminOrga = lazy(() => import('@/pages/admin/orga/OrgaPage'));
 const AdminSocial = lazy(() => import('@/pages/admin/AdminSocial'));
 const AdminSocialPreview = lazy(() => import('@/components/mockups/AdminSocialPreview'));
+const SocialTemplatesPreview = lazy(() => import('@/components/mockups/SocialTemplatesPreview'));
 
 
 const LanguageManager = () => {
@@ -235,6 +236,7 @@ function App() {
 
               <Route path="donors" element={<Donors />} />
               <Route path="_preview/admin-social" element={<AdminSocialPreview />} />
+              <Route path="_preview/social-templates" element={<SocialTemplatesPreview />} />
               <Route path="lens" element={<Lens />} />
               <Route path="news" element={<NewsIndex />} />
               <Route path="news/article/:slug" element={<NewsArticle />} />
