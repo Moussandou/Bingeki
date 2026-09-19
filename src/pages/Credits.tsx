@@ -94,7 +94,7 @@ export default function Credits() {
                                 />
                             </div>
                             <h2 className={styles.name}>Moussandou</h2>
-                            <span className={styles.role}>CRÉATEUR &amp; DEV</span>
+                            <span className={styles.role}>{t('credits.role')}</span>
                         </div>
 
                         <div className={styles.description}>
