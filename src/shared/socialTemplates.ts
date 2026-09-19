@@ -49,9 +49,7 @@ const CSS = `
     .meta-chip-rose { background: ${ROSE}; color: #fff; }
     .title { font-family: 'Outfit'; font-weight: 900; font-size: 108px; line-height: 0.95; letter-spacing: -4px; text-transform: uppercase; text-shadow: 5px 5px 0 #000; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
     .subtitle { margin-top: 18px; font-family: 'Outfit'; font-weight: 800; font-size: 40px; letter-spacing: 2px; text-transform: uppercase; color: ${CYAN}; overflow-wrap: break-word; }
-    .intro-slide { background: #f5f0e6; }
-    .intro-halftone-corner-top { position: absolute; top: 0; left: 0; width: 500px; height: 500px; background-image: radial-gradient(#000 4px, transparent 5px); background-size: 34px 34px; opacity: 0.22; -webkit-mask-image: radial-gradient(circle at 0 0, #000 40%, transparent 70%); mask-image: radial-gradient(circle at 0 0, #000 40%, transparent 70%); z-index: 2; }
-    .intro-halftone-corner-bot { position: absolute; bottom: 0; right: 0; width: 500px; height: 500px; background-image: radial-gradient(#000 4px, transparent 5px); background-size: 34px 34px; opacity: 0.22; -webkit-mask-image: radial-gradient(circle at 100% 100%, #000 40%, transparent 70%); mask-image: radial-gradient(circle at 100% 100%, #000 40%, transparent 70%); z-index: 2; }
+    .intro-slide { background: #f5f5f5; }
     .intro-type-label { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); font-family: 'Outfit'; font-weight: 900; font-size: 32px; letter-spacing: 8px; text-transform: uppercase; color: #000; opacity: 0.85; z-index: 5; display: flex; align-items: center; gap: 18px; white-space: nowrap; }
     .intro-type-label::before, .intro-type-label::after { content: ''; width: 60px; height: 3px; background: #000; }
     .intro-datebar { position: absolute; top: 220px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 10px 24px; font-family: 'Outfit'; font-weight: 800; font-size: 26px; letter-spacing: 4px; z-index: 5; white-space: nowrap; }
@@ -198,8 +196,6 @@ export function introSlide({
     const chip = chipText || badge || '';
     return docShell(`
         <div class="intro-slide ${palette}" style="position:absolute; inset:0; z-index:0;"></div>
-        <div class="intro-halftone-corner-top"></div>
-        <div class="intro-halftone-corner-bot"></div>
         <div class="halftone-black"></div>
         <div class="intro-type-label ${palette}">${escape(typeLabel)}</div>
         <div class="intro-datebar ${palette}">${escape(frenchDatebar(now))}</div>

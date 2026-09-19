@@ -159,26 +159,11 @@ const CSS = `
         overflow-wrap: break-word;
     }
 
-    /* INTRO slide — paper background, halftone, 7-palette day rotation.
-       All variants stay in the Bingeki family: rose #FF2E63, black, paper.
-       Cyan intentionally excluded from intros for tighter brand coherence. */
-    .intro-slide { background: #f5f0e6; }
-    .intro-halftone-corner-top {
-        position: absolute; top: 0; left: 0; width: 500px; height: 500px;
-        background-image: radial-gradient(#000 4px, transparent 5px);
-        background-size: 34px 34px; opacity: 0.22;
-        -webkit-mask-image: radial-gradient(circle at 0 0, #000 40%, transparent 70%);
-        mask-image: radial-gradient(circle at 0 0, #000 40%, transparent 70%);
-        z-index: 2;
-    }
-    .intro-halftone-corner-bot {
-        position: absolute; bottom: 0; right: 0; width: 500px; height: 500px;
-        background-image: radial-gradient(#000 4px, transparent 5px);
-        background-size: 34px 34px; opacity: 0.22;
-        -webkit-mask-image: radial-gradient(circle at 100% 100%, #000 40%, transparent 70%);
-        mask-image: radial-gradient(circle at 100% 100%, #000 40%, transparent 70%);
-        z-index: 2;
-    }
+    /* INTRO slide — same #f5f5f5 base as the other slides + full-slide
+       halftone .halftone-black (unchanged from the original template).
+       7-palette day rotation only changes chip / accent / +N tile / star
+       so the brand stays coherent. */
+    .intro-slide { background: #f5f5f5; }
     .intro-type-label {
         position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
         font-family: 'Outfit'; font-weight: 900;
@@ -440,8 +425,6 @@ function introSlide({
     const palette = paletteOverride || pickPalette(date);
     return docShell(`
         <div class="intro-slide ${palette}" style="position:absolute; inset:0; z-index:0;"></div>
-        <div class="intro-halftone-corner-top"></div>
-        <div class="intro-halftone-corner-bot"></div>
         <div class="halftone-black"></div>
         <div class="intro-type-label ${palette}">${escape(typeLabel)}</div>
         <div class="intro-datebar ${palette}">${escape(frenchDatebar(date))}</div>
