@@ -9,7 +9,7 @@ const { computeWeeklyTop } = require('../generators/stats');
 const { fetchSeasonalTopRated } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
-const { createPendingPost } = require('../shared/firestore');
+const { createPendingPost, isDuplicateRecentPost } = require('../shared/firestore');
 const { notifyPendingPost } = require('../shared/discord');
 const { withCronHealth } = require('../shared/cronHealth');
 
@@ -41,6 +41,15 @@ async function runWeeklyRecap() {
         if (top3.length === 0) {
             console.log('[social/weeklyRecap] no entries even from MAL');
             return { note: 'no entries anywhere' };
+        }
+
+        // Dedup: if a weekly recap was already created in the last 3 days
+        // (retry window + human review window), skip to avoid duplicates
+        // from Cloud Functions automatic retries.
+        const animeIds = top3.map((a) => a.mal_id);
+        if (await isDuplicateRecentPost('weekly', animeIds, 3 * 24 * 3600_000)) {
+            console.log('[social/weeklyRecap] duplicate skipped');
+            return { note: 'duplicate skipped' };
         }
 
         const { caption, hashtags } = await generateCaption('weekly', top3, config);
