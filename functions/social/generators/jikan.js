@@ -123,11 +123,12 @@ function parseSeasonFromTitle(title) {
 async function fetchWeeklyTopEpisodes(limit = 3) {
     const raw = await jikanFetch('/seasons/now?filter=tv', true);
     const airing = (raw?.data || []).map(normalizeAnime).filter(Boolean);
-
-    const weekAgo = Date.now() - 7 * 24 * 3600_000;
     const now = Date.now();
-    const candidates = [];
 
+    // Collect every scored recent episode once (up to 21 days), then narrow
+    // by increasing windows. MAL publishes episode scores only after enough
+    // votes land, so brand-new episodes are often score-less for 1-2 weeks.
+    const allRecent = [];
     for (const anime of airing) {
         try {
             const epRaw = await jikanFetch(`/anime/${anime.mal_id}/episodes`);
@@ -135,10 +136,10 @@ async function fetchWeeklyTopEpisodes(limit = 3) {
             for (const ep of episodes) {
                 if (!ep.aired || !ep.score) continue;
                 const airedAt = new Date(ep.aired).getTime();
-                if (airedAt < weekAgo || airedAt > now) continue;
+                if (airedAt > now || airedAt < now - 21 * 24 * 3600_000) continue;
 
                 const { cleanTitle, season } = parseSeasonFromTitle(anime.title);
-                candidates.push({
+                allRecent.push({
                     mal_id: anime.mal_id,
                     title: cleanTitle,
                     fullTitle: anime.title,
@@ -147,6 +148,7 @@ async function fetchWeeklyTopEpisodes(limit = 3) {
                     episodeNumber: ep.mal_id,
                     episodeTitle: ep.title || '',
                     airedAt: ep.aired,
+                    airedAtMs: airedAt,
                     scoreOn5: ep.score,
                     scoreOn10: Number((ep.score * 2).toFixed(2)),
                     filler: !!ep.filler,
@@ -161,15 +163,28 @@ async function fetchWeeklyTopEpisodes(limit = 3) {
         }
     }
 
-    // Prefer non-filler, non-recap episodes when scores tie
-    candidates.sort((a, b) => {
+    const sortByScore = (a, b) => {
         if (b.scoreOn10 !== a.scoreOn10) return b.scoreOn10 - a.scoreOn10;
         if (a.filler !== b.filler) return a.filler ? 1 : -1;
         if (a.recap !== b.recap) return a.recap ? 1 : -1;
-        return 0;
-    });
+        return b.airedAtMs - a.airedAtMs; // fresher wins on tie
+    };
 
-    return candidates.slice(0, limit);
+    // Cascade windows: prefer the freshest weekly bracket, but fall back
+    // wider until we have enough entries. Keeps the "cette semaine"
+    // framing accurate whenever possible.
+    for (const days of [7, 14, 21]) {
+        const cutoff = now - days * 24 * 3600_000;
+        const window = allRecent.filter((c) => c.airedAtMs >= cutoff);
+        if (window.length >= limit) {
+            window.sort(sortByScore);
+            return window.slice(0, limit);
+        }
+    }
+
+    // Nothing in any window: return whatever we got, sorted.
+    allRecent.sort(sortByScore);
+    return allRecent.slice(0, limit);
 }
 
 /**
