@@ -178,17 +178,26 @@ async function fetchWeeklyTopEpisodes(limit = 3) {
  * generated enough votes to fill a ranking of its own.
  */
 async function fetchSeasonalTopRated(limit = 3) {
+    const items = await fetchAiringAnime();
+    const scored = items.filter((a) => typeof a.score === 'number' && a.score > 0);
+    scored.sort((a, b) => (b.score || 0) - (a.score || 0));
+    return scored.slice(0, limit);
+}
+
+/**
+ * All currently-airing TV anime for the season. Extracted so multiple
+ * generators (Jikan episode scan, Trakt episode scan) can share the
+ * same base list without hitting `/seasons/now` twice.
+ */
+async function fetchAiringAnime() {
     const raw = await jikanFetch('/seasons/now?filter=tv', true);
-    const items = (raw?.data || [])
-        .map(normalizeAnime)
-        .filter((a) => a && typeof a.score === 'number' && a.score > 0);
-    items.sort((a, b) => (b.score || 0) - (a.score || 0));
-    return items.slice(0, limit);
+    return (raw?.data || []).map(normalizeAnime).filter(Boolean);
 }
 
 module.exports = {
     fetchTodaysReleases,
     fetchAnimeById,
+    fetchAiringAnime,
     detectNewSeasons,
     fetchWeeklyTopEpisodes,
     fetchSeasonalTopRated,

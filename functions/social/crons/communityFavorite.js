@@ -1,19 +1,19 @@
 /**
- * cron communityFavorite — TOP 3 des épisodes de la semaine les mieux
- * notés sur MAL. Sunday 21h Europe/Paris (2h après le récap hebdo).
+ * cron communityFavorite — TOP 3 des épisodes les mieux notés cette
+ * semaine. Sunday 21h Europe/Paris (2h après le récap hebdo).
  *
- * Data source : Jikan /anime/{id}/episodes → note MAL individuelle par
- * épisode (échelle 0-5, on multiplie par 2 pour afficher /10 en cohérence
- * avec les autres posts Bingeki).
+ * Sources: Trakt.tv (primary — scores landent en quelques heures) puis
+ * fallback Jikan/MAL (secondary — utilisé si Trakt n'a rien).
  */
 
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
-const { fetchWeeklyTopEpisodes } = require('../generators/jikan');
+const { fetchWeeklyTopEpisodes, fetchAiringAnime } = require('../generators/jikan');
+const { fetchWeeklyTopEpisodesFromTrakt, TRAKT_CLIENT_ID } = require('../generators/trakt');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
-const { createPendingPost } = require('../shared/firestore');
+const { createPendingPost, isDuplicateRecentPost } = require('../shared/firestore');
 const { notifyPendingPost } = require('../shared/discord');
 const { withCronHealth } = require('../shared/cronHealth');
 
@@ -27,9 +27,29 @@ async function runCommunityFavorite() {
             return { note: 'skipped: kill-switch or schedule disabled' };
         }
 
-        const episodes = await fetchWeeklyTopEpisodes(3);
+        // Try Trakt first (fresh scores), fall back to MAL.
+        let episodes = [];
+        let source = 'trakt';
+        if (process.env.TRAKT_CLIENT_ID) {
+            try {
+                const airing = await fetchAiringAnime();
+                episodes = await fetchWeeklyTopEpisodesFromTrakt(airing, { limit: 3, days: 7, minVotes: 2 });
+                console.log(`[social/communityFavorite] Trakt returned ${episodes.length} episodes`);
+            } catch (err) {
+                console.warn('[social/communityFavorite] Trakt failed, falling back to MAL:', err.message || err);
+            }
+        } else {
+            console.log('[social/communityFavorite] TRAKT_CLIENT_ID not set, skipping Trakt');
+        }
+
         if (episodes.length === 0) {
-            console.log('[social/communityFavorite] no scored episodes found in the last 7 days');
+            episodes = await fetchWeeklyTopEpisodes(3);
+            source = 'mal';
+            console.log(`[social/communityFavorite] MAL fallback returned ${episodes.length} episodes`);
+        }
+
+        if (episodes.length === 0) {
+            console.log('[social/communityFavorite] no scored episodes anywhere');
             return { note: 'no scored episodes' };
         }
 
@@ -43,8 +63,15 @@ async function runCommunityFavorite() {
             count: ep.episodeNumber,
             episodeNumber: ep.episodeNumber,
             episodeTitle: ep.episodeTitle,
-            season: ep.season, // number | null — inferred from the MAL title
+            season: ep.season, // number | null — inferred from the title
         }));
+
+        // Dedup: avoid double post on Cloud Functions retry.
+        const animeIds = items.map((a) => a.mal_id);
+        if (await isDuplicateRecentPost('favorite', animeIds, 3 * 24 * 3600_000)) {
+            console.log('[social/communityFavorite] duplicate skipped');
+            return { note: 'duplicate skipped' };
+        }
 
         const { caption, hashtags } = await generateCaption('favorite', items, config);
         const slides = await renderSlides('favorite', items, ['feed', 'story']);
@@ -59,14 +86,15 @@ async function runCommunityFavorite() {
             hashtags,
             slides,
             sourceData: {
-                animeIds: items.map((a) => a.mal_id),
+                animeIds,
                 animes: items,
+                source,
             },
             platforms: { insta: true, tiktok: true, x: false },
         });
-        console.log(`[social/communityFavorite] created pending ${id} — ${items.length} episodes`);
+        console.log(`[social/communityFavorite] created pending ${id} — ${items.length} episodes (source=${source})`);
         await notifyPendingPost(config, { type: 'favorite', title, postId: id, slidesCount: slides.length });
-        return { postId: id, note: `top ${items.length} episodes` };
+        return { postId: id, note: `top ${items.length} episodes (${source})` };
     });
 }
 
@@ -76,7 +104,7 @@ exports.communityFavorite = onSchedule(
         schedule: '0 21 * * 0',
         timeZone: 'Europe/Paris',
         retryCount: 1,
-        secrets: [GEMINI_API_KEY],
+        secrets: [GEMINI_API_KEY, TRAKT_CLIENT_ID],
         memory: '1GiB',
         timeoutSeconds: 300,
     },
