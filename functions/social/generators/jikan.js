@@ -172,11 +172,26 @@ async function fetchWeeklyTopEpisodes(limit = 3) {
     return candidates.slice(0, limit);
 }
 
+/**
+ * TOP N currently-airing anime on MAL, sorted by score. Used as a
+ * fallback for the weekly recap when the Bingeki community hasn't
+ * generated enough votes to fill a ranking of its own.
+ */
+async function fetchSeasonalTopRated(limit = 3) {
+    const raw = await jikanFetch('/seasons/now?filter=tv', true);
+    const items = (raw?.data || [])
+        .map(normalizeAnime)
+        .filter((a) => a && typeof a.score === 'number' && a.score > 0);
+    items.sort((a, b) => (b.score || 0) - (a.score || 0));
+    return items.slice(0, limit);
+}
+
 module.exports = {
     fetchTodaysReleases,
     fetchAnimeById,
     detectNewSeasons,
     fetchWeeklyTopEpisodes,
+    fetchSeasonalTopRated,
     parseSeasonFromTitle,
     normalizeAnime,
 };

@@ -6,6 +6,7 @@ const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
 const { computeWeeklyTop } = require('../generators/stats');
+const { fetchSeasonalTopRated } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost } = require('../shared/firestore');
@@ -22,10 +23,24 @@ async function runWeeklyRecap() {
             return { note: 'skipped: kill-switch or schedule disabled' };
         }
 
-        const top3 = await computeWeeklyTop(3);
+        // Bingeki-first: prefer the community's own ratings when we have some.
+        let top3 = await computeWeeklyTop(3);
+        let source = 'bingeki';
         if (top3.length === 0) {
-            console.log('[social/weeklyRecap] no qualified entries this week');
-            return { note: 'no qualified entries' };
+            console.log('[social/weeklyRecap] no Bingeki ratings, falling back to MAL seasonal top');
+            const mal = await fetchSeasonalTopRated(3);
+            top3 = mal.map((a) => ({
+                mal_id: a.mal_id,
+                title: a.title,
+                cover: a.cover,
+                avg: a.score,   // MAL score already /10
+                count: 0,       // no Bingeki votes
+            }));
+            source = 'mal';
+        }
+        if (top3.length === 0) {
+            console.log('[social/weeklyRecap] no entries even from MAL');
+            return { note: 'no entries anywhere' };
         }
 
         const { caption, hashtags } = await generateCaption('weekly', top3, config);
@@ -53,12 +68,12 @@ async function runWeeklyRecap() {
             caption,
             hashtags,
             slides,
-            sourceData: { weekNumber, animeIds: top3.map((a) => a.mal_id), animes },
+            sourceData: { weekNumber, animeIds: top3.map((a) => a.mal_id), animes, source },
             platforms: { insta: true, tiktok: true, x: false },
         });
-        console.log(`[social/weeklyRecap] created pending ${id} — ${top3.length} entries`);
+        console.log(`[social/weeklyRecap] created pending ${id} — ${top3.length} entries (source=${source})`);
         await notifyPendingPost(config, { type: 'weekly', title, postId: id, slidesCount: slides.length });
-        return { postId: id, note: `top ${top3.length}` };
+        return { postId: id, note: `top ${top3.length} (${source})` };
     });
 }
 
