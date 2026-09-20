@@ -403,10 +403,9 @@ export function buildSlidesHTML(type: PostType, data: AnimeSlideData | AnimeSlid
                 fallbackGradient: fallback(i),
                 ribbon: `#${i + 1}`,
                 ribbonVariant: i === 0 ? 'ribbon-rose' : i === 1 ? 'ribbon-dark' : 'ribbon-cyan',
-                metas: [
-                    { text: `${a.avg ?? '?'} ★`, variant: 'cyan' },
-                    { text: (a.count ?? 0) > 1 ? `${a.count} WATCHERS` : ((a.count ?? 0) === 1 ? '1 WATCHER' : 'NOTE MAL') },
-                ],
+                metas: (a.count ?? 0) >= 3
+                    ? [{ text: `${a.avg ?? '?'} ★`, variant: 'cyan' }, { text: `${a.count} WATCHERS` }]
+                    : [{ text: `${a.avg ?? '?'} ★`, variant: 'cyan' }, { text: (a.count ?? 0) === 0 ? 'NOTE MAL' : 'NOTE COMMU' }],
                 title: a.title,
                 subtitle: 'CETTE SEMAINE',
                 index: i + 2, total,

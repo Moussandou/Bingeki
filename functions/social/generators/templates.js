@@ -597,10 +597,13 @@ function buildSlidesHTML(type, data) {
                 fallbackGradient: fallback(i),
                 ribbon: `#${i + 1}`,
                 ribbonVariant: i === 0 ? 'ribbon-rose' : i === 1 ? 'ribbon-dark' : 'ribbon-cyan',
-                metas: [
-                    { text: `${a.avg} ★`, variant: 'cyan' },
-                    { text: a.count > 1 ? `${a.count} WATCHERS` : (a.count === 1 ? '1 WATCHER' : 'NOTE MAL') },
-                ],
+                // Only show the watcher count once the ranking has real
+                // volume (≥3 watchers). Below that we just show the score
+                // — showing "1 WATCHER" or "2 WATCHERS" on a public post
+                // makes the community look thin.
+                metas: a.count >= 3
+                    ? [{ text: `${a.avg} ★`, variant: 'cyan' }, { text: `${a.count} WATCHERS` }]
+                    : [{ text: `${a.avg} ★`, variant: 'cyan' }, { text: a.count === 0 ? 'NOTE MAL' : 'NOTE COMMU' }],
                 title: a.title,
                 subtitle: 'CETTE SEMAINE',
                 index: i + 2, total,
