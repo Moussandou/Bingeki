@@ -599,7 +599,7 @@ function buildSlidesHTML(type, data) {
                 ribbonVariant: i === 0 ? 'ribbon-rose' : i === 1 ? 'ribbon-dark' : 'ribbon-cyan',
                 metas: [
                     { text: `${a.avg} ★`, variant: 'cyan' },
-                    { text: `${a.count} WATCHERS` },
+                    { text: a.count > 1 ? `${a.count} WATCHERS` : (a.count === 1 ? '1 WATCHER' : 'NOTE MAL') },
                 ],
                 title: a.title,
                 subtitle: 'CETTE SEMAINE',

@@ -405,7 +405,7 @@ export function buildSlidesHTML(type: PostType, data: AnimeSlideData | AnimeSlid
                 ribbonVariant: i === 0 ? 'ribbon-rose' : i === 1 ? 'ribbon-dark' : 'ribbon-cyan',
                 metas: [
                     { text: `${a.avg ?? '?'} ★`, variant: 'cyan' },
-                    { text: `${a.count ?? 0} WATCHERS` },
+                    { text: (a.count ?? 0) > 1 ? `${a.count} WATCHERS` : ((a.count ?? 0) === 1 ? '1 WATCHER' : 'NOTE MAL') },
                 ],
                 title: a.title,
                 subtitle: 'CETTE SEMAINE',
