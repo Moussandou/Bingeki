@@ -12,7 +12,10 @@ const { fetchAnimeById } = require('./jikan');
 
 const WEEK_MS = 7 * 24 * 3600_000;
 const MAX_USERS = 500; // safety cap
-const MIN_VOTES_TO_QUALIFY = 3; // needs at least 3 users to enter the ranking
+// Lowered while the community is still small — needs at least 1 user
+// vote to enter the ranking. Bump back up (2-3) once we consistently
+// have multiple raters per anime per week.
+const MIN_VOTES_TO_QUALIFY = 1;
 
 /**
  * Aggregate ratings across all user libraries for the last 7 days.
