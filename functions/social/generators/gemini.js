@@ -108,9 +108,16 @@ function serializeData(type, data) {
         case 'newseason':
             return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus${data.previousScore ? `, S1 notée ${data.previousScore}/10` : ''}`;
         case 'announcement': {
-            const release = data.aired_from
-                ? new Date(data.aired_from).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-                : 'à venir';
+            const raw = data.aired_from ? String(data.aired_from).trim() : '';
+            let release;
+            if (!raw) release = 'à venir';
+            else if (/^\d{4}$/.test(raw)) release = raw;
+            else {
+                const parsed = new Date(raw);
+                release = isNaN(parsed.getTime())
+                    ? 'à venir'
+                    : parsed.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+            }
             return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus, sortie ${release}${data.score ? `, S précédente notée ${data.score}/10` : ''}`;
         }
         default:
