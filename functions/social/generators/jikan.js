@@ -12,6 +12,12 @@ const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frid
 
 function normalizeAnime(a) {
     if (!a) return null;
+    const trailer = a.trailer || {};
+    const trailerImages = trailer.images || {};
+    const trailerThumb = trailerImages.maximum_image_url
+        || trailerImages.large_image_url
+        || trailerImages.medium_image_url
+        || null;
     return {
         mal_id: a.mal_id,
         title: a.title_english || a.title || a.title_japanese,
@@ -24,6 +30,9 @@ function normalizeAnime(a) {
         airing: a.airing === true,
         aired_from: a.aired?.from || null,
         source_type: a.type || null, // TV, Movie, ONA…
+        trailer_youtube_id: trailer.youtube_id || null,
+        trailer_url: trailer.url || null,
+        trailer_thumb: trailerThumb,
     };
 }
 

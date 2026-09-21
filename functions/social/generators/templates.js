@@ -505,6 +505,73 @@ function outroSlide({ ctaMain, ctaSub, index, total }) {
     `);
 }
 
+/**
+ * Trailer preview slide: full-bleed YouTube thumbnail, a big play glyph
+ * on top of a dark scrim, and a "TRAILER" chip. Used by the announcement
+ * builder when the anime exposes a `trailer_thumb` (via normalizeAnime).
+ */
+function trailerSlide({ thumbUrl, title, index, total }) {
+    return docShell(`
+        <style>
+            .trailer-container { position: absolute; inset: 0; background: #000; overflow: hidden; }
+            .trailer-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.72) saturate(1.05); }
+            .trailer-scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.85) 100%); }
+            .trailer-chip {
+                position: absolute; top: 60px; left: 60px;
+                padding: 14px 22px;
+                background: #FF2E63; color: #fff;
+                border: 4px solid #000; box-shadow: 8px 8px 0 #000;
+                font-family: 'Outfit', sans-serif; font-weight: 900;
+                font-size: 42px; letter-spacing: 4px; text-transform: uppercase;
+            }
+            .trailer-brand {
+                position: absolute; top: 60px; right: 60px;
+                padding: 12px 20px; background: #fff; border: 4px solid #000; box-shadow: 8px 8px 0 #000;
+                font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 38px;
+            }
+            .trailer-play {
+                position: absolute; top: 50%; left: 50%;
+                width: 220px; height: 220px; margin: -110px 0 0 -110px;
+                background: #fff; border-radius: 50%;
+                border: 8px solid #000; box-shadow: 14px 14px 0 #000;
+                display: flex; align-items: center; justify-content: center;
+            }
+            .trailer-play::after {
+                content: '';
+                width: 0; height: 0;
+                border-left: 78px solid #000;
+                border-top: 52px solid transparent;
+                border-bottom: 52px solid transparent;
+                margin-left: 14px;
+            }
+            .trailer-title {
+                position: absolute; bottom: 170px; left: 60px; right: 60px;
+                font-family: 'Outfit', sans-serif; font-weight: 900;
+                font-size: 68px; line-height: 1; color: #fff;
+                text-transform: uppercase; letter-spacing: -1px;
+                text-shadow: 4px 4px 0 #000;
+            }
+            .trailer-cta {
+                position: absolute; bottom: 100px; left: 60px;
+                padding: 14px 20px; background: #08D9D6; color: #000;
+                border: 4px solid #000; box-shadow: 6px 6px 0 #000;
+                font-family: 'Outfit', sans-serif; font-weight: 900;
+                font-size: 32px; letter-spacing: 3px; text-transform: uppercase;
+            }
+        </style>
+        <div class="trailer-container">
+            <img class="trailer-thumb" src="${escape(thumbUrl)}" alt="">
+            <div class="trailer-scrim"></div>
+            <div class="trailer-chip">Trailer</div>
+            <div class="trailer-brand">★ Bingeki</div>
+            <div class="trailer-play"></div>
+            <div class="trailer-title">${escape(title)}</div>
+            <div class="trailer-cta">▶ Regarde sur YouTube</div>
+        </div>
+        ${slideIdxBadge(index, total)}
+    `);
+}
+
 /* =============================================================== */
 /* PER-TYPE ASSEMBLY                                               */
 /* =============================================================== */
@@ -713,7 +780,6 @@ function buildSlidesHTML(type, data) {
     }
 
     if (type === 'announcement') {
-        const total = 3;
         // Tenrai/Jikan expose la date via `aired.from` (parfois juste l'année
         // pour les anime pas encore diffusés, ex "2027"). On accepte les 2
         // noms de champ possibles pour survivre à un futur renaming.
@@ -732,6 +798,10 @@ function buildSlidesHTML(type, data) {
                 }
             }
         }
+        const hasTrailer = !!data.trailer_thumb;
+        const total = hasTrailer ? 4 : 3;
+        let idx = 1;
+
         slides.push({
             name: 'announcement',
             html: animeSlide({
@@ -745,9 +815,21 @@ function buildSlidesHTML(type, data) {
                 ],
                 title: data.title,
                 subtitle: (data.studios || []).slice(0, 1).join('') || '',
-                index: 1, total,
+                index: idx++, total,
             }),
         });
+
+        if (hasTrailer) {
+            slides.push({
+                name: 'trailer',
+                html: trailerSlide({
+                    thumbUrl: data.trailer_thumb,
+                    title: data.title,
+                    index: idx++, total,
+                }),
+            });
+        }
+
         const infoItems = [];
         if ((data.studios || []).length) infoItems.push({ label: 'Studio', value: data.studios.join(', ') });
         if (data.episodes) infoItems.push({ label: 'Épisodes prévus', value: String(data.episodes) });
@@ -761,7 +843,7 @@ function buildSlidesHTML(type, data) {
                 titleMain: data.title.split(' ').slice(0, 2).join(' '),
                 titleAccent: 'ANNONCE',
                 items: infoItems,
-                index: 2, total,
+                index: idx++, total,
             }),
         });
         slides.push({
@@ -769,7 +851,7 @@ function buildSlidesHTML(type, data) {
             html: outroSlide({
                 ctaMain: 'Ajoute à ta watchlist',
                 ctaSub: 'Rejoins Bingeki →',
-                index: 3, total,
+                index: idx++, total,
             }),
         });
     }
