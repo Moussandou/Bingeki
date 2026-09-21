@@ -79,12 +79,15 @@ async function runDailyReleases() {
             return { note: 'no releases today' };
         }
 
-        // Sort by MAL score desc, keep everything (cap only on the TikTok
-        // side at 35 to stay within Buffer's TikTok photo carousel limit).
+        // Ordre : les mieux notés MAL d'abord (triés desc), puis les
+        // anime sans score encore (nouveaux, niches). On ne drop personne
+        // — un anime sans score peut être une pépite qui n'a juste pas
+        // encore reçu assez de votes.
         const scored = releases
             .filter((r) => r.score && r.score > 0)
             .sort((a, b) => (b.score || 0) - (a.score || 0));
-        const fullList = (scored.length > 0 ? scored : releases).slice(0, TIKTOK_MAX);
+        const unscored = releases.filter((r) => !r.score || r.score <= 0);
+        const fullList = [...scored, ...unscored].slice(0, TIKTOK_MAX);
 
         // Dedup on the whole set — if we already covered any of these
         // MAL ids in the last 12h, skip the whole run.
