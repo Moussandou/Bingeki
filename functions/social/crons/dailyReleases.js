@@ -2,12 +2,12 @@
  * cron dailyReleases — 1 post carousel avec les épisodes sortis
  * dans la journée. Trigger: 10h Europe/Paris.
  *
- * Split logic when the day is busy (>8 releases):
+ * Split logic when the day is busy (>18 releases):
  * - TikTok photo carousels support up to 35 assets → 1 post with the
  *   whole list, no split.
- * - Instagram carousels are capped at 10 slides (intro + N animes +
- *   outro) → we split into "Partie 1/N", "Partie 2/N", … each with
- *   up to 8 animes, Instagram only.
+ * - Instagram carousels support up to 20 slides since 2024 (intro +
+ *   18 animes + outro) → we split into "Partie 1/N", "Partie 2/N", …
+ *   each with up to 18 animes, Instagram only.
  */
 
 const { onSchedule } = require('firebase-functions/v2/scheduler');
@@ -22,8 +22,8 @@ const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
-const INSTA_CHUNK = 8;
-const TIKTOK_MAX = 35; // Buffer photo carousel limit on TikTok
+const INSTA_CHUNK = 18; // Instagram carousel = 20 slides max (2024+)
+const TIKTOK_MAX = 35;  // Buffer photo carousel limit on TikTok
 
 function chunk(arr, size) {
     const out = [];
