@@ -1,6 +1,13 @@
 /**
  * cron dailyReleases — 1 post carousel avec les épisodes sortis
- * dans la journée. Trigger: 19h Europe/Paris.
+ * dans la journée. Trigger: 10h Europe/Paris.
+ *
+ * Split logic when the day is busy (>8 releases):
+ * - TikTok photo carousels support up to 35 assets → 1 post with the
+ *   whole list, no split.
+ * - Instagram carousels are capped at 10 slides (intro + N animes +
+ *   outro) → we split into "Partie 1/N", "Partie 2/N", … each with
+ *   up to 8 animes, Instagram only.
  */
 
 const { onSchedule } = require('firebase-functions/v2/scheduler');
@@ -14,6 +21,49 @@ const { notifyPendingPost } = require('../shared/discord');
 const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
+
+const INSTA_CHUNK = 8;
+const TIKTOK_MAX = 35; // Buffer photo carousel limit on TikTok
+
+function chunk(arr, size) {
+    const out = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+}
+
+function normaliseAnime(a) {
+    return {
+        mal_id: a.mal_id,
+        title: a.title,
+        cover: a.cover,
+        currentEpisode: a.currentEpisode ?? null,
+    };
+}
+
+async function buildAndCreatePost({
+    type = 'daily',
+    title,
+    list,
+    scheduledAt,
+    platforms,
+    config,
+}) {
+    const { caption, hashtags } = await generateCaption('daily', list, config);
+    const slides = await renderSlides('daily', list, ['feed', 'story']);
+    const animeIds = list.map((a) => a.mal_id);
+    const animes = list.map(normaliseAnime);
+    const id = await createPendingPost({
+        type,
+        scheduledAt,
+        title,
+        caption,
+        hashtags,
+        slides,
+        sourceData: { animeIds, animes },
+        platforms,
+    });
+    return { id, slidesCount: slides.length };
+}
 
 async function runDailyReleases() {
     return withCronHealth('dailyReleases', async () => {
@@ -29,67 +79,96 @@ async function runDailyReleases() {
             return { note: 'no releases today' };
         }
 
-        // Cap at 8 animes — Instagram carousel accepte 10 slides max
-        // (intro + 8 animes + outro). On garde les mieux notés en tête,
-        // et on tombe sur le simple top-N par ordre reçu quand aucun
-        // score MAL n'est encore disponible.
-        const MAX_ANIMES = 8;
-        const top = releases
+        // Sort by MAL score desc, keep everything (cap only on the TikTok
+        // side at 35 to stay within Buffer's TikTok photo carousel limit).
+        const scored = releases
             .filter((r) => r.score && r.score > 0)
-            .sort((a, b) => (b.score || 0) - (a.score || 0))
-            .slice(0, MAX_ANIMES);
-        const finalList = top.length > 0 ? top : releases.slice(0, MAX_ANIMES);
+            .sort((a, b) => (b.score || 0) - (a.score || 0));
+        const fullList = (scored.length > 0 ? scored : releases).slice(0, TIKTOK_MAX);
 
-        const animeIds = finalList.map((a) => a.mal_id);
-        if (await isDuplicateRecentPost('daily', animeIds, 12 * 3600_000)) {
+        // Dedup on the whole set — if we already covered any of these
+        // MAL ids in the last 12h, skip the whole run.
+        const allAnimeIds = fullList.map((a) => a.mal_id);
+        if (await isDuplicateRecentPost('daily', allAnimeIds, 12 * 3600_000)) {
             console.log('[social/dailyReleases] duplicate skipped');
             return { note: 'duplicate skipped' };
         }
-
-        const { caption, hashtags } = await generateCaption('daily', finalList, config);
-        const slides = await renderSlides('daily', finalList, ['feed', 'story']);
 
         const dateStr = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
         const nextEvening = new Date();
         nextEvening.setHours(20, 0, 0, 0);
         if (nextEvening.getTime() < Date.now()) nextEvening.setDate(nextEvening.getDate() + 1);
+        const scheduledAt = nextEvening.getTime();
 
-        const title = `Sorties du jour · ${dateStr}`;
-        const animes = finalList.map((a) => ({
-            mal_id: a.mal_id,
-            title: a.title,
-            cover: a.cover,
-            currentEpisode: a.currentEpisode ?? null,
-        }));
-        const id = await createPendingPost({
-            type: 'daily',
-            scheduledAt: nextEvening.getTime(),
-            title,
-            caption,
-            hashtags,
-            slides,
-            sourceData: { animeIds, animes },
-            platforms: { insta: true, tiktok: true, x: false },
-        });
-        console.log(`[social/dailyReleases] created pending ${id}`);
-        await notifyPendingPost(config, { type: 'daily', title, postId: id, slidesCount: slides.length });
-        return { postId: id, note: `${finalList.length} anime(s)` };
+        // ── Simple case: everything fits in one Insta carousel ────────
+        if (fullList.length <= INSTA_CHUNK) {
+            const title = `Sorties du jour · ${dateStr}`;
+            const { id, slidesCount } = await buildAndCreatePost({
+                title,
+                list: fullList,
+                scheduledAt,
+                platforms: { insta: true, tiktok: true, x: false },
+                config,
+            });
+            console.log(`[social/dailyReleases] created pending ${id} (${fullList.length} anime, single post)`);
+            await notifyPendingPost(config, { type: 'daily', title, postId: id, slidesCount });
+            return { postId: id, note: `${fullList.length} anime(s), 1 post` };
+        }
+
+        // ── Busy day: TikTok all-in-one + Instagram parties 1..N ──────
+        const chunks = chunk(fullList, INSTA_CHUNK);
+        const totalParts = chunks.length;
+        const created = [];
+
+        // 1) TikTok-only post with the full list
+        {
+            const title = `Sorties du jour · ${dateStr}`;
+            const { id, slidesCount } = await buildAndCreatePost({
+                title,
+                list: fullList,
+                scheduledAt,
+                platforms: { insta: false, tiktok: true, x: false },
+                config,
+            });
+            console.log(`[social/dailyReleases] created TikTok-only pending ${id} (${fullList.length} anime)`);
+            await notifyPendingPost(config, { type: 'daily', title: `${title} · TikTok`, postId: id, slidesCount });
+            created.push(id);
+        }
+
+        // 2) Instagram-only posts, one per chunk
+        for (let i = 0; i < chunks.length; i += 1) {
+            const partLabel = `Partie ${i + 1}/${totalParts}`;
+            const title = `Sorties du jour · ${dateStr} · ${partLabel}`;
+            const { id, slidesCount } = await buildAndCreatePost({
+                title,
+                list: chunks[i],
+                scheduledAt,
+                platforms: { insta: true, tiktok: false, x: false },
+                config,
+            });
+            console.log(`[social/dailyReleases] created Insta pending ${id} (${partLabel}, ${chunks[i].length} anime)`);
+            await notifyPendingPost(config, { type: 'daily', title, postId: id, slidesCount });
+            created.push(id);
+        }
+
+        return {
+            postId: created[0],
+            note: `${fullList.length} anime(s), 1 TikTok + ${totalParts} Insta`,
+        };
     });
 }
 
 exports.runDailyReleases = runDailyReleases;
 exports.dailyReleases = onSchedule(
     {
-        // 10h Europe/Paris — post publié en matinée pour que la commu
-        // sache dès son café ce qui sort dans la journée + à quelle heure.
         schedule: '0 10 * * *',
         timeZone: 'Europe/Paris',
         retryCount: 1,
         secrets: [GEMINI_API_KEY],
-        // Puppeteer + @sparticuz/chromium routinely need >256 MiB just
-        // to boot the headless browser. Give the render enough headroom.
         memory: '1GiB',
-        timeoutSeconds: 300,
+        // Bump timeout because a busy day may render 3-4 posts (each
+        // ~30-60s of Puppeteer + Firebase Storage upload).
+        timeoutSeconds: 540,
     },
     runDailyReleases,
 );
