@@ -712,6 +712,53 @@ function buildSlidesHTML(type, data) {
         });
     }
 
+    if (type === 'announcement') {
+        const total = 3;
+        const releaseDate = data.airing_from
+            ? new Date(data.airing_from).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+            : 'À venir';
+        slides.push({
+            name: 'announcement',
+            html: animeSlide({
+                cover: data.cover,
+                fallbackGradient: 'linear-gradient(180deg, #1a1a1a 0%, #7c3aed 100%)',
+                ribbon: 'ANNONCE',
+                ribbonVariant: 'ribbon-rose',
+                metas: [
+                    { text: 'PROCHAINEMENT', variant: 'cyan' },
+                    { text: releaseDate.toUpperCase() },
+                ],
+                title: data.title,
+                subtitle: (data.studios || []).slice(0, 1).join('') || '',
+                index: 1, total,
+            }),
+        });
+        const infoItems = [];
+        if ((data.studios || []).length) infoItems.push({ label: 'Studio', value: data.studios.join(', ') });
+        if (data.episodes) infoItems.push({ label: 'Épisodes prévus', value: String(data.episodes) });
+        if (data.score) infoItems.push({ label: 'Note S1', value: `${data.score} ★` });
+        infoItems.push({ label: 'Sortie', value: releaseDate });
+
+        slides.push({
+            name: 'info',
+            html: infoSlide({
+                eyebrow: 'Prochainement',
+                titleMain: data.title.split(' ').slice(0, 2).join(' '),
+                titleAccent: 'ANNONCE',
+                items: infoItems,
+                index: 2, total,
+            }),
+        });
+        slides.push({
+            name: 'outro',
+            html: outroSlide({
+                ctaMain: 'Ajoute à ta watchlist',
+                ctaSub: 'Rejoins Bingeki →',
+                index: 3, total,
+            }),
+        });
+    }
+
     return slides;
 }
 

@@ -75,6 +75,21 @@ Puis 5-6 hashtags avec le nom de l'anime.
 
 JSON strict :
 {"caption": "...", "hashtags": "..."}`,
+
+    announcement: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: une nouvelle saison vient d'être ANNONCÉE (pas encore diffusée). Prochainement.
+
+Anime :
+{{DATA}}
+
+Rédige une caption (max 400 caractères) qui :
+1. Accroche façon "annonce officielle / prochainement".
+2. Mentionne le studio, la date de sortie prévue si dispo, et 1 raison d'être hype.
+3. Invite à ajouter à la watchlist sur ${BINGEKI_URL} (obligatoire dans la caption).
+
+Puis 5-6 hashtags avec le nom de l'anime + #animeannouncement.
+
+JSON strict :
+{"caption": "...", "hashtags": "..."}`,
 };
 
 function serializeData(type, data) {
@@ -92,6 +107,12 @@ function serializeData(type, data) {
             }).join('\n');
         case 'newseason':
             return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus${data.previousScore ? `, S1 notée ${data.previousScore}/10` : ''}`;
+        case 'announcement': {
+            const release = data.aired_from
+                ? new Date(data.aired_from).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+                : 'à venir';
+            return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus, sortie ${release}${data.score ? `, S précédente notée ${data.score}/10` : ''}`;
+        }
         default:
             return JSON.stringify(data);
     }

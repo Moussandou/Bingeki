@@ -516,5 +516,53 @@ export function buildSlidesHTML(type: PostType, data: AnimeSlideData | AnimeSlid
         });
     }
 
+    if (type === 'announcement') {
+        const d = Array.isArray(data) ? data[0] : data;
+        const total = 3;
+        const releaseDate = d.airing_from
+            ? new Date(d.airing_from).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+            : 'À venir';
+        slides.push({
+            name: 'announcement',
+            html: animeSlide({
+                cover: d.cover,
+                fallbackGradient: 'linear-gradient(180deg, #1a1a1a 0%, #7c3aed 100%)',
+                ribbon: 'ANNONCE',
+                ribbonVariant: 'ribbon-rose',
+                metas: [
+                    { text: 'PROCHAINEMENT', variant: 'cyan' },
+                    { text: releaseDate.toUpperCase() },
+                ],
+                title: d.title,
+                subtitle: (d.studios || []).slice(0, 1).join('') || '',
+                index: 1, total,
+            }),
+        });
+        const infoItems: Array<{ label: string; value: string }> = [];
+        if ((d.studios || []).length) infoItems.push({ label: 'Studio', value: d.studios!.join(', ') });
+        if (d.episodes) infoItems.push({ label: 'Épisodes prévus', value: String(d.episodes) });
+        if (d.score) infoItems.push({ label: 'Note S1', value: `${d.score} ★` });
+        infoItems.push({ label: 'Sortie', value: releaseDate });
+
+        slides.push({
+            name: 'info',
+            html: infoSlide({
+                eyebrow: 'Prochainement',
+                titleMain: d.title.split(' ').slice(0, 2).join(' '),
+                titleAccent: 'ANNONCE',
+                items: infoItems,
+                index: 2, total,
+            }),
+        });
+        slides.push({
+            name: 'outro',
+            html: outroSlide({
+                ctaMain: 'Ajoute à ta watchlist',
+                ctaSub: 'Rejoins Bingeki →',
+                index: 3, total,
+            }),
+        });
+    }
+
     return slides;
 }

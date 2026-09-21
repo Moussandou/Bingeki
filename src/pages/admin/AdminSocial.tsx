@@ -46,6 +46,7 @@ const TYPE_ICONS: Record<PostType, React.ReactNode> = {
     weekly: <TrendingUp size={11} />,
     favorite: <Users size={11} />,
     newseason: <Sparkles size={11} />,
+    announcement: <Sparkles size={11} />,
 };
 
 const TypeBadge: React.FC<{ type: PostType }> = ({ type }) => {
@@ -85,7 +86,7 @@ const animesToTemplateData = (
     animes: PostSourceAnime[],
 ): AnimeSlideData | AnimeSlideData[] | null => {
     if (!animes || animes.length === 0) return null;
-    if (type === 'newseason') return animes[0];
+    if (type === 'newseason' || type === 'announcement') return animes[0];
     return animes;
 };
 
@@ -95,7 +96,7 @@ const animesToTemplateData = (
 // browser's local time — close enough for a "when is my next post ?" hint.
 
 interface NextRun {
-    key: 'daily' | 'weekly' | 'favorite' | 'newseason';
+    key: 'daily' | 'weekly' | 'favorite' | 'newseason' | 'announcement';
     label: string;
     ts: number;
     detail?: string;
@@ -122,6 +123,7 @@ const nextDailyAt = (hour: number): Date => {
 const TYPE_DESCRIPTIONS: Record<NextRun['key'], string> = {
     daily: 'Carrousel des épisodes d\'anime qui sortent aujourd\'hui, triés par note.',
     newseason: 'Annonce quand une nouvelle saison d\'un anime démarre (studio, épisodes, note S1).',
+    announcement: 'Poste les annonces officielles de futures saisons d\'anime (Mon/Wed/Fri, max 3 par run).',
     weekly: 'TOP 3 des anime les mieux notés par les watchers Bingeki cette semaine.',
     favorite: 'TOP 3 des épisodes d\'anime les mieux notés sur MAL cette semaine (notes converties sur /10).',
 };
@@ -425,6 +427,7 @@ export default function AdminSocial() {
                                         { key: 'weekly' as const, label: 'Hebdo' },
                                         { key: 'favorite' as const, label: 'Coup' },
                                         { key: 'newseason' as const, label: 'Saison' },
+                                        { key: 'announcement' as const, label: 'Annonce' },
                                     ]).map((f) => (
                                         <button
                                             key={f.key}

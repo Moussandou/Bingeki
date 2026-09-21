@@ -209,6 +209,26 @@ async function fetchAiringAnime() {
     return (raw?.data || []).map(normalizeAnime).filter(Boolean);
 }
 
+/**
+ * Fetch anime scheduled for future release ("Prochainement").
+ * Used by the announcement cron to catch newly-announced sequels /
+ * next seasons before they actually start airing.
+ *
+ * Paginated: we walk up to 3 pages (75 entries) to stay under Jikan's
+ * rate limit while still covering the whole upcoming season.
+ */
+async function fetchUpcomingSeasons() {
+    const items = [];
+    for (let page = 1; page <= 3; page += 1) {
+        const raw = await jikanFetch(`/seasons/upcoming?filter=tv&sfw=true&page=${page}`, true);
+        const data = raw?.data || [];
+        if (data.length === 0) break;
+        items.push(...data.map(normalizeAnime).filter(Boolean));
+        if (!raw?.pagination?.has_next_page) break;
+    }
+    return items;
+}
+
 module.exports = {
     fetchTodaysReleases,
     fetchAnimeById,
@@ -216,6 +236,7 @@ module.exports = {
     detectNewSeasons,
     fetchWeeklyTopEpisodes,
     fetchSeasonalTopRated,
+    fetchUpcomingSeasons,
     parseSeasonFromTitle,
     normalizeAnime,
 };

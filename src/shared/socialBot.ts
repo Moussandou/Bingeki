@@ -6,7 +6,7 @@
  * pour le contexte et le schéma Firestore complet.
  */
 
-export type PostType = 'daily' | 'weekly' | 'favorite' | 'newseason';
+export type PostType = 'daily' | 'weekly' | 'favorite' | 'newseason' | 'announcement';
 
 export type PostStatus = 'pending' | 'processing' | 'ready' | 'failed';
 
@@ -172,6 +172,7 @@ export const POST_TYPE_LABELS: Record<PostType, string> = {
     weekly: 'Récap hebdo',
     favorite: 'Coup de cœur',
     newseason: 'Nouvelle saison',
+    announcement: 'Prochainement',
 };
 
 export const POST_TYPE_COLORS: Record<PostType, { bg: string; text: string }> = {
@@ -179,6 +180,7 @@ export const POST_TYPE_COLORS: Record<PostType, { bg: string; text: string }> = 
     weekly: { bg: '#FF2E63', text: '#ffffff' },
     favorite: { bg: '#08D9D6', text: '#000000' },
     newseason: { bg: '#FF0844', text: '#ffffff' },
+    announcement: { bg: '#7c3aed', text: '#ffffff' },
 };
 
 export const FIRESTORE_COLLECTIONS = {
@@ -190,13 +192,14 @@ export const FIRESTORE_COLLECTIONS = {
     archivedPosts: 'social_archived_posts',
 } as const;
 
-export type CronId = 'dailyReleases' | 'weeklyRecap' | 'communityFavorite' | 'newSeasonDetector' | 'pollReach' | 'cleanupPending';
+export type CronId = 'dailyReleases' | 'weeklyRecap' | 'communityFavorite' | 'newSeasonDetector' | 'announcement' | 'pollReach' | 'cleanupPending';
 
 export const CRON_META: Record<CronId, { label: string; schedule: string; description: string }> = {
     dailyReleases:     { label: 'Sorties du jour',      schedule: 'Tous les jours · 10h',       description: 'Top 5 des épisodes qui sortent aujourd\'hui.' },
     weeklyRecap:       { label: 'Récap hebdo',          schedule: 'Dimanche · 19h',             description: 'Top 3 anime notés par la communauté cette semaine.' },
     communityFavorite: { label: 'Coup de cœur',         schedule: 'Dimanche · 21h',             description: 'Top 3 épisodes les mieux notés sur MAL cette semaine.' },
     newSeasonDetector: { label: 'Nouvelle saison',      schedule: 'Tous les jours · 8h',        description: 'Détecte les nouvelles saisons qui démarrent aujourd\'hui.' },
+    announcement:      { label: 'Prochainement',        schedule: 'Lun / Mer / Ven · 15h',      description: 'Poste les annonces officielles de nouvelles saisons à venir (max 3/run).' },
     pollReach:         { label: 'Analytics reach',      schedule: 'Toutes les 6h',              description: 'Poll Buffer pour les métriques à J+1, J+7, J+30.' },
     cleanupPending:    { label: 'Cleanup pending',      schedule: 'Tous les jours · 4h',        description: 'Archive les posts en attente non validés depuis 3 jours.' },
 };

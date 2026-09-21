@@ -14,6 +14,7 @@ import { logger } from '@/utils/logger';
 const CRON_ORDER: CronId[] = [
     'dailyReleases',
     'newSeasonDetector',
+    'announcement',
     'weeklyRecap',
     'communityFavorite',
     'pollReach',

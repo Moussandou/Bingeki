@@ -11,6 +11,7 @@ const COLLECTIONS = {
     configDoc: 'singleton',
     cronHealth: 'social_cron_health',
     archived: 'social_archived_posts',
+    announced: 'social_announced_animes',
 };
 
 /**
@@ -108,6 +109,26 @@ async function isDuplicateRecentPost(type, animeIds, sinceMs = 24 * 3600_000) {
 }
 
 /**
+ * Announcement dedup — mark a MAL id as already announced so the
+ * announcement cron doesn't re-post it every 3 days. Called once we
+ * successfully create a pending post for that anime.
+ */
+async function hasBeenAnnounced(malId) {
+    const db = admin.firestore();
+    const snap = await db.collection(COLLECTIONS.announced).doc(String(malId)).get();
+    return snap.exists;
+}
+
+async function markAsAnnounced(malId, meta = {}) {
+    const db = admin.firestore();
+    await db.collection(COLLECTIONS.announced).doc(String(malId)).set({
+        malId,
+        title: meta.title || null,
+        announcedAt: Date.now(),
+    }, { merge: true });
+}
+
+/**
  * Move a pending post to the archived collection. Used by the cleanup
  * cron to sweep pending posts that were never validated + by admin
  * actions that need to preserve history rather than hard-delete.
@@ -138,4 +159,6 @@ module.exports = {
     updatePendingCaption,
     isDuplicateRecentPost,
     archivePending,
+    hasBeenAnnounced,
+    markAsAnnounced,
 };

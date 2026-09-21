@@ -349,6 +349,7 @@ const { runDailyReleases } = require('../crons/dailyReleases');
 const { runWeeklyRecap } = require('../crons/weeklyRecap');
 const { runCommunityFavorite } = require('../crons/communityFavorite');
 const { runNewSeasonDetector } = require('../crons/newSeasonDetector');
+const { runAnnouncement } = require('../crons/announcement');
 const { runPollReach } = require('../crons/pollReach');
 const { runCleanupPending } = require('../crons/cleanupPending');
 
@@ -357,6 +358,7 @@ const CRON_RUNNERS = {
     weeklyRecap: runWeeklyRecap,
     communityFavorite: runCommunityFavorite,
     newSeasonDetector: runNewSeasonDetector,
+    announcement: runAnnouncement,
     pollReach: runPollReach,
     cleanupPending: runCleanupPending,
 };

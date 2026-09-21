@@ -89,6 +89,25 @@ function newseasonCaption(data) {
     return { caption, hashtags: tags };
 }
 
+function announcementCaption(data) {
+    const studios = (data.studios || []).slice(0, 2).join(' & ');
+    const eps = data.episodes ? `${data.episodes} épisodes prévus` : '';
+    const releaseDate = data.aired_from
+        ? new Date(data.aired_from).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+        : null;
+    const context = [studios, eps, releaseDate ? `Sortie : ${releaseDate}` : '']
+        .filter(Boolean)
+        .join(' · ');
+    const caption =
+        `${data.title} — c'est officiel, la suite arrive.\n\n` +
+        (context ? `${context}.\n\n` : '') +
+        `Ajoute-le à ta watchlist sur ${URL}. Hyped ?`;
+    const tags = [`#${slug(data.title)}`, '#anime', '#animeannouncement', '#bingeki', '#animefr']
+        .filter((t) => t !== '#')
+        .join(' ');
+    return { caption, hashtags: tags };
+}
+
 /**
  * Public: returns a deterministic caption + hashtags for the given
  * post type. Data shape mirrors what generateCaption(type, data, config)
@@ -109,6 +128,8 @@ function fallbackCaption(type, data) {
                 return favoriteCaption(Array.isArray(data) ? data : []);
             case 'newseason':
                 return newseasonCaption(data || {});
+            case 'announcement':
+                return announcementCaption(data || {});
             default:
                 return {
                     caption: `Nouveauté sur Bingeki. Découvrez-la sur ${URL}`,
