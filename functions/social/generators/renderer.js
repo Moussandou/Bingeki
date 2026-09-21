@@ -1,12 +1,17 @@
 /**
- * generators/renderer.js — render HTML slides to PNG via Puppeteer +
+ * generators/renderer.js — render HTML slides to JPEG via Puppeteer +
  * @sparticuz/chromium, upload to Firebase Storage.
+ *
+ * JPEG (not PNG) because Instagram Graph API's carousel endpoint only
+ * accepts JPEG for photo carousels — PNG returns "Only photo or video
+ * can be accepted as media type." at publish time even when the URL
+ * serves a valid image/png.
  *
  * Sizes:
  * - feed:  1080×1350 (Instagram Feed portrait 4:5)
  * - story: 1080×1920 (Story / Reels / TikTok 9:16)
  *
- * The Storage path is `social/{yyyy-mm-dd}/{type}/{name}-{format}.png`,
+ * The Storage path is `social/{yyyy-mm-dd}/{type}/{name}-{format}.jpg`,
  * with a random suffix on the filename to avoid collisions when the
  * same post gets regenerated.
  */
@@ -34,23 +39,23 @@ async function getBrowser() {
     return cachedBrowser;
 }
 
-async function renderHtmlToPng(html, { width, height }) {
+async function renderHtmlToJpeg(html, { width, height }) {
     const browser = await getBrowser();
     const page = await browser.newPage();
     try {
         await page.setViewport({ width, height, deviceScaleFactor: 1 });
         await page.setContent(html, { waitUntil: 'networkidle0', timeout: 20_000 });
-        return await page.screenshot({ type: 'png', omitBackground: false });
+        return await page.screenshot({ type: 'jpeg', quality: 92, omitBackground: false });
     } finally {
         await page.close();
     }
 }
 
-async function uploadPng(buffer, storagePath) {
+async function uploadJpeg(buffer, storagePath) {
     const bucket = admin.storage().bucket();
     const file = bucket.file(storagePath);
     await file.save(buffer, {
-        metadata: { contentType: 'image/png', cacheControl: 'public, max-age=31536000' },
+        metadata: { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000' },
     });
     await file.makePublic();
     return `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
@@ -76,9 +81,9 @@ async function renderSlides(type, data, formats = ['feed']) {
         if (!dims) continue;
         for (const s of htmlSlides) {
             try {
-                const png = await renderHtmlToPng(s.html, dims);
-                const path = `social/${today}/${type}/${s.name}-${format}-${suffix}.png`;
-                const url = await uploadPng(png, path);
+                const jpeg = await renderHtmlToJpeg(s.html, dims);
+                const path = `social/${today}/${type}/${s.name}-${format}-${suffix}.jpg`;
+                const url = await uploadJpeg(jpeg, path);
                 slides.push({ format, url, index });
                 index += 1;
             } catch (err) {
@@ -90,4 +95,4 @@ async function renderSlides(type, data, formats = ['feed']) {
     return slides;
 }
 
-module.exports = { renderSlides, renderHtmlToPng };
+module.exports = { renderSlides, renderHtmlToJpeg };
