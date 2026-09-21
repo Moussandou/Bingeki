@@ -29,12 +29,16 @@ async function runDailyReleases() {
             return { note: 'no releases today' };
         }
 
-        // Cap to the 5 highest-scoring for the post
+        // Cap at 8 animes — Instagram carousel accepte 10 slides max
+        // (intro + 8 animes + outro). On garde les mieux notés en tête,
+        // et on tombe sur le simple top-N par ordre reçu quand aucun
+        // score MAL n'est encore disponible.
+        const MAX_ANIMES = 8;
         const top = releases
             .filter((r) => r.score && r.score > 0)
             .sort((a, b) => (b.score || 0) - (a.score || 0))
-            .slice(0, 5);
-        const finalList = top.length > 0 ? top : releases.slice(0, 5);
+            .slice(0, MAX_ANIMES);
+        const finalList = top.length > 0 ? top : releases.slice(0, MAX_ANIMES);
 
         const animeIds = finalList.map((a) => a.mal_id);
         if (await isDuplicateRecentPost('daily', animeIds, 12 * 3600_000)) {
