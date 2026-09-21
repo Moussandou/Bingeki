@@ -519,9 +519,20 @@ export function buildSlidesHTML(type: PostType, data: AnimeSlideData | AnimeSlid
     if (type === 'announcement') {
         const d = Array.isArray(data) ? data[0] : data;
         const total = 3;
-        const releaseDate = d.airing_from
-            ? new Date(d.airing_from).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-            : 'À venir';
+        const rawDate = (d as { aired_from?: string; airing_from?: string }).aired_from
+            || (d as { aired_from?: string; airing_from?: string }).airing_from;
+        let releaseDate = 'À venir';
+        if (rawDate) {
+            const yearOnly = /^\d{4}$/.test(String(rawDate).trim());
+            if (yearOnly) {
+                releaseDate = String(rawDate).trim();
+            } else {
+                const parsed = new Date(rawDate);
+                if (!isNaN(parsed.getTime())) {
+                    releaseDate = parsed.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+                }
+            }
+        }
         slides.push({
             name: 'announcement',
             html: animeSlide({

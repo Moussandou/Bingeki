@@ -714,9 +714,24 @@ function buildSlidesHTML(type, data) {
 
     if (type === 'announcement') {
         const total = 3;
-        const releaseDate = data.airing_from
-            ? new Date(data.airing_from).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-            : 'À venir';
+        // Tenrai/Jikan expose la date via `aired.from` (parfois juste l'année
+        // pour les anime pas encore diffusés, ex "2027"). On accepte les 2
+        // noms de champ possibles pour survivre à un futur renaming.
+        const rawDate = data.aired_from || data.airing_from;
+        let releaseDate = 'À venir';
+        if (rawDate) {
+            // Cas "2027" : Tenrai renvoie parfois juste l'année. Éviter
+            // "1 janvier 2027" trompeur en affichant juste l'année.
+            const yearOnly = /^\d{4}$/.test(String(rawDate).trim());
+            if (yearOnly) {
+                releaseDate = String(rawDate).trim();
+            } else {
+                const d = new Date(rawDate);
+                if (!isNaN(d.getTime())) {
+                    releaseDate = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+                }
+            }
+        }
         slides.push({
             name: 'announcement',
             html: animeSlide({
