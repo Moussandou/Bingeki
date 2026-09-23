@@ -385,13 +385,6 @@ export function buildSlidesHTML(
         const chipText = partInfo && partInfo.total > 1
             ? `SORTIES DU JOUR · PARTIE ${partInfo.index}/${partInfo.total}`
             : 'SORTIES DU JOUR';
-        let subtitle = 'La liste juste après →';
-        if (partInfo && partInfo.total > 1) {
-            const isLast = partInfo.index === partInfo.total;
-            subtitle = isLast
-                ? `Fin du récap · Partie ${partInfo.index}/${partInfo.total}`
-                : `Suite dans le post ${partInfo.index + 1}/${partInfo.total} →`;
-        }
         slides.push({
             name: 'intro',
             html: introSlide({
@@ -399,7 +392,7 @@ export function buildSlidesHTML(
                 chipText,
                 titleMain: `${arr.length}`,
                 titleAccent: 'épisodes',
-                subtitle,
+                subtitle: 'La liste juste après →',
                 miniCovers: arr.map((a) => a.cover).filter(Boolean) as string[],
             }),
         });
@@ -418,11 +411,20 @@ export function buildSlidesHTML(
                 index: i + 2, total,
             }),
         }));
+        const isNotLastPart = partInfo && partInfo.total > 1 && partInfo.index < partInfo.total;
+        const outroCta = isNotLastPart
+            ? {
+                ctaMain: `Voir la Partie ${partInfo.index + 1}/${partInfo.total}`,
+                ctaSub: 'Sur notre profil →',
+            }
+            : {
+                ctaMain: 'Suis ta liste',
+                ctaSub: 'Ouvrir Bingeki →',
+            };
         slides.push({
             name: 'outro',
             html: outroSlide({
-                ctaMain: 'Suis ta liste',
-                ctaSub: 'Ouvrir Bingeki →',
+                ...outroCta,
                 index: total, total,
             }),
         });

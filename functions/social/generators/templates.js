@@ -611,13 +611,6 @@ function buildSlidesHTML(type, data, opts = {}) {
         const chipText = partInfo && partInfo.total > 1
             ? `SORTIES DU JOUR · PARTIE ${partInfo.index}/${partInfo.total}`
             : 'SORTIES DU JOUR';
-        let subtitle = 'La liste juste après →';
-        if (partInfo && partInfo.total > 1) {
-            const isLast = partInfo.index === partInfo.total;
-            subtitle = isLast
-                ? `Fin du récap · Partie ${partInfo.index}/${partInfo.total}`
-                : `Suite dans le post ${partInfo.index + 1}/${partInfo.total} →`;
-        }
         slides.push({
             name: 'intro',
             html: introSlide({
@@ -625,7 +618,7 @@ function buildSlidesHTML(type, data, opts = {}) {
                 chipText,
                 titleMain: `${arr.length}`,
                 titleAccent: 'épisodes',
-                subtitle,
+                subtitle: 'La liste juste après →',
                 miniCovers: arr.map((a) => a.cover).filter(Boolean),
             }),
         });
@@ -644,11 +637,24 @@ function buildSlidesHTML(type, data, opts = {}) {
                 index: i + 2, total,
             }),
         }));
+        // Multi-part days: on chaque post sauf le dernier, override le
+        // CTA outro pour renvoyer vers la partie suivante ("Allez voir la
+        // Partie 2/2 sur notre compte"). Le dernier post garde le CTA
+        // standard "Suis ta liste · Ouvrir Bingeki".
+        const isNotLastPart = partInfo && partInfo.total > 1 && partInfo.index < partInfo.total;
+        const outroCta = isNotLastPart
+            ? {
+                ctaMain: `Voir la Partie ${partInfo.index + 1}/${partInfo.total}`,
+                ctaSub: 'Sur notre profil →',
+            }
+            : {
+                ctaMain: 'Suis ta liste',
+                ctaSub: 'Ouvrir Bingeki →',
+            };
         slides.push({
             name: 'outro',
             html: outroSlide({
-                ctaMain: 'Suis ta liste',
-                ctaSub: 'Ouvrir Bingeki →',
+                ...outroCta,
                 index: total, total,
             }),
         });
