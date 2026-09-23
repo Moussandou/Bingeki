@@ -22,8 +22,13 @@ const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
-const INSTA_CHUNK = 18; // Instagram carousel = 20 slides max (2024+)
-const TIKTOK_MAX = 35;  // Buffer photo carousel limit on TikTok
+// Buffer caps ALL carousels at 10 assets (both Insta and TikTok) —
+// see functions/social/publishers/buffer.js. Intro + N animes + outro
+// must fit in 10, so N ≤ 8. When more animes release the same day,
+// Instagram gets split into "Partie 1/N…" posts, TikTok gets one
+// post capped at 8 animes too (all-in-one is impossible under Buffer).
+const INSTA_CHUNK = 8;
+const TIKTOK_MAX = 8;
 
 function chunk(arr, size) {
     const out = [];

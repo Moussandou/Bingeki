@@ -79,12 +79,11 @@ async function graphql(query, variables, apiKey) {
     return body?.data || {};
 }
 
-// Instagram carousel = 20 slides max (bumped from 10 in 2024).
-// TikTok photo carousel = 35 slides max (Buffer limit).
-// Both platforms accept up to 20 without splitting on our end today,
-// and dailyReleases already caps its own slides list at 18 animes + 2
-// (intro/outro) = 20 total so we're safe leaving one shared cap here.
-const CAROUSEL_MAX_SLIDES = 20;
+// Buffer's own validation caps carousels at 10 assets for both Instagram
+// and TikTok, even though the native APIs allow more (Insta: 20 since
+// 2024, TikTok: 35). Passing more than 10 → InvalidInputError. We keep
+// this ceiling until Buffer bumps their validation on their side.
+const CAROUSEL_MAX_SLIDES = 10;
 
 function buildImageAssets(slides, format) {
     const filtered = slides.filter((s) => s.format === format);
