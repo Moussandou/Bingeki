@@ -79,13 +79,20 @@ async function graphql(query, variables, apiKey) {
     return body?.data || {};
 }
 
+// Instagram carousel = 20 slides max (bumped from 10 in 2024).
+// TikTok photo carousel = 35 slides max (Buffer limit).
+// Both platforms accept up to 20 without splitting on our end today,
+// and dailyReleases already caps its own slides list at 18 animes + 2
+// (intro/outro) = 20 total so we're safe leaving one shared cap here.
+const CAROUSEL_MAX_SLIDES = 20;
+
 function buildImageAssets(slides, format) {
     const filtered = slides.filter((s) => s.format === format);
     if (filtered.length === 0) {
         throw new Error(`Buffer: no ${format} slides to publish`);
     }
     filtered.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
-    return filtered.slice(0, 10).map((s) => ({ image: { url: s.url } }));
+    return filtered.slice(0, CAROUSEL_MAX_SLIDES).map((s) => ({ image: { url: s.url } }));
 }
 
 async function buildVideoAssets(slides, format, thumbnailOffsetMs = 500) {
