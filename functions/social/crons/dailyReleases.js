@@ -58,9 +58,12 @@ async function buildAndCreatePost({
     let finalCaption = caption;
     if (partInfo && partInfo.total > 1) {
         // Prefix the caption so viewers immediately know it's a multi-post
-        // day and there's more content on the next post. Keeps the rest
-        // of the Gemini-authored caption intact.
-        const prefix = `📚 PARTIE ${partInfo.index}/${partInfo.total} — Retrouve la suite dans notre post suivant ↓\n\n`;
+        // day. Non-last parts point to the next one; the last part just
+        // labels itself so no false "there's more" promise.
+        const isLast = partInfo.index === partInfo.total;
+        const prefix = isLast
+            ? `📚 PARTIE ${partInfo.index}/${partInfo.total} — Fin du récap du jour ✨\n\n`
+            : `📚 PARTIE ${partInfo.index}/${partInfo.total} — La suite dans notre prochain post ↓\n\n`;
         finalCaption = `${prefix}${caption}`;
     }
     const slides = await renderSlides('daily', list, ['feed', 'story'], { partInfo });
