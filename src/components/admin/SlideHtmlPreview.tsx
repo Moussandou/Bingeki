@@ -19,14 +19,18 @@ interface Props {
     data: AnimeSlideData | AnimeSlideData[];
     slideIndex: number;
     format?: SlideFormat;
+    partInfo?: { index: number; total: number };
 }
 
 const NATIVE_W = 1080;
 const NATIVE_H_FEED = 1350;
 const NATIVE_H_STORY = 1920;
 
-export function SlideHtmlPreview({ type, data, slideIndex, format = 'feed' }: Props) {
-    const slides = useMemo(() => buildSlidesHTML(type, data), [type, data]);
+export function SlideHtmlPreview({ type, data, slideIndex, format = 'feed', partInfo }: Props) {
+    const slides = useMemo(
+        () => buildSlidesHTML(type, data, { partInfo }),
+        [type, data, partInfo],
+    );
     const slide = slides[slideIndex] ?? slides[0];
 
     const wrapperRef = useRef<HTMLDivElement>(null);

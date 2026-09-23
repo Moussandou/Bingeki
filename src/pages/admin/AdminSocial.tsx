@@ -249,10 +249,18 @@ export default function AdminSocial() {
     const templateData = active && animesForLive
         ? animesToTemplateData(active.type, animesForLive)
         : null;
+    // Multi-part daily posts embed "· Partie 1/2" in their title. The
+    // slide template lives on `partInfo`, so parse it out to feed the
+    // preview iframe.
+    const partInfo = useMemo(() => {
+        const m = active?.title?.match(/Partie\s+(\d+)\/(\d+)/i);
+        if (!m) return undefined;
+        return { index: parseInt(m[1], 10), total: parseInt(m[2], 10) };
+    }, [active?.title]);
     const templateSlides = useMemo(() => {
         if (!active || !templateData) return [];
-        return buildSlidesHTML(active.type, templateData);
-    }, [active?.type, templateData, active]);
+        return buildSlidesHTML(active.type, templateData, { partInfo });
+    }, [active?.type, templateData, active, partInfo]);
 
     const puppeteerSlides = active?.slides.filter((sl) => sl.format === slideFormat) ?? [];
     const hasTemplate = templateSlides.length > 0;
@@ -728,6 +736,7 @@ export default function AdminSocial() {
                                             data={templateData}
                                             slideIndex={activeSlideIndex}
                                             format={slideFormat}
+                                            partInfo={partInfo}
                                         />
                                     ) : puppeteerSlides[activeSlideIndex] ? (
                                         <img src={puppeteerSlides[activeSlideIndex].url} alt="" style={{
@@ -773,6 +782,7 @@ export default function AdminSocial() {
                                                         data={templateData}
                                                         slideIndex={i}
                                                         format={slideFormat}
+                                                        partInfo={partInfo}
                                                     />
                                                 ) : puppeteerSlides[i]?.url ? (
                                                     <img src={puppeteerSlides[i].url} alt="" style={{
