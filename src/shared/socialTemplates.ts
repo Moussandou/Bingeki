@@ -385,9 +385,13 @@ export function buildSlidesHTML(
         const chipText = partInfo && partInfo.total > 1
             ? `SORTIES DU JOUR · PARTIE ${partInfo.index}/${partInfo.total}`
             : 'SORTIES DU JOUR';
-        const subtitle = partInfo && partInfo.total > 1
-            ? `Suite dans le post ${partInfo.index}/${partInfo.total} →`
-            : 'La liste juste après →';
+        let subtitle = 'La liste juste après →';
+        if (partInfo && partInfo.total > 1) {
+            const isLast = partInfo.index === partInfo.total;
+            subtitle = isLast
+                ? `Fin du récap · Partie ${partInfo.index}/${partInfo.total}`
+                : `Suite dans le post ${partInfo.index + 1}/${partInfo.total} →`;
+        }
         slides.push({
             name: 'intro',
             html: introSlide({
