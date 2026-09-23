@@ -52,8 +52,17 @@ async function buildAndCreatePost({
     scheduledAt,
     platforms,
     config,
+    partInfo,
 }) {
     const { caption, hashtags } = await generateCaption('daily', list, config);
+    let finalCaption = caption;
+    if (partInfo && partInfo.total > 1) {
+        // Prefix the caption so viewers immediately know it's a multi-post
+        // day and there's more content on the next post. Keeps the rest
+        // of the Gemini-authored caption intact.
+        const prefix = `📚 PARTIE ${partInfo.index}/${partInfo.total} — Retrouve la suite dans notre post suivant ↓\n\n`;
+        finalCaption = `${prefix}${caption}`;
+    }
     const slides = await renderSlides('daily', list, ['feed', 'story']);
     const animeIds = list.map((a) => a.mal_id);
     const animes = list.map(normaliseAnime);
@@ -61,7 +70,7 @@ async function buildAndCreatePost({
         type: 'daily',
         scheduledAt,
         title,
-        caption,
+        caption: finalCaption,
         hashtags,
         slides,
         sourceData: { animeIds, animes },
@@ -137,6 +146,7 @@ async function runDailyReleases() {
                 scheduledAt,
                 platforms: { insta: true, tiktok: true, x: false },
                 config,
+                partInfo: { index: i + 1, total: totalParts },
             });
             console.log(`[social/dailyReleases] created pending ${id} (${partLabel}, ${chunks[i].length} anime)`);
             await notifyPendingPost(config, { type: 'daily', title, postId: id, slidesCount });
