@@ -911,9 +911,14 @@ export default function AdminSocial() {
                                     </button>
                                 </div>
 
-                                {/* Slides editor */}
+                                {/* Slides editor — force remount when the
+                                    active post changes so the internal
+                                    draft state (SlidesEditor uses
+                                    useState(animes) as initial value)
+                                    resyncs to the new post's animes. */}
                                 {animesForLive && animesForLive.length > 0 && (
                                     <SlidesEditor
+                                        key={active.id}
                                         type={active.type}
                                         animes={animesForLive}
                                         onSave={handleSaveSlides}
