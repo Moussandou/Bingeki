@@ -62,13 +62,16 @@ async function uploadJpeg(buffer, storagePath) {
 }
 
 /**
- * @param {'daily'|'weekly'|'favorite'|'newseason'} type
+ * @param {'daily'|'weekly'|'favorite'|'newseason'|'announcement'} type
  * @param {object|Array} data
  * @param {Array<'feed'|'story'>} formats
+ * @param {object} [opts]
+ * @param {{index:number,total:number}} [opts.partInfo] — signal a
+ *   multi-part release so the intro slide can show "PARTIE 1/N".
  * @returns {Promise<Array<{format, url, index}>>}
  */
-async function renderSlides(type, data, formats = ['feed']) {
-    const htmlSlides = buildSlidesHTML(type, data);
+async function renderSlides(type, data, formats = ['feed'], opts = {}) {
+    const htmlSlides = buildSlidesHTML(type, data, opts);
     if (htmlSlides.length === 0) return [];
 
     const today = new Date().toISOString().slice(0, 10);

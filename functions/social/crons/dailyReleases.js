@@ -63,7 +63,7 @@ async function buildAndCreatePost({
         const prefix = `📚 PARTIE ${partInfo.index}/${partInfo.total} — Retrouve la suite dans notre post suivant ↓\n\n`;
         finalCaption = `${prefix}${caption}`;
     }
-    const slides = await renderSlides('daily', list, ['feed', 'story']);
+    const slides = await renderSlides('daily', list, ['feed', 'story'], { partInfo });
     const animeIds = list.map((a) => a.mal_id);
     const animes = list.map(normaliseAnime);
     const id = await createPendingPost({

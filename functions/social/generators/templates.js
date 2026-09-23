@@ -601,20 +601,27 @@ function fallback(index) {
     return gradients[index % gradients.length];
 }
 
-function buildSlidesHTML(type, data) {
+function buildSlidesHTML(type, data, opts = {}) {
+    const partInfo = opts.partInfo;
     const slides = [];
 
     if (type === 'daily') {
         const arr = Array.isArray(data) ? data : [data];
         const total = arr.length + 2;
+        const chipText = partInfo && partInfo.total > 1
+            ? `SORTIES DU JOUR · PARTIE ${partInfo.index}/${partInfo.total}`
+            : 'SORTIES DU JOUR';
+        const subtitle = partInfo && partInfo.total > 1
+            ? `Suite dans le post ${partInfo.index}/${partInfo.total} →`
+            : 'La liste juste après →';
         slides.push({
             name: 'intro',
             html: introSlide({
                 typeLabel: "Épisodes anime · aujourd'hui",
-                chipText: 'SORTIES DU JOUR',
+                chipText,
                 titleMain: `${arr.length}`,
                 titleAccent: 'épisodes',
-                subtitle: 'La liste juste après →',
+                subtitle,
                 miniCovers: arr.map((a) => a.cover).filter(Boolean),
             }),
         });
