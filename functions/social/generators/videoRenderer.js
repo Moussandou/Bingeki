@@ -17,6 +17,7 @@ const path = require('path');
 const fs = require('fs/promises');
 const { createWriteStream } = require('fs');
 const admin = require('firebase-admin');
+const { v4: uuidv4 } = require('uuid');
 
 let ffmpegPath = null;
 let ffmpegLoaded = false;
@@ -56,18 +57,21 @@ function runFfmpeg(args) {
     });
 }
 
+// Same rationale as renderer.js#uploadJpeg: Meta's fetcher is flaky on
+// raw GCS URLs, so we serve videos through Firebase Storage's tokenised
+// endpoint too.
 async function uploadVideo(localPath, storagePath) {
     const bucket = admin.storage().bucket();
+    const token = uuidv4();
     await bucket.upload(localPath, {
         destination: storagePath,
         metadata: {
             contentType: 'video/mp4',
             cacheControl: 'public, max-age=31536000',
+            metadata: { firebaseStorageDownloadTokens: token },
         },
     });
-    const file = bucket.file(storagePath);
-    await file.makePublic();
-    return `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
+    return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(storagePath)}?alt=media&token=${token}`;
 }
 
 /**

@@ -17,6 +17,7 @@
  */
 
 const admin = require('firebase-admin');
+const { v4: uuidv4 } = require('uuid');
 const { buildSlidesHTML } = require('./templates');
 
 const DIMS = {
@@ -51,14 +52,23 @@ async function renderHtmlToJpeg(html, { width, height }) {
     }
 }
 
+// Meta's Instagram Graph API fetcher intermittently rejects raw GCS URLs
+// (https://storage.googleapis.com/<bucket>/…) with "The media could not
+// be fetched from this URI", even when the object is public and served
+// as image/jpeg. The fix is to expose the file via Firebase Storage's
+// own tokenised download endpoint, which Meta handles reliably.
 async function uploadJpeg(buffer, storagePath) {
     const bucket = admin.storage().bucket();
     const file = bucket.file(storagePath);
+    const token = uuidv4();
     await file.save(buffer, {
-        metadata: { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000' },
+        metadata: {
+            contentType: 'image/jpeg',
+            cacheControl: 'public, max-age=31536000',
+            metadata: { firebaseStorageDownloadTokens: token },
+        },
     });
-    await file.makePublic();
-    return `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
+    return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(storagePath)}?alt=media&token=${token}`;
 }
 
 /**
