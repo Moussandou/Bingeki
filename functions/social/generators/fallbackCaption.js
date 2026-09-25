@@ -29,7 +29,7 @@ function dailyCaption(animes) {
     const rest = n > 3 ? ` et ${n - 3} autre${n - 3 > 1 ? 's' : ''}` : '';
     const caption =
         `${n} épisode${n > 1 ? 's' : ''} sorti${n > 1 ? 's' : ''} aujourd'hui — ${titles}${rest}.\n\n` +
-        `Vous en suivez lesquels ? Dites-nous en commentaires.\n\n` +
+        `Vous suivez lesquels ? Dites-nous en commentaires.\n\n` +
         `Toutes les sorties et progressions sur ${URL}`;
     const tags = ['#anime', '#bingeki', '#animefr', '#sortiesdujour']
         .concat(animes.slice(0, 2).map((a) => `#${slug(a.title)}`).filter((t) => t !== '#'))
