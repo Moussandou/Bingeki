@@ -11,6 +11,7 @@ import { DeveloperLicenseCard } from '@/components/profile/DeveloperLicenseCard'
 
 import { BingekiBanner } from '@/components/ui/BingekiBanner';
 import { ComparisonTable } from '@/components/ui/ComparisonTable';
+import PricingMockup from '@/components/mockups/PricingMockup';
 import { MockupBrowser, MockupPhone } from '@/components/mockups/MockupBrowser';
 import { MockupDashboard, MockupProfile, MockupDashboardMobile, MockupProfileMobile, MockupDiscover, MockupDiscoverMobile, MockupDetails, MockupDetailsMobile, MockupLibrary, MockupLibraryMobile, MockupSchedule, MockupScheduleMobile, MockupSocial, MockupSocialMobile, MockupAuth, MockupAuthMobile } from '@/components/mockups/PageLayouts';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
@@ -33,6 +34,14 @@ export default function AssetsPage() {
                 <section style={{ marginBottom: '4rem' }}>
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', borderBottom: '2px solid #000', paddingBottom: '0.5rem' }}>Comparison Table</h2>
                     <ComparisonTable />
+                </section>
+
+                {/* SECTION: FREEMIUM PLANS (MOCKUP) */}
+                <section style={{ marginBottom: '4rem' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem', borderBottom: '2px solid #000', paddingBottom: '0.5rem' }}>Freemium Plans — Pricing Page</h2>
+                    <div style={{ border: '3px solid #000', boxShadow: '8px 8px 0 #000', overflow: 'hidden' }}>
+                        <PricingMockup />
+                    </div>
                 </section>
 
                 {/* SECTION: FONTS */}
