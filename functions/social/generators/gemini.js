@@ -246,9 +246,59 @@ async function generateCaptionFromGemini(type, data, config) {
     return { ...parsed, caption: ensureBingekiUrl(parsed.caption) };
 }
 
+/**
+ * Translate an anime synopsis to French via Gemini. Used by the
+ * announcement cron because MAL/Tenrai synopses are English-only.
+ * Returns null on any failure so callers can fall back to the raw
+ * English text (better than nothing on the slide).
+ *
+ * Kept intentionally lightweight — plain-text response, one retry on
+ * transient statuses, low temperature so names stay stable.
+ */
+async function translateSynopsisToFrench(text, config = {}) {
+    if (!text || text.length < 10) return null;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return null;
+
+    const model = config?.gemini?.model || 'gemini-flash-latest';
+    const prompt = `Traduis ce synopsis d'anime en français, style naturel et fluide, pour un post Instagram. Garde tels quels les noms propres (personnages, lieux, techniques, groupes). Ne raccourcis pas, ne rajoute rien. Réponds UNIQUEMENT avec le texte traduit, sans intro, sans commentaire, sans guillemets.
+
+Synopsis :
+${text}`;
+
+    const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+    const MAX_ATTEMPTS = 3;
+    let res;
+    let lastErrBody = '';
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+        res = await fetch(GEMINI_ENDPOINT(model, apiKey), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(30_000),
+            body: JSON.stringify({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.3, maxOutputTokens: 900 },
+            }),
+        });
+        if (res.ok) break;
+        lastErrBody = await res.text().catch(() => '');
+        if (!RETRYABLE.has(res.status) || attempt === MAX_ATTEMPTS) break;
+        const delayMs = 1000 * 2 ** (attempt - 1) + Math.floor(Math.random() * 500);
+        await new Promise((r) => setTimeout(r, delayMs));
+    }
+    if (!res.ok) {
+        console.warn(`[social/gemini] translate failed ${res.status}: ${lastErrBody.slice(0, 200)}`);
+        return null;
+    }
+    const body = await res.json();
+    const translated = body?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    return translated || null;
+}
+
 module.exports = {
     generateCaption,
     generateCaptionFromGemini,
+    translateSynopsisToFrench,
     PROMPTS,
     parseGeminiResponse,
     serializeData,

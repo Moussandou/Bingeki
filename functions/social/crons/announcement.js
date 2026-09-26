@@ -11,7 +11,7 @@ const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
 const { fetchUpcomingSeasons, fetchAnimeById, fetchPrequelChain, parseSeasonFromTitle } = require('../generators/jikan');
-const { generateCaption } = require('../generators/gemini');
+const { generateCaption, translateSynopsisToFrench } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost, hasBeenAnnounced, markAsAnnounced } = require('../shared/firestore');
 const { notifyPendingPost } = require('../shared/discord');
@@ -75,13 +75,29 @@ async function runAnnouncement() {
                     prequelSeasonLabel = `Saison ${prevSeasonNum || 1}`;
                 }
 
+                // MAL/Tenrai synopses are English-only. Translate to French
+                // via Gemini so the slide reads natively — falls back to raw
+                // English text if Gemini fails. Only translates when the
+                // synopsis is long enough to be worth showing (≥100 chars).
+                let translatedSynopsis = full.synopsis || null;
+                if ((full.synopsis || '').length >= 100) {
+                    const t = await translateSynopsisToFrench(full.synopsis, config).catch(() => null);
+                    if (t) translatedSynopsis = t;
+                }
+                let translatedPrequelSynopsis = prequel?.synopsis || null;
+                if ((prequel?.synopsis || '').length >= 100) {
+                    const t = await translateSynopsisToFrench(prequel.synopsis, config).catch(() => null);
+                    if (t) translatedPrequelSynopsis = t;
+                }
+
                 const enriched = {
                     ...full,
+                    synopsis: translatedSynopsis,
                     prequel_title: prequel?.title || null,
                     prequel_season_label: prequelSeasonLabel,
                     prequel_score: prequel?.score ?? null,
                     prequel_scored_by: prequel?.scored_by ?? null,
-                    prequel_synopsis: prequel?.synopsis || null,
+                    prequel_synopsis: translatedPrequelSynopsis,
                 };
 
                 const { caption, hashtags } = await generateCaption('announcement', enriched, config);
