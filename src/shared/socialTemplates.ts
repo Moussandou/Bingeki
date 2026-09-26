@@ -19,7 +19,7 @@ const escape = (s: unknown): string =>
     }[c] as string));
 
 const CSS = `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@400;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;700;800;900&family=Bangers&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; color: #000; overflow: hidden; }
     .slide { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #f5f5f5; }
@@ -112,12 +112,18 @@ const CSS = `
     .info-row.hero { background: #000; border-color: #000; box-shadow: 10px 10px 0 ${ROSE}; padding: 32px 38px; }
     .info-row.hero .info-label { color: #fff; opacity: 0.75; }
     .info-row.hero .info-value { color: ${CYAN}; font-size: 64px; }
-    /* SYNOPSIS slide */
-    .synopsis-slide { background: #f5f5f5; }
-    .synopsis-chip { position: absolute; top: 60px; left: 60px; z-index: 6; border: 6px solid #000; padding: 20px 34px; font-family: 'Outfit'; font-weight: 900; font-size: 42px; letter-spacing: 4px; text-transform: uppercase; line-height: 1; box-shadow: 14px 14px 0 #000; background: ${ROSE}; color: #fff; }
-    .synopsis-title { position: absolute; top: 180px; left: 60px; right: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 72px; line-height: 0.95; letter-spacing: -2.5px; text-transform: uppercase; color: #000; overflow-wrap: break-word; word-break: break-word; }
-    .synopsis-body { position: absolute; top: 340px; left: 60px; right: 60px; bottom: 200px; z-index: 6; background: #fff; border: 6px solid #000; box-shadow: 14px 14px 0 #000; padding: 40px 44px; font-family: 'Inter', sans-serif; font-weight: 500; font-size: 34px; line-height: 1.35; color: #111; overflow: hidden; }
-    .synopsis-source { position: absolute; bottom: 120px; left: 60px; z-index: 6; background: #000; color: ${CYAN}; border: 4px solid #000; padding: 8px 14px; font-family: 'Outfit'; font-weight: 800; font-size: 22px; letter-spacing: 3px; text-transform: uppercase; }
+    /* SYNOPSIS slide — variant A' (cover blurred + Bangers drop cap). */
+    .syn-cover-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; filter: blur(24px) saturate(1.3) brightness(0.42); transform: scale(1.15); }
+    .syn-scrim { position: absolute; inset: 0; z-index: 2; background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.85) 100%); }
+    .syn-halftone { position: absolute; inset: 0; opacity: 0.14; pointer-events: none; z-index: 3; background-image: radial-gradient(#fff 2.5px, transparent 3.5px); background-size: 38px 38px; }
+    .synopsis-chip { position: absolute; top: 60px; left: 60px; z-index: 6; border: 6px solid #000; padding: 20px 34px; font-family: 'Outfit'; font-weight: 900; font-size: 42px; letter-spacing: 4px; text-transform: uppercase; line-height: 1; box-shadow: 14px 14px 0 #000; background: ${ROSE}; color: #fff; transform: rotate(-2deg); }
+    .synopsis-brand { position: absolute; top: 60px; right: 60px; z-index: 6; background: #fff; color: #000; border: 5px solid #000; padding: 14px 24px; box-shadow: 10px 10px 0 #000; font-family: 'Outfit'; font-weight: 900; font-size: 34px; }
+    .synopsis-brand::before { content: '★ '; color: ${ROSE}; }
+    .synopsis-title { position: absolute; top: 200px; left: 60px; right: 60px; z-index: 6; font-family: 'Outfit'; font-weight: 900; font-size: 76px; line-height: 0.9; letter-spacing: -3px; text-transform: uppercase; color: #fff; text-shadow: 5px 5px 0 #000; overflow-wrap: break-word; word-break: break-word; }
+    .synopsis-body { position: absolute; top: 460px; left: 60px; right: 60px; bottom: 210px; z-index: 6; font-family: 'Inter', sans-serif; font-weight: 500; font-size: 34px; line-height: 1.35; color: #fff; text-shadow: 2px 2px 0 rgba(0,0,0,0.9); overflow: hidden; display: flex; align-items: center; }
+    .synopsis-body-inner { max-width: 100%; }
+    .synopsis-body-inner::first-letter { font-family: 'Bangers', 'Outfit', sans-serif; font-weight: 400; font-size: 140px; color: ${CYAN}; float: left; line-height: 0.85; margin-right: 16px; margin-top: 4px; text-shadow: 5px 5px 0 #000; }
+    .synopsis-source { position: absolute; bottom: 130px; left: 60px; z-index: 6; background: #000; color: ${CYAN}; border: 3px solid ${CYAN}; padding: 8px 14px; font-family: 'Outfit'; font-weight: 800; font-size: 22px; letter-spacing: 3px; text-transform: uppercase; }
 `;
 
 type BadgeVariant = 'chip-dark' | 'chip-rose' | 'chip-cyan' | 'chip-white';
@@ -340,25 +346,29 @@ export function trailerSlide({ thumbUrl, title, index, total }: TrailerArgs): st
 interface SynopsisArgs {
     title: string;
     body: string;
+    cover?: string;
     source?: string;
     index?: number;
     total?: number;
 }
 
-export function synopsisSlide({ title, body, source, index, total }: SynopsisArgs): string {
-    const MAX = 620;
+export function synopsisSlide({ title, body, cover, source, index, total }: SynopsisArgs): string {
+    const MAX = 560;
     const safeBody = body && body.length > MAX
         ? `${body.slice(0, MAX).replace(/\s+\S*$/, '')}…`
         : (body || '');
     return docShell(`
-        <div class="synopsis-slide" style="position:absolute;inset:0;"></div>
-        <div class="halftone-black"></div>
+        <div class="cover-fallback" style="background: linear-gradient(180deg, #1a1a1a 0%, #7c3aed 100%);"></div>
+        ${cover ? `<img class="syn-cover-bg" src="${escape(cover)}" alt="">` : ''}
+        <div class="syn-scrim"></div>
+        <div class="syn-halftone"></div>
         <div class="synopsis-chip">Synopsis</div>
+        <div class="synopsis-brand">Bingeki</div>
         <div class="synopsis-title">${escape(title)}</div>
-        <div class="synopsis-body">${escape(safeBody)}</div>
+        <div class="synopsis-body"><div class="synopsis-body-inner">${escape(safeBody)}</div></div>
         ${source ? `<div class="synopsis-source">${escape(source)}</div>` : ''}
-        <div class="intro-brand">Bingeki</div>
-        <div class="intro-swipe">SWIPE →</div>
+        <div class="intro-brand" style="color:#fff">Bingeki</div>
+        <div class="intro-swipe" style="color:#f5f5f5">SWIPE →</div>
         ${slideIdxBadge(index, total)}
     `);
 }
@@ -429,6 +439,7 @@ export interface AnimeSlideData {
     aired_string?: string | null;
     synopsis?: string;
     prequel_title?: string | null;
+    prequel_season_label?: string | null;
     prequel_score?: number | null;
     prequel_scored_by?: number | null;
     prequel_synopsis?: string | null;
@@ -648,7 +659,9 @@ export function buildSlidesHTML(
             synopsisText = rawSyn;
         } else if (prevSyn.length >= 100) {
             synopsisText = prevSyn;
-            synopsisSource = 'Résumé de la saison précédente';
+            synopsisSource = d.prequel_season_label
+                ? `Synopsis ${d.prequel_season_label}`
+                : 'Synopsis saison précédente';
         } else {
             synopsisText = rawSyn || prevSyn || '';
         }
@@ -678,6 +691,7 @@ export function buildSlidesHTML(
             html: synopsisSlide({
                 title: d.title,
                 body: synopsisText,
+                cover: d.cover,
                 source: synopsisSource,
                 index: idx++, total,
             }),

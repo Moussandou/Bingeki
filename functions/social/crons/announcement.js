@@ -64,9 +64,21 @@ async function runAnnouncement() {
                 // synopsis ("Third season of X."), to borrow the prequel's.
                 const prequel = await fetchPrequelChain(anime.mal_id).catch(() => null);
 
+                // Derive the exact previous-season number from the prequel
+                // title so the synopsis source tag reads "SYNOPSIS SAISON 2"
+                // (or 1 for a base entry with no suffix) instead of a vague
+                // "saison précédente" — user feedback: be specific.
+                let prequelSeasonLabel = null;
+                if (prequel?.title) {
+                    const { season: prevSeasonNum } = parseSeasonFromTitle(prequel.title);
+                    // No suffix means the base entry, i.e. season 1.
+                    prequelSeasonLabel = `Saison ${prevSeasonNum || 1}`;
+                }
+
                 const enriched = {
                     ...full,
                     prequel_title: prequel?.title || null,
+                    prequel_season_label: prequelSeasonLabel,
                     prequel_score: prequel?.score ?? null,
                     prequel_scored_by: prequel?.scored_by ?? null,
                     prequel_synopsis: prequel?.synopsis || null,
@@ -97,6 +109,7 @@ async function runAnnouncement() {
                             season: enriched.season ?? null,
                             year: enriched.year ?? null,
                             prequel_title: enriched.prequel_title,
+                            prequel_season_label: enriched.prequel_season_label,
                             prequel_score: enriched.prequel_score,
                             prequel_scored_by: enriched.prequel_scored_by,
                             prequel_synopsis: enriched.prequel_synopsis,

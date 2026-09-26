@@ -20,7 +20,7 @@ const escape = (s) => String(s ?? '').replace(/[<>&"']/g, (c) => ({
  * Puppeteer runtime doesn't ship them locally.
  */
 const CSS = `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@400;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;700;800;900&family=Bangers&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
         width: 100%; height: 100%; margin: 0; padding: 0;
@@ -371,10 +371,30 @@ const CSS = `
     .info-row.hero .info-label { color: #fff; opacity: 0.75; }
     .info-row.hero .info-value { color: ${CYAN}; font-size: 64px; }
 
-    /* SYNOPSIS slide — big body copy on halftone bg, chip + brand block.
-       Optional 'source' tag (bottom-left, small) surfaces when we fell
-       back to the previous season's synopsis. */
-    .synopsis-slide { background: #f5f5f5; }
+    /* SYNOPSIS slide — variant A': dark stage with the anime's cover blurred
+       into the background, a rose "SYNOPSIS" chip, a big Outfit lead, and
+       the synopsis body with a giant cyan Bangers drop cap. The optional
+       'source' tag (bottom-left, cyan on black) names which season the
+       synopsis actually comes from ("Synopsis Saison 2") when we fall back
+       to the prequel — user feedback: be specific, don't say "précédente". */
+    .syn-cover-bg {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        object-fit: cover; z-index: 1;
+        filter: blur(24px) saturate(1.3) brightness(0.42);
+        transform: scale(1.15);
+    }
+    .syn-scrim {
+        position: absolute; inset: 0; z-index: 2;
+        background: linear-gradient(180deg,
+            rgba(0,0,0,0.5) 0%,
+            rgba(0,0,0,0.15) 30%,
+            rgba(0,0,0,0.85) 100%);
+    }
+    .syn-halftone {
+        position: absolute; inset: 0; opacity: 0.14; pointer-events: none; z-index: 3;
+        background-image: radial-gradient(#fff 2.5px, transparent 3.5px);
+        background-size: 38px 38px;
+    }
     .synopsis-chip {
         position: absolute; top: 60px; left: 60px; z-index: 6;
         border: 6px solid #000; padding: 20px 34px;
@@ -383,26 +403,43 @@ const CSS = `
         text-transform: uppercase; line-height: 1;
         box-shadow: 14px 14px 0 #000;
         background: ${ROSE}; color: #fff;
+        transform: rotate(-2deg);
     }
+    .synopsis-brand {
+        position: absolute; top: 60px; right: 60px; z-index: 6;
+        background: #fff; color: #000; border: 5px solid #000;
+        padding: 14px 24px; box-shadow: 10px 10px 0 #000;
+        font-family: 'Outfit'; font-weight: 900; font-size: 34px;
+    }
+    .synopsis-brand::before { content: '★ '; color: ${ROSE}; }
     .synopsis-title {
-        position: absolute; top: 180px; left: 60px; right: 60px; z-index: 6;
+        position: absolute; top: 200px; left: 60px; right: 60px; z-index: 6;
         font-family: 'Outfit'; font-weight: 900;
-        font-size: 72px; line-height: 0.95; letter-spacing: -2.5px;
-        text-transform: uppercase; color: #000;
+        font-size: 76px; line-height: 0.9; letter-spacing: -3px;
+        text-transform: uppercase; color: #fff;
+        text-shadow: 5px 5px 0 #000;
         overflow-wrap: break-word; word-break: break-word;
     }
     .synopsis-body {
-        position: absolute; top: 340px; left: 60px; right: 60px; bottom: 200px;
+        position: absolute; top: 460px; left: 60px; right: 60px; bottom: 210px;
         z-index: 6;
-        background: #fff; border: 6px solid #000; box-shadow: 14px 14px 0 #000;
-        padding: 40px 44px;
         font-family: 'Inter', sans-serif; font-weight: 500;
-        font-size: 34px; line-height: 1.35; color: #111;
+        font-size: 34px; line-height: 1.35; color: #fff;
+        text-shadow: 2px 2px 0 rgba(0,0,0,0.9);
         overflow: hidden;
+        display: flex; align-items: center;
+    }
+    .synopsis-body-inner { max-width: 100%; }
+    .synopsis-body-inner::first-letter {
+        font-family: 'Bangers', 'Outfit', sans-serif; font-weight: 400;
+        font-size: 140px; color: ${CYAN};
+        float: left; line-height: 0.85;
+        margin-right: 16px; margin-top: 4px;
+        text-shadow: 5px 5px 0 #000;
     }
     .synopsis-source {
-        position: absolute; bottom: 120px; left: 60px; z-index: 6;
-        background: #000; color: ${CYAN}; border: 4px solid #000;
+        position: absolute; bottom: 130px; left: 60px; z-index: 6;
+        background: #000; color: ${CYAN}; border: 3px solid ${CYAN};
         padding: 8px 14px;
         font-family: 'Outfit'; font-weight: 800;
         font-size: 22px; letter-spacing: 3px; text-transform: uppercase;
@@ -618,28 +655,32 @@ function trailerSlide({ thumbUrl, title, index, total }) {
 }
 
 /**
- * Full-page synopsis card. Used on the second slide of an announcement
- * post to fill the space Mouss flagged as empty. When the sequel's own
- * synopsis is a placeholder (Tenrai/MAL often ship "Third season of X.")
- * we borrow the prequel's — the `source` tag surfaces that fallback so
- * viewers know it's the earlier season's pitch, not fabricated copy.
+ * Announcement synopsis slide, "variant A'". Full-bleed blurred cover in
+ * the background, dark scrim, halftone dots — then a rose "SYNOPSIS" chip,
+ * the anime title in big Outfit, and the synopsis body with a giant cyan
+ * Bangers drop cap. The optional `source` tag surfaces which season the
+ * text actually comes from, e.g. "Synopsis Saison 2", when we fall back
+ * to the prequel because the sequel's own MAL synopsis is a stub.
  */
-function synopsisSlide({ title, body, source, index, total }) {
-    // Instagram's carousel rejects paragraphs that overflow the card,
-    // so trim aggressively — better a clean ellipsis than a cut-off word.
-    const MAX = 620;
+function synopsisSlide({ title, body, cover, source, index, total }) {
+    // Trim aggressively — Insta carousels crop overflowing text and it
+    // looks worse than a clean ellipsis. Room for one full paragraph.
+    const MAX = 560;
     const safeBody = body && body.length > MAX
         ? `${body.slice(0, MAX).replace(/\s+\S*$/, '')}…`
         : (body || '');
     return docShell(`
-        <div class="synopsis-slide" style="position:absolute;inset:0;"></div>
-        <div class="halftone-black"></div>
+        <div class="cover-fallback" style="background: linear-gradient(180deg, #1a1a1a 0%, #7c3aed 100%);"></div>
+        ${cover ? `<img class="syn-cover-bg" src="${escape(cover)}" alt="">` : ''}
+        <div class="syn-scrim"></div>
+        <div class="syn-halftone"></div>
         <div class="synopsis-chip">Synopsis</div>
+        <div class="synopsis-brand">Bingeki</div>
         <div class="synopsis-title">${escape(title)}</div>
-        <div class="synopsis-body">${escape(safeBody)}</div>
+        <div class="synopsis-body"><div class="synopsis-body-inner">${escape(safeBody)}</div></div>
         ${source ? `<div class="synopsis-source">${escape(source)}</div>` : ''}
-        <div class="intro-brand">Bingeki</div>
-        <div class="intro-swipe">SWIPE →</div>
+        <div class="intro-brand" style="color:#fff">Bingeki</div>
+        <div class="intro-swipe" style="color:#f5f5f5">SWIPE →</div>
         ${slideIdxBadge(index, total)}
     `);
 }
@@ -912,13 +953,21 @@ function buildSlidesHTML(type, data, opts = {}) {
         // previous season's synopsis, and label it as such so viewers know.
         const rawSyn = (data.synopsis || '').trim();
         const prevSyn = (data.prequel_synopsis || '').trim();
+        // Prefer the sequel's own synopsis when it's real content (≥100
+        // chars). Otherwise fall back to the prequel's — MAL almost never
+        // ships a fresh synopsis for upcoming sequels ("Third season of X.")
+        // and the prequel's still gives world/character context that hypes
+        // returning fans. The source tag names the exact season we're
+        // showing (user feedback: don't say "précédente", say "SAISON 2").
         let synopsisText = '';
         let synopsisSource = '';
         if (rawSyn.length >= 100) {
             synopsisText = rawSyn;
         } else if (prevSyn.length >= 100) {
             synopsisText = prevSyn;
-            synopsisSource = 'Résumé de la saison précédente';
+            synopsisSource = data.prequel_season_label
+                ? `Synopsis ${data.prequel_season_label}`
+                : 'Synopsis saison précédente';
         } else {
             synopsisText = rawSyn || prevSyn || '';
         }
@@ -948,6 +997,7 @@ function buildSlidesHTML(type, data, opts = {}) {
             html: synopsisSlide({
                 title: data.title,
                 body: synopsisText,
+                cover: data.cover,
                 source: synopsisSource,
                 index: idx++, total,
             }),
