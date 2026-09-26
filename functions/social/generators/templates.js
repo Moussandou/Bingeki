@@ -362,6 +362,51 @@ const CSS = `
         font-size: 48px; letter-spacing: -1.5px;
         color: ${ROSE}; text-align: right;
     }
+    /* One "hero" row rendered bigger — used to spotlight the previous
+       season's MAL score on announcement info slides. */
+    .info-row.hero {
+        background: #000; border-color: #000; box-shadow: 10px 10px 0 ${ROSE};
+        padding: 32px 38px;
+    }
+    .info-row.hero .info-label { color: #fff; opacity: 0.75; }
+    .info-row.hero .info-value { color: ${CYAN}; font-size: 64px; }
+
+    /* SYNOPSIS slide — big body copy on halftone bg, chip + brand block.
+       Optional 'source' tag (bottom-left, small) surfaces when we fell
+       back to the previous season's synopsis. */
+    .synopsis-slide { background: #f5f5f5; }
+    .synopsis-chip {
+        position: absolute; top: 60px; left: 60px; z-index: 6;
+        border: 6px solid #000; padding: 20px 34px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 42px; letter-spacing: 4px;
+        text-transform: uppercase; line-height: 1;
+        box-shadow: 14px 14px 0 #000;
+        background: ${ROSE}; color: #fff;
+    }
+    .synopsis-title {
+        position: absolute; top: 180px; left: 60px; right: 60px; z-index: 6;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 72px; line-height: 0.95; letter-spacing: -2.5px;
+        text-transform: uppercase; color: #000;
+        overflow-wrap: break-word; word-break: break-word;
+    }
+    .synopsis-body {
+        position: absolute; top: 340px; left: 60px; right: 60px; bottom: 200px;
+        z-index: 6;
+        background: #fff; border: 6px solid #000; box-shadow: 14px 14px 0 #000;
+        padding: 40px 44px;
+        font-family: 'Inter', sans-serif; font-weight: 500;
+        font-size: 34px; line-height: 1.35; color: #111;
+        overflow: hidden;
+    }
+    .synopsis-source {
+        position: absolute; bottom: 120px; left: 60px; z-index: 6;
+        background: #000; color: ${CYAN}; border: 4px solid #000;
+        padding: 8px 14px;
+        font-family: 'Outfit'; font-weight: 800;
+        font-size: 22px; letter-spacing: 3px; text-transform: uppercase;
+    }
 `;
 
 function docShell(inner) {
@@ -468,7 +513,7 @@ function animeSlide({ cover, fallbackGradient, ribbon, ribbonVariant = 'ribbon-r
 /* =============================================================== */
 function infoSlide({ eyebrow, titleMain, titleAccent, items = [], index, total }) {
     const rows = items.map((it) => `
-        <div class="info-row">
+        <div class="info-row${it.hero ? ' hero' : ''}">
             <span class="info-label">${escape(it.label)}</span>
             <span class="info-value">${escape(it.value)}</span>
         </div>
@@ -570,6 +615,66 @@ function trailerSlide({ thumbUrl, title, index, total }) {
         </div>
         ${slideIdxBadge(index, total)}
     `);
+}
+
+/**
+ * Full-page synopsis card. Used on the second slide of an announcement
+ * post to fill the space Mouss flagged as empty. When the sequel's own
+ * synopsis is a placeholder (Tenrai/MAL often ship "Third season of X.")
+ * we borrow the prequel's — the `source` tag surfaces that fallback so
+ * viewers know it's the earlier season's pitch, not fabricated copy.
+ */
+function synopsisSlide({ title, body, source, index, total }) {
+    // Instagram's carousel rejects paragraphs that overflow the card,
+    // so trim aggressively — better a clean ellipsis than a cut-off word.
+    const MAX = 620;
+    const safeBody = body && body.length > MAX
+        ? `${body.slice(0, MAX).replace(/\s+\S*$/, '')}…`
+        : (body || '');
+    return docShell(`
+        <div class="synopsis-slide" style="position:absolute;inset:0;"></div>
+        <div class="halftone-black"></div>
+        <div class="synopsis-chip">Synopsis</div>
+        <div class="synopsis-title">${escape(title)}</div>
+        <div class="synopsis-body">${escape(safeBody)}</div>
+        ${source ? `<div class="synopsis-source">${escape(source)}</div>` : ''}
+        <div class="intro-brand">Bingeki</div>
+        <div class="intro-swipe">SWIPE →</div>
+        ${slideIdxBadge(index, total)}
+    `);
+}
+
+/**
+ * Return two labels for an announcement date:
+ *   - `pre`  — the small label chip (e.g. "PROCHAINEMENT" or "PRÉVU EN")
+ *   - `main` — the date value chip (e.g. "1 AVRIL 2027" or "2027")
+ *   - `full` — one-line label used in info rows ("Prévu en 2027")
+ *
+ * Rules:
+ *   - Nothing known                 → "PROCHAINEMENT" + "DATE À VENIR"
+ *   - Year-only (Tenrai "2027")     → "PRÉVU EN"      + "2027"
+ *   - Full date (ISO or parseable)  → "PROCHAINEMENT" + "1 AVRIL 2027"
+ */
+function formatAnnouncementDate(data) {
+    const rawDate = data.aired_from || data.airing_from || '';
+    const airedString = (data.aired_string || '').trim();
+    // aired.string like "2027 to ?" — extract the leading year when
+    // aired.from is missing or already a year string.
+    const airedStringYear = airedString.match(/^(\d{4})\s*(to|-)?/i)?.[1];
+    if (!rawDate && !airedStringYear) {
+        return { pre: 'Prochainement', main: 'Date à venir', full: 'À venir' };
+    }
+    const candidate = String(rawDate).trim() || airedStringYear || '';
+    const yearOnly = /^\d{4}$/.test(candidate);
+    if (yearOnly) {
+        return { pre: 'Prévu en', main: candidate, full: `Prévu en ${candidate}` };
+    }
+    const d = new Date(candidate);
+    if (!isNaN(d.getTime())) {
+        const label = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+        return { pre: 'Prochainement', main: label, full: label };
+    }
+    return { pre: 'Prochainement', main: 'Date à venir', full: 'À venir' };
 }
 
 /* =============================================================== */
@@ -797,26 +902,28 @@ function buildSlidesHTML(type, data, opts = {}) {
     }
 
     if (type === 'announcement') {
-        // Tenrai/Jikan expose la date via `aired.from` (parfois juste l'année
-        // pour les anime pas encore diffusés, ex "2027"). On accepte les 2
-        // noms de champ possibles pour survivre à un futur renaming.
-        const rawDate = data.aired_from || data.airing_from;
-        let releaseDate = 'À venir';
-        if (rawDate) {
-            // Cas "2027" : Tenrai renvoie parfois juste l'année. Éviter
-            // "1 janvier 2027" trompeur en affichant juste l'année.
-            const yearOnly = /^\d{4}$/.test(String(rawDate).trim());
-            if (yearOnly) {
-                releaseDate = String(rawDate).trim();
-            } else {
-                const d = new Date(rawDate);
-                if (!isNaN(d.getTime())) {
-                    releaseDate = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-                }
-            }
+        // Hero date wording is honest: "PRÉVU EN 2027" when Tenrai only
+        // returns a year, a formatted date when it has more, "DATE À VENIR"
+        // when it has nothing. Never fakes precision.
+        const date = formatAnnouncementDate(data);
+
+        // Synopsis: prefer the sequel's if it's more than a placeholder
+        // ("Third season of X." is ~25 chars). Otherwise fall back to the
+        // previous season's synopsis, and label it as such so viewers know.
+        const rawSyn = (data.synopsis || '').trim();
+        const prevSyn = (data.prequel_synopsis || '').trim();
+        let synopsisText = '';
+        let synopsisSource = '';
+        if (rawSyn.length >= 100) {
+            synopsisText = rawSyn;
+        } else if (prevSyn.length >= 100) {
+            synopsisText = prevSyn;
+            synopsisSource = 'Résumé de la saison précédente';
+        } else {
+            synopsisText = rawSyn || prevSyn || '';
         }
-        const hasTrailer = !!data.trailer_thumb;
-        const total = hasTrailer ? 4 : 3;
+
+        const total = 4;
         let idx = 1;
 
         slides.push({
@@ -827,8 +934,8 @@ function buildSlidesHTML(type, data, opts = {}) {
                 ribbon: 'ANNONCE',
                 ribbonVariant: 'ribbon-rose',
                 metas: [
-                    { text: 'PROCHAINEMENT', variant: 'cyan' },
-                    { text: releaseDate.toUpperCase() },
+                    { text: date.pre, variant: 'cyan' },
+                    { text: date.main },
                 ],
                 title: data.title,
                 subtitle: (data.studios || []).slice(0, 1).join('') || '',
@@ -836,22 +943,31 @@ function buildSlidesHTML(type, data, opts = {}) {
             }),
         });
 
-        if (hasTrailer) {
-            slides.push({
-                name: 'trailer',
-                html: trailerSlide({
-                    thumbUrl: data.trailer_thumb,
-                    title: data.title,
-                    index: idx++, total,
-                }),
-            });
-        }
+        slides.push({
+            name: 'synopsis',
+            html: synopsisSlide({
+                title: data.title,
+                body: synopsisText,
+                source: synopsisSource,
+                index: idx++, total,
+            }),
+        });
 
         const infoItems = [];
+        // Previous season score first, as the "hero" row — it's the piece
+        // of info that hypes the announcement without needing an exact date.
+        if (typeof data.prequel_score === 'number' && data.prequel_score > 0) {
+            const votes = data.prequel_scored_by
+                ? ` · ${data.prequel_scored_by.toLocaleString('fr-FR')} votes`
+                : '';
+            const label = data.prequel_title
+                ? `Note ${data.prequel_title}`.slice(0, 60)
+                : 'Note saison précédente';
+            infoItems.push({ label, value: `${data.prequel_score} ★${votes}`, hero: true });
+        }
         if ((data.studios || []).length) infoItems.push({ label: 'Studio', value: data.studios.join(', ') });
         if (data.episodes) infoItems.push({ label: 'Épisodes prévus', value: String(data.episodes) });
-        if (data.score) infoItems.push({ label: 'Note S1', value: `${data.score} ★` });
-        infoItems.push({ label: 'Sortie', value: releaseDate });
+        infoItems.push({ label: 'Sortie', value: date.full });
 
         slides.push({
             name: 'info',

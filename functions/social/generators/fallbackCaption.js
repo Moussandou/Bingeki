@@ -89,30 +89,39 @@ function newseasonCaption(data) {
     return { caption, hashtags: tags };
 }
 
-function formatReleaseDate(raw) {
-    if (!raw) return null;
-    const s = String(raw).trim();
+function formatReleaseLabel(data) {
+    const raw = data.aired_from ? String(data.aired_from).trim() : '';
+    const airedString = (data.aired_string || '').trim();
+    const airedStringYear = airedString.match(/^(\d{4})\s*(to|-)?/i)?.[1];
+    const candidate = raw || airedStringYear || '';
+    if (!candidate) return null;
     // Tenrai returns just the year "2027" for anime with no confirmed
-    // schedule yet — avoid the misleading "1 janvier 2027" that
-    // `new Date('2027').toLocaleDateString()` would give.
-    if (/^\d{4}$/.test(s)) return s;
-    const d = new Date(s);
+    // schedule yet. Say "prévu en 2027" so the caption doesn't imply a
+    // specific day, matching the slide wording.
+    if (/^\d{4}$/.test(candidate)) return `prévu en ${candidate}`;
+    const d = new Date(candidate);
     if (isNaN(d.getTime())) return null;
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    return `sortie le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
 }
 
 function announcementCaption(data) {
     const studios = (data.studios || []).slice(0, 2).join(' & ');
     const eps = data.episodes ? `${data.episodes} épisodes prévus` : '';
-    const releaseDate = formatReleaseDate(data.aired_from);
+    const releaseLabel = formatReleaseLabel(data);
+    const prevScore = typeof data.prequel_score === 'number' && data.prequel_score > 0
+        ? (data.prequel_title
+            ? `${data.prequel_title.slice(0, 40)} noté ${data.prequel_score}/10 sur MAL`
+            : `Saison précédente notée ${data.prequel_score}/10 sur MAL`)
+        : '';
     const context = [
         studios ? `Studio ${studios}` : '',
         eps,
-        releaseDate ? `Sortie ${releaseDate}` : '',
+        releaseLabel ? releaseLabel.replace(/^prévu en/, 'Prévu en').replace(/^sortie le/, 'Sortie le') : '',
     ].filter(Boolean).join(' · ');
     const caption =
         `${data.title} — c'est officiel, la suite arrive.\n\n` +
         (context ? `${context}.\n\n` : '') +
+        (prevScore ? `${prevScore}, la barre est haute.\n\n` : '') +
         `Ajoute-le à ta watchlist sur ${URL}. Hyped ?`;
     const tags = [`#${slug(data.title)}`, '#anime', '#animeannouncement', '#bingeki', '#animefr']
         .filter((t) => t !== '#')

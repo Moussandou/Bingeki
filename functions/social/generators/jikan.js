@@ -25,15 +25,56 @@ function normalizeAnime(a) {
         studios: (a.studios || []).map((s) => s.name),
         episodes: a.episodes ?? null,
         score: a.score ?? null,
+        scored_by: a.scored_by ?? null,
         genres: (a.genres || []).map((g) => g.name),
         broadcast: a.broadcast?.day || null,
         airing: a.airing === true,
         aired_from: a.aired?.from || null,
+        aired_string: a.aired?.string || null,
+        season: a.season || null,
+        year: a.year || null,
         source_type: a.type || null, // TV, Movie, ONA…
+        synopsis: a.synopsis || '',
         trailer_youtube_id: trailer.youtube_id || null,
         trailer_url: trailer.url || null,
         trailer_thumb: trailerThumb,
     };
+}
+
+/**
+ * Follow the /relations "Prequel" chain from an anime and return the
+ * first ancestor that actually has a MAL score. Used by the announcement
+ * cron so a "Season 3 announcement" can display Season 2's rating (or
+ * Season 1's, if S2 was skipped by MAL scoring) and fall back on its
+ * synopsis when the sequel entry is still a stub like "Third season of
+ * X.".
+ *
+ * Walks at most `maxHops` prequels to avoid runaway loops on data that
+ * loops back on itself.
+ */
+async function fetchPrequelChain(malId, maxHops = 4) {
+    let cursor = malId;
+    for (let i = 0; i < maxHops; i += 1) {
+        let relations;
+        try {
+            const raw = await jikanFetch(`/anime/${cursor}/relations`);
+            relations = raw?.data || [];
+        } catch (_err) {
+            return null;
+        }
+        const prequelBlock = relations.find((r) => (r.relation || '').toLowerCase() === 'prequel');
+        const prequelEntry = prequelBlock?.entry?.find((e) => e.type === 'anime');
+        if (!prequelEntry?.mal_id) return null;
+        cursor = prequelEntry.mal_id;
+        const prev = await fetchAnimeById(cursor);
+        if (!prev) return null;
+        // Skip stub synopses ("Second season of X.") that don't help us,
+        // but keep walking further back to find a real one.
+        const hasScore = typeof prev.score === 'number' && prev.score > 0;
+        const hasSynopsis = (prev.synopsis || '').length >= 100;
+        if (hasScore || hasSynopsis) return prev;
+    }
+    return null;
 }
 
 /**
@@ -241,6 +282,7 @@ async function fetchUpcomingSeasons() {
 module.exports = {
     fetchTodaysReleases,
     fetchAnimeById,
+    fetchPrequelChain,
     fetchAiringAnime,
     detectNewSeasons,
     fetchWeeklyTopEpisodes,

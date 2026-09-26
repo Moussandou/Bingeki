@@ -10,7 +10,7 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
-const { fetchUpcomingSeasons, parseSeasonFromTitle } = require('../generators/jikan');
+const { fetchUpcomingSeasons, fetchAnimeById, fetchPrequelChain, parseSeasonFromTitle } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost, hasBeenAnnounced, markAsAnnounced } = require('../shared/firestore');
@@ -52,8 +52,28 @@ async function runAnnouncement() {
         let lastPostId = null;
         for (const anime of picks) {
             try {
-                const { caption, hashtags } = await generateCaption('announcement', anime, config);
-                const slides = await renderSlides('announcement', anime, ['feed', 'story']);
+                // /seasons/upcoming returns a lighter record — refetch by id
+                // to get synopsis, aired_string, season/year. Falls back to
+                // the upcoming record if the detail call fails.
+                const detail = await fetchAnimeById(anime.mal_id).catch(() => null);
+                const full = { ...anime, ...(detail || {}) };
+
+                // Walk the /relations Prequel chain to find the last season
+                // that has a real MAL score/synopsis — used to display "Note
+                // S2: 8.4 ★" and, when the sequel entry has only a stub
+                // synopsis ("Third season of X."), to borrow the prequel's.
+                const prequel = await fetchPrequelChain(anime.mal_id).catch(() => null);
+
+                const enriched = {
+                    ...full,
+                    prequel_title: prequel?.title || null,
+                    prequel_score: prequel?.score ?? null,
+                    prequel_scored_by: prequel?.scored_by ?? null,
+                    prequel_synopsis: prequel?.synopsis || null,
+                };
+
+                const { caption, hashtags } = await generateCaption('announcement', enriched, config);
+                const slides = await renderSlides('announcement', enriched, ['feed', 'story']);
                 const title = `${anime.title} · Annonce`;
                 const id = await createPendingPost({
                     type: 'announcement',
@@ -65,16 +85,21 @@ async function runAnnouncement() {
                     sourceData: {
                         animeIds: [anime.mal_id],
                         animes: [{
-                            mal_id: anime.mal_id,
-                            title: anime.title,
-                            cover: anime.cover,
-                            studios: anime.studios || [],
-                            episodes: anime.episodes ?? null,
-                            score: anime.score ?? null,
-                            aired_from: anime.aired_from ?? null,
-                            trailer_url: anime.trailer_url ?? null,
-                            trailer_youtube_id: anime.trailer_youtube_id ?? null,
-                            trailer_thumb: anime.trailer_thumb ?? null,
+                            mal_id: enriched.mal_id,
+                            title: enriched.title,
+                            cover: enriched.cover,
+                            studios: enriched.studios || [],
+                            episodes: enriched.episodes ?? null,
+                            score: enriched.score ?? null,
+                            synopsis: enriched.synopsis || '',
+                            aired_from: enriched.aired_from ?? null,
+                            aired_string: enriched.aired_string ?? null,
+                            season: enriched.season ?? null,
+                            year: enriched.year ?? null,
+                            prequel_title: enriched.prequel_title,
+                            prequel_score: enriched.prequel_score,
+                            prequel_scored_by: enriched.prequel_scored_by,
+                            prequel_synopsis: enriched.prequel_synopsis,
                         }],
                     },
                     platforms: { insta: true, tiktok: true, x: false },

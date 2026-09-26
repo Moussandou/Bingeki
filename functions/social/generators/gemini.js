@@ -83,8 +83,9 @@ Anime :
 
 Rédige une caption (max 400 caractères) qui :
 1. Accroche façon "annonce officielle / prochainement".
-2. Mentionne le studio, la date de sortie prévue si dispo, et 1 raison d'être hype.
-3. Invite à ajouter à la watchlist sur ${BINGEKI_URL} (obligatoire dans la caption).
+2. Mentionne le studio, la date si dispo, et la note de la saison précédente si donnée (comme argument d'hype).
+3. Reste HONNÊTE sur la date — si seulement l'année est connue, dis "prévu en 2027" jamais une date précise inventée.
+4. Invite à ajouter à la watchlist sur ${BINGEKI_URL} (obligatoire dans la caption).
 
 Puis 5-6 hashtags avec le nom de l'anime + #animeannouncement.
 
@@ -109,16 +110,22 @@ function serializeData(type, data) {
             return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus${data.previousScore ? `, S1 notée ${data.previousScore}/10` : ''}`;
         case 'announcement': {
             const raw = data.aired_from ? String(data.aired_from).trim() : '';
+            const airedString = (data.aired_string || '').trim();
+            const airedStringYear = airedString.match(/^(\d{4})\s*(to|-)?/i)?.[1];
+            const candidate = raw || airedStringYear || '';
             let release;
-            if (!raw) release = 'à venir';
-            else if (/^\d{4}$/.test(raw)) release = raw;
+            if (!candidate) release = 'à venir (date pas encore annoncée)';
+            else if (/^\d{4}$/.test(candidate)) release = `prévu en ${candidate} (année seulement)`;
             else {
-                const parsed = new Date(raw);
+                const parsed = new Date(candidate);
                 release = isNaN(parsed.getTime())
-                    ? 'à venir'
+                    ? 'à venir (date pas encore annoncée)'
                     : parsed.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
             }
-            return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus, sortie ${release}${data.score ? `, S précédente notée ${data.score}/10` : ''}`;
+            const prevScoreLine = typeof data.prequel_score === 'number' && data.prequel_score > 0
+                ? `, ${data.prequel_title || 'saison précédente'} notée ${data.prequel_score}/10 sur MAL${data.prequel_scored_by ? ` (${data.prequel_scored_by.toLocaleString('fr-FR')} votes)` : ''}`
+                : '';
+            return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus, sortie: ${release}${prevScoreLine}`;
         }
         default:
             return JSON.stringify(data);
