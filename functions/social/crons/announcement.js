@@ -11,7 +11,7 @@ const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
 const { fetchUpcomingSeasons, fetchAnimeById, fetchPrequelChain, parseSeasonFromTitle } = require('../generators/jikan');
-const { generateCaption, translateSynopsisToFrench } = require('../generators/gemini');
+const { generateCaption, translateSynopsisPair } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost, hasBeenAnnounced, markAsAnnounced } = require('../shared/firestore');
 const { notifyPendingPost } = require('../shared/discord');
@@ -75,19 +75,22 @@ async function runAnnouncement() {
                     prequelSeasonLabel = `Saison ${prevSeasonNum || 1}`;
                 }
 
-                // MAL/Tenrai synopses are English-only. Translate to French
-                // via Gemini so the slide reads natively — falls back to raw
-                // English text if Gemini fails. Only translates when the
-                // synopsis is long enough to be worth showing (≥100 chars).
+                // MAL/Tenrai synopses are English-only. One batched Gemini
+                // call translates both the sequel's own synopsis AND the
+                // prequel fallback in a single request — halves the quota
+                // vs two calls, which matters at the 15 RPM free tier.
+                const wantSeq = (full.synopsis || '').length >= 100;
+                const wantPrev = (prequel?.synopsis || '').length >= 100;
                 let translatedSynopsis = full.synopsis || null;
-                if ((full.synopsis || '').length >= 100) {
-                    const t = await translateSynopsisToFrench(full.synopsis, config).catch(() => null);
-                    if (t) translatedSynopsis = t;
-                }
                 let translatedPrequelSynopsis = prequel?.synopsis || null;
-                if ((prequel?.synopsis || '').length >= 100) {
-                    const t = await translateSynopsisToFrench(prequel.synopsis, config).catch(() => null);
-                    if (t) translatedPrequelSynopsis = t;
+                if (wantSeq || wantPrev) {
+                    const pair = await translateSynopsisPair(
+                        wantSeq ? full.synopsis : '',
+                        wantPrev ? prequel.synopsis : '',
+                        config,
+                    ).catch(() => ({ sequel: null, prequel: null }));
+                    if (pair.sequel) translatedSynopsis = pair.sequel;
+                    if (pair.prequel) translatedPrequelSynopsis = pair.prequel;
                 }
 
                 const enriched = {

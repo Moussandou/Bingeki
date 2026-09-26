@@ -247,24 +247,38 @@ async function generateCaptionFromGemini(type, data, config) {
 }
 
 /**
- * Translate an anime synopsis to French via Gemini. Used by the
- * announcement cron because MAL/Tenrai synopses are English-only.
- * Returns null on any failure so callers can fall back to the raw
- * English text (better than nothing on the slide).
+ * Batch-translate one or two anime synopses to French via Gemini.
+ * MAL/Tenrai only ship English, so the announcement cron routes both
+ * the sequel's own synopsis and the prequel fallback through here in
+ * one call — halves the Gemini quota vs two separate translations,
+ * which matters at the free-tier 15 RPM ceiling.
  *
- * Kept intentionally lightweight — plain-text response, one retry on
- * transient statuses, low temperature so names stay stable.
+ * Returns `{ sequel, prequel }`, each either a French translation or
+ * null when Gemini fails / the source was too short to bother.
+ * Callers are expected to fall back to the raw English string on null
+ * (better than nothing on the slide).
  */
-async function translateSynopsisToFrench(text, config = {}) {
-    if (!text || text.length < 10) return null;
+async function translateSynopsisPair(sequelSynopsis, prequelSynopsis, config = {}) {
+    const seq = (sequelSynopsis || '').trim();
+    const prev = (prequelSynopsis || '').trim();
+    const wantSeq = seq.length >= 10;
+    const wantPrev = prev.length >= 10;
+    if (!wantSeq && !wantPrev) return { sequel: null, prequel: null };
+
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return null;
+    if (!apiKey) return { sequel: null, prequel: null };
 
     const model = config?.gemini?.model || 'gemini-flash-latest';
-    const prompt = `Traduis ce synopsis d'anime en français, style naturel et fluide, pour un post Instagram. Garde tels quels les noms propres (personnages, lieux, techniques, groupes). Ne raccourcis pas, ne rajoute rien. Réponds UNIQUEMENT avec le texte traduit, sans intro, sans commentaire, sans guillemets.
+    const inputs = {};
+    if (wantSeq) inputs.sequel = seq;
+    if (wantPrev) inputs.prequel = prev;
 
-Synopsis :
-${text}`;
+    const prompt = `Traduis en français chaque synopsis d'anime ci-dessous, style naturel et fluide pour un post Instagram. Garde tels quels les noms propres (personnages, lieux, techniques, groupes). Ne raccourcis pas, ne rajoute rien.
+
+Réponds STRICTEMENT en JSON avec exactement les mêmes clés que l'entrée, chaque valeur étant la traduction française. Pas d'intro, pas de commentaire.
+
+Entrée (JSON) :
+${JSON.stringify(inputs)}`;
 
     const RETRYABLE = new Set([429, 500, 502, 503, 504]);
     const MAX_ATTEMPTS = 3;
@@ -274,31 +288,49 @@ ${text}`;
         res = await fetch(GEMINI_ENDPOINT(model, apiKey), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(30_000),
+            signal: AbortSignal.timeout(45_000),
             body: JSON.stringify({
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { temperature: 0.3, maxOutputTokens: 900 },
+                generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 1400,
+                    responseMimeType: 'application/json',
+                },
             }),
         });
         if (res.ok) break;
         lastErrBody = await res.text().catch(() => '');
         if (!RETRYABLE.has(res.status) || attempt === MAX_ATTEMPTS) break;
-        const delayMs = 1000 * 2 ** (attempt - 1) + Math.floor(Math.random() * 500);
+        const delayMs = 1500 * 2 ** (attempt - 1) + Math.floor(Math.random() * 500);
         await new Promise((r) => setTimeout(r, delayMs));
     }
     if (!res.ok) {
-        console.warn(`[social/gemini] translate failed ${res.status}: ${lastErrBody.slice(0, 200)}`);
-        return null;
+        console.warn(`[social/gemini] translate pair failed ${res.status}: ${lastErrBody.slice(0, 200)}`);
+        return { sequel: null, prequel: null };
     }
     const body = await res.json();
-    const translated = body?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    return translated || null;
+    const text = body?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    let obj;
+    try {
+        obj = JSON.parse(text);
+    } catch {
+        const m = text.match(/\{[\s\S]*\}/);
+        if (!m) {
+            console.warn('[social/gemini] translate pair non-JSON response:', text.slice(0, 200));
+            return { sequel: null, prequel: null };
+        }
+        try { obj = JSON.parse(m[0]); } catch { return { sequel: null, prequel: null }; }
+    }
+    return {
+        sequel: typeof obj?.sequel === 'string' && obj.sequel.trim() ? obj.sequel.trim() : null,
+        prequel: typeof obj?.prequel === 'string' && obj.prequel.trim() ? obj.prequel.trim() : null,
+    };
 }
 
 module.exports = {
     generateCaption,
     generateCaptionFromGemini,
-    translateSynopsisToFrench,
+    translateSynopsisPair,
     PROMPTS,
     parseGeminiResponse,
     serializeData,
