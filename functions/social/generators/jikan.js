@@ -58,7 +58,10 @@ async function fetchPrequelChain(malId, maxHops = 4) {
         let relations;
         try {
             const raw = await jikanFetch(`/anime/${cursor}/relations`);
-            relations = raw?.data || [];
+            // Tenrai returns /anime/{id}/relations as a bare array
+            // (no {data: […]} wrapper like other endpoints). Accept both
+            // shapes so we survive any future normalisation on their side.
+            relations = Array.isArray(raw) ? raw : (raw?.data || []);
         } catch (_err) {
             return null;
         }
