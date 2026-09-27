@@ -7,6 +7,7 @@
 
 const { jikanFetch } = require('../../jikan');
 const { isDuplicateRecentPost } = require('../shared/firestore');
+const { fetchAniListCurrentEpisode } = require('./anilist');
 
 const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
@@ -120,6 +121,10 @@ async function fetchTodaysReleases() {
  * générique "NOUVEL ÉPISODE".
  */
 async function fetchLatestEpisodeNumber(malId) {
+    // AniList d'abord : plus fiable pour les sequels frais et les
+    // long-runners que MAL ne track plus. Jikan `/episodes` en fallback.
+    const fromAniList = await fetchAniListCurrentEpisode(malId);
+    if (fromAniList !== null) return fromAniList;
     try {
         const raw = await jikanFetch(`/anime/${malId}/episodes`);
         // jikanFetch unwrap déjà `.data` : quand l'endpoint renvoie
