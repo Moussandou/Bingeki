@@ -85,10 +85,13 @@ const formatSchedule = (ts: number): string => {
 const animesToTemplateData = (
     type: PostType,
     animes: PostSourceAnime[],
-): AnimeSlideData | AnimeSlideData[] | null => {
+): AnimeSlideData | AnimeSlideData[] | { animes: AnimeSlideData[] } | null => {
     if (!animes || animes.length === 0) return null;
-    if (type === 'newseason' || type === 'announcement') return animes[0];
-    return animes;
+    if (type === 'newseason' || type === 'announcement') return animes[0] as AnimeSlideData;
+    // Le digest attend un objet { animes: [...] } (comme côté cron)
+    // pour que buildSlidesHTML puisse lire data.animes.length.
+    if (type === 'announcement_digest') return { animes: animes as unknown as AnimeSlideData[] };
+    return animes as unknown as AnimeSlideData[];
 };
 
 // --- Next-cron timeline ---------------------------------------------------

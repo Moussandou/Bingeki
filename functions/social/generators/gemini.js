@@ -83,9 +83,10 @@ Anime :
 
 Rédige une caption (max 400 caractères) qui :
 1. Accroche façon "annonce officielle / prochainement".
-2. Mentionne le studio, la date si dispo, et une raison d'être hype (studio culte, source manga populaire, sequel très attendu, etc.) SANS jamais citer la source des notes (pas de "MAL", "MyAnimeList", "Jikan", "noté X/10 sur MAL").
-3. Reste HONNÊTE sur la date — si seulement l'année est connue, dis "prévu en 2027" jamais une date précise inventée.
-4. Invite à ajouter à la watchlist sur ${BINGEKI_URL} (obligatoire dans la caption).
+2. Mentionne le studio, la date si dispo, et 1 raison d'être hype (studio culte, source manga populaire, sequel très attendu, univers marquant, etc.).
+3. Ne cite AUCUNE note chiffrée (pas de "8.72/10", pas de "noté X/10"). Ne cite JAMAIS la source des notes non plus (pas de "MAL", "MyAnimeList", "Jikan").
+4. Reste HONNÊTE sur la date — si seulement l'année est connue, dis "prévu en 2027" jamais une date précise inventée.
+5. Invite à ajouter à la watchlist sur ${BINGEKI_URL} (obligatoire dans la caption).
 
 Puis 5-6 hashtags avec le nom de l'anime + #animeannouncement.
 
@@ -100,7 +101,7 @@ Annonces (${BINGEKI_URL}) :
 Rédige une caption (max 500 caractères) qui :
 1. Accroche façon "les X annonces de la semaine à noter".
 2. Cite chaque anime par son nom une fois (bref, pas de descriptif).
-3. Ne cite JAMAIS la source des notes (pas de "MAL", "MyAnimeList", "Jikan", "sur MAL").
+3. Ne cite AUCUNE note chiffrée (pas de "8.5/10", pas de "noté X"). Ne cite JAMAIS la source des notes non plus (pas de "MAL", "MyAnimeList", "Jikan").
 4. Reste HONNÊTE sur les dates — si seule l'année est connue, dis "prévu en 2027".
 5. Termine par une invite à ajouter à la watchlist sur ${BINGEKI_URL} (obligatoire dans la caption).
 
@@ -139,10 +140,9 @@ function serializeData(type, data) {
                     ? 'à venir (date pas encore annoncée)'
                     : parsed.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
             }
-            const prevScoreLine = typeof data.prequel_score === 'number' && data.prequel_score > 0
-                ? `, ${data.prequel_title || 'saison précédente'} notée ${data.prequel_score}/10${data.prequel_scored_by ? ` par ${data.prequel_scored_by.toLocaleString('fr-FR')} viewers` : ''}`
-                : '';
-            return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus, sortie: ${release}${prevScoreLine}`;
+            // On ne passe plus la note à Gemini : le modèle a tendance à
+            // la caser dans la caption même quand on lui interdit.
+            return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus, sortie: ${release}`;
         }
         case 'announcement_digest': {
             const items = Array.isArray(data?.animes) ? data.animes : [];
@@ -160,10 +160,8 @@ function serializeData(type, data) {
                         ? 'date à venir'
                         : parsed.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
                 }
-                const prev = typeof a.prequel_score === 'number' && a.prequel_score > 0
-                    ? `, ${a.prequel_season_label || 'S précédente'} notée ${a.prequel_score}/10`
-                    : '';
-                return `${i + 1}. ${a.title} — Studio: ${(a.studios || []).join(', ') || 'inconnu'}, sortie: ${release}${prev}`;
+                // Pas de note transmise à Gemini pour le digest non plus.
+                return `${i + 1}. ${a.title} — Studio: ${(a.studios || []).join(', ') || 'inconnu'}, sortie: ${release}`;
             }).join('\n');
         }
         default:

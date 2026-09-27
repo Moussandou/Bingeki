@@ -11,7 +11,7 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
-const { fetchTodaysReleases } = require('../generators/jikan');
+const { fetchTodaysReleases, fetchLatestEpisodeNumber } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost, isDuplicateRecentPost } = require('../shared/firestore');
@@ -61,6 +61,15 @@ async function runDailyReleases() {
             .sort((a, b) => (b.score || 0) - (a.score || 0));
         const unscored = releases.filter((r) => !r.score || r.score <= 0);
         const list = [...scored, ...unscored].slice(0, MAX_ANIMES_PER_DAY);
+
+        // Enrichit chaque anime avec son dernier numéro d'épisode diffusé
+        // pour afficher "ÉPISODE 12" sur les slides au lieu du générique
+        // "NOUVEL ÉPISODE". 1 appel Tenrai par anime (cache backend).
+        // Les fetches tournent en parallèle pour ne pas allonger le cron.
+        const currentEpisodes = await Promise.all(
+            list.map((a) => fetchLatestEpisodeNumber(a.mal_id).catch(() => null)),
+        );
+        list.forEach((a, i) => { a.currentEpisode = currentEpisodes[i]; });
 
         // Dedup : si on a déjà couvert n'importe lequel de ces MAL ids
         // dans les 12 dernières heures, on saute le run.

@@ -477,6 +477,7 @@ function animeHalfBlock(a: DuoAnime | null, position: 'top' | 'bottom', fallback
     const cover = a.cover || '';
     const title = a.title || '';
     const ep = a.currentEpisode ? `ÉP. ${a.currentEpisode}` : 'NEW EP';
+    // Pas de score MAL affiché sur les cartes duo.
     return `
         <div class="duo-half duo-${position}">
             <div class="duo-fallback" style="background: ${grad};"></div>
@@ -487,7 +488,6 @@ function animeHalfBlock(a: DuoAnime | null, position: 'top' | 'bottom', fallback
             <div class="duo-content">
                 <div class="duo-ribbon">${escape(ep)}</div>
                 <div class="duo-title">${escape(title)}</div>
-                ${a.score ? `<div class="duo-score">${escape(String(a.score))} ★</div>` : ''}
             </div>
         </div>
     `;

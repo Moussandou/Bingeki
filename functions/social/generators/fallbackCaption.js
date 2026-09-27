@@ -108,11 +108,9 @@ function announcementCaption(data) {
     const studios = (data.studios || []).slice(0, 2).join(' & ');
     const eps = data.episodes ? `${data.episodes} épisodes prévus` : '';
     const releaseLabel = formatReleaseLabel(data);
-    const prevScore = typeof data.prequel_score === 'number' && data.prequel_score > 0
-        ? (data.prequel_title
-            ? `${data.prequel_title.slice(0, 40)} noté ${data.prequel_score}/10`
-            : `Saison précédente notée ${data.prequel_score}/10`)
-        : '';
+    // Pas de note affichée dans la caption — le score MAL était trop
+    // "raw" et exposait la source. On mise sur le studio et la date
+    // pour créer de l'attente.
     const context = [
         studios ? `Studio ${studios}` : '',
         eps,
@@ -121,7 +119,6 @@ function announcementCaption(data) {
     const caption =
         `${data.title} — c'est officiel, la suite arrive.\n\n` +
         (context ? `${context}.\n\n` : '') +
-        (prevScore ? `${prevScore}, la barre est haute.\n\n` : '') +
         `Ajoute-le à ta watchlist sur ${URL}. Hyped ?`;
     const tags = [`#${slug(data.title)}`, '#anime', '#animeannouncement', '#bingeki', '#animefr']
         .filter((t) => t !== '#')

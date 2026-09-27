@@ -771,6 +771,8 @@ function animeHalfBlock(a, position /* 'top'|'bottom' */, fallbackIdx) {
     const cover = a.cover || '';
     const title = a.title || '';
     const ep = a.currentEpisode ? `ÉP. ${a.currentEpisode}` : 'NEW EP';
+    // Pas de score MAL affiché : l'user ne veut plus de notes visibles
+    // dans les sorties du jour (feedback captures + captions).
     return `
         <div class="duo-half duo-${position}">
             <div class="duo-fallback" style="background: ${grad};"></div>
@@ -781,7 +783,6 @@ function animeHalfBlock(a, position /* 'top'|'bottom' */, fallbackIdx) {
             <div class="duo-content">
                 <div class="duo-ribbon">${escape(ep)}</div>
                 <div class="duo-title">${escape(title)}</div>
-                ${a.score ? `<div class="duo-score">${escape(String(a.score))} ★</div>` : ''}
             </div>
         </div>
     `;

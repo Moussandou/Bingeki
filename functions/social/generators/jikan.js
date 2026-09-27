@@ -106,6 +106,40 @@ async function fetchTodaysReleases() {
 }
 
 /**
+ * Récupère le numéro d'épisode le plus récent déjà sorti pour un anime.
+ * On regarde la liste des épisodes de MAL et on prend le mal_id le plus
+ * grand parmi ceux dont la date de diffusion est ≤ maintenant.
+ *
+ * Retourne null si :
+ *   - l'endpoint /episodes échoue,
+ *   - aucun épisode n'a de date `aired`,
+ *   - aucun épisode n'est encore sorti.
+ *
+ * Coûte 1 appel Tenrai (cache backend inclus). Utilisé par le cron
+ * daily pour afficher "ÉPISODE 12" sur chaque slide au lieu du
+ * générique "NOUVEL ÉPISODE".
+ */
+async function fetchLatestEpisodeNumber(malId) {
+    try {
+        const raw = await jikanFetch(`/anime/${malId}/episodes`);
+        const episodes = raw?.data || [];
+        if (!episodes.length) return null;
+        const now = Date.now();
+        let maxEp = null;
+        for (const ep of episodes) {
+            if (!ep.aired) continue;
+            const airedAt = new Date(ep.aired).getTime();
+            if (isNaN(airedAt) || airedAt > now) continue;
+            const num = ep.mal_id;
+            if (typeof num === 'number' && (maxEp === null || num > maxEp)) maxEp = num;
+        }
+        return maxEp;
+    } catch (_err) {
+        return null;
+    }
+}
+
+/**
  * Fetch a single anime by its MAL id.
  */
 async function fetchAnimeById(malId) {
@@ -298,6 +332,7 @@ async function fetchUpcomingSeasons() {
 module.exports = {
     fetchTodaysReleases,
     fetchAnimeById,
+    fetchLatestEpisodeNumber,
     fetchPrequelChain,
     fetchAiringAnime,
     detectNewSeasons,
