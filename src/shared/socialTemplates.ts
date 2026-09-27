@@ -630,6 +630,11 @@ export type SlideInputData =
     | AnimeSlideData[]
     | { animes: AnimeSlideData[] };
 
+function isDigestData(data: SlideInputData): data is { animes: AnimeSlideData[] } {
+    return !Array.isArray(data) && typeof data === 'object' && 'animes' in data
+        && Array.isArray((data as { animes?: unknown }).animes);
+}
+
 export function buildSlidesHTML(
     type: PostType,
     data: SlideInputData,
@@ -638,8 +643,13 @@ export function buildSlidesHTML(
     const slides: BuiltSlide[] = [];
     const partInfo = opts.partInfo;
 
+    // Le type union SlideInputData n'est pas narrowable par type de post.
+    // Sauf pour le digest, tous les autres branches attendent
+    // AnimeSlideData | AnimeSlideData[] : on cast une fois pour toutes.
+    const singleOrArr = (isDigestData(data) ? [] : data) as AnimeSlideData | AnimeSlideData[];
+
     if (type === 'daily') {
-        const arr = Array.isArray(data) ? data : [data];
+        const arr = Array.isArray(singleOrArr) ? singleOrArr : [singleOrArr];
         const useDuoLayout = arr.length > 8;
         const contentSlideCount = useDuoLayout ? Math.ceil(arr.length / 2) : arr.length;
         const total = contentSlideCount + 2;
@@ -708,7 +718,7 @@ export function buildSlidesHTML(
     }
 
     if (type === 'weekly') {
-        const arr = Array.isArray(data) ? data : [data];
+        const arr = Array.isArray(singleOrArr) ? singleOrArr : [singleOrArr];
         const total = arr.length + 2;
         slides.push({
             name: 'intro',
@@ -747,7 +757,7 @@ export function buildSlidesHTML(
     }
 
     if (type === 'favorite') {
-        const arr = Array.isArray(data) ? data : [data];
+        const arr = Array.isArray(singleOrArr) ? singleOrArr : [singleOrArr];
         const total = arr.length + 2;
         slides.push({
             name: 'intro',
@@ -795,7 +805,7 @@ export function buildSlidesHTML(
     }
 
     if (type === 'newseason') {
-        const d = Array.isArray(data) ? data[0] : data;
+        const d = Array.isArray(singleOrArr) ? singleOrArr[0] : singleOrArr;
         const total = 3;
         slides.push({
             name: 'announcement',
@@ -842,8 +852,7 @@ export function buildSlidesHTML(
     }
 
     if (type === 'announcement_digest') {
-        const d = data as unknown as { animes?: AnimeSlideData[] };
-        const items = Array.isArray(d?.animes) ? d.animes : [];
+        const items = isDigestData(data) ? data.animes : [];
         const N = items.length;
         const total = N + 2;
         slides.push({
@@ -887,7 +896,7 @@ export function buildSlidesHTML(
     }
 
     if (type === 'announcement') {
-        const d = Array.isArray(data) ? data[0] : data;
+        const d = Array.isArray(singleOrArr) ? singleOrArr[0] : singleOrArr;
         const date = formatAnnouncementDate(d);
 
         // 3 slides only: hero, info, outro. Synopsis dropped — MAL only
