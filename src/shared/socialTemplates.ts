@@ -476,7 +476,7 @@ function animeHalfBlock(a: DuoAnime | null, position: 'top' | 'bottom', fallback
     const grad = fallback(fallbackIdx);
     const cover = a.cover || '';
     const title = a.title || '';
-    const ep = a.currentEpisode ? `ÉP. ${a.currentEpisode}` : 'NEW EP';
+    const ep = a.currentEpisode ? `ÉP. ${a.currentEpisode}` : 'NOUVEL ÉP.';
     // Pas de score MAL affiché sur les cartes duo.
     return `
         <div class="duo-half duo-${position}">
@@ -675,7 +675,7 @@ export function buildSlidesHTML(
                     ribbon: 'NEW EP',
                     ribbonVariant: 'ribbon-rose',
                     metas: [
-                        { text: a.currentEpisode ? `ÉPISODE ${a.currentEpisode}` : 'NOUVEL ÉPISODE' },
+                        { text: a.currentEpisode ? `NOUVEL ÉPISODE ${a.currentEpisode}` : 'NOUVEL ÉPISODE' },
                     ],
                     title: a.title,
                     subtitle: todayLabel().toUpperCase(),

@@ -770,7 +770,7 @@ function animeHalfBlock(a, position /* 'top'|'bottom' */, fallbackIdx) {
     const grad = fallback(fallbackIdx);
     const cover = a.cover || '';
     const title = a.title || '';
-    const ep = a.currentEpisode ? `ÉP. ${a.currentEpisode}` : 'NEW EP';
+    const ep = a.currentEpisode ? `ÉP. ${a.currentEpisode}` : 'NOUVEL ÉP.';
     // Pas de score MAL affiché : l'user ne veut plus de notes visibles
     // dans les sorties du jour (feedback captures + captions).
     return `
@@ -1080,7 +1080,7 @@ function buildSlidesHTML(type, data, opts = {}) {
                     ribbon: 'NEW EP',
                     ribbonVariant: 'ribbon-rose',
                     metas: [
-                        { text: `${a.currentEpisode ? `ÉPISODE ${a.currentEpisode}` : 'NOUVEL ÉPISODE'}` },
+                        { text: a.currentEpisode ? `NOUVEL ÉPISODE ${a.currentEpisode}` : 'NOUVEL ÉPISODE' },
                     ],
                     title: a.title,
                     subtitle: todayLabel().toUpperCase(),
