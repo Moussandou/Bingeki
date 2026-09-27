@@ -24,7 +24,8 @@
     "report_bug": "Signaler un bug",
     "notifications": "Notifications",
     "lens": "ANIME LENS",
-    "seasons": "Saisons"
+    "seasons": "Saisons",
+    "releases": "SORTIES ANIME"
   },
   "lens": {
     "title": "ANIME LENS",
@@ -1275,5 +1276,11 @@
       "summer": "Été",
       "fall": "Automne"
     }
+  },
+  "releases": {
+    "title": "SORTIES ANIME",
+    "subtitle": "Ce qui sort maintenant et ce qui arrive.",
+    "tab_week": "Cette semaine",
+    "tab_season": "Par saison"
   }
 }

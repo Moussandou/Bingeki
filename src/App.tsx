@@ -4,7 +4,7 @@
  */
 import { logger } from '@/utils/logger';
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { MaintenanceScreen } from '@/components/ui/MaintenanceScreen';
 import { useAuthStore } from '@/store/authStore';
@@ -32,6 +32,7 @@ const Feedback = lazy(() => import('@/pages/Feedback'));
 const FeedbackList = lazy(() => import('@/pages/admin/FeedbackList'));
 const Changelog = lazy(() => import('@/pages/Changelog'));
 const Schedule = lazy(() => import('@/pages/Schedule'));
+const Releases = lazy(() => import('@/pages/Releases'));
 const CharacterDetails = lazy(() => import('@/pages/CharacterDetails'));
 const PersonDetails = lazy(() => import('@/pages/PersonDetails'));
 const Credits = lazy(() => import('@/pages/Credits'));
@@ -115,6 +116,18 @@ const LanguageManager = () => {
   }
 
   return <Outlet />;
+};
+
+/**
+ * Redirige /schedule ou /seasons vers /releases en conservant les params
+ * de deep-link existants (year, season). Utilisé pour préserver les liens
+ * partagés (Google, Discord, bookmarks) après la fusion.
+ */
+const RedirectToReleases = ({ mode }: { mode: 'week' | 'season' }) => {
+  const [searchParams] = useSearchParams();
+  const params = new URLSearchParams(searchParams);
+  params.set('mode', mode);
+  return <Navigate to={`../releases?${params.toString()}`} replace />;
 };
 
 const RootRedirect = () => {
@@ -222,8 +235,13 @@ function App() {
               <Route path="profile/:uid" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
               <Route path="notifications" element={<Notifications />} />
-              <Route path="schedule" element={<Schedule />} />
-              <Route path="seasons" element={<Seasons />} />
+              <Route path="releases" element={<Releases />} />
+              {/* /schedule et /seasons redirigent vers /releases en préservant les params de deep-link (year, season). */}
+              <Route path="schedule" element={<RedirectToReleases mode="week" />} />
+              <Route path="seasons" element={<RedirectToReleases mode="season" />} />
+              {/* Pages originales conservées pour tests/rétro-compat directe si besoin — non exposées en nav. */}
+              <Route path="_legacy/schedule" element={<Schedule />} />
+              <Route path="_legacy/seasons" element={<Seasons />} />
               <Route path="character/:id" element={<CharacterDetails />} />
               <Route path="person/:id" element={<PersonDetails />} />
 

@@ -8,7 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { auth } from '@/firebase/config';
 import {
-    Menu, X, MessageSquare, Calendar, CalendarRange, History as HistoryIcon,
+    Menu, X, MessageSquare, CalendarRange, History as HistoryIcon,
     Newspaper, /* ScanSearch, */ MessageCircle, User, Settings, LogOut
 } from 'lucide-react';
 import styles from './MobileMenuFAB.module.css';
@@ -81,8 +81,7 @@ export function MobileMenuFAB() {
 
     const menuItems = [
         { to: '/social', icon: MessageSquare, label: t('header.community') },
-        { to: '/schedule', icon: Calendar, label: t('header.agenda') },
-        { to: '/seasons', icon: CalendarRange, label: t('header.seasons') },
+        { to: '/releases', icon: CalendarRange, label: t('header.releases') },
         { to: '/changelog', icon: HistoryIcon, label: t('header.changelog') },
         { to: '/news', icon: Newspaper, label: t('header.news') },
         // { to: '/lens', icon: ScanSearch, label: t('header.lens') }, — masqué temporairement

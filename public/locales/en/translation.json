@@ -24,7 +24,8 @@
     "report_bug": "Report Bug",
     "notifications": "Notifications",
     "lens": "ANIME LENS",
-    "seasons": "Seasons"
+    "seasons": "Seasons",
+    "releases": "ANIME RELEASES"
   },
   "lens": {
     "title": "ANIME LENS",
@@ -1275,5 +1276,11 @@
       "summer": "Summer",
       "fall": "Fall"
     }
+  },
+  "releases": {
+    "title": "ANIME RELEASES",
+    "subtitle": "What's airing now and what's coming next.",
+    "tab_week": "This week",
+    "tab_season": "By season"
   }
 }

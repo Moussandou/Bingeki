@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import {
     User, Book, Home, ChevronDown, Flame, Search,
     LogOut,
-    Calendar,
+    // Calendar, — remplacé par CalendarRange dans le lien Sorties anime
     History as HistoryIcon,
     Settings,
     MessageSquare,
@@ -249,11 +249,8 @@ export function Header() {
                                     <Link to="/social" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <MessageSquare size={16} /> {t('header.community')}
                                     </Link>
-                                    <Link to="/schedule" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
-                                        <Calendar size={16} /> {t('header.agenda')}
-                                    </Link>
-                                    <Link to="/seasons" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
-                                        <CalendarRange size={16} /> {t('header.seasons')}
+                                    <Link to="/releases" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
+                                        <CalendarRange size={16} /> {t('header.releases')}
                                     </Link>
                                     <Link to="/changelog" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <HistoryIcon size={16} /> {t('header.changelog')}
@@ -292,9 +289,9 @@ export function Header() {
                                 <Search size={18} />
                                 <span>{t('header.discover')}</span>
                             </Link>
-                            <Link to="/schedule" className={`${styles.navLink} ${isActive('/schedule') ? styles.activeLink : ''} `}>
-                                <Calendar size={18} />
-                                <span className="hidden-tablet">{t('header.agenda')}</span>
+                            <Link to="/releases" className={`${styles.navLink} ${isActive('/releases') ? styles.activeLink : ''} `} title={t('header.releases')}>
+                                <CalendarRange size={18} />
+                                <span className="hidden-tablet">{t('header.releases')}</span>
                             </Link>
                             <Link to="/changelog" className={`${styles.navLink} ${isActive('/changelog') ? styles.activeLink : ''} `} title={t('header.changelog')}>
                                 <HistoryIcon size={18} />
