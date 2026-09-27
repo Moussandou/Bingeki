@@ -90,7 +90,7 @@ export function MobileMenuFAB() {
     ];
 
     const authItems = user ? [
-        { to: '/feedback?tab=tickets', icon: MessageSquare, label: t('feedback.my_tickets'), className: styles.authAction },
+        // { to: '/feedback?tab=tickets', icon: MessageSquare, label: t('feedback.my_tickets'), className: styles.authAction }, — masqué (déjà dans /feedback)
         { to: '/profile', icon: User, label: t('header.profile'), className: styles.authAction },
         { to: '/settings', icon: Settings, label: t('header.settings'), className: styles.authAction },
     ] : [];

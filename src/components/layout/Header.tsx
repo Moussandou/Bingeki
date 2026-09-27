@@ -271,9 +271,10 @@ export function Header() {
                                     <Link to="/feedback" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <MessageCircle size={16} /> {t('header.feedback')}
                                     </Link>
-                                    <Link to="/feedback?tab=tickets" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
+                                    {/* "Mes tickets" masqué du menu — déjà accessible via l'onglet Tickets dans /feedback. */}
+                                    {/* <Link to="/feedback?tab=tickets" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <MessageSquare size={16} /> {t('feedback.my_tickets')}
-                                    </Link>
+                                    </Link> */}
                                     {userProfile?.isAdmin && (
                                         <Link to="/admin" className={`${styles.dropdownItem} ${styles.adminOption}`} style={{ textDecoration: 'none', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                             <ShieldCheck size={16} /> Admin Panel
@@ -415,14 +416,15 @@ export function Header() {
                                                 >
                                                     <Settings size={18} /> {t('header.settings')}
                                                 </Link>
-                                                <Link
+                                                {/* "Mes tickets" masqué du menu utilisateur — déjà accessible via l'onglet Tickets dans /feedback. */}
+                                                {/* <Link
                                                     to="/feedback?tab=tickets"
                                                     onClick={() => setIsDropdownOpen(false)}
                                                     style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--color-text)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid transparent' }}
                                                     className={styles.dropdownItem}
                                                 >
                                                     <MessageSquare size={18} /> {t('feedback.my_tickets')}
-                                                </Link>
+                                                </Link> */}
                                                 <div style={{ height: '1px', background: '#eee', margin: '0.25rem 0' }}></div>
                                                 <button
                                                     onClick={async () => {
