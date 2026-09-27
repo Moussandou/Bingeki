@@ -169,20 +169,22 @@ async function fetchAniListSeasonPreview({ season, year, limit = 24 }) {
             );
             const startDateObj = formatStartDate(m.startDate, m.nextAiringEpisode);
             const currentEp = m.nextAiringEpisode?.episode || null;
+            // Firestore refuse `undefined` : on force chaque champ à
+            // une valeur ou à `null`.
             return {
                 mal_id: m.idMal,
-                anilist_id: m.id,
-                title: m.title.english || m.title.romaji || m.title.native,
+                anilist_id: m.id ?? null,
+                title: m.title.english || m.title.romaji || m.title.native || '',
                 cover: m.coverImage?.extraLarge || m.coverImage?.large || '',
-                format: m.format, // TV/MOVIE/OVA/ONA/SPECIAL
-                studios: (m.studios?.nodes || []).map((s) => s.name),
-                popularity: m.popularity || 0,
-                favourites: m.favourites || 0,
-                averageScore: m.averageScore || null,
+                format: m.format ?? null,
+                studios: (m.studios?.nodes || []).map((s) => s.name).filter(Boolean),
+                popularity: m.popularity ?? 0,
+                favourites: m.favourites ?? 0,
+                averageScore: m.averageScore ?? null,
                 startDate: startDateObj,
-                startDateShort: shortDate(startDateObj),
+                startDateShort: shortDate(startDateObj) || '',
                 currentEpisode: currentEp,
-                statusLabel: seasonLabel(m, !!prequelEdge, prequelEdge?.node?.seasonYear),
+                statusLabel: seasonLabel(m, !!prequelEdge, prequelEdge?.node?.seasonYear) || 'SORTIE',
                 prequelScore: prequelEdge?.node?.averageScore
                     ? Math.round(prequelEdge.node.averageScore / 10 * 10) / 10
                     : null,
