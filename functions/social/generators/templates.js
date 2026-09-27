@@ -734,84 +734,82 @@ const CSS = `
         background-size: cover; background-position: center;
         filter: saturate(1.3);
     }
+    /* Scrim CLAIR (voile blanc) pour matcher l'esthétique des autres
+       intros (daily, weekly…) sur fond #f5f5f5. La mosaïque reste
+       lisible en filigrane mais le texte reste noir sur clair. */
     .sp-hero-scrim {
         position: absolute; inset: 0; z-index: 2;
         background:
-            linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.9) 100%),
-            radial-gradient(circle at 50% 50%, rgba(255,46,99,0.15) 0%, transparent 70%);
+            linear-gradient(180deg, rgba(245,245,245,0.92) 0%, rgba(245,245,245,0.85) 40%, rgba(245,245,245,0.95) 100%);
     }
     .sp-hero-halftone {
-        position: absolute; inset: 0; opacity: 0.08; pointer-events: none;
-        background-image: radial-gradient(#fff 3px, transparent 4px);
-        background-size: 42px 42px;
+        position: absolute; inset: 0; opacity: 0.10; pointer-events: none;
+        background-image: radial-gradient(#000 2px, transparent 3px);
+        background-size: 32px 32px;
         z-index: 3;
     }
     .sp-hero-content {
         position: absolute; inset: 0; z-index: 4;
         display: flex; flex-direction: column;
-        align-items: flex-start; justify-content: center;
-        padding: 0 60px;
+        align-items: center; justify-content: center;
+        padding: 0 60px; text-align: center;
     }
-    .sp-hero-chip {
-        display: inline-flex; align-items: center;
-        border: 6px solid #000; padding: 16px 32px;
+    /* Panneau central CLAIR — blanc plein bordé noir avec ombre rose,
+       cohérent avec les cartes/chips des intros existantes. */
+    .sp-hero-panel {
+        background: #fff;
+        border: 8px solid #000;
+        padding: 60px 70px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 28px;
+        box-shadow: 18px 18px 0 ${ROSE};
+    }
+    .sp-hero-eyebrow {
         font-family: 'Outfit'; font-weight: 900;
-        font-size: 38px; letter-spacing: 6px;
-        text-transform: uppercase; line-height: 1;
-        background: ${ROSE}; color: #fff;
-        box-shadow: 12px 12px 0 ${CYAN};
+        font-size: 32px; color: #000;
+        letter-spacing: 8px; text-transform: uppercase;
+        line-height: 1;
+        display: flex; align-items: center; gap: 18px;
     }
-    .sp-hero-count-row {
-        display: flex; align-items: baseline; gap: 24px;
-        margin-top: 40px;
-    }
-    .sp-hero-count-big {
-        font-family: 'Outfit'; font-weight: 900;
-        font-size: 300px; color: ${CYAN};
-        line-height: 0.85; letter-spacing: -14px;
-        text-shadow: 12px 12px 0 #000;
-    }
-    .sp-hero-count-label {
-        font-family: 'Outfit'; font-weight: 900;
-        font-size: 88px; color: #fff;
-        line-height: 0.95; letter-spacing: -2px;
-        text-transform: uppercase;
-        text-shadow: 6px 6px 0 ${ROSE};
+    .sp-hero-eyebrow::before, .sp-hero-eyebrow::after {
+        content: ''; width: 40px; height: 3px; background: #000;
     }
     .sp-hero-title {
-        margin-top: 30px;
         font-family: 'Outfit'; font-weight: 900;
-        font-size: 96px; color: #fff;
-        line-height: 0.9; letter-spacing: -3px;
-        text-transform: uppercase;
-        text-shadow: 6px 6px 0 ${ROSE};
+        font-size: 180px; color: #000;
+        line-height: 0.85; letter-spacing: -6px;
+        text-transform: uppercase; text-align: center;
     }
-    .sp-hero-title .season-word { color: ${ROSE}; text-shadow: none; }
-    .sp-hero-tags {
-        margin-top: 30px; display: flex; gap: 12px; flex-wrap: wrap;
-    }
-    .sp-hero-tag {
-        display: inline-flex; align-items: center;
-        border: 4px solid #fff; padding: 8px 18px;
+    .sp-hero-year {
         font-family: 'Outfit'; font-weight: 900;
-        font-size: 26px; letter-spacing: 3px;
-        text-transform: uppercase; line-height: 1;
-        background: rgba(0,0,0,0.7); color: #fff;
+        font-size: 96px; color: ${ROSE};
+        line-height: 1; letter-spacing: -3px;
+        text-shadow: 5px 5px 0 #000;
+    }
+    .sp-hero-count-line {
+        display: flex; align-items: center; gap: 12px;
+        font-family: 'Outfit'; font-weight: 800;
+        font-size: 34px; color: #000;
+        letter-spacing: 3px; text-transform: uppercase;
+        border-top: 4px solid #000;
+        padding-top: 20px;
+    }
+    .sp-hero-count-line strong {
+        color: ${ROSE}; font-weight: 900; font-size: 44px;
     }
     .sp-hero-brand {
         position: absolute; left: 60px; bottom: 60px;
         font-family: 'Outfit'; font-weight: 900;
-        font-size: 40px; color: #fff; letter-spacing: -0.5px;
+        font-size: 42px; color: #000; letter-spacing: -1px;
         z-index: 5;
     }
     .sp-hero-brand::before { content: '★ '; color: ${ROSE}; }
     .sp-hero-swipe {
         position: absolute; right: 60px; bottom: 60px;
         font-family: 'Outfit'; font-weight: 900;
-        font-size: 32px; color: ${CYAN}; letter-spacing: 3px;
+        font-size: 34px; color: #444; letter-spacing: 5px;
         z-index: 5;
-        border: 4px solid ${CYAN}; padding: 8px 18px;
-        background: rgba(0,0,0,0.7);
     }
 `;
 
@@ -1019,8 +1017,6 @@ function animeDuoSlide({ pair, index, total, fallbackOffset = 0 }) {
  * chip label et compte d'animes. Ouvre le carrousel.
  */
 function seasonPreviewIntroSlide({ seasonLabelFr, year, count, covers = [] }) {
-    // Mosaïque 3×3 = 9 cells. On répète les covers si moins de 9 pour
-    // remplir toute la grille, jamais de cell vide.
     const pool = covers.filter(Boolean);
     const cells = [];
     for (let i = 0; i < 9; i += 1) {
@@ -1033,18 +1029,11 @@ function seasonPreviewIntroSlide({ seasonLabelFr, year, count, covers = [] }) {
             <div class="sp-hero-scrim"></div>
             <div class="sp-hero-halftone"></div>
             <div class="sp-hero-content">
-                <div class="sp-hero-chip">Anime · ${escape(seasonLabelFr)} ${year}</div>
-                <div class="sp-hero-count-row">
-                    <div class="sp-hero-count-big">${count}</div>
-                    <div class="sp-hero-count-label">Anime<br>à ne pas<br>rater</div>
-                </div>
-                <div class="sp-hero-title">
-                    <span class="season-word">${escape(seasonLabelFr)}</span> ${year}
-                </div>
-                <div class="sp-hero-tags">
-                    <div class="sp-hero-tag">Suites</div>
-                    <div class="sp-hero-tag">Films</div>
-                    <div class="sp-hero-tag">Nouveautés</div>
+                <div class="sp-hero-panel">
+                    <div class="sp-hero-eyebrow">Preview Anime</div>
+                    <div class="sp-hero-title">${escape(seasonLabelFr)}</div>
+                    <div class="sp-hero-year">${year}</div>
+                    <div class="sp-hero-count-line"><strong>${count}</strong> Sorties à suivre</div>
                 </div>
             </div>
             <div class="sp-hero-brand">Bingeki</div>
