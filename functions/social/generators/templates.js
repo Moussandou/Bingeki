@@ -950,6 +950,34 @@ function synopsisSlide({ title, body, cover, source, index, total }) {
  *   - Year-only (Tenrai "2027")     → "PRÉVU EN"      + "2027"
  *   - Full date (ISO or parseable)  → "PROCHAINEMENT" + "1 AVRIL 2027"
  */
+/**
+ * Traduit la valeur `source` de MAL (anglais) en libellé FR éditorial.
+ * Valeurs MAL courantes : Original, Manga, Web manga, Light novel,
+ * Novel, Visual novel, Game, Music, 4-koma manga, Card game, Book,
+ * Picture book, Radio, Mixed media, Other.
+ */
+function formatSourceLabel(source) {
+    if (!source) return null;
+    const s = String(source).trim().toLowerCase();
+    const MAP = {
+        'original': 'Œuvre originale',
+        'manga': 'Adapté du manga',
+        'web manga': 'Adapté du web manga',
+        '4-koma manga': 'Adapté du manga (4-koma)',
+        'light novel': 'Adapté du light novel',
+        'novel': 'Adapté du roman',
+        'visual novel': 'Adapté du visual novel',
+        'game': 'Adapté du jeu vidéo',
+        'card game': 'Adapté du jeu de cartes',
+        'music': 'Adapté d\'une œuvre musicale',
+        'book': 'Adapté du livre',
+        'picture book': 'Adapté du livre illustré',
+        'radio': 'Adapté d\'une émission radio',
+        'mixed media': 'Adaptation multi-supports',
+    };
+    return MAP[s] || null;
+}
+
 function formatAnnouncementDate(data) {
     const rawDate = data.aired_from || data.airing_from || '';
     const airedString = (data.aired_string || '').trim();
@@ -1299,20 +1327,38 @@ function buildSlidesHTML(type, data, opts = {}) {
             }),
         });
 
+        // Slide info — plus de hero-row "note MAL" (le score seul, sans
+        // contexte, n'apportait pas grand-chose et exposait la source).
+        // À la place, on affiche des rows éditoriales riches à partir des
+        // taxonomies MAL déjà en cache.
         const infoItems = [];
-        // Previous season score first, as the "hero" row — it's the piece
-        // of info that hypes the announcement without needing an exact date.
-        if (typeof data.prequel_score === 'number' && data.prequel_score > 0) {
-            const votes = data.prequel_scored_by
-                ? ` · ${data.prequel_scored_by.toLocaleString('fr-FR')} votes`
-                : '';
-            const label = data.prequel_title
-                ? `Note ${data.prequel_title}`.slice(0, 60)
-                : 'Note saison précédente';
-            infoItems.push({ label, value: `${data.prequel_score} ★${votes}`, hero: true });
+
+        // 1) Source de l'œuvre : "Adapté du manga" / "Œuvre originale" / …
+        const sourceLabel = formatSourceLabel(data.source);
+        if (sourceLabel) infoItems.push({ label: 'Source', value: sourceLabel });
+
+        // 2) Studio
+        if ((data.studios || []).length) {
+            infoItems.push({ label: 'Studio', value: data.studios.join(', ') });
         }
-        if ((data.studios || []).length) infoItems.push({ label: 'Studio', value: data.studios.join(', ') });
-        if (data.episodes) infoItems.push({ label: 'Épisodes prévus', value: String(data.episodes) });
+
+        // 3) Public cible (démographie) — Shounen / Seinen / Josei
+        if ((data.demographics || []).length) {
+            infoItems.push({ label: 'Public', value: data.demographics.join(' · ') });
+        }
+
+        // 4) Genres — top 3 pour rester lisible
+        if ((data.genres || []).length) {
+            infoItems.push({ label: 'Genres', value: data.genres.slice(0, 3).join(' · ') });
+        }
+
+        // 5) Format : "TV · 12 épisodes prévus" ou "TV" si épisodes inconnus
+        const formatBits = [];
+        if (data.source_type) formatBits.push(String(data.source_type).toUpperCase());
+        if (data.episodes) formatBits.push(`${data.episodes} épisodes`);
+        if (formatBits.length) infoItems.push({ label: 'Format', value: formatBits.join(' · ') });
+
+        // 6) Sortie
         infoItems.push({ label: 'Sortie', value: date.full });
 
         slides.push({

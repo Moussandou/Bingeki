@@ -27,6 +27,12 @@ function normalizeAnime(a) {
         score: a.score ?? null,
         scored_by: a.scored_by ?? null,
         genres: (a.genres || []).map((g) => g.name),
+        // Sous-taxonomies MAL — utilisées par la slide info des annonces
+        // pour dire "Adapté du manga · Shounen · Action · Comédie".
+        themes: (a.themes || []).map((g) => g.name),
+        demographics: (a.demographics || []).map((g) => g.name),
+        source: a.source || null, // "Manga", "Original", "Light novel", …
+        rating: a.rating || null, // "PG-13", "R+", …
         broadcast: a.broadcast?.day || null,
         airing: a.airing === true,
         aired_from: a.aired?.from || null,

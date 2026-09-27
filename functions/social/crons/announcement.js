@@ -75,6 +75,12 @@ function toSourceAnime(enriched) {
         studios: enriched.studios || [],
         episodes: enriched.episodes ?? null,
         score: enriched.score ?? null,
+        source_type: enriched.source_type ?? null, // TV, Movie…
+        source: enriched.source ?? null,           // Manga, Original…
+        genres: enriched.genres || [],
+        themes: enriched.themes || [],
+        demographics: enriched.demographics || [],
+        rating: enriched.rating ?? null,
         aired_from: enriched.aired_from ?? null,
         aired_string: enriched.aired_string ?? null,
         season: enriched.season ?? null,

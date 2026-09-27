@@ -519,6 +519,32 @@ interface AnnouncementDateInput {
 }
 interface AnnouncementDateOutput { pre: string; main: string; full: string }
 
+/**
+ * Traduit la valeur `source` de MAL (anglais) en libellé FR éditorial.
+ * Ex: "Manga" → "Adapté du manga", "Original" → "Œuvre originale".
+ */
+export function formatSourceLabel(source: string | null | undefined): string | null {
+    if (!source) return null;
+    const s = String(source).trim().toLowerCase();
+    const MAP: Record<string, string> = {
+        'original': 'Œuvre originale',
+        'manga': 'Adapté du manga',
+        'web manga': 'Adapté du web manga',
+        '4-koma manga': 'Adapté du manga (4-koma)',
+        'light novel': 'Adapté du light novel',
+        'novel': 'Adapté du roman',
+        'visual novel': 'Adapté du visual novel',
+        'game': 'Adapté du jeu vidéo',
+        'card game': 'Adapté du jeu de cartes',
+        'music': "Adapté d'une œuvre musicale",
+        'book': 'Adapté du livre',
+        'picture book': 'Adapté du livre illustré',
+        'radio': "Adapté d'une émission radio",
+        'mixed media': 'Adaptation multi-supports',
+    };
+    return MAP[s] || null;
+}
+
 export function formatAnnouncementDate(data: AnnouncementDateInput): AnnouncementDateOutput {
     const rawDate = data.aired_from || data.airing_from || '';
     const airedString = (data.aired_string || '').trim();
@@ -577,6 +603,12 @@ export interface AnimeSlideData {
     aired_from?: string | null;
     aired_string?: string | null;
     synopsis?: string;
+    source?: string | null;         // MAL: "Manga", "Original", "Light novel"…
+    source_type?: string | null;    // MAL type: "TV", "Movie"…
+    genres?: string[];
+    themes?: string[];
+    demographics?: string[];
+    rating?: string | null;
     prequel_title?: string | null;
     prequel_season_label?: string | null;
     prequel_score?: number | null;
@@ -877,17 +909,15 @@ export function buildSlidesHTML(
         });
 
         const infoItems: Array<{ label: string; value: string; hero?: boolean }> = [];
-        if (typeof d.prequel_score === 'number' && d.prequel_score > 0) {
-            const votes = d.prequel_scored_by
-                ? ` · ${d.prequel_scored_by.toLocaleString('fr-FR')} votes`
-                : '';
-            const label = d.prequel_title
-                ? `Note ${d.prequel_title}`.slice(0, 60)
-                : 'Note saison précédente';
-            infoItems.push({ label, value: `${d.prequel_score} ★${votes}`, hero: true });
-        }
+        const sourceLabel = formatSourceLabel(d.source);
+        if (sourceLabel) infoItems.push({ label: 'Source', value: sourceLabel });
         if ((d.studios || []).length) infoItems.push({ label: 'Studio', value: d.studios!.join(', ') });
-        if (d.episodes) infoItems.push({ label: 'Épisodes prévus', value: String(d.episodes) });
+        if ((d.demographics || []).length) infoItems.push({ label: 'Public', value: d.demographics!.join(' · ') });
+        if ((d.genres || []).length) infoItems.push({ label: 'Genres', value: d.genres!.slice(0, 3).join(' · ') });
+        const formatBits: string[] = [];
+        if (d.source_type) formatBits.push(String(d.source_type).toUpperCase());
+        if (d.episodes) formatBits.push(`${d.episodes} épisodes`);
+        if (formatBits.length) infoItems.push({ label: 'Format', value: formatBits.join(' · ') });
         infoItems.push({ label: 'Sortie', value: date.full });
 
         slides.push({
