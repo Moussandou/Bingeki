@@ -63,13 +63,13 @@ async function runDailyReleases() {
         const list = [...scored, ...unscored].slice(0, MAX_ANIMES_PER_DAY);
 
         // Enrichit chaque anime avec son dernier numéro d'épisode diffusé
-        // pour afficher "ÉPISODE 12" sur les slides au lieu du générique
-        // "NOUVEL ÉPISODE". 1 appel Tenrai par anime (cache backend).
-        // Les fetches tournent en parallèle pour ne pas allonger le cron.
-        const currentEpisodes = await Promise.all(
-            list.map((a) => fetchLatestEpisodeNumber(a.mal_id).catch(() => null)),
-        );
-        list.forEach((a, i) => { a.currentEpisode = currentEpisodes[i]; });
+        // pour afficher "ÉPISODE 12" sur les slides. Sérialisé avec un
+        // petit délai pour ne pas déclencher le rate-limit Tenrai (429
+        // systématique quand on lance 16 requêtes en parallèle).
+        for (const a of list) {
+            a.currentEpisode = await fetchLatestEpisodeNumber(a.mal_id).catch(() => null);
+            await new Promise((r) => setTimeout(r, 350));
+        }
 
         // Dedup : si on a déjà couvert n'importe lequel de ces MAL ids
         // dans les 12 dernières heures, on saute le run.
