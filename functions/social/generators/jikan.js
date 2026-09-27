@@ -122,17 +122,33 @@ async function fetchTodaysReleases() {
 async function fetchLatestEpisodeNumber(malId) {
     try {
         const raw = await jikanFetch(`/anime/${malId}/episodes`);
-        const episodes = raw?.data || [];
+        // jikanFetch unwrap déjà `.data` : quand l'endpoint renvoie
+        // `{ data: [...], pagination: {...} }`, `raw` est déjà le
+        // tableau. On accepte les 2 shapes par sécurité.
+        const episodes = Array.isArray(raw) ? raw : (raw?.data || []);
         if (!episodes.length) return null;
         const now = Date.now();
+        // Track à la fois le max ep aired ET sa date, pour distinguer
+        // les shows en cours (dernière ep fraîche) des long-runners que
+        // MAL ne track plus (ex : One Piece stoppe à l'ep 100 en 2002).
         let maxEp = null;
+        let maxEpAiredAt = 0;
         for (const ep of episodes) {
             if (!ep.aired) continue;
             const airedAt = new Date(ep.aired).getTime();
             if (isNaN(airedAt) || airedAt > now) continue;
             const num = ep.mal_id;
-            if (typeof num === 'number' && (maxEp === null || num > maxEp)) maxEp = num;
+            if (typeof num === 'number' && (maxEp === null || num > maxEp)) {
+                maxEp = num;
+                maxEpAiredAt = airedAt;
+            }
         }
+        if (maxEp === null) return null;
+        // Si le "dernier" épisode remonte à > 30 jours, la donnée est
+        // périmée (MAL n'a pas suivi les récents). Retourne null pour
+        // laisser la slide afficher juste "NOUVEL ÉPISODE".
+        const THIRTY_DAYS = 30 * 24 * 3600_000;
+        if (now - maxEpAiredAt > THIRTY_DAYS) return null;
         return maxEp;
     } catch (_err) {
         return null;
