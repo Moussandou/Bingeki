@@ -91,6 +91,22 @@ Puis 5-6 hashtags avec le nom de l'anime + #animeannouncement.
 
 JSON strict :
 {"caption": "...", "hashtags": "..."}`,
+
+    announcement_digest: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: DIGEST des annonces d'animes de la semaine — plusieurs sequels annoncés qu'on regroupe en 1 seul post.
+
+Annonces (${BINGEKI_URL}) :
+{{DATA}}
+
+Rédige une caption (max 500 caractères) qui :
+1. Accroche façon "les X annonces de la semaine à noter".
+2. Cite chaque anime par son nom une fois (bref, pas de descriptif).
+3. Reste HONNÊTE sur les dates — si seule l'année est connue, dis "prévu en 2027".
+4. Termine par une invite à ajouter à la watchlist sur ${BINGEKI_URL} (obligatoire dans la caption).
+
+Puis 5-7 hashtags : #animeannouncement + noms des animes.
+
+JSON strict :
+{"caption": "...", "hashtags": "..."}`,
 };
 
 function serializeData(type, data) {
@@ -126,6 +142,28 @@ function serializeData(type, data) {
                 ? `, ${data.prequel_title || 'saison précédente'} notée ${data.prequel_score}/10 sur MAL${data.prequel_scored_by ? ` (${data.prequel_scored_by.toLocaleString('fr-FR')} votes)` : ''}`
                 : '';
             return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus, sortie: ${release}${prevScoreLine}`;
+        }
+        case 'announcement_digest': {
+            const items = Array.isArray(data?.animes) ? data.animes : [];
+            return items.map((a, i) => {
+                const raw = a.aired_from ? String(a.aired_from).trim() : '';
+                const airedString = (a.aired_string || '').trim();
+                const airedStringYear = airedString.match(/^(\d{4})\s*(to|-)?/i)?.[1];
+                const candidate = raw || airedStringYear || '';
+                let release;
+                if (!candidate) release = 'date à venir';
+                else if (/^\d{4}$/.test(candidate)) release = `prévu en ${candidate}`;
+                else {
+                    const parsed = new Date(candidate);
+                    release = isNaN(parsed.getTime())
+                        ? 'date à venir'
+                        : parsed.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+                }
+                const prev = typeof a.prequel_score === 'number' && a.prequel_score > 0
+                    ? `, ${a.prequel_season_label || 'S précédente'} notée ${a.prequel_score}/10 sur MAL`
+                    : '';
+                return `${i + 1}. ${a.title} — Studio: ${(a.studios || []).join(', ') || 'inconnu'}, sortie: ${release}${prev}`;
+            }).join('\n');
         }
         default:
             return JSON.stringify(data);

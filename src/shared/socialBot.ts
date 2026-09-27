@@ -6,7 +6,7 @@
  * pour le contexte et le schéma Firestore complet.
  */
 
-export type PostType = 'daily' | 'weekly' | 'favorite' | 'newseason' | 'announcement';
+export type PostType = 'daily' | 'weekly' | 'favorite' | 'newseason' | 'announcement' | 'announcement_digest';
 
 export type PostStatus = 'pending' | 'processing' | 'ready' | 'failed';
 
@@ -173,6 +173,7 @@ export const POST_TYPE_LABELS: Record<PostType, string> = {
     favorite: 'Coup de cœur',
     newseason: 'Nouvelle saison',
     announcement: 'Prochainement',
+    announcement_digest: 'Prochainement · Digest',
 };
 
 export const POST_TYPE_COLORS: Record<PostType, { bg: string; text: string }> = {
@@ -181,6 +182,7 @@ export const POST_TYPE_COLORS: Record<PostType, { bg: string; text: string }> = 
     favorite: { bg: '#08D9D6', text: '#000000' },
     newseason: { bg: '#FF0844', text: '#ffffff' },
     announcement: { bg: '#7c3aed', text: '#ffffff' },
+    announcement_digest: { bg: '#7c3aed', text: '#ffffff' },
 };
 
 export const FIRESTORE_COLLECTIONS = {

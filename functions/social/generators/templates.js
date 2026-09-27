@@ -445,6 +445,93 @@ const CSS = `
         font-size: 22px; letter-spacing: 3px; text-transform: uppercase;
     }
 
+    /* ==== ANNOUNCEMENT HERO-LITE (digest multi-annonces) ============ */
+    .ann-lite-fallback { position: absolute; inset: 0; z-index: 0; }
+    .ann-lite-bg {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        object-fit: cover; z-index: 1;
+        filter: blur(24px) saturate(1.25) brightness(0.42);
+        transform: scale(1.15);
+    }
+    .ann-lite-scrim {
+        position: absolute; inset: 0; z-index: 2;
+        background: linear-gradient(90deg,
+            rgba(0,0,0,0.85) 0%,
+            rgba(0,0,0,0.45) 45%,
+            rgba(0,0,0,0.9) 100%);
+    }
+    .ann-lite-halftone {
+        position: absolute; inset: 0; opacity: 0.12; pointer-events: none; z-index: 3;
+        background-image: radial-gradient(#fff 2.5px, transparent 3.5px);
+        background-size: 36px 36px;
+    }
+    .ann-lite-card {
+        position: absolute; top: 50%; left: 60px;
+        transform: translateY(-50%) rotate(-2.5deg);
+        width: 380px; aspect-ratio: 2 / 3; z-index: 5;
+        border: 8px solid #000; box-shadow: 16px 16px 0 ${ROSE};
+        background: #000; overflow: hidden;
+    }
+    .ann-lite-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ann-lite-content {
+        position: absolute; top: 50%; right: 60px; left: 500px;
+        transform: translateY(-50%); z-index: 6; color: #fff;
+        display: flex; flex-direction: column; gap: 22px;
+    }
+    .ann-lite-ribbon {
+        display: inline-flex; align-self: flex-start;
+        border: 6px solid #000; padding: 12px 24px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 32px; letter-spacing: 4px;
+        text-transform: uppercase; line-height: 1;
+        background: ${ROSE}; color: #fff;
+        box-shadow: 10px 10px 0 #000;
+        transform: rotate(-2deg);
+    }
+    .ann-lite-datebar {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .ann-lite-pre {
+        background: ${CYAN}; color: #000; border: 4px solid #000;
+        padding: 6px 14px; box-shadow: 5px 5px 0 #000;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 22px; letter-spacing: 2px;
+        text-transform: uppercase; line-height: 1;
+    }
+    .ann-lite-main {
+        background: #fff; color: #000; border: 4px solid #000;
+        padding: 6px 14px; box-shadow: 5px 5px 0 #000;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 26px; letter-spacing: 1px;
+        text-transform: uppercase; line-height: 1;
+    }
+    .ann-lite-title {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 70px; line-height: 0.95; letter-spacing: -2.5px;
+        text-transform: uppercase; color: #fff;
+        text-shadow: 5px 5px 0 #000;
+        overflow-wrap: break-word; word-break: break-word;
+    }
+    .ann-lite-studio {
+        font-family: 'Outfit'; font-weight: 800;
+        font-size: 30px; letter-spacing: 2px;
+        color: ${CYAN}; text-transform: uppercase;
+    }
+    .ann-lite-prev {
+        display: inline-flex; align-self: flex-start;
+        background: #000; color: ${CYAN}; border: 4px solid ${CYAN};
+        padding: 12px 20px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 26px; letter-spacing: 1px;
+    }
+    .ann-lite-brand {
+        position: absolute; left: 30px; bottom: 20px; z-index: 8;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 30px; color: #fff; letter-spacing: -0.5px;
+        text-shadow: 2px 2px 0 #000;
+    }
+    .ann-lite-brand::before { content: '★ '; color: ${ROSE}; }
+
     /* ==== DAILY DUO (2 animes / slide, jours chargés) =============== */
     .duo-container {
         position: absolute; inset: 0; z-index: 1;
@@ -612,6 +699,55 @@ function animeSlide({ cover, fallbackGradient, ribbon, ribbonVariant = 'ribbon-r
             <div class="title">${escape(title)}</div>
             ${subtitle ? `<div class="subtitle">${escape(subtitle)}</div>` : ''}
         </div>
+        ${slideIdxBadge(index, total)}
+    `);
+}
+
+/* =============================================================== */
+/* ANNOUNCEMENT HERO-LITE (pour digest multi-annonces)             */
+/* =============================================================== */
+/**
+ * Hero compact 1 anime : cover-card à gauche, meta+titre+note S précédente
+ * à droite. Utilisé par le digest quand on empile 2-3 annonces dans un
+ * seul post. Format 1080×1350 identique aux autres slides du carrousel
+ * pour rester cohérent visuellement.
+ *
+ * `date` doit être l'objet retourné par formatAnnouncementDate().
+ * `prequel` (optionnel) = { score, scored_by, season_label } pour afficher
+ * "S2 : 8.37 ★ · 45k votes" en argument de hype.
+ */
+function announcementHeroLiteSlide({ anime, date, prequel, index, total, gradientIdx = 0 }) {
+    const cover = anime.cover || '';
+    const title = anime.title || '';
+    const studio = (anime.studios || []).slice(0, 1).join('') || '';
+    const grad = fallback(gradientIdx);
+    let prequelChip = '';
+    if (prequel && typeof prequel.score === 'number' && prequel.score > 0) {
+        const votesLabel = prequel.scored_by
+            ? ` · ${prequel.scored_by >= 1000
+                ? `${Math.round(prequel.scored_by / 1000)}k`
+                : prequel.scored_by} votes`
+            : '';
+        const label = prequel.season_label || 'S précédente';
+        prequelChip = `<div class="ann-lite-prev">${escape(label)} : ${escape(String(prequel.score))} ★${escape(votesLabel)}</div>`;
+    }
+    return docShell(`
+        <div class="ann-lite-fallback" style="background: ${grad};"></div>
+        ${cover ? `<img class="ann-lite-bg" src="${escape(cover)}" alt="">` : ''}
+        <div class="ann-lite-scrim"></div>
+        <div class="ann-lite-halftone"></div>
+        ${cover ? `<div class="ann-lite-card"><img src="${escape(cover)}" alt=""></div>` : ''}
+        <div class="ann-lite-content">
+            <div class="ann-lite-ribbon">Annonce</div>
+            <div class="ann-lite-datebar">
+                <span class="ann-lite-pre">${escape(date.pre)}</span>
+                <span class="ann-lite-main">${escape(date.main)}</span>
+            </div>
+            <div class="ann-lite-title">${escape(title)}</div>
+            ${studio ? `<div class="ann-lite-studio">${escape(studio)}</div>` : ''}
+            ${prequelChip}
+        </div>
+        <div class="ann-lite-brand">Bingeki</div>
         ${slideIdxBadge(index, total)}
     `);
 }
@@ -1078,6 +1214,56 @@ function buildSlidesHTML(type, data, opts = {}) {
                 ctaMain: 'Ne rate pas le S2',
                 ctaSub: 'Ajouter à ma liste →',
                 index: 3, total,
+            }),
+        });
+    }
+
+    if (type === 'announcement_digest') {
+        // data = { animes: [{ ... with prequel_* }, ...] }
+        const items = Array.isArray(data?.animes) ? data.animes : [];
+        const N = items.length;
+        const total = N + 2; // intro + N hero-lite + outro
+
+        // Intro : chip PROCHAINEMENT + count + mini covers
+        slides.push({
+            name: 'intro',
+            html: introSlide({
+                typeLabel: 'Annonces · cette semaine',
+                chipText: 'Prochainement',
+                titleMain: `${N}`,
+                titleAccent: N > 1 ? 'annonces' : 'annonce',
+                subtitle: 'Les sequels à noter →',
+                miniCovers: items.map(a => a.cover).filter(Boolean),
+            }),
+        });
+
+        // 1 hero-lite par anime
+        items.forEach((a, i) => {
+            const date = formatAnnouncementDate(a);
+            const prequel = {
+                score: a.prequel_score,
+                scored_by: a.prequel_scored_by,
+                season_label: a.prequel_season_label,
+            };
+            slides.push({
+                name: `ann-${i + 1}`,
+                html: announcementHeroLiteSlide({
+                    anime: a,
+                    date,
+                    prequel,
+                    index: i + 2,
+                    total,
+                    gradientIdx: i,
+                }),
+            });
+        });
+
+        slides.push({
+            name: 'outro',
+            html: outroSlide({
+                ctaMain: 'Ajoute-les à ta watchlist',
+                ctaSub: 'Rejoins Bingeki →',
+                index: total, total,
             }),
         });
     }
