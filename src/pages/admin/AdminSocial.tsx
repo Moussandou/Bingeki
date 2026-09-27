@@ -47,6 +47,7 @@ const TYPE_ICONS: Record<PostType, React.ReactNode> = {
     favorite: <Users size={11} />,
     newseason: <Sparkles size={11} />,
     announcement: <Sparkles size={11} />,
+    announcement_digest: <Sparkles size={11} />,
 };
 
 const TypeBadge: React.FC<{ type: PostType }> = ({ type }) => {
