@@ -870,16 +870,29 @@ export interface JikanGenre {
     count: number;
 }
 
-/** Liste complète des genres MAL (78 en anime, 79 en manga) — remplace toute liste codée en dur. */
-export const getGenres = async (type: 'anime' | 'manga' = 'anime', options?: CallOptions): Promise<JikanGenre[]> => {
+/**
+ * Taxonomie MAL sur /genres/{type}. Sans `filter`, retourne les
+ * genres principaux (Action, Aventure, …). `filter=demographics` cible
+ * les publics (Shounen, Seinen, …) et `filter=themes` les settings
+ * (Isekai, School, Mecha, …). `explicit_genres` = NSFW.
+ */
+export const getGenres = async (
+    type: 'anime' | 'manga' = 'anime',
+    filter?: 'demographics' | 'themes' | 'explicit_genres',
+    options?: CallOptions,
+): Promise<JikanGenre[]> => {
+    const path = filter
+        ? `/genres/${type}?filter=${filter}`
+        : `/genres/${type}`;
+    const cacheKey = filter ? `genres_${type}_${filter}` : `genres_${type}`;
     return callProxy<JikanGenre[]>(
         getGenresFn,
-        { type },
-        `genres_${type}`,
+        { type, filter },
+        cacheKey,
         CACHE_TTL_TAXONOMY,
         [],
         options,
-        { path: `/genres/${type}` }
+        { path }
     );
 };
 

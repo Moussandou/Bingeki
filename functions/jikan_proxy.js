@@ -240,9 +240,18 @@ exports.getRandomManga = onCall({ cors: true, region: CALLABLE_REGIONS }, async 
 // --- TAXONOMIES (quasi immuables : TTL 30 jours) ---
 
 exports.getGenres = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {
-    const { type = 'anime' } = request.data || {};
+    const { type = 'anime', filter } = request.data || {};
     if (type !== 'anime' && type !== 'manga') throw new HttpsError('invalid-argument', 'type must be anime or manga');
-    return cachedFetch(`genres_${type}`, TTL_MS.TAXONOMY, () => jikanFetch(`/genres/${type}`));
+    // MAL expose 4 sous-taxonomies sur /genres/{type} via ?filter=…
+    // (demographics, themes, explicit_genres). Sans filter, ce sont les
+    // genres "classiques" (Action, Aventure, Comédie…).
+    const validFilters = new Set(['demographics', 'themes', 'explicit_genres']);
+    if (filter && !validFilters.has(filter)) {
+        throw new HttpsError('invalid-argument', `filter must be one of ${[...validFilters].join(', ')}`);
+    }
+    const path = filter ? `/genres/${type}?filter=${filter}` : `/genres/${type}`;
+    const cacheKey = filter ? `genres_${type}_${filter}` : `genres_${type}`;
+    return cachedFetch(cacheKey, TTL_MS.TAXONOMY, () => jikanFetch(path));
 });
 
 exports.getProducers = onCall({ cors: true, region: CALLABLE_REGIONS }, async (request) => {

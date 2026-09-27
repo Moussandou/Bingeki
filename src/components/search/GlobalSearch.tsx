@@ -1,16 +1,24 @@
 /**
  * Global Search component (search)
+ *
+ * Modal de recherche global : query + tabs ALL/ANIME/MANGA/CHARACTERS
+ * + panneau de filtres brutalist (démographie, genres, thèmes, note,
+ * statut, tri). Les filtres n'ont d'effet que sur ANIME et MANGA — sur
+ * les onglets ALL et CHARACTERS ils sont ignorés (les personnages n'ont
+ * pas de taxonomie MAL équivalente).
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '@/components/ui/Modal';
-import { searchWorks, searchCharacters } from '@/services/animeApi';
+import { searchWorks, searchCharacters, getGenres, type SearchFilters as ApiSearchFilters } from '@/services/animeApi';
 import type { JikanResult, JikanCharacterFull } from '@/services/animeApi';
-import { Loader2, Search, ChevronRight } from 'lucide-react';
+import { Loader2, Search, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import { SearchFilters, ActiveFiltersBar } from './SearchFilters';
+import { EMPTY_FILTERS, isEmptyFilters, type SearchFilterState } from './searchFilterTypes';
 
 interface GlobalSearchProps {
     isOpen: boolean;
@@ -23,6 +31,41 @@ interface SearchResults {
     characters: JikanCharacterFull[];
 }
 
+/**
+ * Convertit l'état UI en filtres API (searchWorks). Le mediaType
+ * détermine la nomenclature statut (airing vs publishing).
+ */
+function toApiFilters(state: SearchFilterState, mediaType: 'anime' | 'manga', limit: number): ApiSearchFilters {
+    const out: ApiSearchFilters = { limit };
+    // Genres + thèmes + démographie sont tous des IDs MAL → même param `genres`
+    // (l'API accepte plusieurs IDs séparés par des virgules).
+    const genreIds = [
+        ...state.genres,
+        ...state.themes,
+        ...(state.demographic !== null ? [state.demographic] : []),
+    ];
+    if (genreIds.length > 0) out.genres = genreIds.join(',');
+    if (state.minScore !== null) out.min_score = state.minScore;
+    if (state.status) out.status = state.status;
+    if (state.orderBy && state.orderBy !== 'relevance') {
+        out.order_by = state.orderBy as ApiSearchFilters['order_by'];
+        out.sort = state.orderBy === 'title' ? 'asc' : 'desc';
+    }
+    // mediaType retenu dans la signature pour permettre plus tard des
+    // filtres spécifiques (rating dispo uniquement en anime, etc.)
+    void mediaType;
+    return out;
+}
+
+/** Détermine si les filtres ont un impact sur la requête (hors tri). */
+function hasEffectiveFilters(state: SearchFilterState): boolean {
+    return state.demographic !== null
+        || state.genres.length > 0
+        || state.themes.length > 0
+        || state.minScore !== null
+        || state.status !== null;
+}
+
 export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -30,7 +73,36 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     const [activeTab, setActiveTab] = useState<'all' | 'anime' | 'manga' | 'characters'>('all');
     const [results, setResults] = useState<SearchResults>({ anime: [], manga: [], characters: [] });
     const [loading, setLoading] = useState(false);
+    const [filters, setFilters] = useState<SearchFilterState>(EMPTY_FILTERS);
+    const [showFilters, setShowFilters] = useState(false);
     const searchControllerRef = useRef<AbortController | null>(null);
+
+    // Le mediaType effectif pour les taxonomies : sur "characters" on
+    // n'a rien à filtrer, sur "all" on prend anime par défaut.
+    const filtersMediaType: 'anime' | 'manga' = activeTab === 'manga' ? 'manga' : 'anime';
+
+    // Lookups pour la barre des filtres actifs (id → nom lisible).
+    const [genreLookup, setGenreLookup] = useState<Map<number, string>>(new Map());
+    const [themeLookup, setThemeLookup] = useState<Map<number, string>>(new Map());
+    const [demographicLookup, setDemographicLookup] = useState<Map<number, string>>(new Map());
+
+    useEffect(() => {
+        if (!isOpen) return;
+        let cancelled = false;
+        Promise.all([
+            getGenres(filtersMediaType),
+            getGenres(filtersMediaType, 'themes'),
+            getGenres(filtersMediaType, 'demographics'),
+        ]).then(([g, th, demo]) => {
+            if (cancelled) return;
+            setGenreLookup(new Map((g || []).map(x => [x.mal_id, x.name])));
+            setThemeLookup(new Map((th || []).map(x => [x.mal_id, x.name])));
+            setDemographicLookup(new Map((demo || []).map(x => [x.mal_id, x.name])));
+        }).catch(err => {
+            if (!cancelled) logger.warn('[GlobalSearch] taxonomies lookup failed', err);
+        });
+        return () => { cancelled = true; };
+    }, [isOpen, filtersMediaType]);
 
     const performSearch = useCallback(async () => {
         // Cancel any in-flight search from a previous keystroke
@@ -48,46 +120,79 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             const opts = { priority: 'high' as const, signal };
 
             if (activeTab === 'all') {
+                const animeFilters = toApiFilters(filters, 'anime', 3);
+                const mangaFilters = toApiFilters(filters, 'manga', 3);
                 [animeData, mangaData, charData] = await Promise.all([
-                    searchWorks(query, 'anime', { limit: 3 }, 1, opts),
-                    searchWorks(query, 'manga', { limit: 3 }, 1, opts),
+                    searchWorks(query, 'anime', animeFilters, 1, opts),
+                    searchWorks(query, 'manga', mangaFilters, 1, opts),
                     searchCharacters(query, 3, opts),
                 ]);
             } else if (activeTab === 'anime') {
-                animeData = await searchWorks(query, 'anime', { limit: 10 }, 1, opts);
+                animeData = await searchWorks(query, 'anime', toApiFilters(filters, 'anime', 15), 1, opts);
             } else if (activeTab === 'manga') {
-                mangaData = await searchWorks(query, 'manga', { limit: 10 }, 1, opts);
+                mangaData = await searchWorks(query, 'manga', toApiFilters(filters, 'manga', 15), 1, opts);
             } else if (activeTab === 'characters') {
                 charData = await searchCharacters(query, 10, opts);
             }
 
-            if (signal.aborted) return; // stale result — discard
+            if (signal.aborted) return;
 
             setResults({
                 anime: animeData || [],
                 manga: mangaData || [],
-                characters: charData || []
+                characters: charData || [],
             });
         } catch (error) {
-            if (error instanceof Error && error.name === 'AbortError') return; // expected
+            if (error instanceof Error && error.name === 'AbortError') return;
             logger.error('Search error:', error);
         } finally {
             if (!signal.aborted) setLoading(false);
         }
-    }, [query, activeTab]);
+    }, [query, activeTab, filters]);
 
+    /*
+     * Déclenche la recherche quand :
+     *   - la query fait ≥ 3 caractères, ou
+     *   - la query est vide MAIS des filtres sont actifs (mode "découverte")
+     *
+     * Les filtres ne s'appliquent pas sur "characters" (rien à filtrer côté MAL)
+     * ni sur "all" tant qu'il n'y a pas au moins une query : on éviterait sinon
+     * de charger des tonnes d'animes populaires à l'ouverture du modal.
+     */
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (query.trim().length >= 3) {
+            const hasQuery = query.trim().length >= 3;
+            const canDiscover = hasEffectiveFilters(filters)
+                && (activeTab === 'anime' || activeTab === 'manga');
+            if (hasQuery || canDiscover) {
                 performSearch();
+            } else {
+                // Rien à afficher : reset pour ne pas garder des résultats stale
+                setResults({ anime: [], manga: [], characters: [] });
             }
         }, 500);
         return () => {
             clearTimeout(timer);
             searchControllerRef.current?.abort();
         };
-    }, [query, performSearch, activeTab]);
+    }, [query, performSearch, activeTab, filters]);
 
+    // Reset les filtres si on switche vers characters (pas de taxonomie applicable).
+    useEffect(() => {
+        if (activeTab === 'characters' && !isEmptyFilters(filters)) {
+            setFilters(EMPTY_FILTERS);
+        }
+    }, [activeTab, filters]);
+
+    const activeFilterCount = useMemo(() => {
+        let n = 0;
+        if (filters.demographic !== null) n++;
+        n += filters.genres.length;
+        n += filters.themes.length;
+        if (filters.minScore !== null) n++;
+        if (filters.status !== null) n++;
+        return n;
+    }, [filters]);
 
     const handleNavigate = (path: string) => {
         navigate(path);
@@ -206,7 +311,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             `}</style>
             <div className="search-container">
                 {/* Search Header - Stylized */}
-                <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                <div style={{ position: 'relative', marginBottom: '1rem' }}>
                     <div style={{
                         position: 'relative',
                         display: 'flex',
@@ -224,7 +329,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                             <Search size={24} color="#fff" strokeWidth={3} />
                         </div>
                         <input
-                            placeholder={t('header.search_placeholder') || "SEARCH..."}
+                            placeholder={t('header.search_placeholder') || 'SEARCH...'}
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             className="search-input"
@@ -243,33 +348,97 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                     </div>
                 </div>
 
-                {/* Tabs - Brutalist */}
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none' }}>
-                    {(['all', 'anime', 'manga', 'characters'] as const).map(tab => (
+                {/* Tabs + bouton Filtres */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.9rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', scrollbarWidth: 'none' }}>
+                        {(['all', 'anime', 'manga', 'characters'] as const).map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    border: '2px solid var(--color-border-heavy)',
+                                    background: activeTab === tab ? 'var(--color-primary)' : 'var(--color-surface)',
+                                    color: activeTab === tab ? '#fff' : 'var(--color-text)',
+                                    fontFamily: 'var(--font-heading)',
+                                    fontWeight: 800,
+                                    textTransform: 'uppercase',
+                                    cursor: 'pointer',
+                                    boxShadow: activeTab === tab ? 'none' : '3px 3px 0 var(--color-shadow-solid)',
+                                    transform: activeTab === tab ? 'translate(2px, 2px)' : 'none',
+                                    transition: 'all 0.1s',
+                                    fontSize: '0.8rem',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0
+                                }}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
+                    {(activeTab === 'anime' || activeTab === 'manga' || activeTab === 'all') && (
                         <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
+                            type="button"
+                            onClick={() => setShowFilters(v => !v)}
+                            aria-pressed={showFilters}
                             style={{
-                                padding: '0.5rem 1rem',
+                                marginLeft: 'auto',
+                                padding: '0.5rem 0.9rem',
                                 border: '2px solid var(--color-border-heavy)',
-                                background: activeTab === tab ? 'var(--color-primary)' : 'var(--color-surface)',
-                                color: activeTab === tab ? '#fff' : 'var(--color-text)',
+                                background: showFilters || activeFilterCount > 0
+                                    ? 'var(--color-secondary)' : 'var(--color-surface)',
+                                color: showFilters || activeFilterCount > 0
+                                    ? '#000' : 'var(--color-text)',
                                 fontFamily: 'var(--font-heading)',
                                 fontWeight: 800,
+                                fontSize: '0.75rem',
+                                letterSpacing: '0.08em',
                                 textTransform: 'uppercase',
                                 cursor: 'pointer',
-                                boxShadow: activeTab === tab ? 'none' : '3px 3px 0 var(--color-shadow-solid)',
-                                transform: activeTab === tab ? 'translate(2px, 2px)' : 'none',
-                                transition: 'all 0.1s',
-                                fontSize: '0.8rem',
-                                whiteSpace: 'nowrap',
-                                flexShrink: 0
+                                boxShadow: '3px 3px 0 var(--color-shadow-solid)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
                             }}
                         >
-                            {tab}
+                            <SlidersHorizontal size={14} strokeWidth={3} />
+                            Filtres
+                            {activeFilterCount > 0 && (
+                                <span style={{
+                                    background: 'var(--color-primary)',
+                                    color: '#fff',
+                                    padding: '0 6px',
+                                    borderRadius: '999px',
+                                    fontSize: '0.7rem',
+                                    marginLeft: '0.2rem',
+                                }}>
+                                    {activeFilterCount}
+                                </span>
+                            )}
                         </button>
-                    ))}
+                    )}
                 </div>
+
+                {/* Active filters row (toujours visible s'il y en a) */}
+                <ActiveFiltersBar
+                    filters={filters}
+                    genreLookup={genreLookup}
+                    themeLookup={themeLookup}
+                    demographicLookup={demographicLookup}
+                    onChange={setFilters}
+                    onClearAll={() => setFilters(EMPTY_FILTERS)}
+                />
+
+                {/* Panneau filtres (toggle) */}
+                {showFilters && (activeTab === 'anime' || activeTab === 'manga' || activeTab === 'all') && (
+                    <div style={{ marginBottom: '1rem' }}>
+                        <SearchFilters
+                            mediaType={filtersMediaType}
+                            filters={filters}
+                            onChange={setFilters}
+                        />
+                    </div>
+                )}
 
                 {/* Results - Card Style grid items */}
                 <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '0.5rem' }}>
