@@ -444,6 +444,77 @@ const CSS = `
         font-family: 'Outfit'; font-weight: 800;
         font-size: 22px; letter-spacing: 3px; text-transform: uppercase;
     }
+
+    /* ==== DAILY DUO (2 animes / slide, jours chargés) =============== */
+    .duo-container {
+        position: absolute; inset: 0; z-index: 1;
+        display: grid; grid-template-rows: 1fr 6px 1fr;
+        overflow: hidden; background: #000;
+    }
+    .duo-sep { background: #000; }
+    .duo-half {
+        position: relative; overflow: hidden;
+        background: #1a1a1a;
+    }
+    .duo-fallback { position: absolute; inset: 0; z-index: 0; }
+    .duo-bg {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        object-fit: cover; z-index: 1;
+        filter: blur(22px) saturate(1.2) brightness(0.55);
+        transform: scale(1.15);
+    }
+    .duo-scrim {
+        position: absolute; inset: 0; z-index: 2;
+        background: linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.85) 100%);
+    }
+    .duo-halftone {
+        position: absolute; inset: 0; opacity: 0.10; pointer-events: none; z-index: 3;
+        background-image: radial-gradient(#fff 2.5px, transparent 3.5px);
+        background-size: 34px 34px;
+    }
+    .duo-card {
+        position: absolute; top: 50%; left: 60px;
+        transform: translateY(-50%) rotate(-2.5deg);
+        width: 260px; aspect-ratio: 2 / 3; z-index: 5;
+        border: 6px solid #000; box-shadow: 12px 12px 0 #000;
+        background: #000; overflow: hidden;
+    }
+    .duo-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .duo-content {
+        position: absolute; top: 50%; right: 60px; left: 360px;
+        transform: translateY(-50%); z-index: 6; color: #fff;
+        display: flex; flex-direction: column; gap: 18px;
+    }
+    .duo-ribbon {
+        display: inline-flex; align-self: flex-start;
+        border: 5px solid #000; padding: 10px 18px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 30px; letter-spacing: 3px;
+        text-transform: uppercase; line-height: 1;
+        background: ${ROSE}; color: #fff;
+        box-shadow: 8px 8px 0 #000;
+    }
+    .duo-title {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 66px; line-height: 0.95; letter-spacing: -2px;
+        text-transform: uppercase;
+        text-shadow: 4px 4px 0 #000;
+        overflow-wrap: break-word; word-break: break-word;
+    }
+    .duo-score {
+        display: inline-flex; align-self: flex-start;
+        background: #fff; color: #000; border: 4px solid #000;
+        padding: 6px 14px; box-shadow: 6px 6px 0 ${CYAN};
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 30px; letter-spacing: -0.5px;
+    }
+    .duo-brand {
+        position: absolute; left: 30px; bottom: 20px; z-index: 8;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 28px; color: #fff; letter-spacing: -0.5px;
+        text-shadow: 2px 2px 0 #000;
+    }
+    .duo-brand::before { content: '★ '; color: ${ROSE}; }
 `;
 
 function docShell(inner) {
@@ -541,6 +612,53 @@ function animeSlide({ cover, fallbackGradient, ribbon, ribbonVariant = 'ribbon-r
             <div class="title">${escape(title)}</div>
             ${subtitle ? `<div class="subtitle">${escape(subtitle)}</div>` : ''}
         </div>
+        ${slideIdxBadge(index, total)}
+    `);
+}
+
+/* =============================================================== */
+/* ANIME DUO SLIDE                                                 */
+/* =============================================================== */
+/**
+ * Deux animes empilés (haut/bas) dans une seule slide. Utilisé par le
+ * cron daily quand la journée compte plus de 8 sorties : au-delà du
+ * plein-écran classique, on switche en mode digest à 2/slide pour
+ * fitter jusqu'à 16 animes dans les 10 slots Buffer.
+ *
+ * Chaque moitié = cover floutée en fond + cover-card rotée à gauche +
+ * titre/meta à droite + ribbon "NEW EP". Séparateur noir de 6px entre
+ * les 2 pour marquer la coupure.
+ */
+function animeHalfBlock(a, position /* 'top'|'bottom' */, fallbackIdx) {
+    if (!a) return `<div class="duo-half duo-${position}"></div>`;
+    const grad = fallback(fallbackIdx);
+    const cover = a.cover || '';
+    const title = a.title || '';
+    const ep = a.currentEpisode ? `ÉP. ${a.currentEpisode}` : 'NEW EP';
+    return `
+        <div class="duo-half duo-${position}">
+            <div class="duo-fallback" style="background: ${grad};"></div>
+            ${cover ? `<img class="duo-bg" src="${escape(cover)}" alt="">` : ''}
+            <div class="duo-scrim"></div>
+            <div class="duo-halftone"></div>
+            ${cover ? `<div class="duo-card"><img src="${escape(cover)}" alt=""></div>` : ''}
+            <div class="duo-content">
+                <div class="duo-ribbon">${escape(ep)}</div>
+                <div class="duo-title">${escape(title)}</div>
+                ${a.score ? `<div class="duo-score">${escape(String(a.score))} ★</div>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function animeDuoSlide({ pair, index, total, fallbackOffset = 0 }) {
+    return docShell(`
+        <div class="duo-container">
+            ${animeHalfBlock(pair[0], 'top', fallbackOffset)}
+            <div class="duo-sep"></div>
+            ${animeHalfBlock(pair[1], 'bottom', fallbackOffset + 1)}
+        </div>
+        <div class="duo-brand">Bingeki</div>
         ${slideIdxBadge(index, total)}
     `);
 }
@@ -753,7 +871,13 @@ function buildSlidesHTML(type, data, opts = {}) {
 
     if (type === 'daily') {
         const arr = Array.isArray(data) ? data : [data];
-        const total = arr.length + 2;
+        // Layout dynamique : ≤8 animes → 1 par slide (format premium),
+        // >8 → duo (2 par slide) pour densifier sans dépasser le cap
+        // Buffer de 10 slides (intro + jusqu'à 8 slides duo + outro = 10
+        // → jusqu'à 16 animes visibles).
+        const useDuoLayout = arr.length > 8;
+        const contentSlideCount = useDuoLayout ? Math.ceil(arr.length / 2) : arr.length;
+        const total = contentSlideCount + 2;
         const chipText = partInfo && partInfo.total > 1
             ? `SORTIES DU JOUR · PARTIE ${partInfo.index}/${partInfo.total}`
             : 'SORTIES DU JOUR';
@@ -768,21 +892,37 @@ function buildSlidesHTML(type, data, opts = {}) {
                 miniCovers: arr.map((a) => a.cover).filter(Boolean),
             }),
         });
-        arr.forEach((a, i) => slides.push({
-            name: `anime-${i + 1}`,
-            html: animeSlide({
-                cover: a.cover,
-                fallbackGradient: fallback(i),
-                ribbon: 'NEW EP',
-                ribbonVariant: 'ribbon-rose',
-                metas: [
-                    { text: `${a.currentEpisode ? `ÉPISODE ${a.currentEpisode}` : 'NOUVEL ÉPISODE'}` },
-                ],
-                title: a.title,
-                subtitle: todayLabel().toUpperCase(),
-                index: i + 2, total,
-            }),
-        }));
+        if (useDuoLayout) {
+            for (let i = 0; i < arr.length; i += 2) {
+                const pair = [arr[i], arr[i + 1] || null];
+                const slideIdx = 2 + (i / 2);
+                slides.push({
+                    name: `anime-duo-${(i / 2) + 1}`,
+                    html: animeDuoSlide({
+                        pair,
+                        index: slideIdx,
+                        total,
+                        fallbackOffset: i,
+                    }),
+                });
+            }
+        } else {
+            arr.forEach((a, i) => slides.push({
+                name: `anime-${i + 1}`,
+                html: animeSlide({
+                    cover: a.cover,
+                    fallbackGradient: fallback(i),
+                    ribbon: 'NEW EP',
+                    ribbonVariant: 'ribbon-rose',
+                    metas: [
+                        { text: `${a.currentEpisode ? `ÉPISODE ${a.currentEpisode}` : 'NOUVEL ÉPISODE'}` },
+                    ],
+                    title: a.title,
+                    subtitle: todayLabel().toUpperCase(),
+                    index: i + 2, total,
+                }),
+            }));
+        }
         // Multi-part days: on chaque post sauf le dernier, override le
         // CTA outro pour renvoyer vers la partie suivante ("Allez voir la
         // Partie 2/2 sur notre compte"). Le dernier post garde le CTA

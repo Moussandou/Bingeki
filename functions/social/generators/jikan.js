@@ -87,9 +87,16 @@ async function fetchTodaysReleases() {
     const day = DAY_NAMES[new Date().getDay()];
     const raw = await jikanFetch(`/schedules?filter=${day}&kids=false&sfw=true`, true);
     const items = raw?.data || [];
+    // On garde `source_type === 'TV'` mais on ne filtre PAS sur `airing`.
+    // MAL positionne `airing: false` pendant les premières semaines des
+    // sequels (Ao no Hako S2, Ao Ashi S2, Tensei Kizoku S3, etc.) même
+    // quand les épisodes sortent déjà — leur flag n'est mis à jour qu'à
+    // partir de l'épisode 2-3. Le résultat était qu'on ratait tous les
+    // gros bangers d'automne. La page /releases côté site les affiche
+    // bien (elle ne filtre pas sur airing non plus).
     return items
         .map(normalizeAnime)
-        .filter((a) => a && a.airing && a.source_type === 'TV');
+        .filter((a) => a && a.source_type === 'TV');
 }
 
 /**

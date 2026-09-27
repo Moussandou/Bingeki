@@ -20,8 +20,14 @@ const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
-// Buffer plafonne les carousels à 10 assets (intro + 8 animes + outro).
-const MAX_ANIMES_PER_DAY = 8;
+// Buffer plafonne les carousels à 10 assets. On a 2 modes selon le
+// volume :
+//   - ≤ 8 animes : 1 par slide (format premium plein écran)
+//     → intro + 8 + outro = 10 max
+//   - 9-16 animes : 2 par slide (mode duo)
+//     → intro + 8 slides duo + outro = 10 max, 16 animes visibles
+// Au-delà de 16 on tronque : très rare (Saturday cap déjà autour de 15-20).
+const MAX_ANIMES_PER_DAY = 16;
 
 function normaliseAnime(a) {
     return {
@@ -29,6 +35,8 @@ function normaliseAnime(a) {
         title: a.title,
         cover: a.cover,
         currentEpisode: a.currentEpisode ?? null,
+        // Score gardé pour l'affichage duo (chip note à côté du titre).
+        score: a.score ?? null,
     };
 }
 
