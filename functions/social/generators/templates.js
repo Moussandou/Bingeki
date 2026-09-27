@@ -1688,7 +1688,7 @@ function buildSlidesHTML(type, data, opts = {}) {
         const animes = Array.isArray(data?.animes) ? data.animes : [];
         const perSlide = 4;
         const previewCount = Math.ceil(animes.length / perSlide);
-        const total = 1 + previewCount; // intro + preview slides
+        const total = 2 + previewCount; // intro + preview slides + outro
 
         slides.push({
             name: 'intro',
@@ -1714,6 +1714,16 @@ function buildSlidesHTML(type, data, opts = {}) {
                 }),
             });
         }
+
+        slides.push({
+            name: 'outro',
+            html: outroSlide({
+                ctaMain: 'Ajoute-les à ta watchlist',
+                ctaSub: 'Rejoins Bingeki →',
+                index: total,
+                total,
+            }),
+        });
     }
 
     return slides;

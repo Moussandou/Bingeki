@@ -1111,7 +1111,7 @@ export function buildSlidesHTML(
     if (type === 'season_preview' && isSeasonPreviewData(data)) {
         const perSlide = 4;
         const previewCount = Math.ceil(data.animes.length / perSlide);
-        const total = 1 + previewCount;
+        const total = 2 + previewCount;
         slides.push({
             name: 'intro',
             html: seasonPreviewIntroSlide({
@@ -1135,6 +1135,15 @@ export function buildSlidesHTML(
                 }),
             });
         }
+        slides.push({
+            name: 'outro',
+            html: outroSlide({
+                ctaMain: 'Ajoute-les à ta watchlist',
+                ctaSub: 'Rejoins Bingeki →',
+                index: total,
+                total,
+            }),
+        });
     }
 
     return slides;
