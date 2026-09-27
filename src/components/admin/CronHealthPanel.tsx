@@ -6,9 +6,9 @@
  * bouton "Lancer maintenant" pour tester en dehors de l'horaire.
  */
 import { useEffect, useState } from 'react';
-import { Play, CheckCircle2, XCircle, Clock, Loader2, Activity } from 'lucide-react';
+import { Play, CheckCircle2, XCircle, Clock, Loader2, Activity, Sparkles } from 'lucide-react';
 import { CRON_META, type CronId, type CronHealth } from '@/shared/socialBot';
-import { subscribeToCronHealth, triggerCron } from '@/firebase/socialBot';
+import { subscribeToCronHealth, triggerCron, generateSeasonPreview, type AnilistSeason } from '@/firebase/socialBot';
 import { logger } from '@/utils/logger';
 
 const CRON_ORDER: CronId[] = [
@@ -84,6 +84,124 @@ function StatusPill({ status }: { status: CronHealth['lastStatus'] }) {
         }}>
             <Clock size={10} /> Jamais lancé
         </span>
+    );
+}
+
+function nextSeasonDefault(): { season: AnilistSeason; year: number } {
+    // Retourne la saison suivante (celle qui commencera au prochain
+    // trimestre) pour préremplir le formulaire par défaut.
+    const now = new Date();
+    const month = now.getMonth(); // 0-11
+    const year = now.getFullYear();
+    // saisons anime: winter=Jan-Mar, spring=Apr-Jun, summer=Jul-Sep, fall=Oct-Dec
+    if (month <= 2) return { season: 'SPRING', year };
+    if (month <= 5) return { season: 'SUMMER', year };
+    if (month <= 8) return { season: 'FALL', year };
+    return { season: 'WINTER', year: year + 1 };
+}
+
+const SEASON_LABELS: Record<AnilistSeason, string> = {
+    WINTER: 'Hiver',
+    SPRING: 'Printemps',
+    SUMMER: 'Été',
+    FALL: 'Automne',
+};
+
+function SeasonPreviewGenerator() {
+    const defaults = nextSeasonDefault();
+    const [season, setSeason] = useState<AnilistSeason>(defaults.season);
+    const [year, setYear] = useState<number>(defaults.year);
+    const [limit, setLimit] = useState<number>(20);
+    const [running, setRunning] = useState(false);
+
+    const handleGenerate = async () => {
+        const label = `${SEASON_LABELS[season]} ${year}`;
+        if (!confirm(`Générer le post preview "${label}" avec ${limit} animes ?`)) return;
+        setRunning(true);
+        try {
+            const res = await generateSeasonPreview(season, year, limit);
+            const note = res?.result?.note;
+            alert(note ? `✓ Preview ${label}\n${note}` : `✓ Preview ${label} créé`);
+        } catch (err) {
+            logger.error('[SeasonPreview] failed:', err);
+            const msg = err instanceof Error ? err.message : String(err);
+            alert(`✗ Preview ${label} a échoué\n${msg}`);
+        } finally {
+            setRunning(false);
+        }
+    };
+
+    const inputStyle: React.CSSProperties = {
+        border: '2px solid #000', padding: '6px 10px',
+        fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '0.78rem',
+        background: '#fff', color: '#000',
+    };
+    return (
+        <div style={{
+            background: '#fff', border: '2px solid #000', padding: 16, marginTop: 16,
+        }}>
+            <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
+                fontFamily: 'Outfit, sans-serif', fontWeight: 900, fontSize: '0.78rem',
+                letterSpacing: 2, textTransform: 'uppercase',
+            }}>
+                <Sparkles size={14} /> Preview de saison · manuel
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#666', marginBottom: 10, lineHeight: 1.4 }}>
+                Génère un post carousel avec les animes d'une saison AniList (dates fiables,
+                sequels détectés, films marqués). À déclencher ~2 semaines avant la saison.
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <select
+                    value={season}
+                    onChange={(e) => setSeason(e.target.value as AnilistSeason)}
+                    disabled={running}
+                    style={inputStyle}
+                >
+                    <option value="WINTER">Hiver (Jan-Mars)</option>
+                    <option value="SPRING">Printemps (Avr-Juin)</option>
+                    <option value="SUMMER">Été (Juil-Sept)</option>
+                    <option value="FALL">Automne (Oct-Déc)</option>
+                </select>
+                <input
+                    type="number"
+                    min="2020"
+                    max="2030"
+                    value={year}
+                    onChange={(e) => setYear(Number(e.target.value))}
+                    disabled={running}
+                    style={{ ...inputStyle, width: 90 }}
+                />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#444' }}>
+                    Animes :
+                    <input
+                        type="number"
+                        min="4"
+                        max="24"
+                        value={limit}
+                        onChange={(e) => setLimit(Number(e.target.value))}
+                        disabled={running}
+                        style={{ ...inputStyle, width: 70 }}
+                    />
+                </label>
+                <button
+                    onClick={handleGenerate}
+                    disabled={running}
+                    style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: running ? '#ccc' : '#FF2E63', color: '#fff',
+                        border: '2px solid #000', padding: '6px 14px',
+                        fontFamily: 'Outfit, sans-serif', fontWeight: 900,
+                        fontSize: '0.7rem', letterSpacing: 1, textTransform: 'uppercase',
+                        cursor: running ? 'not-allowed' : 'pointer',
+                        boxShadow: '4px 4px 0 #000',
+                    }}
+                >
+                    {running ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                    Générer
+                </button>
+            </div>
+        </div>
     );
 }
 
@@ -243,6 +361,8 @@ export function CronHealthPanel() {
                     );
                 })}
             </div>
+
+            <SeasonPreviewGenerator />
         </div>
     );
 }

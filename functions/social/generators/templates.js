@@ -602,6 +602,180 @@ const CSS = `
         text-shadow: 2px 2px 0 #000;
     }
     .duo-brand::before { content: '★ '; color: ${ROSE}; }
+
+    /* ==== SEASON PREVIEW (4 animes / slide, digest saison) ========== */
+    .sp-container {
+        position: absolute; inset: 0; z-index: 1;
+        background: #0a0a0a; overflow: hidden;
+        display: grid;
+        grid-template-rows: 130px 1fr 1fr 1fr 1fr 100px;
+    }
+    .sp-header {
+        position: relative; background: #000; border-bottom: 6px solid ${ROSE};
+        display: flex; align-items: center; padding: 0 40px;
+        z-index: 2;
+    }
+    .sp-header-chip {
+        display: inline-flex; align-items: center;
+        border: 5px solid #fff; padding: 10px 22px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 26px; letter-spacing: 4px;
+        text-transform: uppercase; line-height: 1;
+        background: ${ROSE}; color: #fff;
+        box-shadow: 8px 8px 0 ${CYAN};
+    }
+    .sp-header-title {
+        margin-left: 32px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 52px; color: #fff; letter-spacing: -1.5px;
+        text-transform: uppercase; line-height: 1;
+    }
+    .sp-header-title .accent { color: ${ROSE}; }
+    .sp-row {
+        position: relative; overflow: hidden;
+        display: grid; grid-template-columns: 220px 1fr 260px;
+        align-items: center; gap: 24px;
+        padding: 22px 40px;
+        background: #0a0a0a;
+        border-bottom: 3px solid #1c1c1c;
+    }
+    .sp-row-halftone {
+        position: absolute; inset: 0; opacity: 0.05; pointer-events: none;
+        background-image: radial-gradient(#fff 2px, transparent 3px);
+        background-size: 28px 28px;
+    }
+    .sp-cover {
+        position: relative; z-index: 3;
+        width: 180px; height: 240px;
+        border: 5px solid #fff; box-shadow: 8px 8px 0 ${ROSE};
+        transform: rotate(-1.5deg);
+        background: #1a1a1a; overflow: hidden;
+    }
+    .sp-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .sp-content {
+        position: relative; z-index: 3;
+        display: flex; flex-direction: column;
+        gap: 12px; justify-content: center;
+        overflow: hidden;
+    }
+    .sp-chip {
+        display: inline-flex; align-self: flex-start;
+        border: 4px solid #000; padding: 6px 14px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 22px; letter-spacing: 3px;
+        text-transform: uppercase; line-height: 1;
+        background: ${ROSE}; color: #fff;
+        box-shadow: 5px 5px 0 #fff;
+    }
+    .sp-title {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 38px; line-height: 1.0; letter-spacing: -1px;
+        color: #fff; text-transform: uppercase;
+        overflow-wrap: break-word; word-break: break-word;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .sp-studio {
+        font-family: 'Inter'; font-weight: 600;
+        font-size: 20px; color: #888; letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+    .sp-date {
+        position: relative; z-index: 3;
+        display: flex; flex-direction: column;
+        align-items: flex-end; justify-content: center;
+        text-align: right;
+    }
+    .sp-date-day {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 96px; color: ${CYAN};
+        line-height: 0.9; letter-spacing: -4px;
+        text-shadow: 4px 4px 0 #000;
+    }
+    .sp-date-month {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 42px; color: #fff;
+        line-height: 1; letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-top: 4px;
+    }
+    .sp-footer {
+        position: relative;
+        background: #000; border-top: 6px solid ${ROSE};
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 40px;
+        z-index: 2;
+    }
+    .sp-footer-brand {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 34px; color: #fff; letter-spacing: -0.5px;
+    }
+    .sp-footer-brand::before { content: '★ '; color: ${ROSE}; }
+    .sp-footer-idx {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 30px; color: #888; letter-spacing: 1px;
+    }
+
+    /* ==== SEASON PREVIEW INTRO / OUTRO =============================== */
+    .sp-hero {
+        position: absolute; inset: 0; z-index: 1;
+        background: #0a0a0a;
+        display: flex; flex-direction: column;
+        align-items: flex-start; justify-content: center;
+        padding: 0 60px;
+        overflow: hidden;
+    }
+    .sp-hero-halftone {
+        position: absolute; inset: 0; opacity: 0.08; pointer-events: none;
+        background-image: radial-gradient(#fff 3px, transparent 4px);
+        background-size: 42px 42px;
+    }
+    .sp-hero-chip {
+        display: inline-flex; align-items: center;
+        border: 6px solid #000; padding: 14px 32px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 34px; letter-spacing: 5px;
+        text-transform: uppercase; line-height: 1;
+        background: ${ROSE}; color: #fff;
+        box-shadow: 12px 12px 0 ${CYAN};
+        z-index: 3;
+    }
+    .sp-hero-title {
+        margin-top: 40px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 200px; color: #fff;
+        line-height: 0.9; letter-spacing: -6px;
+        text-transform: uppercase;
+        text-shadow: 8px 8px 0 ${ROSE};
+        z-index: 3;
+    }
+    .sp-hero-sub {
+        margin-top: 30px;
+        font-family: 'Outfit'; font-weight: 700;
+        font-size: 44px; color: ${CYAN};
+        letter-spacing: -1px; line-height: 1;
+        z-index: 3;
+    }
+    .sp-hero-count {
+        margin-top: 60px;
+        font-family: 'Inter'; font-weight: 500;
+        font-size: 30px; color: #888;
+        letter-spacing: 3px; text-transform: uppercase;
+        z-index: 3;
+    }
+    .sp-hero-brand {
+        position: absolute; left: 60px; bottom: 60px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 40px; color: #fff; letter-spacing: -0.5px;
+        z-index: 3;
+    }
+    .sp-hero-brand::before { content: '★ '; color: ${ROSE}; }
+    .sp-hero-swipe {
+        position: absolute; right: 60px; bottom: 60px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 30px; color: ${CYAN}; letter-spacing: 3px;
+        z-index: 3;
+    }
 `;
 
 function docShell(inner) {
@@ -797,6 +971,85 @@ function animeDuoSlide({ pair, index, total, fallbackOffset = 0 }) {
         </div>
         <div class="duo-brand">Bingeki</div>
         ${slideIdxBadge(index, total)}
+    `);
+}
+
+/* =============================================================== */
+/* SEASON PREVIEW                                                  */
+/* =============================================================== */
+/**
+ * Slide "hero" d'un post preview de saison : gros titre "AUTOMNE 2026",
+ * chip label et compte d'animes. Ouvre le carrousel.
+ */
+function seasonPreviewIntroSlide({ seasonLabelFr, year, count, titleWord1, titleWord2 }) {
+    return docShell(`
+        <div class="sp-hero">
+            <div class="sp-hero-halftone"></div>
+            <div class="sp-hero-chip">Preview · Saison</div>
+            <div class="sp-hero-title">${escape(titleWord1)}<br>${escape(titleWord2)} ${year}</div>
+            <div class="sp-hero-sub">${escape(seasonLabelFr)} — dates, films, suites</div>
+            <div class="sp-hero-count">${count} animes à surveiller</div>
+        </div>
+        <div class="sp-hero-brand">Bingeki</div>
+        <div class="sp-hero-swipe">SWIPE →</div>
+    `);
+}
+
+/**
+ * Une row de la slide preview : cover portrait à gauche, chip statut +
+ * titre + studio au milieu, grande date à droite.
+ */
+function seasonPreviewRow(a, fallbackIdx) {
+    if (!a) return `<div class="sp-row"></div>`;
+    const day = a.startDate ? a.startDate.day : '?';
+    const monthLabels = ['JAN', 'FÉV', 'MARS', 'AVR', 'MAI', 'JUIN', 'JUIL', 'AOÛT', 'SEPT', 'OCT', 'NOV', 'DÉC'];
+    const month = a.startDate ? monthLabels[a.startDate.month - 1] : '';
+    const studioRaw = (a.studios || []).slice(0, 1).join('') || '';
+    // Évite "Studio Studio Pierrot" quand le nom commence déjà par "Studio"
+    const studio = studioRaw && !/^studio\b/i.test(studioRaw) ? `Studio ${studioRaw}` : studioRaw;
+    const grad = fallback(fallbackIdx);
+    return `
+        <div class="sp-row">
+            <div class="sp-row-halftone"></div>
+            <div class="sp-cover">
+                ${a.cover
+                    ? `<img src="${escape(a.cover)}" alt="">`
+                    : `<div style="width:100%;height:100%;background:${grad};"></div>`}
+            </div>
+            <div class="sp-content">
+                <div class="sp-chip">${escape(a.statusLabel || 'SORTIE')}</div>
+                <div class="sp-title">${escape(a.title || '')}</div>
+                ${studio ? `<div class="sp-studio">${escape(studio)}</div>` : ''}
+            </div>
+            <div class="sp-date">
+                <div class="sp-date-day">${day}</div>
+                <div class="sp-date-month">${escape(month)}</div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Slide de preview : 4 rows d'animes empilées. Header ("PREVIEW ·
+ * AUTOMNE 2026") en haut, footer (brand + index) en bas.
+ */
+function seasonPreviewSlide({ animes, seasonLabelFr, year, index, total, fallbackOffset = 0 }) {
+    const rows = [];
+    for (let i = 0; i < 4; i += 1) {
+        rows.push(seasonPreviewRow(animes[i], fallbackOffset + i));
+    }
+    return docShell(`
+        <div class="sp-container">
+            <div class="sp-header">
+                <div class="sp-header-chip">${escape(seasonLabelFr)} ${year}</div>
+                <div class="sp-header-title">Preview <span class="accent">saison</span></div>
+            </div>
+            ${rows.join('')}
+            <div class="sp-footer">
+                <div class="sp-footer-brand">Bingeki</div>
+                <div class="sp-footer-idx">${index}/${total}</div>
+            </div>
+        </div>
     `);
 }
 
@@ -1382,7 +1635,49 @@ function buildSlidesHTML(type, data, opts = {}) {
         });
     }
 
+    if (type === 'season_preview') {
+        // data = { animes: [...], seasonLabelFr: 'Automne', year: 2026,
+        //          titleWord1: 'AUTOMNE', titleWord2: '' }
+        const animes = Array.isArray(data?.animes) ? data.animes : [];
+        const perSlide = 4;
+        const previewCount = Math.ceil(animes.length / perSlide);
+        const total = 1 + previewCount; // intro + preview slides
+
+        slides.push({
+            name: 'intro',
+            html: seasonPreviewIntroSlide({
+                seasonLabelFr: data.seasonLabelFr || 'Saison',
+                year: data.year,
+                count: animes.length,
+                titleWord1: data.titleWord1 || (data.seasonLabelFr || 'SAISON').toUpperCase(),
+                titleWord2: data.titleWord2 || '',
+            }),
+        });
+
+        for (let i = 0; i < previewCount; i += 1) {
+            const chunk = animes.slice(i * perSlide, (i + 1) * perSlide);
+            slides.push({
+                name: `preview-${i + 1}`,
+                html: seasonPreviewSlide({
+                    animes: chunk,
+                    seasonLabelFr: data.seasonLabelFr || 'Saison',
+                    year: data.year,
+                    index: i + 2,
+                    total,
+                    fallbackOffset: i * perSlide,
+                }),
+            });
+        }
+    }
+
     return slides;
 }
 
-module.exports = { buildSlidesHTML, introSlide, animeSlide, outroSlide };
+module.exports = {
+    buildSlidesHTML,
+    introSlide,
+    animeSlide,
+    outroSlide,
+    seasonPreviewIntroSlide,
+    seasonPreviewSlide,
+};

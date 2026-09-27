@@ -352,6 +352,7 @@ const { runNewSeasonDetector } = require('../crons/newSeasonDetector');
 const { runAnnouncement } = require('../crons/announcement');
 const { runPollReach } = require('../crons/pollReach');
 const { runCleanupPending } = require('../crons/cleanupPending');
+const { runSeasonPreview } = require('../crons/seasonPreview');
 
 const CRON_RUNNERS = {
     dailyReleases: runDailyReleases,
@@ -383,6 +384,40 @@ exports.socialTriggerCron = onCall(
         } catch (err) {
             console.error(`[social/triggerCron] ${cronId} failed:`, err);
             throw new HttpsError('internal', `${cronId} failed: ${err.message || err}`);
+        }
+    },
+);
+
+/* ==========================================================================
+   SEASON PREVIEW — dedicated callable that takes { season, year, limit }
+   ========================================================================== */
+
+const VALID_SEASONS = new Set(['WINTER', 'SPRING', 'SUMMER', 'FALL']);
+
+exports.socialGenerateSeasonPreview = onCall(
+    {
+        secrets: [GEMINI_API_KEY],
+        memory: '1GiB',
+        timeoutSeconds: 300,
+    },
+    async (request) => {
+        await assertAdminOrThrow(request);
+        const { season, year, limit } = request.data || {};
+        if (!VALID_SEASONS.has(season)) {
+            throw new HttpsError('invalid-argument', `season must be one of ${[...VALID_SEASONS].join(', ')}`);
+        }
+        const yr = Number(year);
+        if (!Number.isInteger(yr) || yr < 2000 || yr > 2100) {
+            throw new HttpsError('invalid-argument', 'year must be a valid integer');
+        }
+        const lim = limit ? Math.max(4, Math.min(24, Number(limit))) : 20;
+        console.log(`[social/seasonPreview] uid=${request.auth.uid} season=${season} year=${yr} limit=${lim}`);
+        try {
+            const result = await runSeasonPreview({ season, year: yr, limit: lim });
+            return { ok: true, result };
+        } catch (err) {
+            console.error('[social/seasonPreview] failed:', err);
+            throw new HttpsError('internal', `seasonPreview failed: ${err.message || err}`);
         }
     },
 );

@@ -48,6 +48,7 @@ const TYPE_ICONS: Record<PostType, React.ReactNode> = {
     newseason: <Sparkles size={11} />,
     announcement: <Sparkles size={11} />,
     announcement_digest: <Sparkles size={11} />,
+    season_preview: <Calendar size={11} />,
 };
 
 const TypeBadge: React.FC<{ type: PostType }> = ({ type }) => {
@@ -85,12 +86,19 @@ const formatSchedule = (ts: number): string => {
 const animesToTemplateData = (
     type: PostType,
     animes: PostSourceAnime[],
+    fullSourceData?: Record<string, unknown>,
 ): SlideInputData | null => {
     if (!animes || animes.length === 0) return null;
     if (type === 'newseason' || type === 'announcement') return animes[0] as AnimeSlideData;
     // Le digest attend un objet { animes: [...] } (comme côté cron)
     // pour que buildSlidesHTML puisse lire data.animes.length.
     if (type === 'announcement_digest') return { animes: animes as unknown as AnimeSlideData[] };
+    if (type === 'season_preview') {
+        // Season preview conserve tout le sourceData (animes +
+        // seasonLabelFr + year + titleWord1/2) pour que le template
+        // puisse rendre le hero et les rows datées.
+        return (fullSourceData || { animes, seasonLabelFr: 'Saison', year: new Date().getFullYear() }) as unknown as SlideInputData;
+    }
     return animes as unknown as AnimeSlideData[];
 };
 
@@ -251,7 +259,7 @@ export default function AdminSocial() {
        URLs (Puppeteer PNGs) otherwise. */
     const animesForLive = active?.sourceData?.animes;
     const templateData = active && animesForLive
-        ? animesToTemplateData(active.type, animesForLive)
+        ? animesToTemplateData(active.type, animesForLive, active.sourceData as Record<string, unknown>)
         : null;
     // Multi-part daily posts embed "· Partie 1/2" in their title. The
     // slide template lives on `partInfo`, so parse it out to feed the

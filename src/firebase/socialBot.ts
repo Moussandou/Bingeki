@@ -363,6 +363,13 @@ export const triggerCron = (cronId: CronId) =>
         { cronId },
     );
 
+export type AnilistSeason = 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
+export const generateSeasonPreview = (season: AnilistSeason, year: number, limit = 20) =>
+    callAdminFn<
+        { season: AnilistSeason; year: number; limit: number },
+        { ok: true; result: { postId?: string; note?: string } }
+    >('socialGenerateSeasonPreview', { season, year, limit });
+
 export const retryPublish = (postId: string) =>
     callAdminFn<
         { postId: string },

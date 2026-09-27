@@ -95,4 +95,5 @@ exports.socialPublishNow = socialCallables.socialPublishNow;
 exports.socialRejectPost = socialCallables.socialRejectPost;
 exports.socialRegeneratePost = socialCallables.socialRegeneratePost;
 exports.socialTriggerCron = socialCallables.socialTriggerCron;
+exports.socialGenerateSeasonPreview = socialCallables.socialGenerateSeasonPreview;
 exports.socialRetryPublish = socialCallables.socialRetryPublish;

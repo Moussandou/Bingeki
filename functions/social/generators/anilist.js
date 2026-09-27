@@ -71,6 +71,127 @@ async function fetchAniListCurrentEpisode(malId) {
     }
 }
 
+const SEASON_PREVIEW = `
+query ($season: MediaSeason, $seasonYear: Int, $perPage: Int) {
+    Page(page: 1, perPage: $perPage) {
+        media(
+            type: ANIME
+            season: $season
+            seasonYear: $seasonYear
+            sort: [POPULARITY_DESC]
+            isAdult: false
+        ) {
+            idMal
+            title { english romaji native }
+            format
+            status
+            episodes
+            startDate { year month day }
+            popularity
+            favourites
+            averageScore
+            coverImage { extraLarge large }
+            studios(isMain: true) { nodes { name } }
+            nextAiringEpisode { episode airingAt }
+            relations {
+                edges {
+                    relationType(version: 2)
+                    node {
+                        type
+                        format
+                        seasonYear
+                        averageScore
+                        title { english romaji }
+                    }
+                }
+            }
+        }
+    }
+}`;
+
+const MONTHS_FR = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+function formatStartDate(startDate, nextAiringEpisode) {
+    // Priorité : nextAiringEpisode.airingAt (précis, jour/heure) si dispo
+    // dans les 6 prochains mois. Sinon startDate.
+    const now = Date.now();
+    if (nextAiringEpisode?.airingAt) {
+        const ms = nextAiringEpisode.airingAt * 1000;
+        const d = new Date(ms);
+        return { day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() };
+    }
+    if (startDate?.year && startDate.month) {
+        return { day: startDate.day || 1, month: startDate.month, year: startDate.year };
+    }
+    return null;
+}
+
+function shortDate(d) {
+    if (!d) return '';
+    return `${d.day} ${MONTHS_FR[d.month - 1]}`;
+}
+
+function seasonLabel(node, hasPrequel, prequelSeasonYear) {
+    // Détermine le label de chip : S2/S3/MOVIE/OVA/AIRS ON
+    if (node.format === 'MOVIE') return 'FILM · SORTIE';
+    if (node.format === 'OVA') return 'OVA · SORTIE';
+    if (node.format === 'ONA') return 'ONA · SORTIE';
+    if (hasPrequel) {
+        // Compte grossier des seasons : on affiche "SUITE" plutôt que
+        // de risquer un mauvais numéro. Le vrai numéro nécessiterait
+        // de walker toute la chaîne.
+        return 'SUITE · SORTIE';
+    }
+    return 'SORTIE';
+}
+
+/**
+ * Récupère les animes d'une saison AniList (fall/winter/spring/summer).
+ * Triés par popularité descendante. Format normalisé pour les slides.
+ *
+ * @param {Object} opts
+ * @param {'WINTER'|'SPRING'|'SUMMER'|'FALL'} opts.season
+ * @param {number} opts.year
+ * @param {number} [opts.limit=24] - max animes retournés
+ */
+async function fetchAniListSeasonPreview({ season, year, limit = 24 }) {
+    const data = await anilistQuery(SEASON_PREVIEW, {
+        season,
+        seasonYear: year,
+        perPage: Math.min(limit * 2, 50), // over-fetch pour filtrer ensuite
+    });
+    const raw = data?.Page?.media || [];
+    return raw
+        .filter((m) => m.idMal && m.title)
+        .map((m) => {
+            const prequelEdge = (m.relations?.edges || []).find(
+                (e) => e.relationType === 'PREQUEL' && e.node?.type === 'ANIME',
+            );
+            const startDateObj = formatStartDate(m.startDate, m.nextAiringEpisode);
+            const currentEp = m.nextAiringEpisode?.episode || null;
+            return {
+                mal_id: m.idMal,
+                anilist_id: m.id,
+                title: m.title.english || m.title.romaji || m.title.native,
+                cover: m.coverImage?.extraLarge || m.coverImage?.large || '',
+                format: m.format, // TV/MOVIE/OVA/ONA/SPECIAL
+                studios: (m.studios?.nodes || []).map((s) => s.name),
+                popularity: m.popularity || 0,
+                favourites: m.favourites || 0,
+                averageScore: m.averageScore || null,
+                startDate: startDateObj,
+                startDateShort: shortDate(startDateObj),
+                currentEpisode: currentEp,
+                statusLabel: seasonLabel(m, !!prequelEdge, prequelEdge?.node?.seasonYear),
+                prequelScore: prequelEdge?.node?.averageScore
+                    ? Math.round(prequelEdge.node.averageScore / 10 * 10) / 10
+                    : null,
+            };
+        })
+        .slice(0, limit);
+}
+
 module.exports = {
     fetchAniListCurrentEpisode,
+    fetchAniListSeasonPreview,
 };
