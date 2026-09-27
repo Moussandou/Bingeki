@@ -625,9 +625,14 @@ export interface BuildSlidesOpts {
     partInfo?: { index: number; total: number };
 }
 
+export type SlideInputData =
+    | AnimeSlideData
+    | AnimeSlideData[]
+    | { animes: AnimeSlideData[] };
+
 export function buildSlidesHTML(
     type: PostType,
-    data: AnimeSlideData | AnimeSlideData[],
+    data: SlideInputData,
     opts: BuildSlidesOpts = {},
 ): BuiltSlide[] {
     const slides: BuiltSlide[] = [];

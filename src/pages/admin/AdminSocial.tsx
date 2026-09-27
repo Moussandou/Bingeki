@@ -16,7 +16,7 @@ import { useAuthStore } from '@/store/authStore';
 import type { PendingPost, PublishedPost, BotConfig, PostType, PostPlatforms, PostSourceAnime } from '@/shared/socialBot';
 import { POST_TYPE_LABELS, POST_TYPE_COLORS, DEFAULT_BOT_CONFIG } from '@/shared/socialBot';
 import { buildSlidesHTML } from '@/shared/socialTemplates';
-import type { AnimeSlideData } from '@/shared/socialTemplates';
+import type { AnimeSlideData, SlideInputData } from '@/shared/socialTemplates';
 import {
     subscribeToPendingPosts,
     subscribeToPublishedPosts,
@@ -85,7 +85,7 @@ const formatSchedule = (ts: number): string => {
 const animesToTemplateData = (
     type: PostType,
     animes: PostSourceAnime[],
-): AnimeSlideData | AnimeSlideData[] | { animes: AnimeSlideData[] } | null => {
+): SlideInputData | null => {
     if (!animes || animes.length === 0) return null;
     if (type === 'newseason' || type === 'announcement') return animes[0] as AnimeSlideData;
     // Le digest attend un objet { animes: [...] } (comme côté cron)

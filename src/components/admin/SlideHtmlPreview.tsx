@@ -11,12 +11,12 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { buildSlidesHTML } from '@/shared/socialTemplates';
-import type { AnimeSlideData } from '@/shared/socialTemplates';
+import type { SlideInputData } from '@/shared/socialTemplates';
 import type { PostType, SlideFormat } from '@/shared/socialBot';
 
 interface Props {
     type: PostType;
-    data: AnimeSlideData | AnimeSlideData[];
+    data: SlideInputData;
     slideIndex: number;
     format?: SlideFormat;
     partInfo?: { index: number; total: number };
