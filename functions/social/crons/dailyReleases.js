@@ -2,14 +2,10 @@
  * cron dailyReleases — 1 post carousel avec les épisodes sortis
  * dans la journée. Trigger: 10h Europe/Paris.
  *
- * Split logic when the day is busy (>8 releases):
- * - Buffer's own validation caps carousels at 10 assets for BOTH
- *   Instagram and TikTok, even though the native APIs allow more
- *   (Insta 20, TikTok 35). So intro + N animes + outro ≤ 10 → N ≤ 8
- *   on both platforms.
- * - On busy days we split the release list into chunks of 8 and create
- *   one pending post per chunk, published on BOTH platforms simultaneously
- *   ("Partie 1/N", "Partie 2/N", …).
+ * Cap: top 8 par note MAL (les mieux notés d'abord, puis les
+ * anime sans score en remplissage). Un seul post par jour, jamais
+ * splitté — Buffer plafonne les carousels à 10 assets (intro + 8
+ * animes + outro = 10), ce qui colle pile avec la limite.
  */
 
 const { onSchedule } = require('firebase-functions/v2/scheduler');
@@ -24,18 +20,8 @@ const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
-const CHUNK_SIZE = 8;
-// Hard upper bound on animes we keep for a single day. Same value for
-// Insta and TikTok since Buffer caps both at 10 assets per carousel
-// today. Bumping this to 35 (TikTok native) would only help if we ever
-// leave Buffer.
-const MAX_ANIMES_PER_DAY = 24;
-
-function chunk(arr, size) {
-    const out = [];
-    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-    return out;
-}
+// Buffer plafonne les carousels à 10 assets (intro + 8 animes + outro).
+const MAX_ANIMES_PER_DAY = 8;
 
 function normaliseAnime(a) {
     return {
@@ -44,42 +30,6 @@ function normaliseAnime(a) {
         cover: a.cover,
         currentEpisode: a.currentEpisode ?? null,
     };
-}
-
-async function buildAndCreatePost({
-    title,
-    list,
-    scheduledAt,
-    platforms,
-    config,
-    partInfo,
-}) {
-    const { caption, hashtags } = await generateCaption('daily', list, config);
-    let finalCaption = caption;
-    if (partInfo && partInfo.total > 1) {
-        // Prefix the caption so viewers immediately know it's a multi-post
-        // day. Non-last parts point to the next one; the last part just
-        // labels itself so no false "there's more" promise.
-        const isLast = partInfo.index === partInfo.total;
-        const prefix = isLast
-            ? `📚 PARTIE ${partInfo.index}/${partInfo.total} — Fin du récap du jour ✨\n\n`
-            : `📚 PARTIE ${partInfo.index}/${partInfo.total} — La suite dans notre prochain post ↓\n\n`;
-        finalCaption = `${prefix}${caption}`;
-    }
-    const slides = await renderSlides('daily', list, ['feed', 'story'], { partInfo });
-    const animeIds = list.map((a) => a.mal_id);
-    const animes = list.map(normaliseAnime);
-    const id = await createPendingPost({
-        type: 'daily',
-        scheduledAt,
-        title,
-        caption: finalCaption,
-        hashtags,
-        slides,
-        sourceData: { animeIds, animes },
-        platforms,
-    });
-    return { id, slidesCount: slides.length };
 }
 
 async function runDailyReleases() {
@@ -97,19 +47,17 @@ async function runDailyReleases() {
         }
 
         // Ordre : les mieux notés MAL d'abord (triés desc), puis les
-        // anime sans score encore (nouveaux, niches). On ne drop personne
-        // — un anime sans score peut être une pépite qui n'a juste pas
-        // encore reçu assez de votes.
+        // anime sans score en remplissage (nouveaux, niches). Top 8.
         const scored = releases
             .filter((r) => r.score && r.score > 0)
             .sort((a, b) => (b.score || 0) - (a.score || 0));
         const unscored = releases.filter((r) => !r.score || r.score <= 0);
-        const fullList = [...scored, ...unscored].slice(0, MAX_ANIMES_PER_DAY);
+        const list = [...scored, ...unscored].slice(0, MAX_ANIMES_PER_DAY);
 
-        // Dedup on the whole set — if we already covered any of these
-        // MAL ids in the last 12h, skip the whole run.
-        const allAnimeIds = fullList.map((a) => a.mal_id);
-        if (await isDuplicateRecentPost('daily', allAnimeIds, 12 * 3600_000)) {
+        // Dedup : si on a déjà couvert n'importe lequel de ces MAL ids
+        // dans les 12 dernières heures, on saute le run.
+        const animeIds = list.map((a) => a.mal_id);
+        if (await isDuplicateRecentPost('daily', animeIds, 12 * 3600_000)) {
             console.log('[social/dailyReleases] duplicate skipped');
             return { note: 'duplicate skipped' };
         }
@@ -120,45 +68,27 @@ async function runDailyReleases() {
         if (nextEvening.getTime() < Date.now()) nextEvening.setDate(nextEvening.getDate() + 1);
         const scheduledAt = nextEvening.getTime();
 
-        // ── Simple case: fits in one carousel on both platforms ──────
-        if (fullList.length <= CHUNK_SIZE) {
-            const title = `Sorties du jour · ${dateStr}`;
-            const { id, slidesCount } = await buildAndCreatePost({
-                title,
-                list: fullList,
-                scheduledAt,
-                platforms: { insta: true, tiktok: true, x: false },
-                config,
-            });
-            console.log(`[social/dailyReleases] created pending ${id} (${fullList.length} anime, single post)`);
-            await notifyPendingPost(config, { type: 'daily', title, postId: id, slidesCount });
-            return { postId: id, note: `${fullList.length} anime(s), 1 post` };
-        }
+        const { caption, hashtags } = await generateCaption('daily', list, config);
+        const slides = await renderSlides('daily', list, ['feed', 'story']);
+        const title = `Sorties du jour · ${dateStr}`;
+        const animes = list.map(normaliseAnime);
 
-        // ── Busy day: N chunks of 8, one pending per chunk on BOTH ──
-        const chunks = chunk(fullList, CHUNK_SIZE);
-        const totalParts = chunks.length;
-        const created = [];
+        const id = await createPendingPost({
+            type: 'daily',
+            scheduledAt,
+            title,
+            caption,
+            hashtags,
+            slides,
+            sourceData: { animeIds, animes },
+            platforms: { insta: true, tiktok: true, x: false },
+        });
 
-        for (let i = 0; i < chunks.length; i += 1) {
-            const partLabel = `Partie ${i + 1}/${totalParts}`;
-            const title = `Sorties du jour · ${dateStr} · ${partLabel}`;
-            const { id, slidesCount } = await buildAndCreatePost({
-                title,
-                list: chunks[i],
-                scheduledAt,
-                platforms: { insta: true, tiktok: true, x: false },
-                config,
-                partInfo: { index: i + 1, total: totalParts },
-            });
-            console.log(`[social/dailyReleases] created pending ${id} (${partLabel}, ${chunks[i].length} anime)`);
-            await notifyPendingPost(config, { type: 'daily', title, postId: id, slidesCount });
-            created.push(id);
-        }
-
+        console.log(`[social/dailyReleases] created pending ${id} (${list.length}/${releases.length} anime, top-scored)`);
+        await notifyPendingPost(config, { type: 'daily', title, postId: id, slidesCount: slides.length });
         return {
-            postId: created[0],
-            note: `${fullList.length} anime(s), ${totalParts} posts`,
+            postId: id,
+            note: `${list.length}/${releases.length} anime(s), 1 post`,
         };
     });
 }
@@ -171,9 +101,7 @@ exports.dailyReleases = onSchedule(
         retryCount: 1,
         secrets: [GEMINI_API_KEY],
         memory: '1GiB',
-        // Bump timeout because a busy day may render 3-4 posts (each
-        // ~30-60s of Puppeteer + Firebase Storage upload).
-        timeoutSeconds: 540,
+        timeoutSeconds: 300,
     },
     runDailyReleases,
 );

@@ -651,22 +651,10 @@ export function buildSlidesHTML(
         const d = Array.isArray(data) ? data[0] : data;
         const date = formatAnnouncementDate(d);
 
-        const rawSyn = (d.synopsis || '').trim();
-        const prevSyn = (d.prequel_synopsis || '').trim();
-        let synopsisText = '';
-        let synopsisSource = '';
-        if (rawSyn.length >= 100) {
-            synopsisText = rawSyn;
-        } else if (prevSyn.length >= 100) {
-            synopsisText = prevSyn;
-            synopsisSource = d.prequel_season_label
-                ? `Synopsis ${d.prequel_season_label}`
-                : 'Synopsis saison précédente';
-        } else {
-            synopsisText = rawSyn || prevSyn || '';
-        }
-
-        const total = 4;
+        // 3 slides only: hero, info, outro. Synopsis dropped — MAL only
+        // ships English stubs for upcoming sequels and Gemini translation
+        // burns free-tier quota.
+        const total = 3;
         let idx = 1;
 
         slides.push({
@@ -682,17 +670,6 @@ export function buildSlidesHTML(
                 ],
                 title: d.title,
                 subtitle: (d.studios || []).slice(0, 1).join('') || '',
-                index: idx++, total,
-            }),
-        });
-
-        slides.push({
-            name: 'synopsis',
-            html: synopsisSlide({
-                title: d.title,
-                body: synopsisText,
-                cover: d.cover,
-                source: synopsisSource,
                 index: idx++, total,
             }),
         });

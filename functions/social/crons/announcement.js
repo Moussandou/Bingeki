@@ -11,7 +11,7 @@ const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
 const { fetchUpcomingSeasons, fetchAnimeById, fetchPrequelChain, parseSeasonFromTitle } = require('../generators/jikan');
-const { generateCaption, translateSynopsisPair } = require('../generators/gemini');
+const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
 const { createPendingPost, hasBeenAnnounced, markAsAnnounced } = require('../shared/firestore');
 const { notifyPendingPost } = require('../shared/discord');
@@ -75,32 +75,12 @@ async function runAnnouncement() {
                     prequelSeasonLabel = `Saison ${prevSeasonNum || 1}`;
                 }
 
-                // MAL/Tenrai synopses are English-only. One batched Gemini
-                // call translates both the sequel's own synopsis AND the
-                // prequel fallback in a single request — halves the quota
-                // vs two calls, which matters at the 15 RPM free tier.
-                const wantSeq = (full.synopsis || '').length >= 100;
-                const wantPrev = (prequel?.synopsis || '').length >= 100;
-                let translatedSynopsis = full.synopsis || null;
-                let translatedPrequelSynopsis = prequel?.synopsis || null;
-                if (wantSeq || wantPrev) {
-                    const pair = await translateSynopsisPair(
-                        wantSeq ? full.synopsis : '',
-                        wantPrev ? prequel.synopsis : '',
-                        config,
-                    ).catch(() => ({ sequel: null, prequel: null }));
-                    if (pair.sequel) translatedSynopsis = pair.sequel;
-                    if (pair.prequel) translatedPrequelSynopsis = pair.prequel;
-                }
-
                 const enriched = {
                     ...full,
-                    synopsis: translatedSynopsis,
                     prequel_title: prequel?.title || null,
                     prequel_season_label: prequelSeasonLabel,
                     prequel_score: prequel?.score ?? null,
                     prequel_scored_by: prequel?.scored_by ?? null,
-                    prequel_synopsis: translatedPrequelSynopsis,
                 };
 
                 const { caption, hashtags } = await generateCaption('announcement', enriched, config);
@@ -122,7 +102,6 @@ async function runAnnouncement() {
                             studios: enriched.studios || [],
                             episodes: enriched.episodes ?? null,
                             score: enriched.score ?? null,
-                            synopsis: enriched.synopsis || '',
                             aired_from: enriched.aired_from ?? null,
                             aired_string: enriched.aired_string ?? null,
                             season: enriched.season ?? null,
@@ -131,7 +110,6 @@ async function runAnnouncement() {
                             prequel_season_label: enriched.prequel_season_label,
                             prequel_score: enriched.prequel_score,
                             prequel_scored_by: enriched.prequel_scored_by,
-                            prequel_synopsis: enriched.prequel_synopsis,
                         }],
                     },
                     platforms: { insta: true, tiktok: true, x: false },

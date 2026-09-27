@@ -948,31 +948,12 @@ function buildSlidesHTML(type, data, opts = {}) {
         // when it has nothing. Never fakes precision.
         const date = formatAnnouncementDate(data);
 
-        // Synopsis: prefer the sequel's if it's more than a placeholder
-        // ("Third season of X." is ~25 chars). Otherwise fall back to the
-        // previous season's synopsis, and label it as such so viewers know.
-        const rawSyn = (data.synopsis || '').trim();
-        const prevSyn = (data.prequel_synopsis || '').trim();
-        // Prefer the sequel's own synopsis when it's real content (≥100
-        // chars). Otherwise fall back to the prequel's — MAL almost never
-        // ships a fresh synopsis for upcoming sequels ("Third season of X.")
-        // and the prequel's still gives world/character context that hypes
-        // returning fans. The source tag names the exact season we're
-        // showing (user feedback: don't say "précédente", say "SAISON 2").
-        let synopsisText = '';
-        let synopsisSource = '';
-        if (rawSyn.length >= 100) {
-            synopsisText = rawSyn;
-        } else if (prevSyn.length >= 100) {
-            synopsisText = prevSyn;
-            synopsisSource = data.prequel_season_label
-                ? `Synopsis ${data.prequel_season_label}`
-                : 'Synopsis saison précédente';
-        } else {
-            synopsisText = rawSyn || prevSyn || '';
-        }
-
-        const total = 4;
+        // No synopsis slide — MAL/Tenrai only ship an English stub for
+        // upcoming sequels ("Third season of X.") and Gemini translation
+        // saturates the free-tier quota. Keeping just the 3 slides users
+        // actually engage with: hero, info (with prev season score as
+        // hero row), outro.
+        const total = 3;
         let idx = 1;
 
         slides.push({
@@ -988,17 +969,6 @@ function buildSlidesHTML(type, data, opts = {}) {
                 ],
                 title: data.title,
                 subtitle: (data.studios || []).slice(0, 1).join('') || '',
-                index: idx++, total,
-            }),
-        });
-
-        slides.push({
-            name: 'synopsis',
-            html: synopsisSlide({
-                title: data.title,
-                body: synopsisText,
-                cover: data.cover,
-                source: synopsisSource,
                 index: idx++, total,
             }),
         });
