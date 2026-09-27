@@ -173,6 +173,15 @@ async function runAnnouncement() {
 
         const soloPicks = enrichedPicks.filter(p => p.hype);
         const digestPicks = enrichedPicks.filter(p => !p.hype);
+
+        // Edge case : si le bucket digest n'a qu'1 anime, on le repasse en
+        // solo. Le format digest gaspille intro + outro pour 1 seul item
+        // et le titre du post ("Prochainement · 1 annonces") est moche.
+        if (digestPicks.length === 1) {
+            const [lone] = digestPicks.splice(0, 1);
+            soloPicks.push(lone);
+        }
+
         console.log(`[social/announcement] split: ${soloPicks.length} solo (hype), ${digestPicks.length} digest`);
 
         const created = [];
