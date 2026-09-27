@@ -244,13 +244,12 @@ export default function Feedback() {
                         >
                             {t('feedback.submit_btn')}
                         </button>
-                        {/* Onglet "Mes tickets" masqué temporairement. Reste accessible via l'URL /feedback?tab=tickets et le code du panneau ci-dessous est conservé. */}
-                        {/* <button
+                        <button
                             className={`${styles.tab} ${activeTab === 'tickets' ? styles.activeTab : ''}`}
                             onClick={() => switchTab('tickets')}
                         >
                             {t('feedback.my_tickets')}
-                        </button> */}
+                        </button>
                     </div>
                 )}
 
