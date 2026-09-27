@@ -45,7 +45,7 @@ Puis 5 hashtags.
 JSON strict :
 {"caption": "...", "hashtags": "..."}`,
 
-    favorite: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post "coup de cœur de la semaine" — TOP 3 des épisodes sortis cette semaine, notés par la communauté MyAnimeList (source : Jikan API, notes converties sur /10).
+    favorite: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post "coup de cœur de la semaine" — TOP 3 des épisodes sortis cette semaine, notés par la communauté d'anime fans.
 
 TOP 3 des épisodes :
 {{DATA}}
@@ -53,7 +53,7 @@ TOP 3 des épisodes :
 Rédige une caption (max 400 caractères) qui :
 1. Accroche façon "les 3 pépites de la semaine" (sans dire "coup de cœur", on veut du frais).
 2. Cite les 3 anime par leur nom + numéro d'épisode.
-3. Précise que les notes viennent de MAL (source communautaire de référence).
+3. Ne cite JAMAIS la source des notes (pas de "MAL", "MyAnimeList", "Jikan"). Reste focalisé sur les animes eux-mêmes.
 4. Invite à ajouter les animes à sa liste sur ${BINGEKI_URL} (l'URL doit apparaître dans la caption, obligatoire).
 
 Puis 5 hashtags avec les noms d'anime.
@@ -83,7 +83,7 @@ Anime :
 
 Rédige une caption (max 400 caractères) qui :
 1. Accroche façon "annonce officielle / prochainement".
-2. Mentionne le studio, la date si dispo, et la note de la saison précédente si donnée (comme argument d'hype).
+2. Mentionne le studio, la date si dispo, et une raison d'être hype (studio culte, source manga populaire, sequel très attendu, etc.) SANS jamais citer la source des notes (pas de "MAL", "MyAnimeList", "Jikan", "noté X/10 sur MAL").
 3. Reste HONNÊTE sur la date — si seulement l'année est connue, dis "prévu en 2027" jamais une date précise inventée.
 4. Invite à ajouter à la watchlist sur ${BINGEKI_URL} (obligatoire dans la caption).
 
@@ -100,8 +100,9 @@ Annonces (${BINGEKI_URL}) :
 Rédige une caption (max 500 caractères) qui :
 1. Accroche façon "les X annonces de la semaine à noter".
 2. Cite chaque anime par son nom une fois (bref, pas de descriptif).
-3. Reste HONNÊTE sur les dates — si seule l'année est connue, dis "prévu en 2027".
-4. Termine par une invite à ajouter à la watchlist sur ${BINGEKI_URL} (obligatoire dans la caption).
+3. Ne cite JAMAIS la source des notes (pas de "MAL", "MyAnimeList", "Jikan", "sur MAL").
+4. Reste HONNÊTE sur les dates — si seule l'année est connue, dis "prévu en 2027".
+5. Termine par une invite à ajouter à la watchlist sur ${BINGEKI_URL} (obligatoire dans la caption).
 
 Puis 5-7 hashtags : #animeannouncement + noms des animes.
 
@@ -120,7 +121,7 @@ function serializeData(type, data) {
                 const season = a.season ? ` S${a.season}` : '';
                 const ep = a.episodeNumber ? ` — Épisode ${a.episodeNumber}` : '';
                 const t = a.episodeTitle ? ` "${a.episodeTitle}"` : '';
-                return `${i + 1}. ${a.title}${season}${ep}${t} — ${a.avg}/10 sur MAL`;
+                return `${i + 1}. ${a.title}${season}${ep}${t} — noté ${a.avg}/10`;
             }).join('\n');
         case 'newseason':
             return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus${data.previousScore ? `, S1 notée ${data.previousScore}/10` : ''}`;
@@ -139,7 +140,7 @@ function serializeData(type, data) {
                     : parsed.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
             }
             const prevScoreLine = typeof data.prequel_score === 'number' && data.prequel_score > 0
-                ? `, ${data.prequel_title || 'saison précédente'} notée ${data.prequel_score}/10 sur MAL${data.prequel_scored_by ? ` (${data.prequel_scored_by.toLocaleString('fr-FR')} votes)` : ''}`
+                ? `, ${data.prequel_title || 'saison précédente'} notée ${data.prequel_score}/10${data.prequel_scored_by ? ` par ${data.prequel_scored_by.toLocaleString('fr-FR')} viewers` : ''}`
                 : '';
             return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus, sortie: ${release}${prevScoreLine}`;
         }
@@ -160,7 +161,7 @@ function serializeData(type, data) {
                         : parsed.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
                 }
                 const prev = typeof a.prequel_score === 'number' && a.prequel_score > 0
-                    ? `, ${a.prequel_season_label || 'S précédente'} notée ${a.prequel_score}/10 sur MAL`
+                    ? `, ${a.prequel_season_label || 'S précédente'} notée ${a.prequel_score}/10`
                     : '';
                 return `${i + 1}. ${a.title} — Studio: ${(a.studios || []).join(', ') || 'inconnu'}, sortie: ${release}${prev}`;
             }).join('\n');

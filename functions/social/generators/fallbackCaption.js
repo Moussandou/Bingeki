@@ -64,7 +64,7 @@ function favoriteCaption(episodes) {
         return `${['🥇', '🥈', '🥉'][i] || `${i + 1}.`} ${ep.title}${s}${num} — ${ep.avg}/10`;
     }).join('\n');
     const caption =
-        `Les 3 pépites de la semaine selon MAL :\n\n${lines}\n\n` +
+        `Les 3 pépites de la semaine selon la commu :\n\n${lines}\n\n` +
         `Ajoute-les à ta liste sur ${URL}`;
     const tags = ['#anime', '#bingeki', '#animefr', '#coupdecoeur']
         .concat(
@@ -110,8 +110,8 @@ function announcementCaption(data) {
     const releaseLabel = formatReleaseLabel(data);
     const prevScore = typeof data.prequel_score === 'number' && data.prequel_score > 0
         ? (data.prequel_title
-            ? `${data.prequel_title.slice(0, 40)} noté ${data.prequel_score}/10 sur MAL`
-            : `Saison précédente notée ${data.prequel_score}/10 sur MAL`)
+            ? `${data.prequel_title.slice(0, 40)} noté ${data.prequel_score}/10`
+            : `Saison précédente notée ${data.prequel_score}/10`)
         : '';
     const context = [
         studios ? `Studio ${studios}` : '',
