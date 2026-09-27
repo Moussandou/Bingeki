@@ -13,9 +13,9 @@ import {
     MessageSquare,
     MessageCircle, Sun, Moon, Compass,
     Newspaper,
-    ScanSearch,
+    // ScanSearch, — utilisé par le lien Lens masqué temporairement
     ShieldCheck,
-    LayoutList,
+    // LayoutList, — utilisé par le lien Tierlist masqué temporairement
     CalendarRange,
 } from 'lucide-react';
 
@@ -261,12 +261,13 @@ export function Header() {
                                     <Link to="/news" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <Newspaper size={16} /> Anime News
                                     </Link>
-                                    <Link to="/tierlist" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
+                                    {/* Tierlist + Lens masqués temporairement du menu principal — pages toujours accessibles par URL. */}
+                                    {/* <Link to="/tierlist" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <LayoutList size={16} /> {t('header.tierlist')}
                                     </Link>
                                     <Link to="/lens" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <ScanSearch size={16} /> {t('header.lens')}
-                                    </Link>
+                                    </Link> */}
                                     <Link to="/feedback" className={styles.dropdownItem} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 'bold', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem' }}>
                                         <MessageCircle size={16} /> {t('header.feedback')}
                                     </Link>
