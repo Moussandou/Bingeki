@@ -20,6 +20,17 @@
 	<string>1</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Bingeki n'utilise pas le suivi publicitaire.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Outfit-SemiBold.ttf</string>
+		<string>Outfit-Bold.ttf</string>
+		<string>Outfit-ExtraBold.ttf</string>
+		<string>Outfit-Black.ttf</string>
+		<string>Inter-Regular.ttf</string>
+		<string>Inter-Medium.ttf</string>
+		<string>Inter-SemiBold.ttf</string>
+		<string>Inter-Bold.ttf</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

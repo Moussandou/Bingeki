@@ -6,13 +6,17 @@ enum RootTab: Hashable { case home, discover, library }
 /// signed-in shell.
 struct RootView: View {
     @Environment(InMemoryAuthStore.self) private var auth
+    @AppStorage("bk.themePreference") private var themePreference = ThemePreference.system.rawValue
 
     var body: some View {
-        if auth.isSignedIn {
-            SignedInRootView()
-        } else {
-            AuthView()
+        Group {
+            if auth.isSignedIn {
+                SignedInRootView()
+            } else {
+                AuthView()
+            }
         }
+        .preferredColorScheme((ThemePreference(rawValue: themePreference) ?? .system).colorScheme)
     }
 }
 

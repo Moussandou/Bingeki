@@ -30,6 +30,7 @@ struct UserProfile: Codable, Hashable, Sendable {
     var featuredBadge: String?
 
     // Privacy / settings.
+    var profileVisibility: ProfileVisibility = .public
     var showActivityStatus: Bool = true
     var hideScores: Bool = false
     var dataSaver: Bool = false
@@ -37,6 +38,18 @@ struct UserProfile: Codable, Hashable, Sendable {
 
     var xpToNextLevel: Int { GamificationCore.xpRequired(forLevel: level) }
     var rank: String { GamificationCore.rank(forLevel: level) }
+}
+
+enum ProfileVisibility: String, Codable, CaseIterable, Sendable {
+    case `public`, friends, `private`
+
+    var label: String {
+        switch self {
+        case .public: return "Public"
+        case .friends: return "Amis"
+        case .private: return "Privé"
+        }
+    }
 }
 
 #if DEBUG

@@ -1,29 +1,44 @@
 import SwiftUI
 
 /// Typography — Outfit for display/CTA, Inter for body, mapped onto Dynamic
-/// Type styles so the system text-size setting works (§6.2 of the handoff doc).
-///
-/// Font files are not embedded yet (Phase 0 TODO): drop `Outfit-*.ttf` and
-/// `Inter-*.ttf` into `Resources/Fonts`, register them under `UIAppFonts` in
-/// Info.plist, then flip `BKFont.useCustomFonts` to `true`. Until then every
-/// style falls back to the system font at the same size/weight so the app
-/// runs and previews correctly with zero setup.
+/// Type styles so the system text-size setting works (§6.2 of the handoff
+/// doc). Both are OFL-licensed Google Fonts, embedded as static weights in
+/// `Resources/Fonts` (instantiated from the variable sources — see that
+/// folder's files) and registered via `UIAppFonts` in project.yml.
 enum BKFont {
-    static let useCustomFonts = false
+    static let useCustomFonts = true
 
-    private static func named(_ name: String, size: CGFloat, weight: Font.Weight, relativeTo style: Font.TextStyle) -> Font {
-        guard useCustomFonts else { return .system(style, design: .default, weight: weight) }
-        return .custom(name, size: size, relativeTo: style)
+    /// Nearest embedded Outfit weight for a requested `Font.Weight`
+    /// (only SemiBold/Bold/ExtraBold/Black are bundled — Outfit is used for
+    /// display text only, which never needs lighter weights).
+    private static func outfitName(for weight: Font.Weight) -> String {
+        switch weight {
+        case .black, .heavy: return "Outfit-Black"
+        case .bold: return "Outfit-Bold"
+        case .semibold, .medium, .regular: return "Outfit-SemiBold"
+        default: return "Outfit-ExtraBold"
+        }
     }
 
-    /// Display / heading face — Outfit 900, used for titles, labels, CTAs.
+    private static func interName(for weight: Font.Weight) -> String {
+        switch weight {
+        case .bold, .heavy, .black: return "Inter-Bold"
+        case .semibold: return "Inter-SemiBold"
+        case .medium: return "Inter-Medium"
+        default: return "Inter-Regular"
+        }
+    }
+
+    /// Display / heading face — Outfit, used for titles, labels, CTAs.
     static func display(_ size: CGFloat, weight: Font.Weight = .black, relativeTo style: Font.TextStyle = .headline) -> Font {
-        named("Outfit-Black", size: size, weight: weight, relativeTo: style)
+        guard useCustomFonts else { return .system(style, design: .default, weight: weight) }
+        return .custom(outfitName(for: weight), size: size, relativeTo: style)
     }
 
     /// Body face — Inter, used for everything else.
     static func body(_ size: CGFloat, weight: Font.Weight = .regular, relativeTo style: Font.TextStyle = .body) -> Font {
-        named("Inter-Regular", size: size, weight: weight, relativeTo: style)
+        guard useCustomFonts else { return .system(style, design: .default, weight: weight) }
+        return .custom(interName(for: weight), size: size, relativeTo: style)
     }
 
     // Preset styles mirroring the Design System board's type scale.

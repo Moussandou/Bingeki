@@ -34,6 +34,17 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         NSUserTrackingUsageDescription: "Bingeki n'utilise pas le suivi publicitaire."
+        # Outfit (display/CTA) + Inter (body) — OFL-licensed, instantiated as
+        # static weights from Google Fonts' variable sources. See BKFont.swift.
+        UIAppFonts:
+          - Outfit-SemiBold.ttf
+          - Outfit-Bold.ttf
+          - Outfit-ExtraBold.ttf
+          - Outfit-Black.ttf
+          - Inter-Regular.ttf
+          - Inter-Medium.ttf
+          - Inter-SemiBold.ttf
+          - Inter-Bold.ttf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bingeki.ios
