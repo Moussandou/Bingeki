@@ -6,6 +6,10 @@ struct WorkDetailView: View {
     @Environment(InMemoryLibraryStore.self) private var library
     @Environment(InMemoryUserStore.self) private var userStore
     @State private var showProgressSheet = false
+    @State private var similar: [Work] = []
+    @State private var similarState: LoadState = .loading
+
+    private enum LoadState { case loading, loaded, failed }
 
     private var current: Work { library.work(id: work.id) ?? work }
     private var inLibrary: Bool { library.work(id: work.id) != nil }
@@ -22,9 +26,11 @@ struct WorkDetailView: View {
                     }
                     .padding(.horizontal, BKSpace.screenMargin)
                 }
+                similarSection
             }
             .padding(.bottom, BKSpace.xxxl)
         }
+        .task(id: work.id) { await loadSimilar() }
         .background(BKColor.background)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showProgressSheet) {
@@ -61,6 +67,55 @@ struct WorkDetailView: View {
         }
         .padding(.horizontal, BKSpace.screenMargin)
         .padding(.top, BKSpace.md)
+    }
+
+    @ViewBuilder
+    private var similarSection: some View {
+        VStack(alignment: .leading, spacing: BKSpace.sm) {
+            Text("SIMILAIRES").font(BKFont.caption).foregroundStyle(BKColor.textSecondary)
+                .padding(.horizontal, BKSpace.screenMargin)
+
+            switch similarState {
+            case .loading:
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: BKSpace.sm) {
+                        ForEach(0..<4, id: \.self) { _ in
+                            Rectangle().fill(BKColor.surfaceTint).frame(width: 92, height: 132)
+                        }
+                    }
+                    .padding(.horizontal, BKSpace.screenMargin)
+                }
+                .redacted(reason: .placeholder)
+            case .failed:
+                Text("Indisponible pour le moment").font(.caption).foregroundStyle(BKColor.textSecondary)
+                    .padding(.horizontal, BKSpace.screenMargin)
+            case .loaded where similar.isEmpty:
+                EmptyView()
+            case .loaded:
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: BKSpace.sm) {
+                        ForEach(similar) { work in
+                            NavigationLink(value: work) {
+                                BKCover(url: work.image).frame(width: 92, height: 132)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, BKSpace.screenMargin)
+                }
+            }
+        }
+    }
+
+    private func loadSimilar() async {
+        similarState = .loading
+        do {
+            let mediaType: TenraiMediaType = current.type == .anime ? .anime : .manga
+            let response = try await TenraiClient.shared.recommendations(id: current.id, type: mediaType)
+            similar = response.data.prefix(8).map { $0.entry.asWork(mediaType: mediaType) }
+            similarState = .loaded
+        } catch {
+            similarState = .failed
+        }
     }
 
     private var progressCard: some View {

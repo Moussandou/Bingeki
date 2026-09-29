@@ -4,6 +4,7 @@ import SwiftUI
 /// `S13-Settings`). Most toggles are local `@AppStorage` placeholders until
 /// they're wired to Firestore/`UserProfile` in Phase 1.
 struct SettingsView: View {
+    @Environment(InMemoryAuthStore.self) private var auth
     @AppStorage("bk.themePreference") private var themePreference = ThemePreference.system.rawValue
     @AppStorage("bk.showActivityStatus") private var showActivityStatus = true
     @AppStorage("bk.hideScores") private var hideScores = false
@@ -44,7 +45,7 @@ struct SettingsView: View {
             Section("Compte") {
                 Label("Apple · connecté", systemImage: "applelogo")
                 Button("Ouvrir Bingeki sur le web") {}
-                Button("Se déconnecter", role: .destructive) {}
+                Button("Se déconnecter", role: .destructive) { auth.signOut() }
             }
         }
         .navigationTitle("Réglages")
@@ -66,4 +67,5 @@ enum ThemePreference: String, CaseIterable {
 
 #Preview {
     NavigationStack { SettingsView() }
+        .environment(InMemoryAuthStore(isSignedIn: true))
 }

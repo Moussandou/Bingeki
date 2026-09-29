@@ -10,9 +10,11 @@
 		03F78553DC48B4BEBC34B177 /* LibraryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D844CDCEC9739476A1EF4122 /* LibraryListView.swift */; };
 		0B6936E7DD57C29EC1CD7432 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CDD58C4F8F4ABFE30A8E791 /* UserProfile.swift */; };
 		12A3ABA08F0B91E43E517F4F /* WorkDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90CCF382A26F6F96997912EF /* WorkDetailView.swift */; };
+		1363B54FB627DEF78455D8B8 /* UserStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 466A027E7BE4508F9AF080EC /* UserStoreTests.swift */; };
 		1EBF2EC86DAE386DBDF3055D /* ProfileEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E551C9747B6F0EB468ABEB7F /* ProfileEditView.swift */; };
 		2998444F7383AF9CCD591025 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275DFD59A29607C534D0A3BA /* RootView.swift */; };
 		2DD7F159EE7E5BBBF53FE1A7 /* DiscoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC2AC0F5876ADA35BA3EA514 /* DiscoverView.swift */; };
+		4697D989B05E33EBB483B295 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E63E1AEA54A14396C58777D1 /* AuthView.swift */; };
 		4FC811575130D8AF8FC5382A /* UserStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA125CA09008DC97580F50C /* UserStore.swift */; };
 		6525D0F7F725CAB6A84E822D /* BKToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF947D1A39A04E30C9613EC0 /* BKToast.swift */; };
 		66D508A252C200D6300CB417 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 727DA32165C8E7E06D657EBB /* Assets.xcassets */; };
@@ -28,6 +30,7 @@
 		B4C55D88D5FAF70755684CA1 /* TenraiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45BF3B49B9F409F61247A973 /* TenraiClient.swift */; };
 		CF24D79A0A085CE82AD551EC /* BKContentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750164EF586FFAEAC9D04EFD /* BKContentCard.swift */; };
 		CFF22921787C7608F59CF706 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8239D0FC38D55CFE6C39EB2 /* SearchView.swift */; };
+		D50944E2F5D7708103B329CA /* BKLevelUpOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 478A124F52385B8D794D141A /* BKLevelUpOverlay.swift */; };
 		DC940C9D903A185472BB909D /* BKButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460C7C62494A090944AE38EE /* BKButton.swift */; };
 		E4171124B6E85B956D46C0D3 /* ProgressSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8712A278CBF747AA96DD10 /* ProgressSheetView.swift */; };
 		E479F6C1EF060BE5662AB0E4 /* GamificationCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */; };
@@ -56,6 +59,8 @@
 		4058CC921BB6C9FCB4120C00 /* Work.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Work.swift; sourceTree = "<group>"; };
 		45BF3B49B9F409F61247A973 /* TenraiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TenraiClient.swift; sourceTree = "<group>"; };
 		460C7C62494A090944AE38EE /* BKButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKButton.swift; sourceTree = "<group>"; };
+		466A027E7BE4508F9AF080EC /* UserStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserStoreTests.swift; sourceTree = "<group>"; };
+		478A124F52385B8D794D141A /* BKLevelUpOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKLevelUpOverlay.swift; sourceTree = "<group>"; };
 		727DA32165C8E7E06D657EBB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		750164EF586FFAEAC9D04EFD /* BKContentCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKContentCard.swift; sourceTree = "<group>"; };
 		767AE4DAD1B0204CB56CF764 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
@@ -75,6 +80,7 @@
 		E1FC8A6950C2AF46DE36E321 /* BKColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKColor.swift; sourceTree = "<group>"; };
 		E2FB04EB2F9CA6D488A55404 /* BrowseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseView.swift; sourceTree = "<group>"; };
 		E551C9747B6F0EB468ABEB7F /* ProfileEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileEditView.swift; sourceTree = "<group>"; };
+		E63E1AEA54A14396C58777D1 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		EC2AC0F5876ADA35BA3EA514 /* DiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverView.swift; sourceTree = "<group>"; };
 		F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationCoreTests.swift; sourceTree = "<group>"; };
 		F7D3648604BD3F65C6FAEE3E /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
@@ -109,6 +115,14 @@
 				FDBAF641D0652E141CCDC52F /* TenraiModels.swift */,
 			);
 			path = Networking;
+			sourceTree = "<group>";
+		};
+		16ADC42679804EEB5EC7B523 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				E63E1AEA54A14396C58777D1 /* AuthView.swift */,
+			);
+			path = Auth;
 			sourceTree = "<group>";
 		};
 		17640EE328AC4C03A1C3FFF7 /* Discover */ = {
@@ -149,6 +163,7 @@
 		66DFD3FED210E653722C6AAC /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				16ADC42679804EEB5EC7B523 /* Auth */,
 				17640EE328AC4C03A1C3FFF7 /* Discover */,
 				A691CA119120EA9D433AB09A /* Home */,
 				99700FB9796A4967CA639440 /* Library */,
@@ -177,6 +192,7 @@
 			isa = PBXGroup;
 			children = (
 				F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */,
+				466A027E7BE4508F9AF080EC /* UserStoreTests.swift */,
 			);
 			path = BingekiTests;
 			sourceTree = "<group>";
@@ -242,6 +258,7 @@
 			children = (
 				460C7C62494A090944AE38EE /* BKButton.swift */,
 				750164EF586FFAEAC9D04EFD /* BKContentCard.swift */,
+				478A124F52385B8D794D141A /* BKLevelUpOverlay.swift */,
 				FF947D1A39A04E30C9613EC0 /* BKToast.swift */,
 			);
 			path = Components;
@@ -361,6 +378,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E479F6C1EF060BE5662AB0E4 /* GamificationCoreTests.swift in Sources */,
+				1363B54FB627DEF78455D8B8 /* UserStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -368,10 +386,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4697D989B05E33EBB483B295 /* AuthView.swift in Sources */,
 				DC940C9D903A185472BB909D /* BKButton.swift in Sources */,
 				7FE133365B93CB8C6EE81E43 /* BKColor.swift in Sources */,
 				CF24D79A0A085CE82AD551EC /* BKContentCard.swift in Sources */,
 				E4F0A9C7EE658C66B1FF5EB5 /* BKFont.swift in Sources */,
+				D50944E2F5D7708103B329CA /* BKLevelUpOverlay.swift in Sources */,
 				853AA27AD6A097C1F6D342B3 /* BKMetrics.swift in Sources */,
 				6525D0F7F725CAB6A84E822D /* BKToast.swift in Sources */,
 				84EE4A22BA6463460A3159A7 /* Badge.swift in Sources */,

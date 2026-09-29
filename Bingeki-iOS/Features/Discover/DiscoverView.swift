@@ -78,6 +78,18 @@ struct DiscoverFeedView: View {
             }
             .padding(BKSpace.lg)
 
+            // "Déjà dans ta bibliothèque" — states board #9: the feed still
+            // shows a followed title, but the action becomes contextual.
+            if let existing = library.work(id: work.id) {
+                Label("DANS TA BIBLIO · \(existing.status.label.uppercased())", systemImage: "checkmark")
+                    .font(BKFont.display(11))
+                    .padding(.horizontal, 8).padding(.vertical, 5)
+                    .foregroundStyle(.black)
+                    .background(BKColor.greenText)
+                    .padding(BKSpace.md)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+
             if interactive {
                 HStack {
                     swipeStamp("PASSER", visible: dragOffset.width < -40, color: .white)
