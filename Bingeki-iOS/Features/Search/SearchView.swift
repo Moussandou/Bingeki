@@ -6,7 +6,7 @@ import SwiftUI
 /// direction (A + B combined).
 struct SearchView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(InMemoryLibraryStore.self) private var library
+    @Environment(\.libraryStore) private var library
     @Environment(ToastCenter.self) private var toasts
 
     @State private var query = ""
@@ -95,6 +95,6 @@ struct SearchView: View {
 
 #Preview {
     SearchView()
-        .environment(InMemoryLibraryStore.preview)
+        .environment(\.libraryStore, InMemoryLibraryStore.preview)
         .environment(ToastCenter())
 }

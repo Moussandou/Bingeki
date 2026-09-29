@@ -5,8 +5,8 @@ import SwiftUI
 /// "Save": every change applies directly to the store; "Fermer" just dismisses.
 struct ProfileEditView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(InMemoryUserStore.self) private var userStore
-    @Environment(InMemoryLibraryStore.self) private var library
+    @Environment(\.userStore) private var userStore
+    @Environment(\.libraryStore) private var library
     @State private var tab: Tab = .colors
 
     private enum Tab: String, CaseIterable {
@@ -142,6 +142,6 @@ struct ProfileEditView: View {
 
 #Preview {
     ProfileEditView()
-        .environment(InMemoryUserStore.preview)
-        .environment(InMemoryLibraryStore.preview)
+        .environment(\.userStore, InMemoryUserStore.preview)
+        .environment(\.libraryStore, InMemoryLibraryStore.preview)
 }

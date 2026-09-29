@@ -1,7 +1,10 @@
 import Foundation
 
 /// Mirrors `UserProfile` in `src/firebase/users.ts` (fields relevant to the
-/// MVP only — social fields like `isAdmin`/friends stay server-side).
+/// MVP only — social fields like `isAdmin`/friends/`badges` stay
+/// server-managed and are deliberately absent here, see
+/// `FirebaseUserStore`'s doc comment on why writes must never `setDoc` this
+/// whole struct).
 struct UserProfile: Codable, Hashable, Sendable {
     var uid: String
     var displayName: String?
@@ -49,6 +52,55 @@ enum ProfileVisibility: String, Codable, CaseIterable, Sendable {
         case .friends: return "Amis"
         case .private: return "Privé"
         }
+    }
+}
+
+// MARK: - Defensive decoding
+
+extension UserProfile {
+    private enum CodingKeys: String, CodingKey {
+        case uid, displayName, photoURL, xp, level, totalXp, bonusXp, streak
+        case totalChaptersRead, totalAnimeEpisodesWatched, totalMoviesWatched
+        case totalWorksAdded, totalWorksCompleted
+        case banner, bannerPosition, bio, themeColor, cardBgColor, borderColor
+        case top3Favorites, featuredBadge
+        case profileVisibility, showActivityStatus, hideScores, dataSaver, nsfwMode
+    }
+
+    /// Every field but `uid` is read with `decodeIfPresent` + a fallback —
+    /// a Firestore doc written by `saveUserProfileToFirestore`'s
+    /// `allowedFields` allowlist on web can genuinely be missing any of
+    /// these keys, and the synthesized `Decodable` would otherwise throw
+    /// "key not found" on a non-Optional property even though it has a
+    /// default value (defaults only help the memberwise initializer).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        uid = try c.decode(String.self, forKey: .uid)
+        displayName = try c.decodeIfPresent(String.self, forKey: .displayName)
+        photoURL = try c.decodeIfPresent(URL.self, forKey: .photoURL)
+        xp = try c.decodeIfPresent(Int.self, forKey: .xp) ?? 0
+        level = try c.decodeIfPresent(Int.self, forKey: .level) ?? 1
+        totalXp = try c.decodeIfPresent(Int.self, forKey: .totalXp) ?? 0
+        bonusXp = try c.decodeIfPresent(Int.self, forKey: .bonusXp) ?? 0
+        streak = try c.decodeIfPresent(Int.self, forKey: .streak) ?? 0
+        totalChaptersRead = try c.decodeIfPresent(Int.self, forKey: .totalChaptersRead) ?? 0
+        totalAnimeEpisodesWatched = try c.decodeIfPresent(Int.self, forKey: .totalAnimeEpisodesWatched) ?? 0
+        totalMoviesWatched = try c.decodeIfPresent(Int.self, forKey: .totalMoviesWatched) ?? 0
+        totalWorksAdded = try c.decodeIfPresent(Int.self, forKey: .totalWorksAdded) ?? 0
+        totalWorksCompleted = try c.decodeIfPresent(Int.self, forKey: .totalWorksCompleted) ?? 0
+        banner = try c.decodeIfPresent(String.self, forKey: .banner)
+        bannerPosition = try c.decodeIfPresent(String.self, forKey: .bannerPosition)
+        bio = try c.decodeIfPresent(String.self, forKey: .bio)
+        themeColor = try c.decodeIfPresent(String.self, forKey: .themeColor) ?? "#FF2E63"
+        cardBgColor = try c.decodeIfPresent(String.self, forKey: .cardBgColor) ?? "#0F1424"
+        borderColor = try c.decodeIfPresent(String.self, forKey: .borderColor) ?? "#000000"
+        top3Favorites = try c.decodeIfPresent([String].self, forKey: .top3Favorites) ?? []
+        featuredBadge = try c.decodeIfPresent(String.self, forKey: .featuredBadge)
+        profileVisibility = try c.decodeIfPresent(ProfileVisibility.self, forKey: .profileVisibility) ?? .public
+        showActivityStatus = try c.decodeIfPresent(Bool.self, forKey: .showActivityStatus) ?? true
+        hideScores = try c.decodeIfPresent(Bool.self, forKey: .hideScores) ?? false
+        dataSaver = try c.decodeIfPresent(Bool.self, forKey: .dataSaver) ?? false
+        nsfwMode = try c.decodeIfPresent(Bool.self, forKey: .nsfwMode) ?? false
     }
 }
 

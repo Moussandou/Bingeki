@@ -4,8 +4,8 @@ enum ProfileRoute: Hashable { case main, settings }
 
 /// Profil — Hunter License card + Profil Nen radar + stats (board `S09-Profile`).
 struct ProfileView: View {
-    @Environment(InMemoryUserStore.self) private var userStore
-    @Environment(InMemoryLibraryStore.self) private var library
+    @Environment(\.userStore) private var userStore
+    @Environment(\.libraryStore) private var library
     @State private var showEditor = false
 
     var body: some View {
@@ -242,7 +242,7 @@ extension Color {
 #Preview {
     NavigationStack {
         ProfileView()
-            .environment(InMemoryUserStore.preview)
-            .environment(InMemoryLibraryStore.preview)
+            .environment(\.userStore, InMemoryUserStore.preview)
+            .environment(\.libraryStore, InMemoryLibraryStore.preview)
     }
 }

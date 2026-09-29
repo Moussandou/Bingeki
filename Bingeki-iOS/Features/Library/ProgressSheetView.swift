@@ -6,8 +6,8 @@ import SwiftUI
 struct ProgressSheetView: View {
     let work: Work
     @Environment(\.dismiss) private var dismiss
-    @Environment(InMemoryLibraryStore.self) private var library
-    @Environment(InMemoryUserStore.self) private var userStore
+    @Environment(\.libraryStore) private var library
+    @Environment(\.userStore) private var userStore
     @State private var showRatingSheet = false
 
     private var current: Work { library.work(id: work.id) ?? work }
@@ -113,7 +113,7 @@ struct ProgressSheetView: View {
 private struct RatingSheetView: View {
     let work: Work
     @Environment(\.dismiss) private var dismiss
-    @Environment(InMemoryLibraryStore.self) private var library
+    @Environment(\.libraryStore) private var library
 
     var body: some View {
         VStack(spacing: BKSpace.lg) {
@@ -141,6 +141,6 @@ private struct RatingSheetView: View {
 
 #Preview {
     ProgressSheetView(work: .sampleOnePiece)
-        .environment(InMemoryLibraryStore.preview)
-        .environment(InMemoryUserStore.preview)
+        .environment(\.libraryStore, InMemoryLibraryStore.preview)
+        .environment(\.userStore, InMemoryUserStore.preview)
 }

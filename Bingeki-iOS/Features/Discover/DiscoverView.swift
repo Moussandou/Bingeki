@@ -28,8 +28,8 @@ struct DiscoverView: View {
 /// Swipeable deck: drag right → add to "À voir", drag left → pass, drag up
 /// → skip without deciding (board *ExploreDiscover*, concept B×A).
 struct DiscoverFeedView: View {
-    @Environment(InMemoryLibraryStore.self) private var library
-    @Environment(InMemoryUserStore.self) private var userStore
+    @Environment(\.libraryStore) private var library
+    @Environment(\.userStore) private var userStore
     @Environment(ToastCenter.self) private var toasts
     @Environment(DiscoverDeck.self) private var deck
 
@@ -230,8 +230,8 @@ final class DiscoverDeck {
 
 #Preview {
     DiscoverView()
-        .environment(InMemoryLibraryStore.preview)
-        .environment(InMemoryUserStore.preview)
+        .environment(\.libraryStore, InMemoryLibraryStore.preview)
+        .environment(\.userStore, InMemoryUserStore.preview)
         .environment(ToastCenter())
         .environment(DiscoverDeck(pool: Work.sampleLibrary))
 }

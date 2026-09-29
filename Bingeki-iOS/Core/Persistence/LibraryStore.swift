@@ -11,6 +11,15 @@ protocol LibraryStoring: AnyObject {
     func work(id: String) -> Work?
 }
 
+extension LibraryStoring {
+    /// Works with a given status, most recently updated first — the
+    /// "Reprendre"/library-tab sort everywhere in the app.
+    func works(status: WorkStatus) -> [Work] {
+        works.filter { $0.status == status }
+            .sorted { ($0.lastUpdated ?? .distantPast) > ($1.lastUpdated ?? .distantPast) }
+    }
+}
+
 /// Local, in-memory store used until Firestore sync lands (Phase 1, §8.2 of
 /// the handoff doc). Seeded with sample data outside of tests so the app is
 /// immediately explorable.
@@ -37,11 +46,6 @@ final class InMemoryLibraryStore: LibraryStoring {
 
     func work(id: String) -> Work? {
         works.first { $0.id == id }
-    }
-
-    func works(status: WorkStatus) -> [Work] {
-        works.filter { $0.status == status }
-            .sorted { ($0.lastUpdated ?? .distantPast) > ($1.lastUpdated ?? .distantPast) }
     }
 }
 

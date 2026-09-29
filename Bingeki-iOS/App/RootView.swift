@@ -5,13 +5,13 @@ enum RootTab: Hashable { case home, discover, library }
 /// Branches on auth state (§5.1 of the handoff doc) before showing the
 /// signed-in shell.
 struct RootView: View {
-    @Environment(InMemoryAuthStore.self) private var auth
+    @Environment(\.authStore) private var auth
     @AppStorage("bk.themePreference") private var themePreference = ThemePreference.system.rawValue
 
     var body: some View {
         Group {
-            if auth.isSignedIn {
-                SignedInRootView()
+            if auth.isSignedIn, let uid = auth.uid {
+                SignedInRootView(uid: uid)
             } else {
                 AuthView()
             }
@@ -23,10 +23,24 @@ struct RootView: View {
 /// 3 tabs + a floating search button, thumb-reachable at the bottom right —
 /// direction B from board `02 · MVP & navigation`. Search sits outside the
 /// `TabView` on purpose: it's an action, not a destination.
+///
+/// Owns the account-scoped stores: constructed fresh per `uid`, so signing
+/// out and back in as a different account (or Firestore simply not having
+/// synced yet) never leaks the previous account's data — `RootView` throws
+/// this whole subtree away and rebuilds it whenever `uid` changes, since
+/// `uid` drives `SignedInRootView`'s own SwiftUI identity here.
 private struct SignedInRootView: View {
-    @Environment(InMemoryUserStore.self) private var userStore
+    let uid: String
+    @State private var library: any LibraryStoring
+    @State private var userStore: any UserStoring
     @State private var selectedTab: RootTab = .home
     @State private var showSearch = false
+
+    init(uid: String) {
+        self.uid = uid
+        _library = State(initialValue: FirebaseLibraryStore(uid: uid))
+        _userStore = State(initialValue: FirebaseUserStore(uid: uid))
+    }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -69,6 +83,8 @@ private struct SignedInRootView: View {
             .padding(.bottom, 90) // clears the system tab bar
             .accessibilityLabel("Rechercher")
         }
+        .environment(\.libraryStore, library)
+        .environment(\.userStore, userStore)
         .sheet(isPresented: $showSearch) { SearchView() }
         .overlay { BKToastOverlay() }
         .overlay {
@@ -78,13 +94,13 @@ private struct SignedInRootView: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: userStore.recentLevelUp)
+        .id(uid)
     }
 }
 
 #Preview {
     RootView()
-        .environment(InMemoryLibraryStore.preview)
-        .environment(InMemoryUserStore.preview)
+        .environment(\.authStore, InMemoryAuthStore(isSignedIn: true))
         .environment(ToastCenter())
         .environment(DiscoverDeck(pool: Work.sampleLibrary))
 }

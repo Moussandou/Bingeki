@@ -3,8 +3,8 @@ import SwiftUI
 /// Bibliothèque — status chips + rows, `+1` on the row for the dominant
 /// case, tap opens the progress sheet for jumps (board `S07-Library`).
 struct LibraryListView: View {
-    @Environment(InMemoryLibraryStore.self) private var library
-    @Environment(InMemoryUserStore.self) private var userStore
+    @Environment(\.libraryStore) private var library
+    @Environment(\.userStore) private var userStore
     @State private var filter: WorkStatus = .reading
     @State private var sheetWork: Work?
 
@@ -86,7 +86,7 @@ private struct LibraryRow: View {
 #Preview {
     NavigationStack {
         LibraryListView()
-            .environment(InMemoryLibraryStore.preview)
-            .environment(InMemoryUserStore.preview)
+            .environment(\.libraryStore, InMemoryLibraryStore.preview)
+            .environment(\.userStore, InMemoryUserStore.preview)
     }
 }

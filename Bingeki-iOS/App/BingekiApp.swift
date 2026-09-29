@@ -1,22 +1,26 @@
+import FirebaseCore
 import SwiftUI
 
 @main
 struct BingekiApp: App {
-    // Phase 0 stores are in-memory; Phase 1 swaps these for Firebase-backed
-    // implementations behind the same `LibraryStoring`/`UserStoring`
-    // protocols — no call site elsewhere needs to change.
-    @State private var auth = InMemoryAuthStore()
-    @State private var library = InMemoryLibraryStore(seed: Work.sampleLibrary)
-    @State private var userStore = InMemoryUserStore(profile: .sample)
+    // `authStore` is the one store that exists before anyone is signed in.
+    // `libraryStore`/`userStore` need a uid, so `SignedInRootView`
+    // constructs the real Firebase-backed ones itself once `auth.uid` is
+    // known — see EnvironmentKeys.swift's doc comment for why this couldn't
+    // just be `@Environment(SomeConcreteType.self)` everywhere.
+    @State private var auth: any AuthProviding
     @State private var toasts = ToastCenter()
     @State private var deck = DiscoverDeck(pool: Work.sampleLibrary)
+
+    init() {
+        FirebaseApp.configure()
+        _auth = State(initialValue: FirebaseAuthStore())
+    }
 
     var body: some Scene {
         WindowGroup {
             RootView()
-                .environment(auth)
-                .environment(library)
-                .environment(userStore)
+                .environment(\.authStore, auth)
                 .environment(toasts)
                 .environment(deck)
         }

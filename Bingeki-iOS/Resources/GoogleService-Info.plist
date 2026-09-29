@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>1079885506084-uptte5s804ugcor57jsqrplonv98ebl9.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.1079885506084-uptte5s804ugcor57jsqrplonv98ebl9</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDdWa2BsxYkf0-TEa4PvYXaRJpDMm6BfYs</string>
+	<key>GCM_SENDER_ID</key>
+	<string>1079885506084</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.bingeki.ios</string>
+	<key>PROJECT_ID</key>
+	<string>bingeki</string>
+	<key>STORAGE_BUCKET</key>
+	<string>bingeki.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:1079885506084:ios:ab552f551bf3ed03a3dab1</string>
+</dict>
+</plist>

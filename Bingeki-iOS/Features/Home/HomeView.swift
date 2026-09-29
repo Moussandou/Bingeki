@@ -3,8 +3,8 @@ import SwiftUI
 /// Accueil — "Reprendre" first, then "À voir ensuite", then a teaser into
 /// Discover. Mirrors board `S01-Home` on the mockup canvas.
 struct HomeView: View {
-    @Environment(InMemoryLibraryStore.self) private var library
-    @Environment(InMemoryUserStore.self) private var userStore
+    @Environment(\.libraryStore) private var library
+    @Environment(\.userStore) private var userStore
     @Binding var selectedTab: RootTab
 
     private var reading: [Work] { library.works(status: .reading) }
@@ -228,7 +228,7 @@ private struct LevelAvatar: View {
 #Preview {
     NavigationStack {
         HomeView(selectedTab: .constant(.home))
-            .environment(InMemoryLibraryStore.preview)
-            .environment(InMemoryUserStore.preview)
+            .environment(\.libraryStore, InMemoryLibraryStore.preview)
+            .environment(\.userStore, InMemoryUserStore.preview)
     }
 }

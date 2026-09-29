@@ -3,8 +3,8 @@ import SwiftUI
 /// Fiche œuvre — the one screen pushed from anywhere, board `S06-Work`.
 struct WorkDetailView: View {
     let work: Work
-    @Environment(InMemoryLibraryStore.self) private var library
-    @Environment(InMemoryUserStore.self) private var userStore
+    @Environment(\.libraryStore) private var library
+    @Environment(\.userStore) private var userStore
     @State private var showProgressSheet = false
     @State private var similar: [Work] = []
     @State private var similarState: LoadState = .loading
@@ -149,7 +149,7 @@ struct WorkDetailView: View {
 #Preview {
     NavigationStack {
         WorkDetailView(work: .sampleFrieren)
-            .environment(InMemoryLibraryStore.preview)
-            .environment(InMemoryUserStore.preview)
+            .environment(\.libraryStore, InMemoryLibraryStore.preview)
+            .environment(\.userStore, InMemoryUserStore.preview)
     }
 }

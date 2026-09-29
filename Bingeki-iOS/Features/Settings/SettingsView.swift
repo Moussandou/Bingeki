@@ -6,8 +6,8 @@ import SwiftUI
 /// notification permissions are device-local, so `@AppStorage` is correct
 /// for those.
 struct SettingsView: View {
-    @Environment(InMemoryAuthStore.self) private var auth
-    @Environment(InMemoryUserStore.self) private var userStore
+    @Environment(\.authStore) private var auth
+    @Environment(\.userStore) private var userStore
     @AppStorage("bk.themePreference") private var themePreference = ThemePreference.system.rawValue
     @AppStorage("bk.episodeNotifications") private var episodeNotifications = true
     @AppStorage("bk.streakReminders") private var streakReminders = true
@@ -48,7 +48,7 @@ struct SettingsView: View {
             Section("Compte") {
                 Label("Apple · connecté", systemImage: "applelogo")
                 Button("Ouvrir Bingeki sur le web") {}
-                Button("Se déconnecter", role: .destructive) { auth.signOut() }
+                Button("Se déconnecter", role: .destructive) { try? auth.signOut() }
             }
         }
         .navigationTitle("Réglages")
@@ -91,6 +91,6 @@ enum ThemePreference: String, CaseIterable {
 
 #Preview {
     NavigationStack { SettingsView() }
-        .environment(InMemoryAuthStore(isSignedIn: true))
-        .environment(InMemoryUserStore.preview)
+        .environment(\.authStore, InMemoryAuthStore(isSignedIn: true))
+        .environment(\.userStore, InMemoryUserStore.preview)
 }

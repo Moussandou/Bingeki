@@ -5,7 +5,7 @@ import SwiftUI
 struct BrowseView: View {
     @State private var seasonal: [Work] = []
     @State private var isLoading = true
-    @Environment(InMemoryLibraryStore.self) private var library
+    @Environment(\.libraryStore) private var library
     @Environment(ToastCenter.self) private var toasts
 
     private let columns = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]

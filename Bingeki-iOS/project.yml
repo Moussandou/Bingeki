@@ -13,6 +13,14 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
 
+packages:
+  # Same "bingeki" Firebase project as the web app (Firestore/Auth/Storage
+  # are shared across every app registered in a project) — §8 of the
+  # handoff doc.
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: 12.4.0
+
 targets:
   Bingeki:
     type: application
@@ -51,6 +59,16 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         DEVELOPMENT_ASSET_PATHS: "\"Preview Content\""
         ENABLE_PREVIEWS: YES
+        CODE_SIGN_ENTITLEMENTS: Resources/Bingeki.entitlements
+    dependencies:
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseFunctions
+      - package: Firebase
+        product: FirebaseMessaging
     scheme:
       testTargets:
         - BingekiTests
