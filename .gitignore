@@ -68,3 +68,11 @@ design-artifacts/
 
 #superpowers
 .superpowers/
+
+# Xcode (Bingeki-iOS)
+Bingeki-iOS/**/xcuserdata/
+Bingeki-iOS/**/*.xcuserstate
+Bingeki-iOS/DerivedData/
+Bingeki-iOS/.build/
+Bingeki-iOS/*.xcresult
+.DS_Store
