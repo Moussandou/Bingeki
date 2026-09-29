@@ -11,7 +11,7 @@ import SwiftUI
 /// credential (`OAuthProvider.appleCredential`); `InMemoryAuthStore` ignores
 /// them entirely.
 struct AuthCredential: Sendable {
-    enum Provider: String, Sendable { case apple, google }
+    enum Provider: String, Sendable { case apple, google, anonymous }
     var provider: Provider
     var userIdentifier: String
     var displayName: String?
@@ -130,6 +130,25 @@ struct AuthView: View {
                 if let errorMessage {
                     Text(errorMessage).font(.caption).foregroundStyle(.red)
                 }
+
+                #if DEBUG
+                // Sign in with Apple needs a paid Apple Developer Team bound
+                // to this project (DEVELOPMENT_TEAM isn't set — see
+                // project.yml) to actually complete on Simulator; this uses
+                // Firebase's real Anonymous Auth provider so the rest of the
+                // app is reachable without one. Requires the "Anonymous"
+                // sign-in method enabled once in the Firebase console
+                // (console.firebase.google.com/project/bingeki/authentication/providers).
+                Button {
+                    Task { await attempt(AuthCredential(provider: .anonymous, userIdentifier: UUID().uuidString)) }
+                } label: {
+                    Text("Continuer sans compte (dev)")
+                        .font(.footnote.weight(.semibold))
+                        .underline()
+                }
+                .foregroundStyle(BKColor.textSecondary)
+                .disabled(isSigningIn)
+                #endif
             }
             .padding(.horizontal, BKSpace.screenMargin)
             .padding(.bottom, BKSpace.xxxl)

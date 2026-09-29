@@ -40,6 +40,13 @@ final class FirebaseAuthStore: AuthProviding {
             _ = try await Auth.auth().signIn(with: firebaseCredential)
         case .google:
             throw AuthError.providerNotYetSupported("Google Sign-In")
+        case .anonymous:
+            // Real Firebase Anonymous Auth, not a local fake — a genuine
+            // uid, usable with the same Firestore rules as any other
+            // provider. Needs "Anonymous" enabled once in the Firebase
+            // console (Authentication → Sign-in method); throws
+            // `operation-not-allowed` until then, surfaced as-is below.
+            _ = try await Auth.auth().signInAnonymously()
         }
     }
 
