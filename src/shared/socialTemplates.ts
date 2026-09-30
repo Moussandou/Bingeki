@@ -195,6 +195,24 @@ const CSS = `
     .sp-hero-brand { position: absolute; left: 60px; bottom: 60px; font-family: 'Outfit'; font-weight: 900; font-size: 42px; color: #000; letter-spacing: -1px; z-index: 5; }
     .sp-hero-brand::before { content: '★ '; color: ${ROSE}; }
     .sp-hero-swipe { position: absolute; right: 60px; bottom: 60px; font-family: 'Outfit'; font-weight: 900; font-size: 34px; color: #444; letter-spacing: 5px; z-index: 5; }
+
+    /* Culture News */
+    .cn-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: #0a0a0a; display: grid; grid-template-rows: 55% 45%; }
+    .cn-media { position: relative; overflow: hidden; background: #000; border-bottom: 8px solid var(--cat-accent, ${ROSE}); }
+    .cn-media-fallback { position: absolute; inset: 0; z-index: 0; background: linear-gradient(135deg, #1a1a1a 0%, var(--cat-accent, ${ROSE}) 100%); }
+    .cn-media-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+    .cn-media-scrim { position: absolute; inset: 0; z-index: 2; background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.35) 100%); }
+    .cn-halftone { position: absolute; inset: 0; opacity: 0.08; pointer-events: none; z-index: 3; background-image: radial-gradient(#fff 2.5px, transparent 3.5px); background-size: 40px 40px; }
+    .cn-cat { position: absolute; top: 40px; left: 40px; z-index: 6; display: inline-flex; align-items: center; border: 6px solid #000; padding: 14px 28px; font-family: 'Outfit'; font-weight: 900; font-size: 34px; letter-spacing: 5px; text-transform: uppercase; line-height: 1; background: var(--cat-accent, ${ROSE}); color: var(--cat-fg, #fff); box-shadow: 10px 10px 0 #000; transform: rotate(-2deg); }
+    .cn-source { position: absolute; top: 40px; right: 40px; z-index: 6; display: inline-flex; align-items: center; background: rgba(0,0,0,0.75); color: #fff; border: 3px solid #fff; padding: 8px 16px; font-family: 'Inter'; font-weight: 600; font-size: 22px; letter-spacing: 1px; text-transform: uppercase; }
+    .cn-panel { position: relative; background: #0a0a0a; padding: 48px 60px 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; overflow: hidden; }
+    .cn-panel-halftone { position: absolute; inset: 0; opacity: 0.06; pointer-events: none; background-image: radial-gradient(#fff 2px, transparent 3px); background-size: 28px 28px; }
+    .cn-title { position: relative; z-index: 2; font-family: 'Outfit'; font-weight: 900; font-size: 74px; line-height: 0.94; letter-spacing: -2.5px; text-transform: uppercase; color: #fff; overflow-wrap: break-word; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .cn-desc { position: relative; z-index: 2; font-family: 'Inter'; font-weight: 500; font-size: 30px; line-height: 1.3; color: #cfcfcf; letter-spacing: -0.2px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .cn-footer { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; border-top: 4px solid var(--cat-accent, ${ROSE}); padding-top: 18px; }
+    .cn-brand { font-family: 'Outfit'; font-weight: 900; font-size: 34px; color: #fff; letter-spacing: -0.5px; }
+    .cn-brand::before { content: '★ '; color: var(--cat-accent, ${ROSE}); }
+    .cn-tag { font-family: 'Outfit'; font-weight: 900; font-size: 22px; color: #888; letter-spacing: 4px; text-transform: uppercase; }
 `;
 
 type BadgeVariant = 'chip-dark' | 'chip-rose' | 'chip-cyan' | 'chip-white';
@@ -764,6 +782,50 @@ export interface BuildSlidesOpts {
     partInfo?: { index: number; total: number };
 }
 
+export type CultureNewsCategory = 'game' | 'movie' | 'goodies' | 'industry' | 'event' | 'other';
+export const CULTURE_CATEGORIES: Record<CultureNewsCategory, { label: string; accent: string; fg: string }> = {
+    game:     { label: 'Jeu · Actu',   accent: '#FF2E63', fg: '#fff' },
+    movie:    { label: 'Film · Actu',  accent: '#7C3AED', fg: '#fff' },
+    goodies:  { label: 'Goodies',      accent: '#08D9D6', fg: '#000' },
+    industry: { label: 'Industrie',    accent: '#FBBF24', fg: '#000' },
+    event:    { label: 'Événement',    accent: '#FB923C', fg: '#000' },
+    other:    { label: 'Actu Anime',   accent: '#FF2E63', fg: '#fff' },
+};
+
+export interface CultureNewsInput {
+    category: CultureNewsCategory;
+    title: string;
+    description?: string;
+    imageUrl?: string;
+    source?: string;
+}
+
+export function cultureNewsSlide(d: CultureNewsInput): string {
+    const cat = CULTURE_CATEGORIES[d.category] || CULTURE_CATEGORIES.other;
+    const styleVars = `--cat-accent: ${cat.accent}; --cat-fg: ${cat.fg};`;
+    return docShell(`
+        <div class="cn-container" style="${styleVars}">
+            <div class="cn-media">
+                <div class="cn-media-fallback"></div>
+                ${d.imageUrl ? `<img class="cn-media-img" src="${escape(d.imageUrl)}" alt="">` : ''}
+                <div class="cn-media-scrim"></div>
+                <div class="cn-halftone"></div>
+                <div class="cn-cat">${escape(cat.label)}</div>
+                ${d.source ? `<div class="cn-source">${escape(d.source)}</div>` : ''}
+            </div>
+            <div class="cn-panel">
+                <div class="cn-panel-halftone"></div>
+                <div class="cn-title">${escape(d.title || '')}</div>
+                ${d.description ? `<div class="cn-desc">${escape(d.description)}</div>` : ''}
+                <div class="cn-footer">
+                    <div class="cn-brand">Bingeki</div>
+                    <div class="cn-tag">Culture Anime</div>
+                </div>
+            </div>
+        </div>
+    `);
+}
+
 export interface SeasonPreviewInput {
     animes: SeasonPreviewAnime[];
     seasonLabelFr: string;
@@ -776,7 +838,8 @@ export type SlideInputData =
     | AnimeSlideData
     | AnimeSlideData[]
     | { animes: AnimeSlideData[] }
-    | SeasonPreviewInput;
+    | SeasonPreviewInput
+    | CultureNewsInput;
 
 function isDigestData(data: SlideInputData): data is { animes: AnimeSlideData[] } {
     return !Array.isArray(data) && typeof data === 'object' && 'animes' in data
@@ -787,6 +850,12 @@ function isDigestData(data: SlideInputData): data is { animes: AnimeSlideData[] 
 function isSeasonPreviewData(data: SlideInputData): data is SeasonPreviewInput {
     return !Array.isArray(data) && typeof data === 'object'
         && 'seasonLabelFr' in data && 'year' in data;
+}
+
+function isCultureNewsData(data: SlideInputData): data is CultureNewsInput {
+    return !Array.isArray(data) && typeof data === 'object'
+        && 'category' in data && 'title' in data
+        && !('animes' in data);
 }
 
 export function buildSlidesHTML(
@@ -1106,6 +1175,10 @@ export function buildSlidesHTML(
                 index: idx++, total,
             }),
         });
+    }
+
+    if (type === 'culture_news' && isCultureNewsData(data)) {
+        slides.push({ name: 'main', html: cultureNewsSlide(data) });
     }
 
     if (type === 'season_preview' && isSeasonPreviewData(data)) {

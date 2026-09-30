@@ -109,6 +109,23 @@ Puis 5-7 hashtags : #animeannouncement + noms des animes.
 
 JSON strict :
 {"caption": "...", "hashtags": "..."}`,
+
+    culture_news: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post "actu culture anime" — une news qui touche à l'univers anime/manga mais qui n'est PAS une sortie d'épisode (ex: jeu vidéo, film live-action, goodies, actu industrie, événement, box-office…).
+
+Actu :
+{{DATA}}
+
+Rédige une caption Instagram (max 450 caractères) qui :
+1. Accroche direct avec l'info principale (pas "aujourd'hui...", pas "on vous parle de...").
+2. Développe brièvement le contexte : pourquoi c'est intéressant, ce qui est nouveau/marquant.
+3. Ne cite AUCUNE source spécifique (pas de "selon @xxx", pas de crédit d'influenceur). Reste factuel.
+4. Termine par une question ouverte à la commu OU un teaser (hype/scepticisme).
+5. Inclus ${BINGEKI_URL} dans la caption (obligatoire).
+
+Puis 4-6 hashtags courts et pertinents (nom de l'œuvre, catégorie, univers, #anime).
+
+JSON strict :
+{"caption": "...", "hashtags": "..."}`,
 };
 
 function serializeData(type, data) {
@@ -143,6 +160,15 @@ function serializeData(type, data) {
             // On ne passe plus la note à Gemini : le modèle a tendance à
             // la caser dans la caption même quand on lui interdit.
             return `${data.title} — Studio: ${(data.studios || []).join(', ') || 'inconnu'}, ${data.episodes ?? '?'} épisodes prévus, sortie: ${release}`;
+        }
+        case 'culture_news': {
+            const catLabels = {
+                game: 'jeu vidéo', movie: 'film', goodies: 'goodies/figurine',
+                industry: 'actu industrie', event: 'événement', other: 'actu univers anime',
+            };
+            const cat = catLabels[data.category] || 'actu';
+            const desc = data.description ? `\nContexte : ${data.description}` : '';
+            return `Catégorie : ${cat}\nTitre : ${data.title || ''}${desc}`;
         }
         case 'announcement_digest': {
             const items = Array.isArray(data?.animes) ? data.animes : [];

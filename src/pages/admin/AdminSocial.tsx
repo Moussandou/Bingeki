@@ -49,6 +49,7 @@ const TYPE_ICONS: Record<PostType, React.ReactNode> = {
     announcement: <Sparkles size={11} />,
     announcement_digest: <Sparkles size={11} />,
     season_preview: <Calendar size={11} />,
+    culture_news: <Sparkles size={11} />,
 };
 
 const TypeBadge: React.FC<{ type: PostType }> = ({ type }) => {
@@ -98,6 +99,11 @@ const animesToTemplateData = (
         // seasonLabelFr + year + titleWord1/2) pour que le template
         // puisse rendre le hero et les rows datées.
         return (fullSourceData || { animes, seasonLabelFr: 'Saison', year: new Date().getFullYear() }) as unknown as SlideInputData;
+    }
+    if (type === 'culture_news') {
+        // Culture news : le sourceData porte { category, title, description,
+        // imageUrl, source } — pas d'array animes.
+        return (fullSourceData || {}) as unknown as SlideInputData;
     }
     return animes as unknown as AnimeSlideData[];
 };
@@ -258,8 +264,12 @@ export default function AdminSocial() {
        (intro + N animes + outro). Fallback to Firestore-stored slide
        URLs (Puppeteer PNGs) otherwise. */
     const animesForLive = active?.sourceData?.animes;
-    const templateData = active && animesForLive
-        ? animesToTemplateData(active.type, animesForLive, active.sourceData as Record<string, unknown>)
+    // Certains types (culture_news) n'ont pas d'array `animes` mais un
+    // sourceData plat ({ category, title, ... }) — on force le passage
+    // au template pour eux même sans `animes`.
+    const requiresSourceDataOnly = active?.type === 'culture_news';
+    const templateData = active && (animesForLive || requiresSourceDataOnly)
+        ? animesToTemplateData(active.type, animesForLive || [], active.sourceData as Record<string, unknown>)
         : null;
     // Multi-part daily posts embed "· Partie 1/2" in their title. The
     // slide template lives on `partInfo`, so parse it out to feed the

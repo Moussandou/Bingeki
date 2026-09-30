@@ -370,6 +370,26 @@ export const generateSeasonPreview = (season: AnilistSeason, year: number, limit
         { ok: true; result: { postId?: string; note?: string } }
     >('socialGenerateSeasonPreview', { season, year, limit });
 
+export type CultureCategory = 'game' | 'movie' | 'goodies' | 'industry' | 'event' | 'other';
+
+export const fetchNewsMetadata = (url: string) =>
+    callAdminFn<
+        { url: string },
+        { ok: boolean; imageUrl?: string; title?: string; source?: string; host?: string; bytes?: number; error?: string }
+    >('socialFetchNewsMetadata', { url });
+
+export const createCultureNews = (input: {
+    category: CultureCategory;
+    title: string;
+    description?: string;
+    imageUrl: string;
+    source?: string;
+}) =>
+    callAdminFn<typeof input, { ok: true; result: { postId?: string; note?: string } }>(
+        'socialCreateCultureNews',
+        input,
+    );
+
 export const retryPublish = (postId: string) =>
     callAdminFn<
         { postId: string },

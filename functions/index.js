@@ -96,4 +96,6 @@ exports.socialRejectPost = socialCallables.socialRejectPost;
 exports.socialRegeneratePost = socialCallables.socialRegeneratePost;
 exports.socialTriggerCron = socialCallables.socialTriggerCron;
 exports.socialGenerateSeasonPreview = socialCallables.socialGenerateSeasonPreview;
+exports.socialFetchNewsMetadata = socialCallables.socialFetchNewsMetadata;
+exports.socialCreateCultureNews = socialCallables.socialCreateCultureNews;
 exports.socialRetryPublish = socialCallables.socialRetryPublish;

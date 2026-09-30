@@ -532,6 +532,107 @@ const CSS = `
     }
     .ann-lite-brand::before { content: '★ '; color: ${ROSE}; }
 
+    /* ==== CULTURE NEWS (actu univers anime : jeux, films, goodies) === */
+    /* Layout vertical clair : image en haut (55% hauteur, full-bleed) +
+       panneau texte noir en bas (45%). Chip catégorie superposée sur
+       l'image. La couleur d'accent change selon la catégorie
+       (--cat-accent / --cat-fg). */
+    .cn-container {
+        position: absolute; inset: 0; z-index: 1; overflow: hidden;
+        background: #0a0a0a;
+        display: grid; grid-template-rows: 55% 45%;
+    }
+    .cn-media {
+        position: relative; overflow: hidden;
+        background: #000;
+        border-bottom: 8px solid var(--cat-accent, ${ROSE});
+    }
+    .cn-media-fallback {
+        position: absolute; inset: 0; z-index: 0;
+        background: linear-gradient(135deg, #1a1a1a 0%, var(--cat-accent, ${ROSE}) 100%);
+    }
+    .cn-media-img {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        object-fit: cover; z-index: 1;
+    }
+    .cn-media-scrim {
+        position: absolute; inset: 0; z-index: 2;
+        background: linear-gradient(180deg,
+            rgba(0,0,0,0.55) 0%,
+            rgba(0,0,0,0.15) 30%,
+            rgba(0,0,0,0.35) 100%);
+    }
+    .cn-halftone {
+        position: absolute; inset: 0; opacity: 0.08; pointer-events: none; z-index: 3;
+        background-image: radial-gradient(#fff 2.5px, transparent 3.5px);
+        background-size: 40px 40px;
+    }
+    .cn-cat {
+        position: absolute; top: 40px; left: 40px; z-index: 6;
+        display: inline-flex; align-items: center;
+        border: 6px solid #000; padding: 14px 28px;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 34px; letter-spacing: 5px;
+        text-transform: uppercase; line-height: 1;
+        background: var(--cat-accent, ${ROSE}); color: var(--cat-fg, #fff);
+        box-shadow: 10px 10px 0 #000;
+        transform: rotate(-2deg);
+    }
+    .cn-source {
+        position: absolute; top: 40px; right: 40px; z-index: 6;
+        display: inline-flex; align-items: center;
+        background: rgba(0,0,0,0.75); color: #fff; border: 3px solid #fff;
+        padding: 8px 16px;
+        font-family: 'Inter'; font-weight: 600;
+        font-size: 22px; letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+    .cn-panel {
+        position: relative; background: #0a0a0a;
+        padding: 48px 60px 40px;
+        display: flex; flex-direction: column; justify-content: space-between;
+        gap: 20px; overflow: hidden;
+    }
+    .cn-panel-halftone {
+        position: absolute; inset: 0; opacity: 0.06; pointer-events: none;
+        background-image: radial-gradient(#fff 2px, transparent 3px);
+        background-size: 28px 28px;
+    }
+    .cn-title {
+        position: relative; z-index: 2;
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 74px; line-height: 0.94; letter-spacing: -2.5px;
+        text-transform: uppercase; color: #fff;
+        overflow-wrap: break-word; word-break: break-word;
+        display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .cn-title .accent { color: var(--cat-accent, ${ROSE}); }
+    .cn-desc {
+        position: relative; z-index: 2;
+        font-family: 'Inter'; font-weight: 500;
+        font-size: 30px; line-height: 1.3; color: #cfcfcf;
+        letter-spacing: -0.2px;
+        display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .cn-footer {
+        position: relative; z-index: 2;
+        display: flex; align-items: center; justify-content: space-between;
+        border-top: 4px solid var(--cat-accent, ${ROSE});
+        padding-top: 18px;
+    }
+    .cn-brand {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 34px; color: #fff; letter-spacing: -0.5px;
+    }
+    .cn-brand::before { content: '★ '; color: var(--cat-accent, ${ROSE}); }
+    .cn-tag {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 22px; color: #888; letter-spacing: 4px;
+        text-transform: uppercase;
+    }
+
     /* ==== DAILY DUO (2 animes / slide, jours chargés) =============== */
     .duo-container {
         position: absolute; inset: 0; z-index: 1;
@@ -1006,6 +1107,60 @@ function animeDuoSlide({ pair, index, total, fallbackOffset = 0 }) {
         </div>
         <div class="duo-brand">Bingeki</div>
         ${slideIdxBadge(index, total)}
+    `);
+}
+
+/* =============================================================== */
+/* CULTURE NEWS (jeux, films, goodies, industrie…)                */
+/* =============================================================== */
+/**
+ * Palette par catégorie : couleur d'accent + couleur foreground de la
+ * chip. Utilisée pour --cat-accent / --cat-fg dans le CSS .cn-*.
+ */
+const CULTURE_CATEGORIES = {
+    game:      { label: 'Jeu · Actu',       accent: '#FF2E63', fg: '#fff' },
+    movie:     { label: 'Film · Actu',      accent: '#7C3AED', fg: '#fff' },
+    goodies:   { label: 'Goodies',          accent: '#08D9D6', fg: '#000' },
+    industry:  { label: 'Industrie',        accent: '#FBBF24', fg: '#000' },
+    event:     { label: 'Événement',        accent: '#FB923C', fg: '#000' },
+    other:     { label: 'Actu Anime',       accent: '#FF2E63', fg: '#fff' },
+};
+
+/**
+ * Slide unique pour un post "actu culture anime" — jeu qui sort, film
+ * live-action annoncé, goodies, actu industrie. Format 1 slide (pas un
+ * carrousel), plus rapide à consommer, cadence 1-2/semaine.
+ *
+ * @param {Object} data
+ * @param {'game'|'movie'|'goodies'|'industry'|'event'|'other'} data.category
+ * @param {string} data.title       Titre court (max ~70 chars)
+ * @param {string} data.description 1-2 lignes de contexte (max ~200 chars)
+ * @param {string} data.imageUrl    Poster / key visual / cover
+ * @param {string} [data.source]    Crédit optionnel (ex : "Via @twistyianime")
+ */
+function cultureNewsSlide({ category = 'other', title = '', description = '', imageUrl = '', source = '' }) {
+    const cat = CULTURE_CATEGORIES[category] || CULTURE_CATEGORIES.other;
+    const styleVars = `--cat-accent: ${cat.accent}; --cat-fg: ${cat.fg};`;
+    return docShell(`
+        <div class="cn-container" style="${styleVars}">
+            <div class="cn-media">
+                <div class="cn-media-fallback"></div>
+                ${imageUrl ? `<img class="cn-media-img" src="${escape(imageUrl)}" alt="">` : ''}
+                <div class="cn-media-scrim"></div>
+                <div class="cn-halftone"></div>
+                <div class="cn-cat">${escape(cat.label)}</div>
+                ${source ? `<div class="cn-source">${escape(source)}</div>` : ''}
+            </div>
+            <div class="cn-panel">
+                <div class="cn-panel-halftone"></div>
+                <div class="cn-title">${escape(title)}</div>
+                ${description ? `<div class="cn-desc">${escape(description)}</div>` : ''}
+                <div class="cn-footer">
+                    <div class="cn-brand">Bingeki</div>
+                    <div class="cn-tag">Culture Anime</div>
+                </div>
+            </div>
+        </div>
     `);
 }
 
@@ -1682,6 +1837,20 @@ function buildSlidesHTML(type, data, opts = {}) {
         });
     }
 
+    if (type === 'culture_news') {
+        // data = { category, title, description, imageUrl, source? }
+        slides.push({
+            name: 'main',
+            html: cultureNewsSlide({
+                category: data.category || 'other',
+                title: data.title || '',
+                description: data.description || '',
+                imageUrl: data.imageUrl || '',
+                source: data.source || '',
+            }),
+        });
+    }
+
     if (type === 'season_preview') {
         // data = { animes: [...], seasonLabelFr: 'Automne', year: 2026,
         //          titleWord1: 'AUTOMNE', titleWord2: '' }
@@ -1736,4 +1905,6 @@ module.exports = {
     outroSlide,
     seasonPreviewIntroSlide,
     seasonPreviewSlide,
+    cultureNewsSlide,
+    CULTURE_CATEGORIES,
 };

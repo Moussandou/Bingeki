@@ -6,9 +6,12 @@
  * bouton "Lancer maintenant" pour tester en dehors de l'horaire.
  */
 import { useEffect, useState } from 'react';
-import { Play, CheckCircle2, XCircle, Clock, Loader2, Activity, Sparkles } from 'lucide-react';
+import { Play, CheckCircle2, XCircle, Clock, Loader2, Activity, Sparkles, Newspaper, Link2 } from 'lucide-react';
 import { CRON_META, type CronId, type CronHealth } from '@/shared/socialBot';
-import { subscribeToCronHealth, triggerCron, generateSeasonPreview, type AnilistSeason } from '@/firebase/socialBot';
+import {
+    subscribeToCronHealth, triggerCron, generateSeasonPreview, type AnilistSeason,
+    fetchNewsMetadata, createCultureNews, type CultureCategory,
+} from '@/firebase/socialBot';
 import { logger } from '@/utils/logger';
 
 const CRON_ORDER: CronId[] = [
@@ -205,6 +208,185 @@ function SeasonPreviewGenerator() {
     );
 }
 
+const CULTURE_CATEGORY_OPTIONS: { value: CultureCategory; label: string }[] = [
+    { value: 'game', label: 'Jeu vidéo' },
+    { value: 'movie', label: 'Film / live-action' },
+    { value: 'goodies', label: 'Goodies / figurines' },
+    { value: 'industry', label: 'Industrie' },
+    { value: 'event', label: 'Événement' },
+    { value: 'other', label: 'Actu (autre)' },
+];
+
+function CultureNewsGenerator() {
+    const [url, setUrl] = useState('');
+    const [fetching, setFetching] = useState(false);
+    const [category, setCategory] = useState<CultureCategory>('game');
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [imageUrl, setImageUrl] = useState('');
+    const [source, setSource] = useState('');
+    const [creating, setCreating] = useState(false);
+
+    const canCreate = imageUrl.length > 0 && title.trim().length >= 3 && !creating;
+
+    const handleFetch = async () => {
+        if (!url.trim()) return;
+        setFetching(true);
+        try {
+            const res = await fetchNewsMetadata(url.trim());
+            if (!res.ok || !res.imageUrl) {
+                alert(`✗ Pas d'image trouvée sur cette URL${res.error ? `\n${res.error}` : ''}`);
+                return;
+            }
+            setImageUrl(res.imageUrl);
+            if (res.title && !title) setTitle(res.title);
+            if (res.source && !source) setSource(res.source);
+        } catch (err) {
+            logger.error('[cultureNews] fetch failed:', err);
+            alert(`✗ Impossible de récupérer les infos\n${err instanceof Error ? err.message : String(err)}`);
+        } finally {
+            setFetching(false);
+        }
+    };
+
+    const handleCreate = async () => {
+        const label = CULTURE_CATEGORY_OPTIONS.find(o => o.value === category)?.label;
+        if (!confirm(`Créer le post "actu culture anime" ?\n${label} — ${title}`)) return;
+        setCreating(true);
+        try {
+            const res = await createCultureNews({
+                category, title: title.trim(), description: description.trim(), imageUrl, source: source.trim() || undefined,
+            });
+            alert(`✓ Post créé${res.result?.note ? `\n${res.result.note}` : ''}`);
+            setUrl(''); setTitle(''); setDescription(''); setImageUrl(''); setSource('');
+        } catch (err) {
+            logger.error('[cultureNews] create failed:', err);
+            alert(`✗ Échec\n${err instanceof Error ? err.message : String(err)}`);
+        } finally {
+            setCreating(false);
+        }
+    };
+
+    const input: React.CSSProperties = {
+        border: '2px solid #000', padding: '6px 10px',
+        fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '0.78rem',
+        background: '#fff', color: '#000', width: '100%',
+    };
+    return (
+        <div style={{ background: '#fff', border: '2px solid #000', padding: 16, marginTop: 16 }}>
+            <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
+                fontFamily: 'Outfit, sans-serif', fontWeight: 900, fontSize: '0.78rem',
+                letterSpacing: 2, textTransform: 'uppercase',
+            }}>
+                <Newspaper size={14} /> Actu culture anime · manuel
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#666', marginBottom: 10, lineHeight: 1.4 }}>
+                Colle l'URL d'une news (TikTok, article ANN, tweet, page produit…) →
+                on récupère l'image automatiquement et on te laisse écrire le titre + le contexte.
+                1 slide, 1-2 posts/semaine max.
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="URL source (TikTok / article / tweet / page officielle)"
+                    disabled={fetching}
+                    style={{ ...input, flex: 1 }}
+                />
+                <button
+                    onClick={handleFetch}
+                    disabled={fetching || !url.trim()}
+                    style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: fetching || !url.trim() ? '#ccc' : '#000', color: '#fff',
+                        border: '2px solid #000', padding: '6px 14px',
+                        fontFamily: 'Outfit, sans-serif', fontWeight: 900,
+                        fontSize: '0.7rem', letterSpacing: 1, textTransform: 'uppercase',
+                        cursor: fetching || !url.trim() ? 'not-allowed' : 'pointer',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    {fetching ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
+                    Récupérer
+                </button>
+            </div>
+
+            {imageUrl && (
+                <div style={{
+                    marginBottom: 10, padding: 8, background: '#f5f5f5', border: '1px solid #ddd',
+                    display: 'flex', gap: 10, alignItems: 'center',
+                }}>
+                    <img src={imageUrl} alt="preview" style={{ width: 80, height: 80, objectFit: 'cover', border: '1px solid #000' }} />
+                    <div style={{ fontSize: '0.68rem', color: '#444', wordBreak: 'break-all', flex: 1 }}>
+                        <strong>Image OK</strong><br />
+                        <span style={{ color: '#888' }}>{imageUrl.slice(0, 100)}…</span>
+                    </div>
+                </div>
+            )}
+
+            <div style={{ display: 'grid', gap: 8 }}>
+                <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as CultureCategory)}
+                    disabled={creating}
+                    style={input}
+                >
+                    {CULTURE_CATEGORY_OPTIONS.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                </select>
+                <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Titre court (ex: Naruto Blazing Revive sort dans 2 semaines)"
+                    maxLength={140}
+                    disabled={creating}
+                    style={input}
+                />
+                <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Description / contexte (1-2 lignes, optionnel)"
+                    maxLength={260}
+                    rows={2}
+                    disabled={creating}
+                    style={{ ...input, fontFamily: 'Inter, sans-serif', fontWeight: 500, resize: 'vertical' }}
+                />
+                <input
+                    value={source}
+                    onChange={(e) => setSource(e.target.value)}
+                    placeholder="Source (ex: Bandai Namco, ANN) — optionnel, PAS d'influenceur"
+                    maxLength={60}
+                    disabled={creating}
+                    style={input}
+                />
+            </div>
+
+            <div style={{ marginTop: 10, textAlign: 'right' }}>
+                <button
+                    onClick={handleCreate}
+                    disabled={!canCreate}
+                    style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: !canCreate ? '#ccc' : '#FBBF24', color: '#000',
+                        border: '2px solid #000', padding: '6px 14px',
+                        fontFamily: 'Outfit, sans-serif', fontWeight: 900,
+                        fontSize: '0.7rem', letterSpacing: 1, textTransform: 'uppercase',
+                        cursor: !canCreate ? 'not-allowed' : 'pointer',
+                        boxShadow: '4px 4px 0 #000',
+                    }}
+                >
+                    {creating ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                    Créer le post
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export function CronHealthPanel() {
     const [health, setHealth] = useState<Record<string, CronHealth>>({});
     const [running, setRunning] = useState<Set<CronId>>(new Set());
@@ -363,6 +545,7 @@ export function CronHealthPanel() {
             </div>
 
             <SeasonPreviewGenerator />
+            <CultureNewsGenerator />
         </div>
     );
 }

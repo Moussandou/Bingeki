@@ -153,6 +153,23 @@ function announcementDigestCaption(data) {
  *   - favorite: Array<{ title, avg, count }>
  *   - newseason: { title, studios?, episodes?, previousScore? }
  */
+function cultureNewsCaption(data) {
+    const title = (data.title || '').trim();
+    const desc = (data.description || '').trim();
+    const cats = {
+        game: 'jeu', movie: 'film', goodies: 'goodies',
+        industry: 'industrie', event: 'événement', other: 'actu',
+    };
+    const catTag = `#${(cats[data.category] || 'anime').replace(/\s+/g, '')}`;
+    const line1 = title || 'Une actu à ne pas rater côté culture anime.';
+    const line2 = desc ? `\n\n${desc}` : '';
+    const caption = `${line1}${line2}\n\nToute l'actu anime, jour après jour, sur ${URL}`;
+    return {
+        caption,
+        hashtags: `#anime #cultureanime ${catTag} #bingeki`,
+    };
+}
+
 function fallbackCaption(type, data) {
     try {
         switch (type) {
@@ -168,6 +185,8 @@ function fallbackCaption(type, data) {
                 return announcementCaption(data || {});
             case 'announcement_digest':
                 return announcementDigestCaption(data || {});
+            case 'culture_news':
+                return cultureNewsCaption(data || {});
             default:
                 return {
                     caption: `Nouveauté sur Bingeki. Découvrez-la sur ${URL}`,

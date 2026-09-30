@@ -353,6 +353,8 @@ const { runAnnouncement } = require('../crons/announcement');
 const { runPollReach } = require('../crons/pollReach');
 const { runCleanupPending } = require('../crons/cleanupPending');
 const { runSeasonPreview } = require('../crons/seasonPreview');
+const { runCultureNews } = require('../crons/cultureNews');
+const { fetchOgMetadata, downloadAndReuploadImage } = require('../generators/ogScraper');
 
 const CRON_RUNNERS = {
     dailyReleases: runDailyReleases,
@@ -418,6 +420,83 @@ exports.socialGenerateSeasonPreview = onCall(
         } catch (err) {
             console.error('[social/seasonPreview] failed:', err);
             throw new HttpsError('internal', `seasonPreview failed: ${err.message || err}`);
+        }
+    },
+);
+
+/* ==========================================================================
+   CULTURE NEWS — fetch metadata from a URL + create the post
+   ========================================================================== */
+
+const VALID_CULTURE_CATEGORIES = new Set(['game', 'movie', 'goodies', 'industry', 'event', 'other']);
+
+/**
+ * Étape 1 : l'admin colle une URL, on scrape og:image + og:title + og:site_name,
+ * on télécharge l'image et on la re-upload sur Firebase Storage. Retourne
+ * l'URL persistée + les métadonnées pour pré-remplir le formulaire.
+ */
+exports.socialFetchNewsMetadata = onCall(
+    { memory: '512MiB', timeoutSeconds: 60 },
+    async (request) => {
+        await assertAdminOrThrow(request);
+        const { url } = request.data || {};
+        if (!url || typeof url !== 'string') {
+            throw new HttpsError('invalid-argument', 'url is required');
+        }
+        console.log(`[social/fetchNewsMetadata] uid=${request.auth.uid} url=${url.slice(0, 200)}`);
+        try {
+            const meta = await fetchOgMetadata(url);
+            if (!meta.imageUrl) {
+                return { ok: false, error: 'no og:image found on this URL', meta };
+            }
+            const ext = (meta.imageUrl.match(/\.(jpe?g|png|webp|gif)(\?|$)/i)?.[1] || 'jpg').toLowerCase();
+            const today = new Date().toISOString().slice(0, 10);
+            const suffix = Math.random().toString(36).slice(2, 10);
+            const path = `social/${today}/culture_news/source-${suffix}.${ext}`;
+            const uploaded = await downloadAndReuploadImage(meta.imageUrl, path);
+            return {
+                ok: true,
+                imageUrl: uploaded.url,
+                title: meta.title || '',
+                source: meta.siteName || '',
+                host: meta.host,
+                bytes: uploaded.bytes,
+            };
+        } catch (err) {
+            console.error('[social/fetchNewsMetadata] failed:', err);
+            throw new HttpsError('internal', err.message || String(err));
+        }
+    },
+);
+
+/**
+ * Étape 2 : l'admin valide le formulaire, on crée le post pending.
+ */
+exports.socialCreateCultureNews = onCall(
+    {
+        secrets: [GEMINI_API_KEY],
+        memory: '1GiB',
+        timeoutSeconds: 300,
+    },
+    async (request) => {
+        await assertAdminOrThrow(request);
+        const { category, title, description, imageUrl, source } = request.data || {};
+        if (!VALID_CULTURE_CATEGORIES.has(category)) {
+            throw new HttpsError('invalid-argument', `category must be one of ${[...VALID_CULTURE_CATEGORIES].join(', ')}`);
+        }
+        if (!title || typeof title !== 'string' || title.trim().length < 3) {
+            throw new HttpsError('invalid-argument', 'title is required (min 3 chars)');
+        }
+        if (!imageUrl || typeof imageUrl !== 'string') {
+            throw new HttpsError('invalid-argument', 'imageUrl is required');
+        }
+        console.log(`[social/createCultureNews] uid=${request.auth.uid} cat=${category} title="${title.slice(0, 60)}"`);
+        try {
+            const result = await runCultureNews({ category, title, description, imageUrl, source });
+            return { ok: true, result };
+        } catch (err) {
+            console.error('[social/createCultureNews] failed:', err);
+            throw new HttpsError('internal', err.message || String(err));
         }
     },
 );
