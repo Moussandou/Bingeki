@@ -111,6 +111,7 @@ JSON strict :
 {"caption": "...", "hashtags": "..."}`,
 
     culture_news_infer: `Tu es l'éditeur du bot social Bingeki. À partir d'un titre de news anime/manga (souvent depuis TikTok, Twitter, article de presse), tu dois deviner :
+
 - category : une des valeurs strictement parmi ["game", "movie", "goodies", "industry", "event", "other"]
   · game     = jeu vidéo (mobile, console, gacha, MMO)
   · movie    = film cinéma, film d'animation, live-action
@@ -118,8 +119,15 @@ JSON strict :
   · industry = box-office, deal, licence, streaming, chiffres, controverse
   · event    = convention, concert, sortie premium, premiere
   · other    = actu générique qui ne rentre pas ailleurs
+
 - source : le nom de la VRAIE source officielle de l'info (ex: "Bandai Namco" pour un jeu Bandai, "Toei Animation" pour un anime Toei, "Kadokawa", "Aniplex", "Netflix", "Crunchyroll", "Manga+", "Shueisha"). PAS le nom d'un influenceur ou d'un compte réseau social. Si tu ne peux pas identifier de source officielle avec certitude, retourne "" (chaîne vide).
-- description : 1 phrase courte (max 200 caractères) qui reformule l'info en donnant le contexte ("le RPG mobile revient avec X…"). Reste factuel, pas d'invention.
+
+- description : 1 à 2 phrases courtes (100-200 caractères) qui donnent le contexte et l'intérêt de l'info pour un fan d'anime. **OBLIGATOIRE, jamais vide** — même si tu as peu d'infos, extrapole raisonnablement à partir du titre et de la source :
+  * Pour un jeu : "Adaptation vidéoludique de X, développée par Y, mode Z."
+  * Pour un film : "Suite / film-résumé de X, produit par Y, sortie prévue Z."
+  * Pour une actu industrie : "X annonce/lance/rachète Y — impact pour Z."
+  * Pour un article de type liste ("Attentes mangas d'octobre") : "Notre sélection des mangas à surveiller en octobre 2026, avec les nouveautés et les suites attendues."
+  Reste factuel — n'invente pas de dates ou chiffres précis. Si tu doutes, reste générique ("attendu prochainement", "à surveiller"). Ne commence pas par "Cette news…" ou "L'article…".
 
 Infos disponibles :
 {{DATA}}

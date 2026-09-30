@@ -34,8 +34,9 @@ const FEEDS = [
     { name: 'Anime UK News', url: 'https://animeuknews.net/feed/' },
 ];
 
-// Max posts créés par run pour ne pas noyer la queue admin.
-const MAX_PER_RUN = 2;
+// Max posts créés par run. 5 = suffisant pour rattraper les news
+// récentes sans trop saturer la queue (le cron tourne toutes les 6h).
+const MAX_PER_RUN = 5;
 
 // Items considérés comme non pertinents (review d'épisode, chapitre
 // manga, recap…) : redondants avec le cron daily ou trop niches. On
