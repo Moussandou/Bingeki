@@ -135,7 +135,7 @@ async function runAnnouncement() {
         for (const anime of picks) {
             try {
                 const { enriched, prequel } = await enrichCandidate(anime);
-                enrichedPicks.push({ enriched, prequel, hype: isHype(prequel) });
+                enrichedPicks.push({ enriched, prequel });
             } catch (err) {
                 console.error(`[social/announcement] enrich failed for ${anime.title}:`, err.message || err);
             }
