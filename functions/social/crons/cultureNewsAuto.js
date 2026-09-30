@@ -28,18 +28,22 @@ const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
-// Note : Google News et ANN ne marchent pas depuis Cloud Functions
-// (Cloudflare bloque les IPs Google Cloud pour ANN, Google News fait
-// un redirect JS qu'on ne peut pas suivre côté serveur). Restent 4
-// sources fiables + le hype filter Gemini pour trier.
 const FEEDS = [
-    // ANN gardé quand même : parfois ça passe selon la load Cloudflare
-    { name: 'ANN', url: 'https://www.animenewsnetwork.com/all/rss.xml' },
-    // Anime Corner : focus news anime récentes (interviews, visuels, teasers)
-    { name: 'Anime Corner', url: 'https://animecorner.me/feed/' },
+    // === Sources FR (priorité pour la commu FR) ===
+    // Adala News : scoops anime FR ("adaptation annoncée", "S3 confirmée")
+    { name: 'Adala News', url: 'https://adala-news.fr/feed/' },
+    // Mangamag : anime/manga FR (dates films, formes DBZ, etc.)
+    { name: 'Mangamag', url: 'https://mangamag.fr/feed/' },
+    // Numerama pop culture : news culturelles FR (Netflix, films, séries)
+    { name: 'Numerama pop', url: 'https://www.numerama.com/pop-culture/feed/' },
     // Journal du Japon : culture japonaise FR, plus analyse mais légit
     { name: 'Journal du Japon', url: 'https://www.journaldujapon.com/feed/' },
-    // MangaMavericks : focus manga (interviews mangaka, sorties)
+    // === Sources EN (compléments) ===
+    // ANN parfois OK selon load Cloudflare
+    { name: 'ANN', url: 'https://www.animenewsnetwork.com/all/rss.xml' },
+    // Anime Corner : news anime EN (visuels, teasers)
+    { name: 'Anime Corner', url: 'https://animecorner.me/feed/' },
+    // MangaMavericks : interviews mangaka + sorties
     { name: 'MangaMavericks', url: 'https://mangamavericks.com/feed/' },
     // Anime UK News : reviews + news (filtré côté SKIP_PATTERNS)
     { name: 'Anime UK News', url: 'https://animeuknews.net/feed/' },

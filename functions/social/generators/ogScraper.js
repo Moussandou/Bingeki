@@ -39,7 +39,8 @@ const LEGIT_SOURCE_DOMAINS = [
     'kodansha.us', 'kodansha.co.jp',
     'natalie.mu', 'animate.tv',
     // Presse FR
-    'numerama.com', 'manga-news.com', 'journaldujapon.com', 'adala-news.fr',
+    'numerama.com', 'manga-news.com', 'journaldujapon.com',
+    'adala-news.fr', 'mangamag.fr', 'nautiljon.com',
 ];
 
 function isLegitDomain(host) {
