@@ -133,10 +133,19 @@ async function processItem(item) {
 
     // Si Gemini a raté, on utilise la description RSS de l'item comme
     // fallback : mieux que rien, souvent 1-2 phrases utiles écrites par
-    // la rédaction du site source.
+    // la rédaction du site source. On nettoie les suffixes WordPress
+    // classiques ("L'article X est apparu en premier sur Y", "The post
+    // X appeared first on Y").
     let finalDescription = inferred.description || '';
     if (!finalDescription && item.description) {
-        finalDescription = item.description.slice(0, 240).trim();
+        finalDescription = item.description
+            .replace(/L[’']article\s+.+?est apparu en premier sur.*$/is, '')
+            .replace(/The post\s+.+?appeared first on.*$/is, '')
+            .replace(/Cet article\s+.+?est apparu en premier sur.*$/is, '')
+            .replace(/\s*\[[\s\S]*?\]\s*$/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 240);
     }
 
     const ext = (meta.imageUrl.match(/\.(jpe?g|png|webp|gif)(\?|$)/i)?.[1] || 'jpg').toLowerCase();
