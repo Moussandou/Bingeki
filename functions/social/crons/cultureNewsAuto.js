@@ -28,12 +28,13 @@ const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
+// Note : Google News et ANN ne marchent pas depuis Cloud Functions
+// (Cloudflare bloque les IPs Google Cloud pour ANN, Google News fait
+// un redirect JS qu'on ne peut pas suivre côté serveur). Restent 4
+// sources fiables + le hype filter Gemini pour trier.
 const FEEDS = [
-    // ANN : référence anglophone news anime, 100+ items/j
+    // ANN gardé quand même : parfois ça passe selon la load Cloudflare
     { name: 'ANN', url: 'https://www.animenewsnetwork.com/all/rss.xml' },
-    // Google News en français ciblé sur les annonces anime : scoops FR
-    // (adaptations annoncées, sequels révélés, dates confirmées)
-    { name: 'Google News anime FR', url: 'https://news.google.com/rss/search?q=anime+annonc%C3%A9+OR+adaptation+OR+r%C3%A9v%C3%A9l%C3%A9&hl=fr&gl=FR&ceid=FR:fr' },
     // Anime Corner : focus news anime récentes (interviews, visuels, teasers)
     { name: 'Anime Corner', url: 'https://animecorner.me/feed/' },
     // Journal du Japon : culture japonaise FR, plus analyse mais légit

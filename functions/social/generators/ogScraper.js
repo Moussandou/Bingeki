@@ -22,7 +22,14 @@ const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 // (TikTok, IG, Twitter, YouTube d'influenceurs), on ne pré-remplit PAS
 // la source — pas de crédit gratuit aux influenceurs.
 const LEGIT_SOURCE_DOMAINS = [
+    // Presse anime référence
     'animenewsnetwork.com',
+    'animecorner.me',
+    'animeuknews.net',
+    'otakuusamagazine.com',
+    'mangamavericks.com',
+    'kawaiikakkoiisugoi.com',
+    // Éditeurs / studios
     'crunchyroll.com',
     'kadokawa.co.jp', 'kadokawa.com',
     'bandainamco.com', 'bandainamcoent.com', 'bandainamcoent.eu', 'bandaispirits.com',
@@ -31,7 +38,8 @@ const LEGIT_SOURCE_DOMAINS = [
     'shueisha.co.jp', 'shonenjump.com', 'mangaplus.shueisha.co.jp',
     'kodansha.us', 'kodansha.co.jp',
     'natalie.mu', 'animate.tv',
-    'numerama.com', 'manga-news.com', 'journaldujapon.com',
+    // Presse FR
+    'numerama.com', 'manga-news.com', 'journaldujapon.com', 'adala-news.fr',
 ];
 
 function isLegitDomain(host) {
