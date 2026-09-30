@@ -18,6 +18,7 @@ const CRON_ORDER: CronId[] = [
     'dailyReleases',
     'newSeasonDetector',
     'announcement',
+    'cultureNewsAuto',
     'weeklyRecap',
     'communityFavorite',
     'pollReach',

@@ -198,16 +198,17 @@ export const FIRESTORE_COLLECTIONS = {
     archivedPosts: 'social_archived_posts',
 } as const;
 
-export type CronId = 'dailyReleases' | 'weeklyRecap' | 'communityFavorite' | 'newSeasonDetector' | 'announcement' | 'pollReach' | 'cleanupPending';
+export type CronId = 'dailyReleases' | 'weeklyRecap' | 'communityFavorite' | 'newSeasonDetector' | 'announcement' | 'pollReach' | 'cleanupPending' | 'cultureNewsAuto';
 
 export const CRON_META: Record<CronId, { label: string; schedule: string; description: string }> = {
     dailyReleases:     { label: 'Sorties du jour',      schedule: 'Tous les jours · 10h',       description: 'Top 5 des épisodes qui sortent aujourd\'hui.' },
     weeklyRecap:       { label: 'Récap hebdo',          schedule: 'Dimanche · 19h',             description: 'Top 3 anime notés par la communauté cette semaine.' },
     communityFavorite: { label: 'Coup de cœur',         schedule: 'Dimanche · 21h',             description: 'Top 3 épisodes les mieux notés sur MAL cette semaine.' },
     newSeasonDetector: { label: 'Nouvelle saison',      schedule: 'Tous les jours · 8h',        description: 'Détecte les nouvelles saisons qui démarrent aujourd\'hui.' },
-    announcement:      { label: 'Prochainement',        schedule: 'Lun / Mer / Ven · 15h',      description: 'Poste les annonces officielles de nouvelles saisons à venir (max 3/run).' },
+    announcement:      { label: 'Prochainement',        schedule: 'Lun / Mer / Ven · 15h',      description: '1 gros digest regroupant jusqu\'à 20 annonces d\'animes à venir.' },
     pollReach:         { label: 'Analytics reach',      schedule: 'Toutes les 6h',              description: 'Poll Buffer pour les métriques à J+1, J+7, J+30.' },
     cleanupPending:    { label: 'Cleanup pending',      schedule: 'Tous les jours · 4h',        description: 'Archive les posts en attente non validés depuis 3 jours.' },
+    cultureNewsAuto:   { label: 'Culture anime auto',   schedule: 'Toutes les 6h',              description: 'Surveille ANN, Journal du Japon, Anime UK News → crée automatiquement des posts culture avec source vérifiée.' },
 };
 
 export interface CronHealth {

@@ -354,6 +354,7 @@ const { runPollReach } = require('../crons/pollReach');
 const { runCleanupPending } = require('../crons/cleanupPending');
 const { runSeasonPreview } = require('../crons/seasonPreview');
 const { runCultureNews } = require('../crons/cultureNews');
+const { runCultureNewsAuto } = require('../crons/cultureNewsAuto');
 const { fetchOgMetadata, downloadAndReuploadImage } = require('../generators/ogScraper');
 const { inferCultureNewsFields } = require('../generators/gemini');
 
@@ -365,6 +366,7 @@ const CRON_RUNNERS = {
     announcement: runAnnouncement,
     pollReach: runPollReach,
     cleanupPending: runCleanupPending,
+    cultureNewsAuto: runCultureNewsAuto,
 };
 
 exports.socialTriggerCron = onCall(
