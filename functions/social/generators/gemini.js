@@ -110,15 +110,23 @@ Puis 5-7 hashtags : #animeannouncement + noms des animes.
 JSON strict :
 {"caption": "...", "hashtags": "..."}`,
 
-    culture_news_infer: `Tu es l'éditeur du bot social Bingeki (tracker anime & manga francophone). À partir d'un titre de news, tu dois répondre :
+    culture_news_infer: `Tu es l'éditeur du bot social Bingeki (tracker anime & manga francophone, public jeune Instagram/TikTok). À partir d'un titre de news, tu dois répondre :
 
 - relevant : booléen. TRUE si l'info intéresse un fan d'anime/manga et vaut la peine d'être postée sur Bingeki. FALSE pour les sujets NON pertinents :
   * Reviews de volumes de manga individuels ("Volumes 4, 5 and 6 Review")
   * Récaps épisodes / previews guides / this-week-in-anime
   * Sujets touristiques japonais génériques (céramique, cuisine, voyage)
   * Articles d'opinion/philo/analyse sociétale sans info actu ("À qui appartient la voix…")
-  * Interviews de fond
+  * Interviews de fond (mangaka/seiyu peu connus)
   * Culture japonaise générale sans lien direct anime/manga
+
+- hype : entier de 1 à 10 mesurant l'intérêt du sujet pour un fan francophone jeune. Barème :
+  * 10 : scoop majeur (Chainsaw Man S2 date, One Piece film, Netflix rachète Studio Ghibli)
+  * 8-9 : annonce d'adaptation d'un manga populaire, trailer d'un anime hype, film majeur qui sort
+  * 6-7 : nouvelle saison confirmée pour un anime moyen, collab intéressante, jeu vidéo mainstream (Naruto/DBZ/One Piece)
+  * 4-5 : sortie goodies importants, event notable, actu industrie modérée
+  * 1-3 : news mineure, sujet niche, analyse de fond, récap, article touristique
+  Sois exigeant — un fan qui scrolle Insta doit s'arrêter sur le post.
 
 - category : une des valeurs strictement parmi ["game", "movie", "goodies", "industry", "event", "other"]
   · game     = jeu vidéo (mobile, console, gacha, MMO)
@@ -140,7 +148,7 @@ Infos disponibles :
 {{DATA}}
 
 Réponds STRICTEMENT en JSON, rien d'autre :
-{"relevant": true, "category": "game", "source": "Bandai Namco", "description": "Le RPG mobile revient avec de nouveaux personnages et un mode multi coopératif."}`,
+{"relevant": true, "hype": 8, "category": "game", "source": "Bandai Namco", "description": "Le RPG mobile revient avec de nouveaux personnages et un mode multi coopératif."}`,
 
     culture_news: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post "actu culture anime" — une news qui touche à l'univers anime/manga mais qui n'est PAS une sortie d'épisode (ex: jeu vidéo, film live-action, goodies, actu industrie, événement, box-office…).
 
@@ -487,6 +495,8 @@ async function inferCultureNewsFields({ title, description, host, siteName }, co
         // false (à skipper). Le cron interprète null comme "on tente quand
         // même", false comme "skip".
         relevant: typeof obj.relevant === 'boolean' ? obj.relevant : null,
+        // hype 1-10 : intérêt pour un fan jeune anime FR. null si absent.
+        hype: typeof obj.hype === 'number' ? Math.max(1, Math.min(10, Math.round(obj.hype))) : null,
         category: VALID_CATS.has(obj.category) ? obj.category : 'other',
         source: typeof obj.source === 'string' ? obj.source.trim().slice(0, 60) : '',
         description: typeof obj.description === 'string' ? obj.description.trim().slice(0, 260) : '',

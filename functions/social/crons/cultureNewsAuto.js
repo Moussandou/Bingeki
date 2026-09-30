@@ -29,8 +29,18 @@ const { withCronHealth } = require('../shared/cronHealth');
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
 const FEEDS = [
+    // ANN : référence anglophone news anime, 100+ items/j
     { name: 'ANN', url: 'https://www.animenewsnetwork.com/all/rss.xml' },
+    // Google News en français ciblé sur les annonces anime : scoops FR
+    // (adaptations annoncées, sequels révélés, dates confirmées)
+    { name: 'Google News anime FR', url: 'https://news.google.com/rss/search?q=anime+annonc%C3%A9+OR+adaptation+OR+r%C3%A9v%C3%A9l%C3%A9&hl=fr&gl=FR&ceid=FR:fr' },
+    // Anime Corner : focus news anime récentes (interviews, visuels, teasers)
+    { name: 'Anime Corner', url: 'https://animecorner.me/feed/' },
+    // Journal du Japon : culture japonaise FR, plus analyse mais légit
     { name: 'Journal du Japon', url: 'https://www.journaldujapon.com/feed/' },
+    // MangaMavericks : focus manga (interviews mangaka, sorties)
+    { name: 'MangaMavericks', url: 'https://mangamavericks.com/feed/' },
+    // Anime UK News : reviews + news (filtré côté SKIP_PATTERNS)
     { name: 'Anime UK News', url: 'https://animeuknews.net/feed/' },
 ];
 
@@ -114,14 +124,24 @@ async function processItem(item) {
         siteName: meta.siteName,
     }).catch((err) => {
         console.warn(`[cultureNewsAuto] Gemini infer failed:`, err.message);
-        return { category: 'other', source: '', description: '', relevant: null };
+        return { category: 'other', source: '', description: '', relevant: null, hype: null };
     });
 
     // Skip si Gemini a explicitement marqué non pertinent (only when Gemini
     // succeeded — relevant=null means Gemini failed, we let it pass with
     // the fallback below).
     if (inferred.relevant === false) {
-        console.log(`[cultureNewsAuto] skip: Gemini marked as non-relevant → ${item.url}`);
+        console.log(`[cultureNewsAuto] skip: Gemini marked as non-relevant → ${item.title.slice(0, 60)}`);
+        return null;
+    }
+
+    // Skip si le sujet n'a pas assez d'impact (hype < 6). Un fan qui
+    // scrolle Insta doit s'arrêter sur le post → on garde que ce qui
+    // vaut la peine. hype=null (Gemini raté) laisse passer pour
+    // dégrader gracieusement — les autres garde-fous continuent.
+    const MIN_HYPE = 6;
+    if (typeof inferred.hype === 'number' && inferred.hype < MIN_HYPE) {
+        console.log(`[cultureNewsAuto] skip: hype=${inferred.hype} < ${MIN_HYPE} → ${item.title.slice(0, 60)}`);
         return null;
     }
 
