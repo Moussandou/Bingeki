@@ -791,6 +791,32 @@ const CSS = `
         text-transform: uppercase;
         margin-top: 4px;
     }
+    /* Mois + année ("OCT 2027") : mois plus grand, année plus petite en dessous */
+    .sp-date-monthbig {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 60px; color: ${CYAN};
+        line-height: 0.95; letter-spacing: 2px;
+        text-transform: uppercase;
+        text-shadow: 4px 4px 0 #000;
+    }
+    .sp-date-yearsmall {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 34px; color: #fff;
+        line-height: 1; letter-spacing: 2px;
+        margin-top: 4px;
+    }
+    /* Aucune date connue : chip discret "À VENIR" */
+    .sp-date-tba {
+        justify-content: center; align-items: flex-end;
+    }
+    .sp-date-tba-txt {
+        font-family: 'Outfit'; font-weight: 900;
+        font-size: 34px; color: #888;
+        letter-spacing: 3px; text-transform: uppercase;
+        border: 3px solid #444;
+        padding: 8px 14px;
+        line-height: 1;
+    }
     .sp-footer {
         position: relative;
         background: #000; border-top: 6px solid ${ROSE};
@@ -1193,12 +1219,20 @@ function seasonPreviewIntroSlide({ seasonLabelFr, year, count, covers = [] }) {
 function seasonPreviewRow(a, fallbackIdx) {
     if (!a) return `<div class="sp-row"></div>`;
     const monthLabels = ['JAN', 'FÉV', 'MARS', 'AVR', 'MAI', 'JUIN', 'JUIL', 'AOÛT', 'SEPT', 'OCT', 'NOV', 'DÉC'];
-    // Cas année seule (Tenrai renvoie parfois juste "2027") : on affiche
-    // l'année en gros à la place de day + month, pour éviter la fausse
-    // précision "1 JAN".
-    const yearOnly = a.startDate?.yearOnly;
-    const day = a.startDate && !yearOnly ? a.startDate.day : (yearOnly ? a.startDate.year : '?');
-    const month = a.startDate && !yearOnly ? monthLabels[a.startDate.month - 1] : (yearOnly ? '' : '');
+    const sd = a.startDate;
+    // 4 cas de date : rien connu → "TBA" (à venir), année seule ("2027"),
+    // mois + année ("OCT 2027"), date complète ("3 OCT"). Jamais de
+    // fausse précision "1 JAN" quand Tenrai ne donne que l'année ou le mois.
+    let dateBlockHtml;
+    if (!sd) {
+        dateBlockHtml = `<div class="sp-date sp-date-tba"><div class="sp-date-tba-txt">À VENIR</div></div>`;
+    } else if (sd.yearOnly) {
+        dateBlockHtml = `<div class="sp-date"><div class="sp-date-day">${sd.year}</div></div>`;
+    } else if (sd.monthOnly) {
+        dateBlockHtml = `<div class="sp-date"><div class="sp-date-monthbig">${monthLabels[sd.month - 1]}</div><div class="sp-date-yearsmall">${sd.year}</div></div>`;
+    } else {
+        dateBlockHtml = `<div class="sp-date"><div class="sp-date-day">${sd.day}</div><div class="sp-date-month">${monthLabels[sd.month - 1]}</div></div>`;
+    }
     const studioRaw = (a.studios || []).slice(0, 1).join('') || '';
     // Évite "Studio Studio Pierrot" quand le nom commence déjà par "Studio"
     const studio = studioRaw && !/^studio\b/i.test(studioRaw) ? `Studio ${studioRaw}` : studioRaw;
@@ -1216,10 +1250,7 @@ function seasonPreviewRow(a, fallbackIdx) {
                 <div class="sp-title">${escape(a.title || '')}</div>
                 ${studio ? `<div class="sp-studio">${escape(studio)}</div>` : ''}
             </div>
-            <div class="sp-date">
-                <div class="sp-date-day">${day}</div>
-                <div class="sp-date-month">${escape(month)}</div>
-            </div>
+            ${dateBlockHtml}
         </div>
     `;
 }
@@ -1716,8 +1747,22 @@ function buildSlidesHTML(type, data, opts = {}) {
             const airedString = (a.aired_string || '').trim();
             const airedStringYear = airedString.match(/^(\d{4})\s*(to|-)?/i)?.[1];
             let startDate = null;
-            if (raw) {
-                const d = new Date(raw);
+            const rawTrim = String(raw || '').trim();
+            // Détecte 3 shapes que Tenrai peut renvoyer :
+            //   "2027"       → année seule
+            //   "2027-10"    → mois + année (pas de jour)
+            //   "2027-10-04" → date complète
+            // Sans ça, new Date("2027") ou new Date("2027-10") donne
+            // 2027-01-01 → on affiche "1 JAN" au lieu de "2027" (faux).
+            const isYearOnly = /^\d{4}$/.test(rawTrim);
+            const isMonthOnly = /^\d{4}-\d{2}$/.test(rawTrim);
+            if (isYearOnly) {
+                startDate = { day: 1, month: 1, year: parseInt(rawTrim, 10), yearOnly: true };
+            } else if (isMonthOnly) {
+                const [y, m] = rawTrim.split('-').map(Number);
+                startDate = { day: 1, month: m, year: y, monthOnly: true };
+            } else if (rawTrim) {
+                const d = new Date(rawTrim);
                 if (!isNaN(d.getTime())) {
                     startDate = { day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() };
                 }
