@@ -1192,9 +1192,13 @@ function seasonPreviewIntroSlide({ seasonLabelFr, year, count, covers = [] }) {
  */
 function seasonPreviewRow(a, fallbackIdx) {
     if (!a) return `<div class="sp-row"></div>`;
-    const day = a.startDate ? a.startDate.day : '?';
     const monthLabels = ['JAN', 'FÉV', 'MARS', 'AVR', 'MAI', 'JUIN', 'JUIL', 'AOÛT', 'SEPT', 'OCT', 'NOV', 'DÉC'];
-    const month = a.startDate ? monthLabels[a.startDate.month - 1] : '';
+    // Cas année seule (Tenrai renvoie parfois juste "2027") : on affiche
+    // l'année en gros à la place de day + month, pour éviter la fausse
+    // précision "1 JAN".
+    const yearOnly = a.startDate?.yearOnly;
+    const day = a.startDate && !yearOnly ? a.startDate.day : (yearOnly ? a.startDate.year : '?');
+    const month = a.startDate && !yearOnly ? monthLabels[a.startDate.month - 1] : (yearOnly ? '' : '');
     const studioRaw = (a.studios || []).slice(0, 1).join('') || '';
     // Évite "Studio Studio Pierrot" quand le nom commence déjà par "Studio"
     const studio = studioRaw && !/^studio\b/i.test(studioRaw) ? `Studio ${studioRaw}` : studioRaw;
@@ -1224,16 +1228,21 @@ function seasonPreviewRow(a, fallbackIdx) {
  * Slide de preview : 4 rows d'animes empilées. Header ("PREVIEW ·
  * AUTOMNE 2026") en haut, footer (brand + index) en bas.
  */
-function seasonPreviewSlide({ animes, seasonLabelFr, year, index, total, fallbackOffset = 0 }) {
+function seasonPreviewSlide({ animes, seasonLabelFr, year, index, total, fallbackOffset = 0, headerTitle, headerAccent, headerChipYear = true }) {
     const rows = [];
     for (let i = 0; i < 4; i += 1) {
         rows.push(seasonPreviewRow(animes[i], fallbackOffset + i));
     }
+    const chipInner = headerChipYear
+        ? `${escape(seasonLabelFr)} ${year}`
+        : `${escape(seasonLabelFr)}`;
+    const title = headerTitle || 'Preview';
+    const accent = headerAccent || 'saison';
     return docShell(`
         <div class="sp-container">
             <div class="sp-header">
-                <div class="sp-header-chip">${escape(seasonLabelFr)} ${year}</div>
-                <div class="sp-header-title">Preview <span class="accent">saison</span></div>
+                <div class="sp-header-chip">${chipInner}</div>
+                <div class="sp-header-title">${escape(title)} <span class="accent">${escape(accent)}</span></div>
             </div>
             ${rows.join('')}
             <div class="sp-footer">
@@ -1693,43 +1702,73 @@ function buildSlidesHTML(type, data, opts = {}) {
 
     if (type === 'announcement_digest') {
         // data = { animes: [{ ... with prequel_* }, ...] }
+        // Layout dense inspiré du season_preview : 4 annonces par slide,
+        // jusqu'à 20 annonces en 5 slides (+ intro + outro = 7 slides).
         const items = Array.isArray(data?.animes) ? data.animes : [];
-        const N = items.length;
-        const total = N + 2; // intro + N hero-lite + outro
+        const perSlide = 4;
+        const rowCount = Math.ceil(items.length / perSlide);
+        const total = 2 + rowCount; // intro + N rows + outro
 
-        // Intro : chip PROCHAINEMENT + count + mini covers
+        // Convertit une annonce vers le format attendu par seasonPreviewSlide
+        // (startDate {day, month, year} + statusLabel FR).
+        const toSeasonRow = (a) => {
+            const raw = a.aired_from || a.airing_from || '';
+            const airedString = (a.aired_string || '').trim();
+            const airedStringYear = airedString.match(/^(\d{4})\s*(to|-)?/i)?.[1];
+            let startDate = null;
+            if (raw) {
+                const d = new Date(raw);
+                if (!isNaN(d.getTime())) {
+                    startDate = { day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() };
+                }
+            }
+            if (!startDate && airedStringYear) {
+                startDate = { day: 1, month: 1, year: parseInt(airedStringYear, 10), yearOnly: true };
+            }
+            let statusLabel = 'SORTIE';
+            if (a.source_type === 'Movie') statusLabel = 'FILM · SORTIE';
+            else if (a.source_type === 'OVA') statusLabel = 'OVA · SORTIE';
+            else if (a.source_type === 'ONA') statusLabel = 'ONA · SORTIE';
+            else if (a.prequel_title) statusLabel = 'SUITE · SORTIE';
+            return {
+                title: a.title,
+                cover: a.cover,
+                studios: a.studios || [],
+                statusLabel,
+                startDate,
+            };
+        };
+
+        const rows = items.map(toSeasonRow);
+        const dateStr = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+
         slides.push({
             name: 'intro',
-            html: introSlide({
-                typeLabel: 'Annonces · cette semaine',
-                chipText: 'Prochainement',
-                titleMain: `${N}`,
-                titleAccent: N > 1 ? 'annonces' : 'annonce',
-                subtitle: 'Les sequels à noter →',
-                miniCovers: items.map(a => a.cover).filter(Boolean),
+            html: seasonPreviewIntroSlide({
+                seasonLabelFr: 'Annonces',
+                year: new Date().getFullYear(),
+                count: items.length,
+                covers: items.map((a) => a.cover).filter(Boolean).slice(0, 9),
             }),
         });
 
-        // 1 hero-lite par anime
-        items.forEach((a, i) => {
-            const date = formatAnnouncementDate(a);
-            const prequel = {
-                score: a.prequel_score,
-                scored_by: a.prequel_scored_by,
-                season_label: a.prequel_season_label,
-            };
+        for (let i = 0; i < rowCount; i += 1) {
+            const chunk = rows.slice(i * perSlide, (i + 1) * perSlide);
             slides.push({
                 name: `ann-${i + 1}`,
-                html: announcementHeroLiteSlide({
-                    anime: a,
-                    date,
-                    prequel,
+                html: seasonPreviewSlide({
+                    animes: chunk,
+                    seasonLabelFr: `Prochainement · ${dateStr}`,
+                    year: new Date().getFullYear(),
                     index: i + 2,
                     total,
-                    gradientIdx: i,
+                    fallbackOffset: i * perSlide,
+                    headerTitle: 'Annonces',
+                    headerAccent: 'à noter',
+                    headerChipYear: false,
                 }),
             });
-        });
+        }
 
         slides.push({
             name: 'outro',
