@@ -110,7 +110,15 @@ Puis 5-7 hashtags : #animeannouncement + noms des animes.
 JSON strict :
 {"caption": "...", "hashtags": "..."}`,
 
-    culture_news_infer: `Tu es l'éditeur du bot social Bingeki. À partir d'un titre de news anime/manga (souvent depuis TikTok, Twitter, article de presse), tu dois deviner :
+    culture_news_infer: `Tu es l'éditeur du bot social Bingeki (tracker anime & manga francophone). À partir d'un titre de news, tu dois répondre :
+
+- relevant : booléen. TRUE si l'info intéresse un fan d'anime/manga et vaut la peine d'être postée sur Bingeki. FALSE pour les sujets NON pertinents :
+  * Reviews de volumes de manga individuels ("Volumes 4, 5 and 6 Review")
+  * Récaps épisodes / previews guides / this-week-in-anime
+  * Sujets touristiques japonais génériques (céramique, cuisine, voyage)
+  * Articles d'opinion/philo/analyse sociétale sans info actu ("À qui appartient la voix…")
+  * Interviews de fond
+  * Culture japonaise générale sans lien direct anime/manga
 
 - category : une des valeurs strictement parmi ["game", "movie", "goodies", "industry", "event", "other"]
   · game     = jeu vidéo (mobile, console, gacha, MMO)
@@ -118,22 +126,21 @@ JSON strict :
   · goodies  = figurine, merch, art book, blu-ray, collector
   · industry = box-office, deal, licence, streaming, chiffres, controverse
   · event    = convention, concert, sortie premium, premiere
-  · other    = actu générique qui ne rentre pas ailleurs
+  · other    = actu générique qui ne rentre pas ailleurs (utilise avec parcimonie)
 
-- source : le nom de la VRAIE source officielle de l'info (ex: "Bandai Namco" pour un jeu Bandai, "Toei Animation" pour un anime Toei, "Kadokawa", "Aniplex", "Netflix", "Crunchyroll", "Manga+", "Shueisha"). PAS le nom d'un influenceur ou d'un compte réseau social. Si tu ne peux pas identifier de source officielle avec certitude, retourne "" (chaîne vide).
+- source : le nom de la VRAIE source officielle de l'info (ex: "Bandai Namco" pour un jeu Bandai, "Toei Animation", "Kadokawa", "Aniplex", "Netflix", "Crunchyroll", "Manga+", "Shueisha"). PAS un influenceur ou compte réseau social. Si tu ne peux pas identifier de source officielle avec certitude, retourne "" (chaîne vide).
 
-- description : 1 à 2 phrases courtes (100-200 caractères) qui donnent le contexte et l'intérêt de l'info pour un fan d'anime. **OBLIGATOIRE, jamais vide** — même si tu as peu d'infos, extrapole raisonnablement à partir du titre et de la source :
-  * Pour un jeu : "Adaptation vidéoludique de X, développée par Y, mode Z."
-  * Pour un film : "Suite / film-résumé de X, produit par Y, sortie prévue Z."
-  * Pour une actu industrie : "X annonce/lance/rachète Y — impact pour Z."
-  * Pour un article de type liste ("Attentes mangas d'octobre") : "Notre sélection des mangas à surveiller en octobre 2026, avec les nouveautés et les suites attendues."
-  Reste factuel — n'invente pas de dates ou chiffres précis. Si tu doutes, reste générique ("attendu prochainement", "à surveiller"). Ne commence pas par "Cette news…" ou "L'article…".
+- description : 1 à 2 phrases courtes (100-200 caractères) qui donnent le contexte et l'intérêt de l'info. **OBLIGATOIRE si relevant=true, jamais vide** — extrapole raisonnablement si peu d'infos :
+  * Jeu : "Adaptation vidéoludique de X, développée par Y."
+  * Film : "Suite / film-résumé de X, sortie prévue Z."
+  * Industrie : "X annonce/lance/rachète Y."
+  * Reste factuel — n'invente pas dates ou chiffres précis. Ne commence pas par "Cette news…" ou "L'article…".
 
 Infos disponibles :
 {{DATA}}
 
 Réponds STRICTEMENT en JSON, rien d'autre :
-{"category": "game", "source": "Bandai Namco", "description": "Le RPG mobile revient avec de nouveaux personnages et un mode multi coopératif."}`,
+{"relevant": true, "category": "game", "source": "Bandai Namco", "description": "Le RPG mobile revient avec de nouveaux personnages et un mode multi coopératif."}`,
 
     culture_news: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post "actu culture anime" — une news qui touche à l'univers anime/manga mais qui n'est PAS une sortie d'épisode (ex: jeu vidéo, film live-action, goodies, actu industrie, événement, box-office…).
 
@@ -476,6 +483,10 @@ async function inferCultureNewsFields({ title, description, host, siteName }, co
     }
     const VALID_CATS = new Set(['game', 'movie', 'goodies', 'industry', 'event', 'other']);
     return {
+        // relevant: null (Gemini a échoué / champ absent), true (pertinent),
+        // false (à skipper). Le cron interprète null comme "on tente quand
+        // même", false comme "skip".
+        relevant: typeof obj.relevant === 'boolean' ? obj.relevant : null,
         category: VALID_CATS.has(obj.category) ? obj.category : 'other',
         source: typeof obj.source === 'string' ? obj.source.trim().slice(0, 60) : '',
         description: typeof obj.description === 'string' ? obj.description.trim().slice(0, 260) : '',

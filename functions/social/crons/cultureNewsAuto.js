@@ -51,7 +51,15 @@ const SKIP_TITLE_PATTERNS = [
     /\bpreview guide\b/i,
     /manga review\b/i,
     /\banime review\b/i,
-    /\bvol(?:ume)?\.?\s*\d+\s+review\b/i,
+    // Reviews de volumes : "Volume 5 Review", "Volumes 4, 5 and 6 Review",
+    // "Volumes 6 and 7 Review".
+    /\bvol(?:ume)?s?\.?\s*\d+[\d,\s\-–]*\s*(?:and|et|&)?\s*\d*\s*review\b/i,
+    // Sujets non-anime : culture japonaise générale, cuisine, tourisme,
+    // opinion sociétale. Filet basique — Gemini "relevant: false" affine.
+    /\bcéramique\b/i,
+    /\btouristique\b/i,
+    /\bséjour\s+au\s+japon\b/i,
+    /\bappartient\s+la\s+voix\b/i,
 ];
 
 const COLLECTION_SEEN = 'social_culture_news_seen';
@@ -106,13 +114,29 @@ async function processItem(item) {
         siteName: meta.siteName,
     }).catch((err) => {
         console.warn(`[cultureNewsAuto] Gemini infer failed:`, err.message);
-        return { category: 'other', source: '', description: '' };
+        return { category: 'other', source: '', description: '', relevant: null };
     });
+
+    // Skip si Gemini a explicitement marqué non pertinent (only when Gemini
+    // succeeded — relevant=null means Gemini failed, we let it pass with
+    // the fallback below).
+    if (inferred.relevant === false) {
+        console.log(`[cultureNewsAuto] skip: Gemini marked as non-relevant → ${item.url}`);
+        return null;
+    }
 
     const finalSource = (meta.siteName || inferred.source || '').trim();
     if (!finalSource) {
         console.log(`[cultureNewsAuto] skip: no reliable source for ${item.url}`);
         return null;
+    }
+
+    // Si Gemini a raté, on utilise la description RSS de l'item comme
+    // fallback : mieux que rien, souvent 1-2 phrases utiles écrites par
+    // la rédaction du site source.
+    let finalDescription = inferred.description || '';
+    if (!finalDescription && item.description) {
+        finalDescription = item.description.slice(0, 240).trim();
     }
 
     const ext = (meta.imageUrl.match(/\.(jpe?g|png|webp|gif)(\?|$)/i)?.[1] || 'jpg').toLowerCase();
@@ -136,7 +160,7 @@ async function processItem(item) {
     const result = await runCultureNews({
         category: inferred.category,
         title: cleanTitle,
-        description: inferred.description,
+        description: finalDescription,
         imageUrl: uploaded.url,
         source: finalSource,
     });
