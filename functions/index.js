@@ -98,4 +98,5 @@ exports.socialTriggerCron = socialCallables.socialTriggerCron;
 exports.socialGenerateSeasonPreview = socialCallables.socialGenerateSeasonPreview;
 exports.socialFetchNewsMetadata = socialCallables.socialFetchNewsMetadata;
 exports.socialCreateCultureNews = socialCallables.socialCreateCultureNews;
+exports.socialCreateCultureNewsFromUrl = socialCallables.socialCreateCultureNewsFromUrl;
 exports.socialRetryPublish = socialCallables.socialRetryPublish;

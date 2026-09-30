@@ -110,6 +110,23 @@ Puis 5-7 hashtags : #animeannouncement + noms des animes.
 JSON strict :
 {"caption": "...", "hashtags": "..."}`,
 
+    culture_news_infer: `Tu es l'éditeur du bot social Bingeki. À partir d'un titre de news anime/manga (souvent depuis TikTok, Twitter, article de presse), tu dois deviner :
+- category : une des valeurs strictement parmi ["game", "movie", "goodies", "industry", "event", "other"]
+  · game     = jeu vidéo (mobile, console, gacha, MMO)
+  · movie    = film cinéma, film d'animation, live-action
+  · goodies  = figurine, merch, art book, blu-ray, collector
+  · industry = box-office, deal, licence, streaming, chiffres, controverse
+  · event    = convention, concert, sortie premium, premiere
+  · other    = actu générique qui ne rentre pas ailleurs
+- source : le nom de la VRAIE source officielle de l'info (ex: "Bandai Namco" pour un jeu Bandai, "Toei Animation" pour un anime Toei, "Kadokawa", "Aniplex", "Netflix", "Crunchyroll", "Manga+", "Shueisha"). PAS le nom d'un influenceur ou d'un compte réseau social. Si tu ne peux pas identifier de source officielle avec certitude, retourne "" (chaîne vide).
+- description : 1 phrase courte (max 200 caractères) qui reformule l'info en donnant le contexte ("le RPG mobile revient avec X…"). Reste factuel, pas d'invention.
+
+Infos disponibles :
+{{DATA}}
+
+Réponds STRICTEMENT en JSON, rien d'autre :
+{"category": "game", "source": "Bandai Namco", "description": "Le RPG mobile revient avec de nouveaux personnages et un mode multi coopératif."}`,
+
     culture_news: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post "actu culture anime" — une news qui touche à l'univers anime/manga mais qui n'est PAS une sortie d'épisode (ex: jeu vidéo, film live-action, goodies, actu industrie, événement, box-office…).
 
 Actu :
@@ -390,10 +407,78 @@ ${JSON.stringify(inputs)}`;
     };
 }
 
+/**
+ * Devine la catégorie, la source officielle et une courte description à
+ * partir d'un titre de news (généralement extrait d'un TikTok, tweet ou
+ * article). Utilisé par le workflow "actu culture anime" pour permettre
+ * un post en 1 clic (colle URL → tout est auto).
+ *
+ * Retourne { category, source, description } ou lance une erreur si
+ * Gemini échoue. Le caller peut fallback sur { category: 'other',
+ * source: '', description: '' }.
+ */
+async function inferCultureNewsFields({ title, description, host, siteName }, config = {}) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error('GEMINI_API_KEY not set');
+
+    const payload = [
+        `Titre extrait : ${title || '(vide)'}`,
+        description ? `Description extraite : ${description}` : null,
+        `Provenance : ${siteName || host || '?'}`,
+    ].filter(Boolean).join('\n');
+
+    const prompt = PROMPTS.culture_news_infer.replace('{{DATA}}', payload);
+    const model = config?.gemini?.model || 'gemini-flash-latest';
+    const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+    const MAX_ATTEMPTS = 3;
+    let res;
+    let lastErrBody = '';
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+        res = await fetch(GEMINI_ENDPOINT(model, apiKey), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(30_000),
+            body: JSON.stringify({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 400,
+                    responseMimeType: 'application/json',
+                },
+            }),
+        });
+        if (res.ok) break;
+        lastErrBody = await res.text().catch(() => '');
+        if (!RETRYABLE.has(res.status) || attempt === MAX_ATTEMPTS) break;
+        const delayMs = 1000 * 2 ** (attempt - 1) + Math.floor(Math.random() * 400);
+        console.warn(`[social/gemini] infer ${res.status} attempt ${attempt}/${MAX_ATTEMPTS}, retry in ${delayMs}ms`);
+        await new Promise((r) => setTimeout(r, delayMs));
+    }
+    if (!res.ok) {
+        throw new Error(`Gemini infer ${res.status}: ${lastErrBody.slice(0, 200)}`);
+    }
+    const body = await res.json();
+    const text = body?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    let obj;
+    try { obj = JSON.parse(text); }
+    catch {
+        const m = text.match(/\{[\s\S]*\}/);
+        if (!m) throw new Error('Gemini infer non-JSON response');
+        obj = JSON.parse(m[0]);
+    }
+    const VALID_CATS = new Set(['game', 'movie', 'goodies', 'industry', 'event', 'other']);
+    return {
+        category: VALID_CATS.has(obj.category) ? obj.category : 'other',
+        source: typeof obj.source === 'string' ? obj.source.trim().slice(0, 60) : '',
+        description: typeof obj.description === 'string' ? obj.description.trim().slice(0, 260) : '',
+    };
+}
+
 module.exports = {
     generateCaption,
     generateCaptionFromGemini,
     translateSynopsisPair,
+    inferCultureNewsFields,
     PROMPTS,
     parseGeminiResponse,
     serializeData,

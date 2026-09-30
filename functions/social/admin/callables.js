@@ -355,6 +355,7 @@ const { runCleanupPending } = require('../crons/cleanupPending');
 const { runSeasonPreview } = require('../crons/seasonPreview');
 const { runCultureNews } = require('../crons/cultureNews');
 const { fetchOgMetadata, downloadAndReuploadImage } = require('../generators/ogScraper');
+const { inferCultureNewsFields } = require('../generators/gemini');
 
 const CRON_RUNNERS = {
     dailyReleases: runDailyReleases,
@@ -496,6 +497,102 @@ exports.socialCreateCultureNews = onCall(
             return { ok: true, result };
         } catch (err) {
             console.error('[social/createCultureNews] failed:', err);
+            throw new HttpsError('internal', err.message || String(err));
+        }
+    },
+);
+
+/**
+ * Workflow 1-clic : l'admin colle une URL, tout est auto (image, titre,
+ * catégorie, source, description). Le post pending est créé et
+ * apparaît dans la queue admin pour validation/édition/publish.
+ *
+ * Enchaîne fetchOgMetadata → downloadAndReuploadImage → inferCultureNewsFields
+ * → runCultureNews en une seule requête.
+ */
+exports.socialCreateCultureNewsFromUrl = onCall(
+    {
+        secrets: [GEMINI_API_KEY],
+        memory: '1GiB',
+        timeoutSeconds: 300,
+    },
+    async (request) => {
+        await assertAdminOrThrow(request);
+        const { url } = request.data || {};
+        if (!url || typeof url !== 'string') {
+            throw new HttpsError('invalid-argument', 'url is required');
+        }
+        console.log(`[social/cultureNewsFromUrl] uid=${request.auth.uid} url=${url.slice(0, 200)}`);
+        try {
+            // 1) Scrape OG + oEmbed
+            const meta = await fetchOgMetadata(url);
+            if (!meta.imageUrl) {
+                throw new HttpsError('failed-precondition', 'no og:image found on this URL');
+            }
+            if (!meta.title) {
+                throw new HttpsError('failed-precondition', 'no og:title found on this URL');
+            }
+
+            // 2) Download + re-upload image
+            const ext = (meta.imageUrl.match(/\.(jpe?g|png|webp|gif)(\?|$)/i)?.[1] || 'jpg').toLowerCase();
+            const today = new Date().toISOString().slice(0, 10);
+            const suffix = Math.random().toString(36).slice(2, 10);
+            const path = `social/${today}/culture_news/source-${suffix}.${ext}`;
+            const uploaded = await downloadAndReuploadImage(meta.imageUrl, path);
+
+            // 3) Infer category, source, description via Gemini
+            let inferred = { category: 'other', source: '', description: '' };
+            try {
+                inferred = await inferCultureNewsFields({
+                    title: meta.title,
+                    description: '',
+                    host: meta.host,
+                    siteName: meta.siteName,
+                });
+            } catch (err) {
+                console.warn('[social/cultureNewsFromUrl] Gemini infer failed, using defaults:', err.message);
+            }
+
+            // Priorité à la source presse whitelistée (og:site_name) sur
+            // celle devinée par Gemini : plus fiable quand elle existe.
+            const finalSource = (meta.siteName || inferred.source || '').trim();
+
+            // Garde-fou : on ne crée un post que si on a identifié une
+            // source officielle (éditeur, studio, presse). Un TikTok/tweet
+            // dont Gemini n'a pas su identifier la source réelle est
+            // rejeté — Bingeki ne relaie pas les rumeurs/leaks.
+            if (!finalSource) {
+                throw new HttpsError(
+                    'failed-precondition',
+                    'Source officielle non identifiée. Bingeki ne relaie que des infos sourcées (éditeur, studio, presse). Trouve la source officielle et ajoute-la manuellement, ou passe cette news.',
+                );
+            }
+
+            // Nettoie le titre extrait (retirer hashtags et emojis en fin
+            // souvent présents dans les titres TikTok).
+            const cleanTitle = meta.title
+                .replace(/#\S+/g, '')       // retire les hashtags
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 140);
+
+            // 4) Create pending post
+            const result = await runCultureNews({
+                category: inferred.category,
+                title: cleanTitle,
+                description: inferred.description,
+                imageUrl: uploaded.url,
+                source: finalSource,
+            });
+
+            return {
+                ok: true,
+                inferred: { ...inferred, source: finalSource, title: cleanTitle },
+                result,
+            };
+        } catch (err) {
+            if (err instanceof HttpsError) throw err;
+            console.error('[social/cultureNewsFromUrl] failed:', err);
             throw new HttpsError('internal', err.message || String(err));
         }
     },

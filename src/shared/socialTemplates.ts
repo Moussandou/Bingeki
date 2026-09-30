@@ -197,22 +197,20 @@ const CSS = `
     .sp-hero-swipe { position: absolute; right: 60px; bottom: 60px; font-family: 'Outfit'; font-weight: 900; font-size: 34px; color: #444; letter-spacing: 5px; z-index: 5; }
 
     /* Culture News */
-    .cn-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: #0a0a0a; display: grid; grid-template-rows: 55% 45%; }
-    .cn-media { position: relative; overflow: hidden; background: #000; border-bottom: 8px solid var(--cat-accent, ${ROSE}); }
+    .cn-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: #0a0a0a; display: grid; grid-template-rows: 68% 32%; }
+    .cn-media { position: relative; overflow: hidden; background: #000; border-bottom: 6px solid var(--cat-accent, ${ROSE}); }
     .cn-media-fallback { position: absolute; inset: 0; z-index: 0; background: linear-gradient(135deg, #1a1a1a 0%, var(--cat-accent, ${ROSE}) 100%); }
     .cn-media-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
     .cn-media-scrim { position: absolute; inset: 0; z-index: 2; background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.35) 100%); }
-    .cn-halftone { position: absolute; inset: 0; opacity: 0.08; pointer-events: none; z-index: 3; background-image: radial-gradient(#fff 2.5px, transparent 3.5px); background-size: 40px 40px; }
-    .cn-cat { position: absolute; top: 40px; left: 40px; z-index: 6; display: inline-flex; align-items: center; border: 6px solid #000; padding: 14px 28px; font-family: 'Outfit'; font-weight: 900; font-size: 34px; letter-spacing: 5px; text-transform: uppercase; line-height: 1; background: var(--cat-accent, ${ROSE}); color: var(--cat-fg, #fff); box-shadow: 10px 10px 0 #000; transform: rotate(-2deg); }
-    .cn-source { position: absolute; top: 40px; right: 40px; z-index: 6; display: inline-flex; align-items: center; background: rgba(0,0,0,0.75); color: #fff; border: 3px solid #fff; padding: 8px 16px; font-family: 'Inter'; font-weight: 600; font-size: 22px; letter-spacing: 1px; text-transform: uppercase; }
-    .cn-panel { position: relative; background: #0a0a0a; padding: 48px 60px 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; overflow: hidden; }
-    .cn-panel-halftone { position: absolute; inset: 0; opacity: 0.06; pointer-events: none; background-image: radial-gradient(#fff 2px, transparent 3px); background-size: 28px 28px; }
-    .cn-title { position: relative; z-index: 2; font-family: 'Outfit'; font-weight: 900; font-size: 74px; line-height: 0.94; letter-spacing: -2.5px; text-transform: uppercase; color: #fff; overflow-wrap: break-word; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-    .cn-desc { position: relative; z-index: 2; font-family: 'Inter'; font-weight: 500; font-size: 30px; line-height: 1.3; color: #cfcfcf; letter-spacing: -0.2px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-    .cn-footer { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; border-top: 4px solid var(--cat-accent, ${ROSE}); padding-top: 18px; }
-    .cn-brand { font-family: 'Outfit'; font-weight: 900; font-size: 34px; color: #fff; letter-spacing: -0.5px; }
+    .cn-cat { position: absolute; top: 28px; left: 28px; z-index: 6; display: inline-flex; align-items: center; border: 4px solid #000; padding: 8px 16px; font-family: 'Outfit'; font-weight: 900; font-size: 22px; letter-spacing: 3px; text-transform: uppercase; line-height: 1; background: var(--cat-accent, ${ROSE}); color: var(--cat-fg, #fff); box-shadow: 5px 5px 0 #000; }
+    .cn-source { position: absolute; top: 28px; right: 28px; z-index: 6; display: inline-flex; align-items: center; background: rgba(0,0,0,0.72); color: #fff; border: 2px solid rgba(255,255,255,0.55); padding: 6px 12px; font-family: 'Inter'; font-weight: 600; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; }
+    .cn-panel { position: relative; background: #0a0a0a; padding: 32px 48px 28px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; overflow: hidden; }
+    .cn-title { position: relative; z-index: 2; font-family: 'Outfit'; font-weight: 900; font-size: 52px; line-height: 0.98; letter-spacing: -1.8px; text-transform: uppercase; color: #fff; overflow-wrap: break-word; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .cn-desc { position: relative; z-index: 2; font-family: 'Inter'; font-weight: 500; font-size: 22px; line-height: 1.35; color: #b8b8b8; letter-spacing: -0.1px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .cn-footer { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; border-top: 2px solid rgba(255,255,255,0.10); padding-top: 10px; }
+    .cn-brand { font-family: 'Outfit'; font-weight: 900; font-size: 22px; color: #fff; letter-spacing: -0.3px; opacity: 0.85; }
     .cn-brand::before { content: '★ '; color: var(--cat-accent, ${ROSE}); }
-    .cn-tag { font-family: 'Outfit'; font-weight: 900; font-size: 22px; color: #888; letter-spacing: 4px; text-transform: uppercase; }
+    .cn-tag { font-family: 'Outfit'; font-weight: 700; font-size: 14px; color: #555; letter-spacing: 3px; text-transform: uppercase; }
 `;
 
 type BadgeVariant = 'chip-dark' | 'chip-rose' | 'chip-cyan' | 'chip-white';
@@ -809,12 +807,10 @@ export function cultureNewsSlide(d: CultureNewsInput): string {
                 <div class="cn-media-fallback"></div>
                 ${d.imageUrl ? `<img class="cn-media-img" src="${escape(d.imageUrl)}" alt="">` : ''}
                 <div class="cn-media-scrim"></div>
-                <div class="cn-halftone"></div>
                 <div class="cn-cat">${escape(cat.label)}</div>
                 ${d.source ? `<div class="cn-source">${escape(d.source)}</div>` : ''}
             </div>
             <div class="cn-panel">
-                <div class="cn-panel-halftone"></div>
                 <div class="cn-title">${escape(d.title || '')}</div>
                 ${d.description ? `<div class="cn-desc">${escape(d.description)}</div>` : ''}
                 <div class="cn-footer">

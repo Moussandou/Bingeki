@@ -390,6 +390,20 @@ export const createCultureNews = (input: {
         input,
     );
 
+/**
+ * Workflow 1-clic : URL → post pending créé automatiquement (image, titre,
+ * catégorie, source, description tout auto via Gemini + og:image).
+ */
+export const createCultureNewsFromUrl = (url: string) =>
+    callAdminFn<
+        { url: string },
+        {
+            ok: true;
+            inferred: { category: CultureCategory; source: string; title: string; description: string };
+            result: { postId?: string; note?: string };
+        }
+    >('socialCreateCultureNewsFromUrl', { url });
+
 export const retryPublish = (postId: string) =>
     callAdminFn<
         { postId: string },
