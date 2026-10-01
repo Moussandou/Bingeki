@@ -7,14 +7,30 @@ enum RootTab: String, Hashable { case home, discover, library }
 struct RootView: View {
     @Environment(\.authStore) private var auth
     @AppStorage("bk.themePreference") private var themePreference = ThemePreference.system.rawValue
+    @State private var showSplash = true
+    @State private var contentReady = false
 
     var body: some View {
         Group {
             if auth.isSignedIn, let uid = auth.uid {
-                SignedInRootView(uid: uid)
+                SignedInRootView(uid: uid) { contentReady = true }
             } else {
-                AuthView()
+                AuthView().onAppear { contentReady = true }
             }
+        }
+        .overlay {
+            if showSplash {
+                BKSplashView().transition(.asymmetric(insertion: .identity, removal: .opacity.combined(with: .scale(scale: 1.15))))
+            }
+        }
+        // Long enough for the stamp to land, never stuck if loading stalls.
+        .task {
+            try? await Task.sleep(for: .milliseconds(850))
+            let deadline = Date.now.addingTimeInterval(1.8)
+            while !contentReady, Date.now < deadline {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            withAnimation(.easeIn(duration: 0.25)) { showSplash = false }
         }
         .preferredColorScheme((ThemePreference(rawValue: themePreference) ?? .system).colorScheme)
         .environment(\.bkAmoled, themePreference == ThemePreference.amoled.rawValue)
@@ -32,6 +48,8 @@ struct RootView: View {
 /// `uid` drives `SignedInRootView`'s own SwiftUI identity here.
 private struct SignedInRootView: View {
     let uid: String
+    /// Library known (cloud or disk cache): the splash can go.
+    var onReady: () -> Void = {}
     @State private var library: any LibraryStoring
     @State private var userStore: any UserStoring
     @State private var deck = DiscoverDeck()
@@ -75,8 +93,9 @@ private struct SignedInRootView: View {
         Task { await deck.load(library: library.works, sfw: !userStore.profile.nsfwMode) }
     }
 
-    init(uid: String) {
+    init(uid: String, onReady: @escaping () -> Void = {}) {
         self.uid = uid
+        self.onReady = onReady
         #if DEBUG
         if UserDefaults.standard.bool(forKey: "bk.useInMemoryStore") {
             _library = State(initialValue: InMemoryLibraryStore.preview)
@@ -171,6 +190,7 @@ private struct SignedInRootView: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: userStore.recentLevelUp)
+        .onChange(of: library.hasLoaded, initial: true) { _, loaded in if loaded { onReady() } }
         // Daily streak: counted once per calendar day on open/return, like
         // `recordActivity` in the web's auth sync.
         .onChange(of: scenePhase, initial: true) { _, phase in

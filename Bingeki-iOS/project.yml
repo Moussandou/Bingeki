@@ -42,7 +42,10 @@ targets:
     info:
       path: Resources/Info.plist
       properties:
-        UILaunchScreen: {}
+        # LaunchScreen.storyboard: shown frozen while the process boots.
+        # SplashLogo is rendered from the vector mark (design/logo/render-launch.sh)
+        # at BKSplashView's size, so the splash takes over on an identical frame.
+        UILaunchStoryboardName: LaunchScreen
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:
