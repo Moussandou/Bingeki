@@ -34,6 +34,7 @@ private struct SignedInRootView: View {
     @State private var library: any LibraryStoring
     @State private var userStore: any UserStoring
     @State private var deck = DiscoverDeck()
+    @State private var network = NetworkMonitor()
     @State private var selectedTab: RootTab = .home
     @State private var showSearch = false
 
@@ -54,6 +55,7 @@ private struct SignedInRootView: View {
         TabView(selection: $selectedTab) {
             NavigationStack {
                 HomeView(selectedTab: $selectedTab)
+                    .bkOfflineBanner()
                     .navigationDestination(for: ProfileRoute.self) { route in
                         switch route {
                         case .main: ProfileView()
@@ -64,11 +66,11 @@ private struct SignedInRootView: View {
             .bkTabPage()
             .tag(RootTab.home)
 
-            NavigationStack { DiscoverView() }
+            NavigationStack { DiscoverView().bkOfflineBanner() }
                 .bkTabPage()
                 .tag(RootTab.discover)
 
-            NavigationStack { LibraryListView() }
+            NavigationStack { LibraryListView(selectedTab: $selectedTab) { showSearch = true }.bkOfflineBanner() }
                 .bkTabPage()
                 .tag(RootTab.library)
         }
@@ -79,6 +81,7 @@ private struct SignedInRootView: View {
         .environment(\.libraryStore, library)
         .environment(\.userStore, userStore)
         .environment(deck)
+        .environment(network)
         .sheet(isPresented: $showSearch) { SearchView() }
         .overlay { BKToastOverlay() }
         .overlay {

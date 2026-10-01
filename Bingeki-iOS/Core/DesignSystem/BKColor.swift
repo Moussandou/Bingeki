@@ -23,4 +23,6 @@ enum BKColor {
     static let brandPink = Color("BrandPink")
     static let brandCyan = Color("BrandCyan")
     static let ink = Color("InkFixed")
+    /// Amber `#F59E0B` behind black text (offline banner), same in both themes.
+    static let warningFill = Color(red: 0.961, green: 0.620, blue: 0.043)
 }

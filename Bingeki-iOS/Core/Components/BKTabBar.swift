@@ -73,12 +73,53 @@ struct BKTabBar: View {
 }
 
 extension View {
-    /// Per-tab setup: hides the system bar and reserves room for `BKTabBar`.
+    /// Per-tab setup on the NavigationStack: hides the system bar, reserves room for `BKTabBar`.
     func bkTabPage() -> some View {
         toolbar(.hidden, for: .tabBar)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear.frame(height: BKSize.tabBarHeight + 8)
             }
+    }
+
+    /// On a tab's root view (NavigationStack doesn't forward top insets).
+    func bkOfflineBanner() -> some View {
+        modifier(BKOfflineInset())
+    }
+}
+
+private struct BKOfflineInset: ViewModifier {
+    @Environment(NetworkMonitor.self) private var network
+    @Environment(\.libraryStore) private var library
+
+    func body(content: Content) -> some View {
+        content
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if !network.isOnline { BKOfflineBanner(pendingChanges: library.pendingChanges) }
+            }
+            .animation(.easeOut(duration: 0.2), value: network.isOnline)
+    }
+}
+
+/// États #6 — everything keeps working, sync resumes when back online.
+struct BKOfflineBanner: View {
+    let pendingChanges: Int
+
+    var body: some View {
+        HStack(spacing: BKSpace.sm) {
+            Image(systemName: "wifi.slash").font(.caption.weight(.bold))
+            Text(pendingChanges > 0
+                 ? "Hors ligne · \(pendingChanges) modif\(pendingChanges > 1 ? "s" : "") en attente"
+                 : "Hors ligne · synchro au retour")
+                .font(BKFont.display(13, weight: .heavy))
+            Spacer()
+        }
+        .padding(.horizontal, BKSpace.screenMargin)
+        .frame(height: 36)
+        .foregroundStyle(.black)
+        .background(BKColor.warningFill)
+        .overlay(alignment: .bottom) { Rectangle().fill(BKColor.ink).frame(height: 2) }
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .accessibilityElement(children: .combine)
     }
 }
 

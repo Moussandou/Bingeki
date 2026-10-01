@@ -47,6 +47,7 @@
 		BE654124FC48E9FFD4AD2345 /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BC677F926A7597677F20A55F /* Inter-Regular.ttf */; };
 		CF24D79A0A085CE82AD551EC /* BKContentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750164EF586FFAEAC9D04EFD /* BKContentCard.swift */; };
 		CFF22921787C7608F59CF706 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8239D0FC38D55CFE6C39EB2 /* SearchView.swift */; };
+		D29D3D7AA54D142FCC060DE0 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188322B986406AF20FC05D29 /* NetworkMonitor.swift */; };
 		D41580C74482CFCDF5BD7BB2 /* Outfit-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A9F77F5E00A267E048B66228 /* Outfit-Black.ttf */; };
 		D50944E2F5D7708103B329CA /* BKLevelUpOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 478A124F52385B8D794D141A /* BKLevelUpOverlay.swift */; };
 		DC940C9D903A185472BB909D /* BKButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460C7C62494A090944AE38EE /* BKButton.swift */; };
@@ -73,6 +74,7 @@
 /* Begin PBXFileReference section */
 		07E4FC06F6240CF50FCC3200 /* FirebaseUserStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseUserStore.swift; sourceTree = "<group>"; };
 		0E5E3D43DD1821F8F1762FB2 /* BingekiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BingekiApp.swift; sourceTree = "<group>"; };
+		188322B986406AF20FC05D29 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		195F6EA11DCCAE28BF0E30B6 /* Bingeki.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bingeki.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1CF3DEC5D26AE0E4F112862A /* EnvironmentKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentKeys.swift; sourceTree = "<group>"; };
 		275DFD59A29607C534D0A3BA /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -163,6 +165,7 @@
 				BF6F12D59B6E880244C07396 /* FirebaseAuthStore.swift */,
 				C98C2019941E0A56E6544BBB /* FirebaseLibraryStore.swift */,
 				07E4FC06F6240CF50FCC3200 /* FirebaseUserStore.swift */,
+				188322B986406AF20FC05D29 /* NetworkMonitor.swift */,
 				45BF3B49B9F409F61247A973 /* TenraiClient.swift */,
 				FDBAF641D0652E141CCDC52F /* TenraiModels.swift */,
 			);
@@ -499,6 +502,7 @@
 				8C199761F15E6FFC999A9C97 /* HomeView.swift in Sources */,
 				03F78553DC48B4BEBC34B177 /* LibraryListView.swift in Sources */,
 				FE3AAFD1AF187BAE460EE492 /* LibraryStore.swift in Sources */,
+				D29D3D7AA54D142FCC060DE0 /* NetworkMonitor.swift in Sources */,
 				1EBF2EC86DAE386DBDF3055D /* ProfileEditView.swift in Sources */,
 				95AF2372EB1E242258CA6BB1 /* ProfileView.swift in Sources */,
 				E4171124B6E85B956D46C0D3 /* ProgressSheetView.swift in Sources */,

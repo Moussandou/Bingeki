@@ -49,11 +49,12 @@ struct BKCover: View {
 struct BKStatusChip: View {
     let status: WorkStatus
     var isSelected: Bool = false
+    var count: Int?
 
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: status.iconName)
-            Text(status.label)
+            Text(count.map { "\(status.label) · \($0)" } ?? status.label)
         }
         .font(BKFont.display(13, weight: .heavy))
         .padding(.horizontal, 10)
