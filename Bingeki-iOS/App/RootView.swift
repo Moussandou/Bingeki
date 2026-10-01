@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum RootTab: Hashable { case home, discover, library }
+enum RootTab: String, Hashable { case home, discover, library }
 
 /// Branches on auth state (§5.1 of the handoff doc) before showing the
 /// signed-in shell.
@@ -33,6 +33,7 @@ private struct SignedInRootView: View {
     let uid: String
     @State private var library: any LibraryStoring
     @State private var userStore: any UserStoring
+    @State private var deck = DiscoverDeck()
     @State private var selectedTab: RootTab = .home
     @State private var showSearch = false
 
@@ -40,51 +41,44 @@ private struct SignedInRootView: View {
         self.uid = uid
         _library = State(initialValue: FirebaseLibraryStore(uid: uid))
         _userStore = State(initialValue: FirebaseUserStore(uid: uid))
+        #if DEBUG
+        // `-bk.initialTab discover` at launch, for simulator screenshots.
+        if let raw = UserDefaults.standard.string(forKey: "bk.initialTab"), let tab = RootTab(rawValue: raw) {
+            _selectedTab = State(initialValue: tab)
+        }
+        #endif
     }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            // `.tabItem` (not the iOS 18 `Tab` struct) to keep iOS 17 as the
-            // deployment target — see §4 of the handoff doc.
-            TabView(selection: $selectedTab) {
-                NavigationStack {
-                    HomeView(selectedTab: $selectedTab)
-                        .navigationDestination(for: ProfileRoute.self) { route in
-                            switch route {
-                            case .main: ProfileView()
-                            case .settings: SettingsView()
-                            }
+        // System tab bar hidden in favour of the mockups' inked `BKTabBar`.
+        TabView(selection: $selectedTab) {
+            NavigationStack {
+                HomeView(selectedTab: $selectedTab)
+                    .navigationDestination(for: ProfileRoute.self) { route in
+                        switch route {
+                        case .main: ProfileView()
+                        case .settings: SettingsView()
                         }
-                }
-                .tabItem { Label("Accueil", systemImage: "house.fill") }
-                .tag(RootTab.home)
-
-                NavigationStack { DiscoverView() }
-                    .tabItem { Label("Découvrir", systemImage: "scope") }
-                    .tag(RootTab.discover)
-
-                NavigationStack { LibraryListView() }
-                    .tabItem { Label("Biblio", systemImage: "books.vertical.fill") }
-                    .tag(RootTab.library)
+                    }
             }
+            .bkTabPage()
+            .tag(RootTab.home)
 
-            Button {
-                showSearch = true
-            } label: {
-                Image(systemName: "magnifyingglass")
-                    .font(.title3.weight(.semibold))
-                    .frame(width: BKSize.tabBarHeight, height: BKSize.tabBarHeight)
-                    .foregroundStyle(BKColor.textPrimary)
-                    .background(BKColor.surface)
-                    .bkInkBorder()
-                    .bkPanelShadow()
-            }
-            .padding(.trailing, BKSpace.md)
-            .padding(.bottom, 90) // clears the system tab bar
-            .accessibilityLabel("Rechercher")
+            NavigationStack { DiscoverView() }
+                .bkTabPage()
+                .tag(RootTab.discover)
+
+            NavigationStack { LibraryListView() }
+                .bkTabPage()
+                .tag(RootTab.library)
+        }
+        .background(BKColor.background.ignoresSafeArea())
+        .overlay(alignment: .bottom) {
+            BKTabBar(selection: $selectedTab) { showSearch = true }
         }
         .environment(\.libraryStore, library)
         .environment(\.userStore, userStore)
+        .environment(deck)
         .sheet(isPresented: $showSearch) { SearchView() }
         .overlay { BKToastOverlay() }
         .overlay {
@@ -102,5 +96,4 @@ private struct SignedInRootView: View {
     RootView()
         .environment(\.authStore, InMemoryAuthStore(isSignedIn: true))
         .environment(ToastCenter())
-        .environment(DiscoverDeck(pool: Work.sampleLibrary))
 }

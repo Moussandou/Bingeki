@@ -5,6 +5,7 @@
 #   ./scripts/run-simulator.sh                # build + run + screenshot
 #   ./scripts/run-simulator.sh --no-screenshot # build + run only
 #   ./scripts/run-simulator.sh --device "iPhone 17"
+#   ./scripts/run-simulator.sh --tab discover  # open on a tab (home|discover|library)
 #
 # Screenshots land in scripts/screenshots/<timestamp>.png and the script
 # opens the simulator's window so you can keep interacting with the app
@@ -15,10 +16,12 @@ cd "$(dirname "$0")/.."
 
 DEVICE_NAME="iPhone 17 Pro"
 TAKE_SCREENSHOT=1
+LAUNCH_ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --device) DEVICE_NAME="$2"; shift 2 ;;
     --no-screenshot) TAKE_SCREENSHOT=0; shift ;;
+    --tab) LAUNCH_ARGS+=(-bk.initialTab "$2"); shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -54,10 +57,10 @@ open -a Simulator --args -CurrentDeviceUDID "$DEVICE_ID"
 echo "→ Installing and launching…"
 xcrun simctl terminate "$DEVICE_ID" "$BUNDLE_ID" 2>/dev/null || true
 xcrun simctl install "$DEVICE_ID" "$APP_PATH"
-xcrun simctl launch "$DEVICE_ID" "$BUNDLE_ID"
+xcrun simctl launch "$DEVICE_ID" "$BUNDLE_ID" ${LAUNCH_ARGS[@]+"${LAUNCH_ARGS[@]}"}
 
 if [[ "$TAKE_SCREENSHOT" == "1" ]]; then
-  sleep 2
+  sleep 4
   mkdir -p scripts/screenshots
   OUT="scripts/screenshots/$(date +%Y%m%d-%H%M%S).png"
   xcrun simctl io "$DEVICE_ID" screenshot "$OUT"

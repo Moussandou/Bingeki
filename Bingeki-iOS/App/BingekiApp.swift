@@ -10,7 +10,6 @@ struct BingekiApp: App {
     // just be `@Environment(SomeConcreteType.self)` everywhere.
     @State private var auth: any AuthProviding
     @State private var toasts = ToastCenter()
-    @State private var deck = DiscoverDeck(pool: Work.sampleLibrary)
 
     init() {
         FirebaseApp.configure()
@@ -22,7 +21,6 @@ struct BingekiApp: App {
             RootView()
                 .environment(\.authStore, auth)
                 .environment(toasts)
-                .environment(deck)
         }
     }
 }

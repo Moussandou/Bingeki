@@ -41,25 +41,33 @@ struct BKToastOverlay: View {
         VStack {
             Spacer()
             if let toast = center.current {
-                HStack {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(.black)
+                        .frame(width: 22, height: 22)
+                        .background(BKColor.greenText)
                     Text(toast.text)
                         .font(.subheadline.weight(.bold))
                         .lineLimit(2)
+                    Spacer(minLength: 0)
                     if toast.undoAction != nil {
-                        Spacer()
                         Button("ANNULER") { center.undo() }
-                            .font(BKFont.display(13))
-                            .foregroundStyle(BKColor.accentText)
+                            .font(BKFont.display(14))
+                            .foregroundStyle(BKColor.brandPink)
+                            .frame(minWidth: 44, minHeight: 44)
                     }
                 }
-                .padding(.horizontal, 14)
+                .padding(.leading, 14)
+                .padding(.trailing, 8)
                 .frame(minHeight: 52)
-                .foregroundStyle(BKColor.textPrimary)
-                .background(BKColor.background)
+                // Inverted panel, like the mockups' `--ibg`/`--itx`.
+                .foregroundStyle(BKColor.background)
+                .background(BKColor.textPrimary)
                 .bkInkBorder()
                 .bkPanelShadow(BKColor.brandPink)
                 .padding(.horizontal, BKSpace.screenMargin)
-                .padding(.bottom, BKSize.tabBarHeight + BKSpace.xl)
+                .padding(.bottom, BKSize.tabBarHeight + BKSpace.lg)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .accessibilityElement(children: .combine)
             }

@@ -69,6 +69,10 @@ struct TenraiNamed: Decodable, Sendable {
     let name: String
 }
 
+extension WorkType {
+    var tenrai: TenraiMediaType { self == .anime ? .anime : .manga }
+}
+
 extension TenraiMedia {
     /// Maps a Tenrai/Jikan result onto the app's own `Work` model, defaulting
     /// to "not in library" state (`.planToRead`) — the caller decides the

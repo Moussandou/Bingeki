@@ -30,6 +30,7 @@ extension EnvironmentValues {
 // placeholder is never actually shown.
 private final class UnconfiguredLibraryStore: LibraryStoring {
     var works: [Work] = []
+    var hasLoaded: Bool { false }
     func upsert(_ work: Work) {}
     func remove(id: String) {}
     func work(id: String) -> Work? { nil }

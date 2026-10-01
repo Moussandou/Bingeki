@@ -18,6 +18,8 @@ enum HapticEngine {
     static func longPressActivated() { impactHeavy.impactOccurred() }
     /// Slider crossing a chapter/episode notch.
     static func sliderNotch() { selection.selectionChanged() }
+    /// Switching tab or segment.
+    static func tabChanged() { selection.selectionChanged() }
     /// Series finished, level up.
     static func success() { notification.notificationOccurred(.success) }
     /// Failed network call, invalid input.

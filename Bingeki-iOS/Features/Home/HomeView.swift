@@ -60,7 +60,7 @@ struct HomeView: View {
                 discoverTeaser
             }
             .padding(.top, BKSpace.lg)
-            .padding(.bottom, BKSize.tabBarHeight + BKSpace.xxxl)
+            .padding(.bottom, BKSpace.xl)
         }
         .background(BKColor.background)
         .navigationDestination(for: Work.self) { WorkDetailView(work: $0) }

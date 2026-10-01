@@ -30,7 +30,12 @@ actor TenraiClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 10
 
-        let (data, response) = try await session.data(for: request)
+        var (data, response) = try await session.data(for: request)
+        // Jikan-style rate limit (~3 req/s): one retry after a short pause.
+        if (response as? HTTPURLResponse)?.statusCode == 429 {
+            try await Task.sleep(for: .milliseconds(1200))
+            (data, response) = try await session.data(for: request)
+        }
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? -1
             throw ClientError.badStatus(status)
@@ -52,6 +57,10 @@ actor TenraiClient {
 
     func topSeasonalAnime(limit: Int = 20) async throws -> TenraiListResponse<TenraiMedia> {
         try await get("/seasons/now", query: [.init(name: "limit", value: String(limit))])
+    }
+
+    func top(type: TenraiMediaType, limit: Int = 24) async throws -> TenraiListResponse<TenraiMedia> {
+        try await get("/top/\(type.rawValue)", query: [.init(name: "limit", value: String(limit))])
     }
 
     func details(id: String, type: TenraiMediaType) async throws -> TenraiDetailResponse {

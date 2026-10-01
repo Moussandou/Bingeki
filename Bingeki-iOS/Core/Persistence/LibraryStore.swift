@@ -6,12 +6,18 @@ import Foundation
 @MainActor
 protocol LibraryStoring: AnyObject {
     var works: [Work] { get }
+    /// False until the first remote snapshot lands — avoids flashing empty states.
+    var hasLoaded: Bool { get }
+    /// Local edits not yet acknowledged by the server (offline banner).
+    var pendingChanges: Int { get }
     func upsert(_ work: Work)
     func remove(id: String)
     func work(id: String) -> Work?
 }
 
 extension LibraryStoring {
+    var pendingChanges: Int { 0 }
+
     /// Works with a given status, most recently updated first — the
     /// "Reprendre"/library-tab sort everywhere in the app.
     func works(status: WorkStatus) -> [Work] {
@@ -27,6 +33,7 @@ extension LibraryStoring {
 @Observable
 final class InMemoryLibraryStore: LibraryStoring {
     private(set) var works: [Work]
+    var hasLoaded: Bool { true }
 
     init(seed: [Work] = []) {
         self.works = seed
