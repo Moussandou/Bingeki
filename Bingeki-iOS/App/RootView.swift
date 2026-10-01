@@ -36,6 +36,7 @@ private struct SignedInRootView: View {
     @State private var deck = DiscoverDeck()
     @State private var network = NetworkMonitor()
     @State private var selectedTab: RootTab = .home
+    @State private var homePath = NavigationPath()
     @State private var showSearch = false
     @AppStorage("bk.onboardingDone") private var onboardingDone = false
 
@@ -82,13 +83,20 @@ private struct SignedInRootView: View {
         if UserDefaults.standard.string(forKey: "bk.searchQuery") != nil {
             _showSearch = State(initialValue: true)
         }
+        // `-bk.openWork 52991:anime` pushes that work's detail on Home.
+        if let raw = UserDefaults.standard.string(forKey: "bk.openWork") {
+            let parts = raw.split(separator: ":").map(String.init)
+            var path = NavigationPath()
+            path.append(Work(id: parts[0], title: "", type: parts.last == "manga" ? .manga : .anime, status: .planToRead))
+            _homePath = State(initialValue: path)
+        }
         #endif
     }
 
     var body: some View {
         // System tab bar hidden in favour of the mockups' inked `BKTabBar`.
         TabView(selection: $selectedTab) {
-            NavigationStack {
+            NavigationStack(path: $homePath) {
                 HomeView(selectedTab: $selectedTab)
                     .bkOfflineBanner()
                     .navigationDestination(for: ProfileRoute.self) { route in

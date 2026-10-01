@@ -6,6 +6,7 @@ import SwiftUI
 struct BKCover: View {
     let url: URL?
     var cornerAccent: Color = BKColor.brandPink
+    var showsBorder = true
 
     var body: some View {
         GeometryReader { proxy in
@@ -40,7 +41,7 @@ struct BKCover: View {
                 }
             }
         }
-        .overlay(RoundedRectangle(cornerRadius: 0).stroke(BKColor.ink, lineWidth: 2))
+        .overlay(RoundedRectangle(cornerRadius: 0).stroke(showsBorder ? BKColor.ink : .clear, lineWidth: 2))
         .clipShape(RoundedRectangle(cornerRadius: 0))
     }
 }
