@@ -73,7 +73,7 @@
     "xmldom": "^0.9.7",
     "node-fetch": "^3.3.2",
     "websocket-driver": "^0.7.5",
-    "undici": "^7.29.0",
+    "undici": "^7.30.0",
     "fast-uri": "^3.1.4",
     "@babel/core": "^7.29.7",
     "esbuild": "^0.28.1",
