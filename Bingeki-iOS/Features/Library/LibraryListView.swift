@@ -9,15 +9,17 @@ struct LibraryListView: View {
     @Environment(\.userStore) private var userStore
     @State private var filter: WorkStatus = .reading
     @State private var typeFilter: WorkType?
-    @State private var sortByTitle = false
+    @AppStorage("bk.librarySort") private var sort: LibrarySort = .recent
     @State private var sheetWork: Work?
+    /// Non-nil while in multi-select mode.
+    @State private var selection: Set<String>?
+    @State private var confirmingRemoval = false
 
     private var rows: [Work] {
-        let byStatus = library.works(status: filter).filter { typeFilter == nil || $0.type == typeFilter }
-        return sortByTitle
-            ? byStatus.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
-            : byStatus
+        sort.apply(to: library.works(status: filter).filter { typeFilter == nil || $0.type == typeFilter })
     }
+
+    private var isSelecting: Bool { selection != nil }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -30,6 +32,11 @@ struct LibraryListView: View {
                 list
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            if let selection { selectionBar(selection) }
+        }
+        .onChange(of: filter) { if isSelecting { selection = [] } }
+        .onChange(of: typeFilter) { if isSelecting { selection = [] } }
         .background(BKColor.background.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: Work.self) { WorkDetailView(work: $0) }
@@ -55,20 +62,105 @@ struct LibraryListView: View {
                     .foregroundStyle(BKColor.textSecondary)
             }
             Spacer()
-            Button {
-                sortByTitle.toggle()
-            } label: {
-                Image(systemName: sortByTitle ? "textformat" : "clock")
-                    .font(.body.weight(.bold))
-                    .frame(width: 44, height: 44)
+            if isSelecting {
+                Button("OK") { selection = nil }
+                    .font(BKFont.display(15, weight: .heavy))
+                    .frame(minWidth: 56, minHeight: 44)
                     .foregroundStyle(BKColor.textPrimary)
                     .background(BKColor.surface)
                     .bkInkBorder(BKColor.border)
+                    .accessibilityIdentifier("library_select_done")
+            } else {
+                Menu {
+                    Picker("Trier par", selection: $sort) {
+                        ForEach(LibrarySort.allCases, id: \.self) { option in
+                            Label(option.label, systemImage: option.icon).tag(option)
+                        }
+                    }
+                } label: {
+                    headerIcon(sort.icon)
+                }
+                .accessibilityLabel("Tri : \(sort.label)")
+                .accessibilityIdentifier("library_sort_menu")
+
+                Button { selection = [] } label: { headerIcon("checkmark.circle") }
+                    .disabled(rows.isEmpty)
+                    .accessibilityLabel("Sélectionner plusieurs titres")
+                    .accessibilityIdentifier("library_select_button")
             }
-            .accessibilityLabel(sortByTitle ? "Tri : titre" : "Tri : activité récente")
         }
         .padding(.horizontal, BKSpace.screenMargin)
         .padding(.top, BKSpace.lg)
+    }
+
+    private func headerIcon(_ systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(.body.weight(.bold))
+            .frame(width: 44, height: 44)
+            .foregroundStyle(BKColor.textPrimary)
+            .background(BKColor.surface)
+            .bkInkBorder(BKColor.border)
+    }
+
+    private func selectionBar(_ selected: Set<String>) -> some View {
+        HStack(spacing: BKSpace.md) {
+            Button(selected.count == rows.count ? "Aucun" : "Tout") {
+                selection = selected.count == rows.count ? [] : Set(rows.map(\.id))
+            }
+            .font(.subheadline.weight(.semibold))
+            .frame(minHeight: 44)
+            Text("\(selected.count) sélectionné\(selected.count > 1 ? "s" : "")")
+                .font(.caption)
+                .foregroundStyle(BKColor.textSecondary)
+            Spacer()
+            Group {
+                Menu {
+                    ForEach(WorkStatus.allCases.filter { $0 != filter }, id: \.self) { status in
+                        Button(status.label) { move(selected, to: status) }
+                    }
+                } label: {
+                    Label("Statut", systemImage: "arrow.right.circle")
+                        .font(.subheadline.weight(.bold))
+                        .frame(minHeight: 44)
+                }
+                .accessibilityIdentifier("library_bulk_status")
+                Button(role: .destructive) { confirmingRemoval = true } label: {
+                    Image(systemName: "trash").font(.body.weight(.bold)).frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Retirer de la biblio")
+                .confirmationDialog(
+                    "Retirer \(selected.count) titre\(selected.count > 1 ? "s" : "") de ta biblio ?",
+                    isPresented: $confirmingRemoval,
+                    titleVisibility: .visible
+                ) {
+                    Button("Retirer", role: .destructive) { remove(selected) }
+                }
+            }
+            .disabled(selected.isEmpty)
+        }
+        .foregroundStyle(BKColor.textPrimary)
+        .padding(.horizontal, BKSpace.screenMargin)
+        .padding(.vertical, BKSpace.sm)
+        .background(BKColor.surface)
+        .overlay(alignment: .top) { Rectangle().fill(BKColor.border).frame(height: 2) }
+        .padding(.bottom, BKSize.tabBarHeight + BKSpace.sm)
+    }
+
+    private func move(_ ids: Set<String>, to status: WorkStatus) {
+        for id in ids {
+            guard var work = library.work(id: id) else { continue }
+            work.status = status
+            work.lastUpdated = .now
+            library.upsert(work)
+        }
+        HapticEngine.success()
+        selection = nil
+    }
+
+    private func remove(_ ids: Set<String>) {
+        ids.forEach { library.remove(id: $0) }
+        HapticEngine.success()
+        selection = nil
     }
 
     private var statusPills: some View {
@@ -133,16 +225,22 @@ struct LibraryListView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(rows) { work in
-                        LibraryRow(work: work, onOpen: { sheetWork = work }) {
-                            var updated = work
-                            let wasCompleted = updated.status == .completed
-                            updated.incrementProgress(by: 1)
-                            library.upsert(updated)
-                            userStore.addXP(GamificationCore.XPReward.updateProgress)
-                            if !wasCompleted, updated.status == .completed {
-                                userStore.addXP(GamificationCore.XPReward.completeWork)
+                        if let selected = selection {
+                            SelectableRow(work: work, isSelected: selected.contains(work.id)) {
+                                selection?.formSymmetricDifference([work.id])
                             }
-                            HapticEngine.progressTick()
+                        } else {
+                            LibraryRow(work: work, onOpen: { sheetWork = work }) {
+                                var updated = work
+                                let wasCompleted = updated.status == .completed
+                                updated.incrementProgress(by: 1)
+                                library.upsert(updated)
+                                userStore.addXP(GamificationCore.XPReward.updateProgress)
+                                if !wasCompleted, updated.status == .completed {
+                                    userStore.addXP(GamificationCore.XPReward.completeWork)
+                                }
+                                HapticEngine.progressTick()
+                            }
                         }
                     }
                 }
@@ -204,6 +302,37 @@ private struct LibraryRow: View {
     }
 }
 
+/// Row in multi-select mode: the whole row toggles, no `+1`.
+private struct SelectableRow: View {
+    let work: Work
+    let isSelected: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: BKSpace.md) {
+                Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(isSelected ? BKColor.brandPink : BKColor.textSecondary)
+                BKCover(url: work.imageSmall ?? work.image).frame(width: 48, height: 68)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(work.title).font(.subheadline.weight(.bold)).lineLimit(1)
+                    if let rating = work.rating {
+                        Text("Note \(rating)/10").font(.caption).foregroundStyle(BKColor.textSecondary)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, BKSpace.screenMargin)
+            .frame(height: 88)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .bottom) { Rectangle().fill(BKColor.surfaceTint).frame(height: 1) }
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
 /// États #4 — empty library: one action, discover.
 private struct LibraryEmptyState: View {
     let onDiscover: () -> Void
@@ -233,6 +362,40 @@ private struct LibraryEmptyState: View {
         }
         .padding(.horizontal, BKSpace.xl)
         .frame(maxWidth: .infinity)
+    }
+}
+
+/// Library sort order, persisted per device.
+enum LibrarySort: String, CaseIterable {
+    case recent, title, rating, progress
+
+    var label: String {
+        switch self {
+        case .recent: "Activité récente"
+        case .title: "Titre"
+        case .rating: "Note"
+        case .progress: "Progression"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .recent: "clock"
+        case .title: "textformat"
+        case .rating: "star"
+        case .progress: "chart.bar.fill"
+        }
+    }
+
+    /// Input arrives most-recent-first; `sorted` is stable, so that stays the
+    /// tiebreak. Unrated works go last when sorting by rating.
+    func apply(to works: [Work]) -> [Work] {
+        switch self {
+        case .recent: works
+        case .title: works.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        case .rating: works.sorted { ($0.rating ?? -1) > ($1.rating ?? -1) }
+        case .progress: works.sorted { $0.progressFraction > $1.progressFraction }
+        }
     }
 }
 
