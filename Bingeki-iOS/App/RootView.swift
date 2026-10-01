@@ -37,6 +37,7 @@ private struct SignedInRootView: View {
     @State private var deck = DiscoverDeck()
     @State private var network = NetworkMonitor()
     @State private var selectedTab: RootTab = .home
+    @State private var discoverSegment: DiscoverView.Segment = .forYou
     @State private var homePath = NavigationPath()
     @State private var showSearch = false
     @AppStorage("bk.onboardingDone") private var onboardingDone = false
@@ -93,6 +94,10 @@ private struct SignedInRootView: View {
         if let raw = UserDefaults.standard.string(forKey: "bk.initialTab"), let tab = RootTab(rawValue: raw) {
             _selectedTab = State(initialValue: tab)
         }
+        // `-bk.discoverSegment browse` for simulator screenshots.
+        if UserDefaults.standard.string(forKey: "bk.discoverSegment") == "browse" {
+            _discoverSegment = State(initialValue: .browse)
+        }
         // `-bk.searchQuery chainsow` opens search pre-filled.
         if UserDefaults.standard.string(forKey: "bk.searchQuery") != nil {
             _showSearch = State(initialValue: true)
@@ -117,7 +122,10 @@ private struct SignedInRootView: View {
         // System tab bar hidden in favour of the mockups' inked `BKTabBar`.
         TabView(selection: $selectedTab) {
             NavigationStack(path: $homePath) {
-                HomeView(selectedTab: $selectedTab)
+                HomeView(selectedTab: $selectedTab) {
+                    discoverSegment = .browse
+                    selectedTab = .discover
+                }
                     .bkOfflineBanner()
                     .navigationDestination(for: ProfileRoute.self) { route in
                         switch route {
@@ -129,7 +137,7 @@ private struct SignedInRootView: View {
             .bkTabPage()
             .tag(RootTab.home)
 
-            NavigationStack { DiscoverView { showSearch = true }.bkOfflineBanner() }
+            NavigationStack { DiscoverView(segment: $discoverSegment) { showSearch = true }.bkOfflineBanner() }
                 .bkTabPage()
                 .tag(RootTab.discover)
 

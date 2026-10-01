@@ -7,7 +7,10 @@ struct HomeView: View {
     @Environment(\.userStore) private var userStore
     @Environment(DiscoverDeck.self) private var deck
     @Binding var selectedTab: RootTab
+    /// Opens Découvrir on "Parcourir" (deck exhausted).
+    var onBrowse: () -> Void = {}
     @State private var ratingWork: Work?
+    @State private var showStreak = false
 
     private var reading: [Work] { library.works(status: .reading) }
     private var planned: [Work] { library.works(status: .planToRead) }
@@ -80,6 +83,10 @@ struct HomeView: View {
             RatingSheetView(work: work, xpGained: GamificationCore.XPReward.completeWork)
                 .presentationDetents([.height(340)])
         }
+        .sheet(isPresented: $showStreak) {
+            StreakSheet(days: userStore.profile.streak)
+                .presentationDetents([.height(470)])
+        }
     }
 
     private var header: some View {
@@ -94,9 +101,12 @@ struct HomeView: View {
                     .accessibilityIdentifier("home_title")
             }
             Spacer()
-            NavigationLink(value: ProfileRoute.main) {
+            Button { showStreak = true } label: {
                 StreakBadge(days: userStore.profile.streak)
             }
+            .buttonStyle(.plain)
+            .accessibilityHint("Affiche le détail de ta série")
+            .accessibilityIdentifier("home_streak_badge")
             NavigationLink(value: ProfileRoute.main) {
                 LevelAvatar(profile: userStore.profile)
             }
@@ -110,8 +120,41 @@ struct HomeView: View {
         return "\(type) · \(total) \(work.type == .anime ? "ép." : "ch.")"
     }
 
-    /// Teaser into the deck: real upcoming covers, count and reason.
+    /// Teaser into the deck, or into "Parcourir" once every card is seen.
+    @ViewBuilder
     private var discoverTeaser: some View {
+        if deck.phase == .loaded && deck.currentCard == nil {
+            exhaustedTeaser
+        } else {
+            deckTeaser
+        }
+    }
+
+    private var exhaustedTeaser: some View {
+        Button(action: onBrowse) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("POUR TOI · TOUT VU")
+                    .font(BKFont.display(11, weight: .heavy)).tracking(0.9)
+                    .foregroundStyle(BKColor.cyanText)
+                Text("Plus de cartes pour aujourd'hui. Fouille le catalogue : saisons, genres, top.")
+                    .font(.body.weight(.bold))
+                    .multilineTextAlignment(.leading)
+                Text("PARCOURIR LE CATALOGUE →").font(BKFont.display(14)).foregroundStyle(BKColor.cyanText)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(BKColor.textPrimary)
+        .background(BKColor.surface)
+        .bkInkBorder()
+        .bkPanelShadow(BKColor.brandCyan)
+        .padding(.horizontal, BKSpace.screenMargin)
+        .accessibilityIdentifier("home_browse_teaser")
+    }
+
+    /// Real upcoming covers, count and reason.
+    private var deckTeaser: some View {
         let upcoming = Array(deck.pool.dropFirst(deck.index).prefix(3))
         let reason = upcoming.first.flatMap { deck.reasons[$0.id] }
         let remaining = max(0, deck.pool.count - deck.index)
@@ -265,6 +308,61 @@ private struct StreakBadge: View {
         .background(BKColor.surface)
         .bkInkBorder()
         .accessibilityLabel("Série de \(days) jours")
+    }
+}
+
+/// Tap on the flame: where the streak stands and what tomorrow is worth.
+private struct StreakSheet: View {
+    let days: Int
+    @Environment(\.dismiss) private var dismiss
+
+    private var todayXP: Int { GamificationCore.XPReward.dailyLogin + GamificationCore.streakBonusXP(days) }
+    private var tomorrowXP: Int { GamificationCore.XPReward.dailyLogin + GamificationCore.streakBonusXP(days + 1) }
+    /// First streak length at which the bonus stops growing.
+    private var maxedAt: Int { GamificationCore.maxStreakBonus / GamificationCore.streakBonusPerDay + 1 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: BKSpace.lg) {
+            HStack(spacing: BKSpace.md) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 44, weight: .black))
+                    .foregroundStyle(BKColor.orangeText)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(days > 1 ? "\(days) jours" : days == 1 ? "1 jour" : "Pas de série")
+                        .font(BKFont.title1).bkLabelStyle()
+                    Text("Série en cours").font(.caption).foregroundStyle(BKColor.textSecondary)
+                }
+            }
+
+            VStack(spacing: 0) {
+                row("Aujourd'hui", "+\(todayXP) XP")
+                row("Demain si tu reviens", "+\(tomorrowXP) XP")
+                row("Bonus maximum", days >= maxedAt ? "Atteint" : "à \(maxedAt) jours")
+            }
+            .background(BKColor.surface)
+            .bkInkBorder(BKColor.border)
+
+            Text("Ouvre Bingeki une fois par jour pour garder ta série. Un jour manqué la remet à 1. Le bonus grimpe de \(GamificationCore.streakBonusPerDay) XP par jour, jusqu'à \(GamificationCore.maxStreakBonus) XP.")
+                .font(.footnote)
+                .foregroundStyle(BKColor.textSecondary)
+
+            Spacer(minLength: 0)
+            BKPrimaryButton(title: "Compris", systemImage: "checkmark") { dismiss() }
+        }
+        .padding(BKSpace.screenMargin)
+        .padding(.top, BKSpace.md)
+        .background(BKColor.background.ignoresSafeArea())
+    }
+
+    private func row(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label).font(.subheadline)
+            Spacer()
+            Text(value).font(BKFont.display(15)).foregroundStyle(BKColor.orangeText)
+        }
+        .padding(.horizontal, BKSpace.md)
+        .frame(minHeight: 48)
+        .overlay(alignment: .bottom) { Rectangle().fill(BKColor.surfaceTint).frame(height: 1) }
     }
 }
 

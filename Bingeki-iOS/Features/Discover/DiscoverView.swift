@@ -2,16 +2,11 @@ import SwiftUI
 
 /// Découvrir — "Pour toi" (swipe deck) / "Parcourir" (grid), boards `S02`–`S04`.
 struct DiscoverView: View {
+    /// Owned by `RootView` so Home can open "Parcourir" directly.
+    @Binding var segment: Segment
     var onSearch: () -> Void = {}
 
     enum Segment: String, CaseIterable { case forYou = "POUR TOI", browse = "PARCOURIR" }
-    @State private var segment: Segment = {
-        #if DEBUG
-        // `-bk.discoverSegment browse` for simulator screenshots
-        if UserDefaults.standard.string(forKey: "bk.discoverSegment") == "browse" { return .browse }
-        #endif
-        return .forYou
-    }()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -111,7 +106,7 @@ struct DiscoverFeedView: View {
 
                     actionBar(for: card)
                 } else {
-                    DeckEmptyState(onRestart: reload)
+                    DeckEmptyState(onRestart: reload, onBrowse: onBrowse)
                         .frame(height: cardHeight)
                 }
             }
@@ -410,6 +405,7 @@ private struct DeckErrorState: View {
 
 private struct DeckEmptyState: View {
     let onRestart: () -> Void
+    let onBrowse: () -> Void
 
     var body: some View {
         VStack(spacing: BKSpace.lg) {
@@ -420,6 +416,12 @@ private struct DeckEmptyState: View {
                 .foregroundStyle(BKColor.textSecondary)
             BKOutlineButton(title: "Nouvelle sélection", systemImage: "arrow.clockwise", action: onRestart)
                 .frame(width: 240)
+            Button("Parcourir le catalogue", action: onBrowse)
+                .font(.subheadline.weight(.semibold))
+                .underline()
+                .foregroundStyle(BKColor.textPrimary)
+                .frame(minHeight: BKSize.minTapTarget)
+                .accessibilityIdentifier("deck_empty_browse")
         }
         .padding(BKSpace.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -481,7 +483,7 @@ private struct SwipeCoachMark: View {
 
 #Preview {
     NavigationStack {
-        DiscoverView()
+        DiscoverView(segment: .constant(.forYou))
     }
     .environment(\.libraryStore, InMemoryLibraryStore.preview)
     .environment(\.userStore, InMemoryUserStore.preview)
