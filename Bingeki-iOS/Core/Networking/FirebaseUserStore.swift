@@ -18,6 +18,7 @@ import Observation
 final class FirebaseUserStore: UserStoring {
     private(set) var profile: UserProfile
     private(set) var recentLevelUp: Int?
+    private var hasProfile = false
     private var listener: ListenerRegistration?
 
     /// Fields a client is allowed to push straight to Firestore. Everything
@@ -38,8 +39,12 @@ final class FirebaseUserStore: UserStoring {
                 do {
                     let previousLevel = self.profile.level
                     let updated = try snapshot.data(as: UserProfile.self)
+                    // The first snapshot replaces the level-1 placeholder:
+                    // that's loading, not levelling up.
+                    let isFirst = !self.hasProfile
+                    self.hasProfile = true
                     self.profile = updated
-                    if updated.level > previousLevel {
+                    if !isFirst, updated.level > previousLevel {
                         self.recentLevelUp = updated.level
                     }
                 } catch {

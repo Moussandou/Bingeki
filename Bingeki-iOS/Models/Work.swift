@@ -22,7 +22,11 @@ struct Work: Identifiable, Codable, Hashable, Sendable {
     var totalEpisodes: Int?
     var currentEpisode: Int = 0
     var status: WorkStatus
-    var score: Int?
+    /// The user's own 1–10 rating (`rating` on web).
+    var rating: Int?
+    /// MyAnimeList community score copied in when the work was added
+    /// (`score` on web, e.g. 8.62) — not the user's rating.
+    var score: Double?
     var synopsis: String?
     var lastUpdated: Date?
     var dateAdded: Date?
@@ -33,7 +37,12 @@ struct Work: Identifiable, Codable, Hashable, Sendable {
 
     /// Current progress for the type (episodes for anime, chapters for manga).
     var progress: Int { type == .anime ? currentEpisode : currentChapter }
-    var total: Int? { type == .anime ? totalEpisodes : totalChapters }
+    /// Nil when unknown — web stores 0 for ongoing series (One Piece…),
+    /// which would otherwise cap progress at 0.
+    var total: Int? {
+        let value = type == .anime ? totalEpisodes : totalChapters
+        return (value ?? 0) > 0 ? value : nil
+    }
 
     var progressFraction: Double {
         guard let total, total > 0 else { return 0 }
@@ -73,7 +82,7 @@ extension Work {
         case imageSmall = "image_small"
         case type, format
         case totalChapters, currentChapter, totalEpisodes, currentEpisode
-        case status, score, synopsis
+        case status, rating, score, synopsis
         case lastUpdated, dateAdded
         case collections, genres, season, year
     }
@@ -95,36 +104,39 @@ extension Work {
         }
 
         title = try c.decode(String.self, forKey: .title)
-        titleEnglish = try c.decodeIfPresent(String.self, forKey: .titleEnglish)
-        titleJapanese = try c.decodeIfPresent(String.self, forKey: .titleJapanese)
-        image = try c.decodeIfPresent(URL.self, forKey: .image)
-        imageSmall = try c.decodeIfPresent(URL.self, forKey: .imageSmall)
+        titleEnglish = try? c.decodeIfPresent(String.self, forKey: .titleEnglish)
+        titleJapanese = try? c.decodeIfPresent(String.self, forKey: .titleJapanese)
+        image = try? c.decodeIfPresent(URL.self, forKey: .image)
+        imageSmall = try? c.decodeIfPresent(URL.self, forKey: .imageSmall)
         type = try c.decode(WorkType.self, forKey: .type)
-        format = try c.decodeIfPresent(String.self, forKey: .format)
-        totalChapters = try c.decodeIfPresent(Int.self, forKey: .totalChapters)
-        currentChapter = try c.decodeIfPresent(Int.self, forKey: .currentChapter) ?? 0
-        totalEpisodes = try c.decodeIfPresent(Int.self, forKey: .totalEpisodes)
-        currentEpisode = try c.decodeIfPresent(Int.self, forKey: .currentEpisode) ?? 0
+        format = try? c.decodeIfPresent(String.self, forKey: .format)
+        totalChapters = try? c.decodeIfPresent(Int.self, forKey: .totalChapters)
+        currentChapter = (try? c.decodeIfPresent(Int.self, forKey: .currentChapter)) ?? 0
+        totalEpisodes = try? c.decodeIfPresent(Int.self, forKey: .totalEpisodes)
+        currentEpisode = (try? c.decodeIfPresent(Int.self, forKey: .currentEpisode)) ?? 0
         status = try c.decode(WorkStatus.self, forKey: .status)
-        score = try c.decodeIfPresent(Int.self, forKey: .score)
-        synopsis = try c.decodeIfPresent(String.self, forKey: .synopsis)
+        // Optional fields are decoded leniently: one odd value written by an
+        // older web build must not make the whole work disappear on iOS.
+        rating = (try? c.decodeIfPresent(Double.self, forKey: .rating)).map { Int($0.rounded()) }
+        score = try? c.decodeIfPresent(Double.self, forKey: .score)
+        synopsis = try? c.decodeIfPresent(String.self, forKey: .synopsis)
 
         // Epoch milliseconds (JS `Date.now()` convention), not ISO8601.
-        if let ms = try c.decodeIfPresent(Double.self, forKey: .lastUpdated) {
+        if let ms = try? c.decodeIfPresent(Double.self, forKey: .lastUpdated) {
             lastUpdated = Date(timeIntervalSince1970: ms / 1000)
         } else {
             lastUpdated = nil
         }
-        if let ms = try c.decodeIfPresent(Double.self, forKey: .dateAdded) {
+        if let ms = try? c.decodeIfPresent(Double.self, forKey: .dateAdded) {
             dateAdded = Date(timeIntervalSince1970: ms / 1000)
         } else {
             dateAdded = nil
         }
 
-        collections = try c.decodeIfPresent([String].self, forKey: .collections) ?? []
-        genres = (try c.decodeIfPresent([GenreRef].self, forKey: .genres) ?? []).map(\.name)
-        season = try c.decodeIfPresent(String.self, forKey: .season)
-        year = try c.decodeIfPresent(Int.self, forKey: .year)
+        collections = (try? c.decodeIfPresent([String].self, forKey: .collections)) ?? []
+        genres = ((try? c.decodeIfPresent([GenreRef].self, forKey: .genres)) ?? []).map(\.name)
+        season = try? c.decodeIfPresent(String.self, forKey: .season)
+        year = try? c.decodeIfPresent(Int.self, forKey: .year)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -143,6 +155,7 @@ extension Work {
         try c.encodeIfPresent(totalEpisodes, forKey: .totalEpisodes)
         try c.encode(currentEpisode, forKey: .currentEpisode)
         try c.encode(status, forKey: .status)
+        try c.encodeIfPresent(rating, forKey: .rating)
         try c.encodeIfPresent(score, forKey: .score)
         try c.encodeIfPresent(synopsis, forKey: .synopsis)
         if let lastUpdated { try c.encode(lastUpdated.timeIntervalSince1970 * 1000, forKey: .lastUpdated) }

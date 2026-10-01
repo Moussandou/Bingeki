@@ -50,6 +50,43 @@ struct WorkModelTests {
         #expect(work.status == .planToRead)
     }
 
+    /// Web stores the MAL community score as a float in `score` and the
+    /// user's own rating in `rating` — a float score used to drop the work.
+    @Test func decodesCommunityScoreAndPersonalRatingSeparately() throws {
+        let json = """
+        {
+            "id": 121496,
+            "title": "Solo Leveling",
+            "type": "manga",
+            "status": "reading",
+            "score": 8.62,
+            "rating": 9
+        }
+        """
+
+        let work = try JSONDecoder().decode(Work.self, from: Data(json.utf8))
+        #expect(work.score == 8.62)
+        #expect(work.rating == 9)
+    }
+
+    @Test func malformedOptionalFieldDoesNotDropTheWork() throws {
+        let json = """
+        {
+            "id": 1,
+            "title": "Berserk",
+            "type": "manga",
+            "status": "reading",
+            "totalChapters": "inconnu",
+            "genres": ["Action"]
+        }
+        """
+
+        let work = try JSONDecoder().decode(Work.self, from: Data(json.utf8))
+        #expect(work.title == "Berserk")
+        #expect(work.totalChapters == nil)
+        #expect(work.genres.isEmpty)
+    }
+
     @Test func encodesToFirestoreFormatWithGenreRefsAndEpochDates() throws {
         var work = Work(
             id: "12345",

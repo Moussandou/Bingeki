@@ -514,11 +514,11 @@
 				};
 			};
 			buildConfigurationList = 39EC8EFD32AECC995869F940 /* Build configuration list for PBXProject "Bingeki" */;
-			developmentRegion = en;
+			developmentRegion = fr;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
-				en,
+				fr,
 			);
 			mainGroup = 7A32B1120C7FB132C99B540D;
 			minimizedProjectReferenceProxies = 1;

@@ -255,7 +255,7 @@ struct BKScorePicker: View {
     let work: Work
     @Environment(\.libraryStore) private var library
 
-    private var score: Int? { library.work(id: work.id)?.score ?? work.score }
+    private var score: Int? { library.work(id: work.id)?.rating ?? work.rating }
 
     var body: some View {
         VStack(alignment: .leading, spacing: BKSpace.sm) {
@@ -287,7 +287,7 @@ struct BKScorePicker: View {
 
     private func set(_ value: Int?) {
         var updated = library.work(id: work.id) ?? work
-        updated.score = value
+        updated.rating = value
         updated.lastUpdated = .now
         library.upsert(updated)
         HapticEngine.progressTick()
@@ -333,7 +333,7 @@ struct RatingSheetView: View {
                 .frame(minHeight: BKSize.minTapTarget)
         }
         .padding(BKSpace.lg)
-        .onAppear { picked = work.score }
+        .onAppear { picked = work.rating }
     }
 
     private var summary: String {
@@ -345,7 +345,7 @@ struct RatingSheetView: View {
     private func rate(_ n: Int) {
         picked = n
         var updated = library.work(id: work.id) ?? work
-        updated.score = n
+        updated.rating = n
         updated.lastUpdated = .now
         library.upsert(updated)
         HapticEngine.success()
