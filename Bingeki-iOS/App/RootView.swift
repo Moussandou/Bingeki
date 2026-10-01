@@ -40,6 +40,8 @@ private struct SignedInRootView: View {
     @State private var homePath = NavigationPath()
     @State private var showSearch = false
     @AppStorage("bk.onboardingDone") private var onboardingDone = false
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(ToastCenter.self) private var toasts
 
     /// Shown once, only to accounts whose library is empty (not to web users).
     private var onboardingBinding: Binding<Bool> {
@@ -161,6 +163,16 @@ private struct SignedInRootView: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: userStore.recentLevelUp)
+        // Daily streak: counted once per calendar day on open/return, like
+        // `recordActivity` in the web's auth sync.
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            guard phase == .active, library is FirebaseLibraryStore else { return }
+            Task {
+                if let streak = await FirebaseGamificationStore.recordDailyActivity(uid: uid), streak > 1 {
+                    toasts.show("Série de \(streak) jours · +\(GamificationCore.XPReward.dailyLogin + GamificationCore.streakBonusXP(streak)) XP")
+                }
+            }
+        }
         .id(uid)
     }
 }

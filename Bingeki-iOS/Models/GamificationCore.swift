@@ -60,6 +60,37 @@ enum GamificationCore {
         }
     }
 
+    // MARK: - Daily streak (mirror of computeStreak / streakBonusXp on web)
+
+    static let streakBonusPerDay = 5
+    static let maxStreakBonus = 100
+    static let maxBonusXP = 50_000
+
+    /// Whole calendar days between two dates in the device's time zone —
+    /// "yesterday at 23:59" and "today at 00:01" are 1 day apart.
+    static func calendarDaysBetween(_ from: Date, _ to: Date, calendar: Calendar = .current) -> Int {
+        let a = calendar.startOfDay(for: from)
+        let b = calendar.startOfDay(for: to)
+        return calendar.dateComponents([.day], from: a, to: b).day ?? 0
+    }
+
+    /// Same day: unchanged. Next day: +1. Any gap: back to 1.
+    static func computeStreak(previous: Int, lastActivity: Date?, now: Date, calendar: Calendar = .current)
+        -> (streak: Int, changed: Bool) {
+        let prev = max(0, previous)
+        guard let lastActivity else { return (1, true) }
+        let days = calendarDaysBetween(lastActivity, now, calendar: calendar)
+        if days <= 0 { return (max(prev, 1), false) }
+        if days == 1 { return (prev + 1, true) }
+        return (1, true)
+    }
+
+    /// +5 XP per consecutive day after the first, capped at +100.
+    static func streakBonusXP(_ streak: Int) -> Int {
+        guard streak > 1 else { return 0 }
+        return min((streak - 1) * streakBonusPerDay, maxStreakBonus)
+    }
+
     /// Profil Nen radar (6 axes, 0–100 each) — same normalization as the
     /// Profile board's `NenChart`.
     static func nenAxes(for profile: UserProfile) -> [(label: String, value: Double)] {
