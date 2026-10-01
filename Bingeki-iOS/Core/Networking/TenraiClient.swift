@@ -10,14 +10,28 @@ import Foundation
 /// rate-limiting or blocking the device's network — same direct→proxy
 /// order as the web.
 actor TenraiClient {
-    static let shared = TenraiClient(baseURL: URL(string: "https://api.tenrai.org/v1")!)
+    static let shared = TenraiClient(baseURL: URL(string: "https://api.tenrai.org/v1")!, session: defaultSession)
+
+    private static var defaultSession: URLSession {
+        #if DEBUG
+        // `-bk.forceOffline YES`: every request fails like airplane mode.
+        if UserDefaults.standard.bool(forKey: "bk.forceOffline") {
+            let config = URLSessionConfiguration.ephemeral
+            config.protocolClasses = [AirplaneModeProtocol.self]
+            return URLSession(configuration: config)
+        }
+        #endif
+        return .shared
+    }
 
     private let baseURL: URL
     private let session: URLSession
+    private let cache: ResponseCache?
 
-    init(baseURL: URL, session: URLSession = .shared) {
+    init(baseURL: URL, session: URLSession = .shared, cache: ResponseCache? = .shared) {
         self.baseURL = baseURL
         self.session = session
+        self.cache = cache
     }
 
     enum ClientError: Error {
@@ -34,24 +48,58 @@ actor TenraiClient {
         var wrapsData: Bool
     }
 
+    /// Direct → proxy → last good copy on disk. Every successful payload is
+    /// stored (raw, before decoding) so the next offline launch has it.
     private func get<T: Decodable>(_ path: String, query: [URLQueryItem] = [], proxy: ProxyCall? = nil) async throws -> T {
+        let key = Self.cacheKey(path, query)
+        let data: Data
+        do {
+            data = try await fetch(path, query: query, proxy: proxy)
+        } catch {
+            guard Self.shouldFallBack(on: error), let cached = await cache?.data(for: key) else { throw error }
+            return try Self.decode(cached)
+        }
+        let value: T = try Self.decode(data)
+        await cache?.store(data, for: key)
+        return value
+    }
+
+    private func fetch(_ path: String, query: [URLQueryItem], proxy: ProxyCall?) async throws -> Data {
         do {
             return try await direct(path, query: query)
         } catch {
-            guard let proxy, Self.shouldFallBack(on: error) else { throw error }
-            let data = try await Self.callProxy(proxy)
-            do {
-                return try JSONDecoder.tenrai.decode(T.self, from: data)
-            } catch {
-                throw ClientError.decoding(error)
-            }
+            // No network at all: the proxy would only time out too.
+            guard let proxy, Self.shouldFallBack(on: error), !Self.isOffline(error) else { throw error }
+            return try await Self.callProxy(proxy)
         }
     }
 
-    /// Network failures and server-side refusals go to the proxy; a
-    /// decoding error would fail the same way through it, so it doesn't.
+    private static func decode<T: Decodable>(_ data: Data) throws -> T {
+        do {
+            return try JSONDecoder.tenrai.decode(T.self, from: data)
+        } catch {
+            throw ClientError.decoding(error)
+        }
+    }
+
+    /// Path plus sorted query, so parameter order doesn't split entries.
+    static func cacheKey(_ path: String, _ query: [URLQueryItem]) -> String {
+        let items = query.map { "\($0.name)=\($0.value ?? "")" }.sorted().joined(separator: "&")
+        return items.isEmpty ? path : "\(path)?\(items)"
+    }
+
+    private static func isOffline(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        return [.notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff]
+            .contains(urlError.code)
+    }
+
+    /// Network failures and server-side refusals go to the proxy (then the
+    /// disk copy); a decoding error would fail the same way, so it doesn't.
     private static func shouldFallBack(on error: Error) -> Bool {
         if error is URLError { return true }
+        // Firebase callable errors (offline, deadline, unavailable).
+        if (error as NSError).domain == FunctionsErrorDomain { return true }
         if case ClientError.badStatus(let status) = error {
             return status == -1 || status == 403 || status == 429 || status >= 500
         }
@@ -73,7 +121,7 @@ actor TenraiClient {
         return try JSONSerialization.data(withJSONObject: body)
     }
 
-    private func direct<T: Decodable>(_ path: String, query: [URLQueryItem]) async throws -> T {
+    private func direct(_ path: String, query: [URLQueryItem]) async throws -> Data {
         var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         components.queryItems = query.isEmpty ? nil : query
         var request = URLRequest(url: components.url!)
@@ -90,11 +138,7 @@ actor TenraiClient {
             let status = (response as? HTTPURLResponse)?.statusCode ?? -1
             throw ClientError.badStatus(status)
         }
-        do {
-            return try JSONDecoder.tenrai.decode(T.self, from: data)
-        } catch {
-            throw ClientError.decoding(error)
-        }
+        return data
     }
 
     // `sfw` mirrors the web: adult titles hidden unless the user enabled 18+.
@@ -170,3 +214,12 @@ extension JSONDecoder {
         return decoder
     }()
 }
+
+#if DEBUG
+private final class AirplaneModeProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() { client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet)) }
+    override func stopLoading() {}
+}
+#endif
