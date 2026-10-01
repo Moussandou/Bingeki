@@ -20,6 +20,9 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     from: 12.4.0
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: 9.0.0
 
 targets:
   Bingeki:
@@ -42,6 +45,11 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         NSUserTrackingUsageDescription: "Bingeki n'utilise pas le suivi publicitaire."
+        # Google Sign-In returns to the app through the REVERSED_CLIENT_ID
+        # scheme from GoogleService-Info.plist.
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - com.googleusercontent.apps.1079885506084-uptte5s804ugcor57jsqrplonv98ebl9
         # Outfit (display/CTA) + Inter (body) — OFL-licensed, instantiated as
         # static weights from Google Fonts' variable sources. See BKFont.swift.
         UIAppFonts:
@@ -69,6 +77,8 @@ targets:
         product: FirebaseFunctions
       - package: Firebase
         product: FirebaseMessaging
+      - package: GoogleSignIn
+        product: GoogleSignIn
     scheme:
       testTargets:
         - BingekiTests

@@ -1,5 +1,7 @@
 import AuthenticationServices
 import CryptoKit
+import FirebaseCore
+import GoogleSignIn
 import SwiftUI
 
 /// Provider-agnostic result of a successful sign-in — decouples
@@ -17,6 +19,8 @@ struct AuthCredential: Sendable {
     var displayName: String?
     var identityToken: String?
     var rawNonce: String?
+    /// Google only: Firebase's credential needs both the ID and access tokens.
+    var accessToken: String?
 }
 
 /// What a screen needs from auth, behind a protocol so `FirebaseAuthStore`
@@ -126,7 +130,7 @@ struct AuthView: View {
                 .disabled(isSigningIn)
 
                 Button {
-                    Task { await attempt(AuthCredential(provider: .google, userIdentifier: UUID().uuidString)) }
+                    Task { await signInWithGoogle() }
                 } label: {
                     HStack {
                         Image(systemName: "g.circle.fill")
@@ -200,6 +204,31 @@ struct AuthView: View {
         }
     }
 
+    /// Google's own sheet, then the tokens go to `auth.signIn` like Apple's.
+    private func signInWithGoogle() async {
+        guard let clientID = FirebaseApp.app()?.options.clientID,
+              let presenter = UIApplication.shared.connectedScenes
+                .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
+                .first else { return }
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+        do {
+            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presenter.topMost)
+            guard let idToken = result.user.idToken?.tokenString else { return }
+            await attempt(AuthCredential(
+                provider: .google,
+                userIdentifier: result.user.userID ?? UUID().uuidString,
+                displayName: result.user.profile?.name,
+                identityToken: idToken,
+                accessToken: result.user.accessToken.tokenString
+            ))
+        } catch {
+            // Closing Google's sheet isn't an error worth showing.
+            if (error as NSError).code == GIDSignInError.canceled.rawValue { return }
+            errorMessage = error.localizedDescription
+            HapticEngine.failure()
+        }
+    }
+
     private func attempt(_ credential: AuthCredential) async {
         isSigningIn = true
         errorMessage = nil
@@ -227,6 +256,11 @@ struct AuthView: View {
     private static func sha256(_ input: String) -> String {
         SHA256.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
     }
+}
+
+private extension UIViewController {
+    /// Google's sheet must be presented from whatever is on top (e.g. a sheet).
+    var topMost: UIViewController { presentedViewController?.topMost ?? self }
 }
 
 #Preview {

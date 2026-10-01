@@ -5,9 +5,8 @@ import Observation
 /// Real `AuthProviding` implementation — same "bingeki" Firebase project as
 /// the web app (Firestore/Auth/Storage are shared across every app
 /// registered in a project, so a user signed in on web and iOS is the same
-/// account). Google Sign-In isn't wired yet (needs the GoogleSignIn SDK +
-/// URL scheme setup); attempting it surfaces `AuthError.providerNotYetSupported`
-/// instead of silently doing nothing.
+/// account). Apple and Google tokens are obtained by `AuthView` and
+/// exchanged for a Firebase credential here.
 @MainActor
 @Observable
 final class FirebaseAuthStore: AuthProviding {
@@ -67,7 +66,11 @@ final class FirebaseAuthStore: AuthProviding {
             )
             _ = try await Auth.auth().signIn(with: firebaseCredential)
         case .google:
-            throw AuthError.providerNotYetSupported("Google Sign-In")
+            guard let idToken = credential.identityToken, let accessToken = credential.accessToken else {
+                throw AuthError.providerNotYetSupported("Google Sign-In")
+            }
+            let firebaseCredential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+            _ = try await Auth.auth().signIn(with: firebaseCredential)
         case .anonymous:
             // Real Firebase Anonymous Auth, not a local fake — a genuine
             // uid, usable with the same Firestore rules as any other

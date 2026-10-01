@@ -1,4 +1,5 @@
 import FirebaseCore
+import GoogleSignIn
 import SwiftUI
 
 @main
@@ -12,6 +13,10 @@ struct BingekiApp: App {
     @State private var toasts = ToastCenter()
 
     init() {
+        // Covers load through AsyncImage → URLSession.shared → URLCache.shared;
+        // the default is a few MB in memory only, so every launch re-downloaded
+        // every cover. 300 MB on disk keeps them across launches.
+        URLCache.shared = URLCache(memoryCapacity: 50 * 1024 * 1024, diskCapacity: 300 * 1024 * 1024)
         #if DEBUG
         if UserDefaults.standard.bool(forKey: "bk.forceSignedOut") {
             _auth = State(initialValue: InMemoryAuthStore(isSignedIn: false))
@@ -31,6 +36,8 @@ struct BingekiApp: App {
             RootView()
                 .environment(\.authStore, auth)
                 .environment(toasts)
+                // Google Sign-In returns through the REVERSED_CLIENT_ID scheme.
+                .onOpenURL { GIDSignIn.sharedInstance.handle($0) }
         }
     }
 }
