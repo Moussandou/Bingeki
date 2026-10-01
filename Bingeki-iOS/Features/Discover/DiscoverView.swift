@@ -418,27 +418,31 @@ private struct DeckEmptyState: View {
     }
 }
 
-/// États #2 — gesture tutorial, shown once.
+/// États #2 — gesture tutorial over the card, shown once.
 private struct SwipeCoachMark: View {
     let onDismiss: () -> Void
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.78)
+            Color.black.opacity(0.74)
             VStack(spacing: BKSpace.xl) {
-                Text("Apprendre les gestes")
-                    .font(BKFont.title3)
-                    .bkLabelStyle()
-                    .foregroundStyle(.white)
-                VStack(alignment: .leading, spacing: BKSpace.lg) {
-                    gestureRow("arrow.left", "Passer", color: .white)
-                    gestureRow("arrow.right", "À voir", color: BKColor.brandPink)
-                    gestureRow("arrow.up", "Suivant sans avis", color: BKColor.brandCyan)
+                direction("arrow.up", "Suivant sans avis", color: BKColor.brandCyan, size: 30)
+                HStack {
+                    direction("arrow.left", "Passer", color: .white, size: 38)
+                    Spacer()
+                    Circle()
+                        .strokeBorder(.white, style: StrokeStyle(lineWidth: 3, dash: [6, 5]))
+                        .frame(width: 74, height: 74)
+                        .overlay(Circle().fill(.white).frame(width: 30, height: 30))
+                        .accessibilityHidden(true)
+                    Spacer()
+                    direction("arrow.right", "À voir", color: BKColor.brandPink, size: 38)
                 }
+                .padding(.horizontal, BKSpace.lg)
                 Text("Les boutons sous la carte font la même chose.")
-                    .font(.footnote)
+                    .font(.subheadline)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(Color(white: 0.8))
+                    .foregroundStyle(Color(white: 0.85))
                 Button(action: onDismiss) {
                     Text("COMPRIS")
                         .font(BKFont.ctaLabel)
@@ -448,24 +452,19 @@ private struct SwipeCoachMark: View {
                         .clipShape(BKChamferedShape(cut: 8))
                 }
             }
-            .padding(BKSpace.xl)
+            .padding(BKSpace.lg)
         }
         .padding(.horizontal, BKSpace.screenMargin)
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
     }
 
-    private func gestureRow(_ icon: String, _ label: String, color: Color) -> some View {
-        HStack(spacing: BKSpace.md) {
-            Image(systemName: icon)
-                .font(.title2.weight(.black))
-                .foregroundStyle(color)
-                .frame(width: 44, height: 44)
-                .overlay(Rectangle().stroke(color, lineWidth: 2))
-            Text(label)
-                .font(BKFont.display(18, weight: .heavy))
-                .foregroundStyle(.white)
+    private func direction(_ icon: String, _ label: String, color: Color, size: CGFloat) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon).font(.system(size: size, weight: .black))
+            Text(label).font(BKFont.display(16)).textCase(.uppercase)
         }
+        .foregroundStyle(color)
     }
 }
 

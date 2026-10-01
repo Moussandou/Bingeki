@@ -37,6 +37,37 @@ private struct SignedInRootView: View {
     @State private var network = NetworkMonitor()
     @State private var selectedTab: RootTab = .home
     @State private var showSearch = false
+    @AppStorage("bk.onboardingDone") private var onboardingDone = false
+
+    /// Shown once, only to accounts whose library is empty (not to web users).
+    private var onboardingBinding: Binding<Bool> {
+        Binding(
+            get: {
+                #if DEBUG
+                // `-bk.forceOnboarding YES` to preview it on any account.
+                if UserDefaults.standard.bool(forKey: "bk.forceOnboarding") && !onboardingDone { return true }
+                #endif
+                return library.hasLoaded && library.works.isEmpty && !onboardingDone
+            },
+            set: { if !$0 { onboardingDone = true } }
+        )
+    }
+
+    private func finishOnboarding(_ loved: [Work]) {
+        for work in loved {
+            var added = work
+            added.status = .completed
+            added.currentEpisode = added.totalEpisodes ?? 0
+            added.currentChapter = added.totalChapters ?? 0
+            added.dateAdded = .now
+            added.lastUpdated = .now
+            library.upsert(added)
+            userStore.addXP(GamificationCore.XPReward.addWork)
+        }
+        onboardingDone = true
+        HapticEngine.success()
+        Task { await deck.load(library: library.works, sfw: !userStore.profile.nsfwMode) }
+    }
 
     init(uid: String) {
         self.uid = uid
@@ -86,7 +117,16 @@ private struct SignedInRootView: View {
         .environment(\.userStore, userStore)
         .environment(deck)
         .environment(network)
-        .sheet(isPresented: $showSearch) { SearchView() }
+        // Presented content sits outside the `.environment` above: inject explicitly.
+        .sheet(isPresented: $showSearch) {
+            SearchView()
+                .environment(\.libraryStore, library)
+                .environment(\.userStore, userStore)
+        }
+        .fullScreenCover(isPresented: onboardingBinding) {
+            OnboardingView(onFinish: finishOnboarding, onSkip: { onboardingDone = true })
+                .environment(\.userStore, userStore)
+        }
         .overlay { BKToastOverlay() }
         .overlay {
             if let level = userStore.recentLevelUp {
