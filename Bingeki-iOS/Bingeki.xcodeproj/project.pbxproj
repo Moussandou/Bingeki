@@ -49,6 +49,7 @@
 		BE654124FC48E9FFD4AD2345 /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BC677F926A7597677F20A55F /* Inter-Regular.ttf */; };
 		CF24D79A0A085CE82AD551EC /* BKContentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750164EF586FFAEAC9D04EFD /* BKContentCard.swift */; };
 		CFF22921787C7608F59CF706 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8239D0FC38D55CFE6C39EB2 /* SearchView.swift */; };
+		D0E1F1F4EF2B89EB688EE3B4 /* BadgeDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AB573EEB14BE2137BB567E9 /* BadgeDecodingTests.swift */; };
 		D29D3D7AA54D142FCC060DE0 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188322B986406AF20FC05D29 /* NetworkMonitor.swift */; };
 		D41580C74482CFCDF5BD7BB2 /* Outfit-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A9F77F5E00A267E048B66228 /* Outfit-Black.ttf */; };
 		D50944E2F5D7708103B329CA /* BKLevelUpOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 478A124F52385B8D794D141A /* BKLevelUpOverlay.swift */; };
@@ -80,6 +81,7 @@
 		195F6EA11DCCAE28BF0E30B6 /* Bingeki.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bingeki.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1CF3DEC5D26AE0E4F112862A /* EnvironmentKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentKeys.swift; sourceTree = "<group>"; };
 		275DFD59A29607C534D0A3BA /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		2AB573EEB14BE2137BB567E9 /* BadgeDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeDecodingTests.swift; sourceTree = "<group>"; };
 		2CDD58C4F8F4ABFE30A8E791 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 		4058CC921BB6C9FCB4120C00 /* Work.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Work.swift; sourceTree = "<group>"; };
 		45BF3B49B9F409F61247A973 /* TenraiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TenraiClient.swift; sourceTree = "<group>"; };
@@ -276,6 +278,7 @@
 		8AAF2279EDF598D6CCFBC82E /* BingekiTests */ = {
 			isa = PBXGroup;
 			children = (
+				2AB573EEB14BE2137BB567E9 /* BadgeDecodingTests.swift */,
 				F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */,
 				466A027E7BE4508F9AF080EC /* UserStoreTests.swift */,
 			);
@@ -484,6 +487,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0E1F1F4EF2B89EB688EE3B4 /* BadgeDecodingTests.swift in Sources */,
 				E479F6C1EF060BE5662AB0E4 /* GamificationCoreTests.swift in Sources */,
 				1363B54FB627DEF78455D8B8 /* UserStoreTests.swift in Sources */,
 			);

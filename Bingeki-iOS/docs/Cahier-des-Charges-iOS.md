@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Statut** | En développement — Phase 0 terminée, Phase 1 bien avancée (voir §0) |
+| **Statut** | En développement — Phases 0 à 3 faites, Phase 4 bien avancée (voir §0) |
 | **Base** | Maquettes canvas · [Bingeki iOS — MVP](https://claude.ai/artifact/4fBkXJrcCTi8pEesgRHPGr) |
 | **Périmètre** | MVP mobile natif iOS, dérivé de la V2 web (`Bingeki-V2`) |
 | **Rédigé** | 2026-09-29, mis à jour le 2026-10-01 |
@@ -20,16 +20,19 @@ Ce document a servi de base à l'implémentation ; voici ce qui existe réelleme
 - Modèles (`Work`, `UserProfile`, `Badge`, `GamificationCore`) avec `Codable` compatible avec le format Firestore exact du web (voir §7 mis à jour).
 - **Firebase réel branché** : même projet `bingeki` que le web (nouvelle app iOS `com.bingeki.ios` enregistrée, pas l'ancienne « Bingeki Mobile »). `FirebaseAuthStore`, `FirebaseUserStore`, `FirebaseLibraryStore` implémentés derrière les protocoles `AuthProviding`/`UserStoring`/`LibraryStoring`.
 - Authentification : Sign in with Apple avec échange de jeton + nonce réel ; **nécessite un compte développeur Apple payant (`DEVELOPMENT_TEAM`) pour aboutir**, non configuré pour l'instant. Un bouton « Continuer sans compte (dev) » (build DEBUG uniquement) utilise l'Anonymous Auth Firebase comme contournement — il faut activer le fournisseur « Anonyme » une fois dans la [console Firebase](https://console.firebase.google.com/project/bingeki/authentication/providers). Google Sign-In n'est pas câblé (lève `AuthError.providerNotYetSupported`).
-- 9 écrans fonctionnels : Accueil, Découvrir (swipe + Parcourir), Recherche, Biblio, Fiche œuvre (+ section Similaires via Tenrai), sheet Progression + notation, Profil (licence + Profil Nen), éditeur de personnalisation, Réglages (branché sur `UserProfile`, pas des réglages locaux muets).
-- État "level up" (speedlines + tampon) implémenté — c'était le seul état du board totalement absent au départ.
-- `BingekiTests` : 8 tests Swift Testing, tous verts.
-- `scripts/run-simulator.sh` : build + install + launch + capture d'écran en une commande.
+- Écrans alignés sur les maquettes HF : Accueil (S01), Découvrir · Pour toi (S02/S03), Parcourir (S04 : collections, genres, top communauté), Recherche (S05), Fiche œuvre (S06), Biblio (S07), sheet Progression avec règle glissante (S08), Profil + licence + Profil Nen (S09), éditeur de licence à 5 onglets (couleurs, bannière, top 3, badge, bio), Réglages (S13).
+- Barre d'onglets custom `BKTabBar` (panneau encré + carré recherche) à la place de la barre système, comme sur les maquettes.
+- Feed Découvrir sur de **vraies données Tenrai** : recommandations à partir de la biblio (titres vus, sinon « À voir »), complétées par la saison en cours ; titres passés mémorisés ; filtre `sfw` appliqué partout tant que « Contenu 18+ » est désactivé (comme le web).
+- Board États : 1 onboarding (3 titres aimés), 2 tutoriel des gestes, 3 squelettes, 4 biblio vide, 5 aucun résultat + « Tu voulais dire », 6 bandeau hors ligne avec modifs en attente, 7 erreur du feed, 8 tampon + toast Annuler, 9 « Dans ta biblio », 10 fiche disparue à la source, 11 note de fin de série, 12 level up.
+- Badges du web lus en lecture seule (icônes lucide → SF Symbols), badge vedette sur la licence.
+- `BingekiTests` : 11 tests Swift Testing (gamification, store, décodage des badges web), tous verts.
+- `scripts/run-simulator.sh` : build + install + launch + capture ; `--tab home|discover|library`. Arguments de lancement DEBUG pour les captures : `-bk.searchQuery`, `-bk.openWork <malId>:<type>`, `-bk.openProfile YES`, `-bk.discoverSegment browse`, `-bk.forceOnboarding YES`, `-bk.forceOffline YES`, `-bk.coach.swipe NO`.
 
 **Pas encore fait** :
-- SwiftData / file d'attente hors-ligne (§4, §6.3 du plan initial) — les écritures Firestore sont directes, sans queue de synchro si le réseau coupe.
+- SwiftData / cache disque — le hors-ligne repose sur le cache Firestore (les écritures attendent le retour réseau, le bandeau affiche le nombre en attente).
 - Merge par œuvre avec tombstones (le web a `mergeLibraryData`) — `FirebaseLibraryStore` fait un dernier-écrit-gagne au niveau du document entier ; documenté comme simplification volontaire dans le code.
-- Google Sign-In, notifications push (FCM), scan ISBN.
-- États restants du board États : hors ligne, onboarding, tutoriel des gestes.
+- Google Sign-In, notifications push (FCM), scan ISBN, personnages favoris sur le profil.
+- Streak / `data/gamification` (le badge de série affiche la valeur serveur du profil).
 - Tests UI XCTest (seuls des tests unitaires existent).
 
 **Écart avec la stack technique initialement proposée (§4)** : SwiftData n'a pas encore été introduit ; les stores actuels (`InMemory*`/`Firebase*`) suffisent pour le MVP en cours de développement. L'ajouter reste pertinent pour la Phase 4 (hors-ligne).
@@ -149,7 +152,7 @@ Réglage utilisateur : Système (défaut) / Clair / Sombre / AMOLED. Le sélecte
 
 - **Titres, labels, CTA** : Outfit (SemiBold/Bold/ExtraBold/Black), embarquée dans `Resources/Fonts`, déclarée dans `Info.plist` (`UIAppFonts`). Extraite des fontes variables Google Fonts avec `fontTools` (voir le commit qui l'a ajoutée pour la commande exacte).
 - **Corps de texte** : Inter (Regular/Medium/SemiBold/Bold), même traitement. Tailles mappées sur les styles Dynamic Type d'iOS.
-- Titres plafonnés à 2 lignes ; au-delà de la taille de texte AX3, la tab bar passe en icônes seules + Large Content Viewer (règle du board *Micro*) — **pas encore implémenté**, noté comme reste à faire §0.
+- Titres plafonnés à 2 lignes ; au-delà de la taille de texte AX3, la tab bar passe en icônes seules (règle du board *Micro*) — fait dans `BKTabBar` ; le Large Content Viewer reste à ajouter.
 
 ### 6.3 Forme, espacement, mouvement
 
@@ -157,7 +160,7 @@ Réglage utilisateur : Système (défaut) / Clair / Sombre / AMOLED. Le sélecte
 - Cibles tactiles ≥ 44 pt, CTA principal 56 pt.
 - Panels : bordure 2 pt encre + ombre pleine décalée 4 pt (6 pt sur les CTA), jamais de `cornerRadius` arrondi sur les cartes de contenu (style "manga panel" du web). Voir `BKMetrics.bkPanelShadow`/`bkInkBorder`.
 - Animation par défaut : `timingCurve` équivalente à `cubic-bezier(.19,1,.22,1)`, 200–400 ms. Réserver les ressorts (`interpolatingSpring`) aux moments de marque (tampon d'ajout, level-up) — jamais sur une simple navigation.
-- Respecter `UIAccessibility.isReduceMotionEnabled` : remplacer rotation/tampon/speedlines par un fondu 150 ms — **pas encore implémenté**.
+- Respecter `UIAccessibility.isReduceMotionEnabled` : remplacer rotation/tampon/speedlines par un fondu 150 ms — fait sur le deck Découvrir (rotation, ressort, pulsation des squelettes) ; reste l'overlay level-up.
 
 ### 6.4 Iconographie
 
@@ -217,7 +220,8 @@ Pas encore implémenté. `FirebaseMessaging` est ajouté comme dépendance SPM m
 - VoiceOver : chaque carte Découvrir expose 3 actions personnalisées (À voir, Passer, Déjà vu).
 - Contraste : jamais la couleur seule pour un statut — toujours icône + libellé (`BKStatusChip` combine les deux systématiquement).
 - `accessibilityLabel` explicite sur tout bouton icône-seul.
-- `UIAccessibility.isReduceMotionEnabled`/`isReduceTransparencyEnabled` : **pas encore respecté**, noté en §0 et §6.3.
+- `isReduceMotionEnabled` : respecté sur le deck Découvrir (voir §6.3) ; `isReduceTransparencyEnabled` pas encore.
+- Actions VoiceOver sur la carte Découvrir (À voir / Passer / Déjà vu), règle de progression ajustable (`accessibilityAdjustableAction`).
 
 ## 11. Performance
 
@@ -248,10 +252,10 @@ FR uniquement pour l'instant (pas de `String Catalog`, les chaînes sont en dur 
 | **1 — Bibliothèque** | `LibraryListView`, `WorkDetailView`, `ProgressSheetView`, sync Firestore `data/library` | Biblio synchronisée web ↔ iOS | 2–3 semaines | **Fait** (sans merge par œuvre, voir §8.2) |
 | **2 — Découverte & Recherche** | Feed swipe, Parcourir, `SearchView`, intégration Tenrai | Ajout de titres depuis le mobile | 2,5–3,5 semaines | **Fait** |
 | **3 — Profil & personnalisation** | `HunterLicenseCard`, `ProfileEditView`, Profil Nen, `SettingsView` | Profil complet, thème clair/sombre | 2–3 semaines | **Fait** |
-| **4 — États, polish, accessibilité** | Tous les états du board *États*, micro-interactions, VoiceOver, tests | Prêt pour TestFlight | 1,5–2,5 semaines | **Partiel** — level-up fait, hors-ligne/onboarding/reduce-motion restants |
+| **4 — États, polish, accessibilité** | Tous les états du board *États*, micro-interactions, VoiceOver, tests | Prêt pour TestFlight | 1,5–2,5 semaines | **Bien avancé** — les 12 états du board faits ; restent reduce motion sur le level-up et les tests UI |
 | **5 — Bêta fermée** | Distribution TestFlight, retours, corrections | Prêt pour soumission App Store | 1–2 semaines | Pas commencé (besoin d'un `DEVELOPMENT_TEAM`) |
 
-Prochaines étapes concrètes pour qui reprend ce projet : (1) obtenir/configurer un `DEVELOPMENT_TEAM` pour que Sign in with Apple fonctionne réellement, (2) activer le fournisseur Anonymous dans la console Firebase pour débloquer les tests sans attendre (1), (3) terminer la Phase 4 (hors-ligne, onboarding, reduce motion).
+Prochaines étapes concrètes pour qui reprend ce projet : (1) obtenir/configurer un `DEVELOPMENT_TEAM` pour que Sign in with Apple fonctionne réellement, (2) activer le fournisseur Anonymous dans la console Firebase pour débloquer les tests sans attendre (1), (3) finir la Phase 4 (reduce motion du level-up, tests UI XCTest des flows du board *03*), (4) porter le merge par œuvre avec tombstones avant une bêta multi-appareils.
 
 ## 15. Definition of Done (par écran)
 

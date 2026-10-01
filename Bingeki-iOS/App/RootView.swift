@@ -90,6 +90,12 @@ private struct SignedInRootView: View {
             path.append(Work(id: parts[0], title: "", type: parts.last == "manga" ? .manga : .anime, status: .planToRead))
             _homePath = State(initialValue: path)
         }
+        // `-bk.openProfile YES` pushes the profile on Home.
+        if UserDefaults.standard.bool(forKey: "bk.openProfile") {
+            var path = NavigationPath()
+            path.append(ProfileRoute.main)
+            _homePath = State(initialValue: path)
+        }
         #endif
     }
 

@@ -31,6 +31,8 @@ struct UserProfile: Codable, Hashable, Sendable {
     var borderColor: String = "#000000"
     var top3Favorites: [String] = []
     var featuredBadge: String?
+    /// Read-only: server-managed by `onLibraryUpdate`, never in the write allowlist.
+    var badges: [Badge] = []
 
     // Privacy / settings.
     var profileVisibility: ProfileVisibility = .public
@@ -63,7 +65,7 @@ extension UserProfile {
         case totalChaptersRead, totalAnimeEpisodesWatched, totalMoviesWatched
         case totalWorksAdded, totalWorksCompleted
         case banner, bannerPosition, bio, themeColor, cardBgColor, borderColor
-        case top3Favorites, featuredBadge
+        case top3Favorites, featuredBadge, badges
         case profileVisibility, showActivityStatus, hideScores, dataSaver, nsfwMode
     }
 
@@ -96,6 +98,7 @@ extension UserProfile {
         borderColor = try c.decodeIfPresent(String.self, forKey: .borderColor) ?? "#000000"
         top3Favorites = try c.decodeIfPresent([String].self, forKey: .top3Favorites) ?? []
         featuredBadge = try c.decodeIfPresent(String.self, forKey: .featuredBadge)
+        badges = (try? c.decodeIfPresent([Badge].self, forKey: .badges)) ?? []
         profileVisibility = try c.decodeIfPresent(ProfileVisibility.self, forKey: .profileVisibility) ?? .public
         showActivityStatus = try c.decodeIfPresent(Bool.self, forKey: .showActivityStatus) ?? true
         hideScores = try c.decodeIfPresent(Bool.self, forKey: .hideScores) ?? false

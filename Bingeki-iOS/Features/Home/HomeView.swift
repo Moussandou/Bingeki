@@ -72,7 +72,7 @@ struct HomeView: View {
             .padding(.top, BKSpace.lg)
             .padding(.bottom, BKSpace.xl)
         }
-        .background(alignment: .top) { HalftoneBand().frame(height: 230).ignoresSafeArea(edges: .top) }
+        .background(alignment: .top) { HalftoneDots().frame(height: 230).ignoresSafeArea(edges: .top) }
         .background(BKColor.background.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: Work.self) { WorkDetailView(work: $0) }
@@ -298,21 +298,3 @@ private struct LevelAvatar: View {
     }
 }
 
-/// Dotted halftone backdrop behind the header (`.ht` on the mockups).
-private struct HalftoneBand: View {
-    var body: some View {
-        Canvas { context, size in
-            var x: CGFloat = 0
-            while x < size.width {
-                var y: CGFloat = 0
-                while y < size.height {
-                    context.fill(Path(ellipseIn: CGRect(x: x, y: y, width: 2.8, height: 2.8)), with: .color(BKColor.textPrimary.opacity(0.08)))
-                    y += 14
-                }
-                x += 14
-            }
-        }
-        .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
-        .accessibilityHidden(true)
-    }
-}

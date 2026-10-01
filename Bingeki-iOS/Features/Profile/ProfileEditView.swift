@@ -10,7 +10,7 @@ struct ProfileEditView: View {
     @State private var tab: Tab = .colors
 
     private enum Tab: String, CaseIterable {
-        case colors = "Couleurs", top3 = "Top 3", bio = "Pseudo & bio"
+        case colors = "Couleurs", banner = "Bannière", top3 = "Top 3", badge = "Badge", bio = "Pseudo & bio"
     }
 
     private let presets: [(name: String, accent: String, bg: String, border: String)] = [
@@ -26,22 +26,37 @@ struct ProfileEditView: View {
                 HunterLicenseCard(profile: userStore.profile, topWorks: topWorks)
                     .padding(.horizontal, BKSpace.screenMargin)
 
-                Picker("", selection: $tab) {
-                    ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: BKSpace.sm) {
+                        ForEach(Tab.allCases, id: \.self) { item in
+                            Button { tab = item } label: {
+                                Text(item.rawValue)
+                                    .font(.subheadline.weight(tab == item ? .bold : .semibold))
+                                    .padding(.horizontal, 12)
+                                    .frame(height: 36)
+                                    .foregroundStyle(tab == item ? .black : BKColor.textPrimary)
+                                    .background(tab == item ? BKColor.brandPink : .clear)
+                                    .overlay(Rectangle().stroke(tab == item ? BKColor.ink : BKColor.border, lineWidth: 2))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityAddTraits(tab == item ? .isSelected : [])
+                        }
+                    }
+                    .padding(.horizontal, BKSpace.screenMargin)
                 }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, BKSpace.screenMargin)
 
                 ScrollView {
                     switch tab {
                     case .colors: colorsTab
+                    case .banner: bannerTab
                     case .top3: top3Tab
+                    case .badge: badgeTab
                     case .bio: bioTab
                     }
                 }
             }
             .padding(.top, BKSpace.md)
-            .background(BKColor.background)
+            .background(BKColor.background.ignoresSafeArea())
             .navigationTitle("Personnaliser")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -71,6 +86,76 @@ struct ProfileEditView: View {
                             .overlay(RoundedRectangle(cornerRadius: 0).stroke(Color(hex: preset.border) ?? .black, lineWidth: 2))
                         Text(preset.name).font(.caption.weight(.semibold)).foregroundStyle(BKColor.textPrimary)
                     }
+                }
+            }
+        }
+        .padding(.horizontal, BKSpace.screenMargin)
+    }
+
+    /// Banner = any cover from the library (stored as a URL string, like the web).
+    private var bannerTab: some View {
+        VStack(alignment: .leading, spacing: BKSpace.sm) {
+            Text("Une couverture de ta biblio").font(.caption).foregroundStyle(BKColor.textSecondary)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                Button {
+                    userStore.update { $0.banner = nil }
+                } label: {
+                    Text("Auto")
+                        .font(BKFont.display(14))
+                        .frame(maxWidth: .infinity, minHeight: 64)
+                        .foregroundStyle(BKColor.textPrimary)
+                        .overlay(Rectangle().stroke(userStore.profile.banner == nil ? BKColor.brandPink : BKColor.border, lineWidth: userStore.profile.banner == nil ? 3 : 2))
+                }
+                .accessibilityLabel("Bannière automatique, ton top 1")
+                ForEach(library.works.filter { $0.image != nil }) { work in
+                    let selected = userStore.profile.banner == work.image?.absoluteString
+                    Button {
+                        userStore.update { $0.banner = work.image?.absoluteString }
+                    } label: {
+                        BKCover(url: work.image)
+                            .frame(height: 64)
+                            .overlay(Rectangle().stroke(selected ? BKColor.brandPink : .clear, lineWidth: 3))
+                    }
+                    .accessibilityLabel("Bannière : \(work.title)")
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                }
+            }
+        }
+        .padding(.horizontal, BKSpace.screenMargin)
+    }
+
+    /// Featured badge among those the server already unlocked.
+    private var badgeTab: some View {
+        VStack(alignment: .leading, spacing: BKSpace.sm) {
+            if userStore.profile.badges.isEmpty {
+                Text("Aucun badge débloqué pour l'instant. Ajoute et termine des titres pour en gagner.")
+                    .font(.subheadline)
+                    .foregroundStyle(BKColor.textSecondary)
+            } else {
+                ForEach(userStore.profile.badges) { badge in
+                    let selected = userStore.profile.featuredBadge == badge.id
+                    Button {
+                        userStore.update { $0.featuredBadge = selected ? nil : badge.id }
+                    } label: {
+                        HStack(spacing: BKSpace.md) {
+                            Image(systemName: badge.symbolName)
+                                .foregroundStyle(badge.rarity.tint)
+                                .frame(width: 36, height: 36)
+                                .overlay(Rectangle().stroke(badge.rarity.tint, lineWidth: 2))
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(badge.name).font(.subheadline.weight(.bold))
+                                Text(badge.description).font(.caption).foregroundStyle(BKColor.textSecondary)
+                            }
+                            Spacer()
+                            if selected { Image(systemName: "checkmark").font(.body.weight(.black)).foregroundStyle(BKColor.accentText) }
+                        }
+                        .padding(10)
+                        .foregroundStyle(BKColor.textPrimary)
+                        .background(BKColor.surface)
+                        .overlay(Rectangle().stroke(selected ? BKColor.brandPink : BKColor.border, lineWidth: 2))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selected ? .isSelected : [])
                 }
             }
         }
