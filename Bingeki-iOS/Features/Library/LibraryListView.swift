@@ -41,7 +41,7 @@ struct LibraryListView: View {
         }
         .sheet(item: $sheetWork) { work in
             ProgressSheetView(work: work)
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.height(640), .large])
         }
     }
 

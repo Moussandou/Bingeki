@@ -205,8 +205,10 @@ struct SearchView: View {
             Label(text, systemImage: icon)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(BKColor.textPrimary)
-                .frame(minHeight: BKSize.minTapTarget, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: BKSize.minTapTarget, alignment: .leading)
+                .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 
     private var skeletonRows: some View {

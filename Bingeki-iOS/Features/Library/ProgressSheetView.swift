@@ -26,6 +26,7 @@ struct ProgressSheetView: View {
                     .padding(.horizontal, -BKSpace.lg)
                 steps
                 statusRow
+                BKScorePicker(work: current)
                 Spacer(minLength: 0)
                 Button("Retirer de la bibliothèque") {
                     library.remove(id: work.id)
@@ -245,6 +246,51 @@ private struct ProgressRuler: View {
             @unknown default: break
             }
         }
+    }
+}
+
+/// Personal score /10, editable at any status — same 1–10 buttons as the
+/// end-of-series sheet. Tapping the current score again clears it.
+struct BKScorePicker: View {
+    let work: Work
+    @Environment(\.libraryStore) private var library
+
+    private var score: Int? { library.work(id: work.id)?.score ?? work.score }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: BKSpace.sm) {
+            HStack {
+                Text("MA NOTE").font(BKFont.caption).tracking(1).foregroundStyle(BKColor.textSecondary)
+                Spacer()
+                Text(score.map { "\($0)/10 · \(RatingSheetView.label(for: $0))" } ?? "Pas encore notée")
+                    .font(BKFont.display(12, weight: .heavy))
+                    .foregroundStyle(score == nil ? BKColor.textSecondary : BKColor.accentText)
+            }
+            HStack(spacing: 4) {
+                ForEach(1...10, id: \.self) { n in
+                    let isOn = score == n
+                    Button { set(isOn ? nil : n) } label: {
+                        Text("\(n)")
+                            .font(BKFont.display(14))
+                            .frame(maxWidth: .infinity, minHeight: 40)
+                            .foregroundStyle(isOn ? .black : BKColor.textPrimary)
+                            .background(isOn ? BKColor.brandPink : .clear)
+                            .bkInkBorder(isOn ? BKColor.ink : BKColor.border)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(n) sur 10, \(RatingSheetView.label(for: n))")
+                    .accessibilityAddTraits(isOn ? .isSelected : [])
+                }
+            }
+        }
+    }
+
+    private func set(_ value: Int?) {
+        var updated = library.work(id: work.id) ?? work
+        updated.score = value
+        updated.lastUpdated = .now
+        library.upsert(updated)
+        HapticEngine.progressTick()
     }
 }
 

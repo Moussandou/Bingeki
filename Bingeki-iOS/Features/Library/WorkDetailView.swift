@@ -64,7 +64,7 @@ struct WorkDetailView: View {
         .task(id: work.id) { await load() }
         .sheet(isPresented: $showProgressSheet) {
             ProgressSheetView(work: current, showsDetailLink: false)
-                .presentationDetents([.height(560), .large])
+                .presentationDetents([.height(640), .large])
         }
         .sheet(isPresented: $showRating) {
             RatingSheetView(work: current, xpGained: GamificationCore.XPReward.completeWork)
@@ -206,6 +206,8 @@ struct WorkDetailView: View {
             Text(progressCaption(item))
                 .font(.caption)
                 .foregroundStyle(BKColor.textSecondary)
+            Divider().overlay(BKColor.surfaceTint)
+            BKScorePicker(work: item)
         }
         .padding(14)
         .foregroundStyle(BKColor.textPrimary)
