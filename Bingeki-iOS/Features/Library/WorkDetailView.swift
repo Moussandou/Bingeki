@@ -7,6 +7,7 @@ struct WorkDetailView: View {
     @Environment(\.userStore) private var userStore
     @Environment(ToastCenter.self) private var toasts
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     @State private var showProgressSheet = false
     @State private var showRating = false
@@ -76,10 +77,16 @@ struct WorkDetailView: View {
     /// Blurred, dotted cover fading into the background.
     private var hero: some View {
         ZStack {
-            BKCover(url: current.image, showsBorder: false)
-                .blur(radius: 16)
-                .saturation(0.9)
-                .opacity(0.85)
+            // Reduce Transparency: a flat opaque band instead of the blur,
+            // so the title below keeps full contrast.
+            if reduceTransparency {
+                BKColor.surfaceTint
+            } else {
+                BKCover(url: current.image, showsBorder: false)
+                    .blur(radius: 16)
+                    .saturation(0.9)
+                    .opacity(0.85)
+            }
             LinearGradient(colors: [.clear, BKColor.background], startPoint: .center, endPoint: .bottom)
         }
         .frame(height: 330)

@@ -9,13 +9,18 @@ struct BKLevelUpOverlay: View {
     let onDismiss: () -> Void
 
     @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
             BKColor.background.opacity(0.98).ignoresSafeArea()
-            SpeedlinesView()
-                .opacity(0.15)
-                .ignoresSafeArea()
+            // §6.3: with Reduce Motion, no speedlines, no stamp spring —
+            // a plain 150 ms fade instead.
+            if !reduceMotion {
+                SpeedlinesView()
+                    .opacity(0.15)
+                    .ignoresSafeArea()
+            }
 
             VStack(spacing: BKSpace.lg) {
                 ZStack {
@@ -28,18 +33,20 @@ struct BKLevelUpOverlay: View {
                     .padding(.horizontal, BKSpace.lg).padding(.vertical, 4)
                     .background(BKColor.textPrimary)
                     .foregroundStyle(BKColor.background)
-                    .rotationEffect(.degrees(-2))
+                    .rotationEffect(.degrees(reduceMotion ? 0 : -2))
                 Text("Rang \(GamificationCore.rank(forLevel: level))")
                     .font(.subheadline)
                     .foregroundStyle(BKColor.textSecondary)
             }
-            .scaleEffect(appeared ? 1 : 0.6)
+            .scaleEffect(appeared || reduceMotion ? 1 : 0.6)
             .opacity(appeared ? 1 : 0)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Niveau supérieur, niveau \(level)")
         .onAppear {
-            withAnimation(.interpolatingSpring(stiffness: 220, damping: 14)) { appeared = true }
+            withAnimation(reduceMotion
+                ? .easeOut(duration: 0.15)
+                : .interpolatingSpring(stiffness: 220, damping: 14)) { appeared = true }
             HapticEngine.success()
             Task {
                 try? await Task.sleep(for: .seconds(1.6))

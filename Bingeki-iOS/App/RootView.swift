@@ -17,6 +17,7 @@ struct RootView: View {
             }
         }
         .preferredColorScheme((ThemePreference(rawValue: themePreference) ?? .system).colorScheme)
+        .environment(\.bkAmoled, themePreference == ThemePreference.amoled.rawValue)
     }
 }
 

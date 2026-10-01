@@ -21,7 +21,8 @@ struct SettingsView: View {
                 Picker("Thème", selection: $themePreference) {
                     ForEach(ThemePreference.allCases, id: \.self) { Text($0.label).tag($0.rawValue) }
                 }
-                NavigationLink("Langue") { Text("Français") }
+                // FR only until the String Catalog lands (EN planned V1.1, §12).
+                LabeledContent("Langue", value: "Français")
             }
 
             Section("Confidentialité") {
@@ -119,9 +120,9 @@ enum ThemePreference: String, CaseIterable {
         }
     }
 
-    /// `nil` defers to the system setting. AMOLED reuses the dark palette
-    /// for now — a true true-black variant is a design-token follow-up, not
-    /// wired yet (see the handoff doc's Phase 4 notes).
+    /// `nil` defers to the system setting. AMOLED is the dark scheme plus
+    /// the `\.bkAmoled` environment flag, which turns `BKColor.background`/
+    /// `surface` true black.
     var colorScheme: ColorScheme? {
         switch self {
         case .system: return nil
