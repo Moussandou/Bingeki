@@ -7,7 +7,7 @@ struct DiscoverView: View {
     enum Segment: String, CaseIterable { case forYou = "POUR TOI", browse = "PARCOURIR" }
     @State private var segment: Segment = {
         #if DEBUG
-        // `-bk.discoverSegment browse` for simulator screenshots.
+        // `-bk.discoverSegment browse` for simulator screenshots
         if UserDefaults.standard.string(forKey: "bk.discoverSegment") == "browse" { return .browse }
         #endif
         return .forYou
@@ -31,6 +31,7 @@ struct DiscoverView: View {
                             }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("discover_segment_\(item == .forYou ? "for_you" : "browse")")
                     .accessibilityAddTraits(segment == item ? .isSelected : [])
                 }
                 Spacer()
@@ -217,7 +218,7 @@ struct DiscoverFeedView: View {
 
     private func actionBar(for work: Work) -> some View {
         HStack(alignment: .top, spacing: 22) {
-            actionButton("xmark", label: "PASSER", a11y: "Passer, pas intéressé") { decide(.left, for: work) }
+            actionButton("xmark", label: "PASSER", a11y: "Passer, pas intéressé", identifier: "discover_btn_pass") { decide(.left, for: work) }
             Button {
                 decide(.right, for: work)
             } label: {
@@ -229,11 +230,12 @@ struct DiscoverFeedView: View {
                     .clipShape(BKChamferedShape(cut: 10))
             }
             .accessibilityLabel("Ajouter à À voir")
-            actionButton("checkmark", label: "DÉJÀ VU", a11y: "Déjà vu, ajouter en terminé") { decide(.seen, for: work) }
+            .accessibilityIdentifier("discover_btn_want_to_see")
+            actionButton("checkmark", label: "DÉJÀ VU", a11y: "Déjà vu, ajouter en terminé", identifier: "discover_btn_seen") { decide(.seen, for: work) }
         }
     }
 
-    private func actionButton(_ icon: String, label: String, a11y: String, action: @escaping () -> Void) -> some View {
+    private func actionButton(_ icon: String, label: String, a11y: String, identifier: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 5) {
                 Image(systemName: icon)
@@ -247,6 +249,7 @@ struct DiscoverFeedView: View {
         }
         .foregroundStyle(BKColor.textSecondary)
         .accessibilityLabel(a11y)
+        .accessibilityIdentifier(identifier)
     }
 
     private func dragGesture(for work: Work) -> some Gesture {

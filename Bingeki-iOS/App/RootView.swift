@@ -45,6 +45,7 @@ private struct SignedInRootView: View {
         Binding(
             get: {
                 #if DEBUG
+                if UserDefaults.standard.bool(forKey: "bk.skipOnboarding") { return false }
                 // `-bk.forceOnboarding YES` to preview it on any account.
                 if UserDefaults.standard.bool(forKey: "bk.forceOnboarding") && !onboardingDone { return true }
                 #endif
@@ -72,8 +73,18 @@ private struct SignedInRootView: View {
 
     init(uid: String) {
         self.uid = uid
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: "bk.useInMemoryStore") {
+            _library = State(initialValue: InMemoryLibraryStore.preview)
+            _userStore = State(initialValue: InMemoryUserStore.preview)
+        } else {
+            _library = State(initialValue: FirebaseLibraryStore(uid: uid))
+            _userStore = State(initialValue: FirebaseUserStore(uid: uid))
+        }
+        #else
         _library = State(initialValue: FirebaseLibraryStore(uid: uid))
         _userStore = State(initialValue: FirebaseUserStore(uid: uid))
+        #endif
         #if DEBUG
         // `-bk.initialTab discover` at launch, for simulator screenshots.
         if let raw = UserDefaults.standard.string(forKey: "bk.initialTab"), let tab = RootTab(rawValue: raw) {

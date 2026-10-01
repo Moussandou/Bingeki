@@ -28,6 +28,7 @@
 		4697D989B05E33EBB483B295 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E63E1AEA54A14396C58777D1 /* AuthView.swift */; };
 		4FC811575130D8AF8FC5382A /* UserStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA125CA09008DC97580F50C /* UserStore.swift */; };
 		52B459DA75062ED79BEEADBD /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 43688079ECD7D97E1E426D53 /* FirebaseMessaging */; };
+		545379E073F3427CD5FF028A /* WorkModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E26F1A865A6254438E289DAB /* WorkModelTests.swift */; };
 		6525D0F7F725CAB6A84E822D /* BKToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF947D1A39A04E30C9613EC0 /* BKToast.swift */; };
 		66D508A252C200D6300CB417 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 727DA32165C8E7E06D657EBB /* Assets.xcassets */; };
 		68F1BB1E5F0E72CDEFE67DD4 /* BKTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 778C1CF8195E424BE2A27872 /* BKTabBar.swift */; };
@@ -42,7 +43,9 @@
 		95AF2372EB1E242258CA6BB1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 767AE4DAD1B0204CB56CF764 /* ProfileView.swift */; };
 		96E615488A80B9E465B53AC6 /* BingekiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5E3D43DD1821F8F1762FB2 /* BingekiApp.swift */; };
 		A32C41800B329ED795744BC3 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 4331C0DB36F26355F7BD8ADF /* FirebaseAuth */; };
+		A337568AE10F6392852A6A94 /* LibraryFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1920C30CE9B0C42FE3C33 /* LibraryFlowUITests.swift */; };
 		AB0E5F925654D03F06297288 /* Inter-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7C568D6A356A90F6CD27378C /* Inter-Medium.ttf */; };
+		ACF36D5B251291192934475B /* TenraiModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92FC3DC610F8D91EDE591C9C /* TenraiModelTests.swift */; };
 		AD8B165147B47BF4F5C9EE49 /* HapticEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE28B1E7B8A03D97D3C678B0 /* HapticEngine.swift */; };
 		B4A9775DB680334E673D22FC /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = ADAC971F8713AD4E64C628B7 /* FirebaseFunctions */; };
 		B4C55D88D5FAF70755684CA1 /* TenraiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45BF3B49B9F409F61247A973 /* TenraiClient.swift */; };
@@ -50,10 +53,13 @@
 		CF24D79A0A085CE82AD551EC /* BKContentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750164EF586FFAEAC9D04EFD /* BKContentCard.swift */; };
 		CFF22921787C7608F59CF706 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8239D0FC38D55CFE6C39EB2 /* SearchView.swift */; };
 		D0E1F1F4EF2B89EB688EE3B4 /* BadgeDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AB573EEB14BE2137BB567E9 /* BadgeDecodingTests.swift */; };
+		D135E37F56A54C623900357C /* UserProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E693F3A4DE288E1B90AC69B6 /* UserProfileTests.swift */; };
 		D29D3D7AA54D142FCC060DE0 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188322B986406AF20FC05D29 /* NetworkMonitor.swift */; };
 		D41580C74482CFCDF5BD7BB2 /* Outfit-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A9F77F5E00A267E048B66228 /* Outfit-Black.ttf */; };
 		D50944E2F5D7708103B329CA /* BKLevelUpOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 478A124F52385B8D794D141A /* BKLevelUpOverlay.swift */; };
+		D88CE8286DDEDCF3EF2536A6 /* NavigationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB798273FDCFD980B7752FC /* NavigationUITests.swift */; };
 		DC940C9D903A185472BB909D /* BKButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460C7C62494A090944AE38EE /* BKButton.swift */; };
+		DD2D891398C60486CD44F852 /* AuthFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4398365AA94BD20047CD92 /* AuthFlowUITests.swift */; };
 		E1C8169FD44B37486E9D0D58 /* FirebaseLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C98C2019941E0A56E6544BBB /* FirebaseLibraryStore.swift */; };
 		E4171124B6E85B956D46C0D3 /* ProgressSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8712A278CBF747AA96DD10 /* ProgressSheetView.swift */; };
 		E479F6C1EF060BE5662AB0E4 /* GamificationCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */; };
@@ -65,6 +71,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		39DFC3260C0DF35250FEDDCE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 26C27741ABB38E7160CB42D4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D94A0C87CCEC8118181C7139;
+			remoteInfo = Bingeki;
+		};
 		F47C257E7783A604CFAD3199 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 26C27741ABB38E7160CB42D4 /* Project object */;
@@ -80,6 +93,7 @@
 		188322B986406AF20FC05D29 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		195F6EA11DCCAE28BF0E30B6 /* Bingeki.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bingeki.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1CF3DEC5D26AE0E4F112862A /* EnvironmentKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentKeys.swift; sourceTree = "<group>"; };
+		1EB798273FDCFD980B7752FC /* NavigationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
 		275DFD59A29607C534D0A3BA /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		2AB573EEB14BE2137BB567E9 /* BadgeDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeDecodingTests.swift; sourceTree = "<group>"; };
 		2CDD58C4F8F4ABFE30A8E791 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
@@ -98,7 +112,9 @@
 		7D923970889969406F93F06A /* Outfit-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Outfit-SemiBold.ttf"; sourceTree = "<group>"; };
 		7E1AC72692F24FC30C9BB9A9 /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
 		8A07C49E7D1CD8A0624E5E95 /* Badge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Badge.swift; sourceTree = "<group>"; };
+		8C4398365AA94BD20047CD92 /* AuthFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthFlowUITests.swift; sourceTree = "<group>"; };
 		90CCF382A26F6F96997912EF /* WorkDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkDetailView.swift; sourceTree = "<group>"; };
+		92FC3DC610F8D91EDE591C9C /* TenraiModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TenraiModelTests.swift; sourceTree = "<group>"; };
 		9599F92555AA815FCC86CCEB /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		A9F77F5E00A267E048B66228 /* Outfit-Black.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Outfit-Black.ttf"; sourceTree = "<group>"; };
 		B6CCD3D276F692C123615B34 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -115,14 +131,18 @@
 		CCEEA43D79B564AA6FE9A2CF /* GamificationCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationCore.swift; sourceTree = "<group>"; };
 		CE28B1E7B8A03D97D3C678B0 /* HapticEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticEngine.swift; sourceTree = "<group>"; };
 		CEEB04A05B6AA574B087080B /* BKMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKMetrics.swift; sourceTree = "<group>"; };
+		D0C1920C30CE9B0C42FE3C33 /* LibraryFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryFlowUITests.swift; sourceTree = "<group>"; };
 		D17CB753C4F4D59A094E55FC /* Bingeki.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Bingeki.entitlements; sourceTree = "<group>"; };
 		D5433D9F6A5B5C93275F00F6 /* Outfit-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Outfit-ExtraBold.ttf"; sourceTree = "<group>"; };
 		D844CDCEC9739476A1EF4122 /* LibraryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryListView.swift; sourceTree = "<group>"; };
 		E0958E1F4B72BB14062B59ED /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		E1FC8A6950C2AF46DE36E321 /* BKColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKColor.swift; sourceTree = "<group>"; };
+		E26F1A865A6254438E289DAB /* WorkModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkModelTests.swift; sourceTree = "<group>"; };
 		E2FB04EB2F9CA6D488A55404 /* BrowseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseView.swift; sourceTree = "<group>"; };
 		E551C9747B6F0EB468ABEB7F /* ProfileEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileEditView.swift; sourceTree = "<group>"; };
 		E63E1AEA54A14396C58777D1 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		E693F3A4DE288E1B90AC69B6 /* UserProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileTests.swift; sourceTree = "<group>"; };
+		E9B8FE386FD00DF09E484C51 /* BingekiUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BingekiUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EC2AC0F5876ADA35BA3EA514 /* DiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverView.swift; sourceTree = "<group>"; };
 		F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationCoreTests.swift; sourceTree = "<group>"; };
 		F7D3648604BD3F65C6FAEE3E /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
@@ -161,6 +181,7 @@
 			children = (
 				195F6EA11DCCAE28BF0E30B6 /* Bingeki.app */,
 				CB1F893FF459D86F49590CE1 /* BingekiTests.xctest */,
+				E9B8FE386FD00DF09E484C51 /* BingekiUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -266,6 +287,7 @@
 			children = (
 				02B43AD68CF86E18D16184DB /* App */,
 				8AAF2279EDF598D6CCFBC82E /* BingekiTests */,
+				BD300D634D9E1F26F8241E89 /* BingekiUITests */,
 				B6CA009AECFC6D2F8D17CA72 /* Core */,
 				66DFD3FED210E653722C6AAC /* Features */,
 				EA86B7FD8F8F20C83EAA04FC /* Models */,
@@ -280,7 +302,10 @@
 			children = (
 				2AB573EEB14BE2137BB567E9 /* BadgeDecodingTests.swift */,
 				F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */,
+				92FC3DC610F8D91EDE591C9C /* TenraiModelTests.swift */,
+				E693F3A4DE288E1B90AC69B6 /* UserProfileTests.swift */,
 				466A027E7BE4508F9AF080EC /* UserStoreTests.swift */,
+				E26F1A865A6254438E289DAB /* WorkModelTests.swift */,
 			);
 			path = BingekiTests;
 			sourceTree = "<group>";
@@ -331,6 +356,16 @@
 				4F16A0EC82A60076468E23E7 /* Persistence */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		BD300D634D9E1F26F8241E89 /* BingekiUITests */ = {
+			isa = PBXGroup;
+			children = (
+				8C4398365AA94BD20047CD92 /* AuthFlowUITests.swift */,
+				D0C1920C30CE9B0C42FE3C33 /* LibraryFlowUITests.swift */,
+				1EB798273FDCFD980B7752FC /* NavigationUITests.swift */,
+			);
+			path = BingekiUITests;
 			sourceTree = "<group>";
 		};
 		BF7F681558C91FF78C6A6705 /* Settings */ = {
@@ -428,6 +463,24 @@
 			productReference = 195F6EA11DCCAE28BF0E30B6 /* Bingeki.app */;
 			productType = "com.apple.product-type.application";
 		};
+		FB2CCF9E21153B310EE1F2A3 /* BingekiUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 93D698B441D7F1386B824063 /* Build configuration list for PBXNativeTarget "BingekiUITests" */;
+			buildPhases = (
+				69983F5C21CF3A1CF7662D22 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F659A78A35F449597B4DCA74 /* PBXTargetDependency */,
+			);
+			name = BingekiUITests;
+			packageProductDependencies = (
+			);
+			productName = BingekiUITests;
+			productReference = E9B8FE386FD00DF09E484C51 /* BingekiUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -437,6 +490,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					FB2CCF9E21153B310EE1F2A3 = {
+						TestTargetID = D94A0C87CCEC8118181C7139;
+					};
 				};
 			};
 			buildConfigurationList = 39EC8EFD32AECC995869F940 /* Build configuration list for PBXProject "Bingeki" */;
@@ -458,6 +514,7 @@
 			targets = (
 				D94A0C87CCEC8118181C7139 /* Bingeki */,
 				28C3B28951CBB87731A4042B /* BingekiTests */,
+				FB2CCF9E21153B310EE1F2A3 /* BingekiUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -483,13 +540,26 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		69983F5C21CF3A1CF7662D22 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DD2D891398C60486CD44F852 /* AuthFlowUITests.swift in Sources */,
+				A337568AE10F6392852A6A94 /* LibraryFlowUITests.swift in Sources */,
+				D88CE8286DDEDCF3EF2536A6 /* NavigationUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		6B522270C900286C943454C6 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				D0E1F1F4EF2B89EB688EE3B4 /* BadgeDecodingTests.swift in Sources */,
 				E479F6C1EF060BE5662AB0E4 /* GamificationCoreTests.swift in Sources */,
+				ACF36D5B251291192934475B /* TenraiModelTests.swift in Sources */,
+				D135E37F56A54C623900357C /* UserProfileTests.swift in Sources */,
 				1363B54FB627DEF78455D8B8 /* UserStoreTests.swift in Sources */,
+				545379E073F3427CD5FF028A /* WorkModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -545,6 +615,11 @@
 			isa = PBXTargetDependency;
 			target = D94A0C87CCEC8118181C7139 /* Bingeki */;
 			targetProxy = F47C257E7783A604CFAD3199 /* PBXContainerItemProxy */;
+		};
+		F659A78A35F449597B4DCA74 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D94A0C87CCEC8118181C7139 /* Bingeki */;
+			targetProxy = 39DFC3260C0DF35250FEDDCE /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -690,6 +765,24 @@
 			};
 			name = Release;
 		};
+		7EF785B0E287F5D44E681B02 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bingeki.BingekiUITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Bingeki;
+			};
+			name = Debug;
+		};
 		874BD620FBE3D8109018EDED /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -750,6 +843,24 @@
 			};
 			name = Release;
 		};
+		A8DC52860CE34B9454F7D060 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bingeki.BingekiUITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Bingeki;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -767,6 +878,15 @@
 			buildConfigurations = (
 				5AD9C791EC6EF2E65207952F /* Debug */,
 				73F1D89EA68818BBA52D8E0B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		93D698B441D7F1386B824063 /* Build configuration list for PBXNativeTarget "BingekiUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7EF785B0E287F5D44E681B02 /* Debug */,
+				A8DC52860CE34B9454F7D060 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

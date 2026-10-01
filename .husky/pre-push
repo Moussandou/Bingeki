@@ -1,2 +1,9 @@
 npm run validate:i18n
 npm run test:run
+
+# Validation iOS automatique si des fichiers iOS sont modifies ou sur branche iOS
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+if [[ "$CURRENT_BRANCH" == *"ios"* ]] || git diff --name-only origin/main...HEAD 2>/dev/null | grep -q "^Bingeki-iOS/"; then
+  echo "→ Modifications iOS détectées : validation des tests Bingeki-iOS..."
+  npm run test:ios
+fi

@@ -45,8 +45,6 @@ final class InMemoryUserStore: UserStoring {
     }
 }
 
-#if DEBUG
 extension InMemoryUserStore {
     static var preview: InMemoryUserStore { InMemoryUserStore(profile: .sample) }
 }
-#endif

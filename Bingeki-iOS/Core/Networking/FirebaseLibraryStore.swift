@@ -46,7 +46,7 @@ final class FirebaseLibraryStore: LibraryStoring {
             }
             // Skip our own local echo and anything racing an unsent edit.
             guard snapshot.exists, !pending, !self.isDebouncing else { return }
-            let remoteWorks = (try? snapshot.get("works") as? [[String: Any]])?
+            let remoteWorks = (snapshot.get("works") as? [[String: Any]])?
                 .compactMap { try? Firestore.Decoder().decode(Work.self, from: $0) } ?? []
             self.works = remoteWorks
         }

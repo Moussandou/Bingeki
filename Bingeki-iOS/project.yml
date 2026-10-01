@@ -72,6 +72,7 @@ targets:
     scheme:
       testTargets:
         - BingekiTests
+        - BingekiUITests
       commandLineArguments:
         "-BG_MOCK_DATA": true
   BingekiTests:
@@ -85,3 +86,15 @@ targets:
       base:
         SWIFT_VERSION: "6.0"
         GENERATE_INFOPLIST_FILE: YES
+  BingekiUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: BingekiUITests
+    dependencies:
+      - target: Bingeki
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Bingeki

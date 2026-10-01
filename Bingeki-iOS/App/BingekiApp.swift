@@ -12,6 +12,16 @@ struct BingekiApp: App {
     @State private var toasts = ToastCenter()
 
     init() {
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: "bk.forceSignedOut") {
+            _auth = State(initialValue: InMemoryAuthStore(isSignedIn: false))
+            return
+        }
+        if UserDefaults.standard.bool(forKey: "bk.mockAuth") {
+            _auth = State(initialValue: InMemoryAuthStore(isSignedIn: true))
+            return
+        }
+        #endif
         FirebaseApp.configure()
         _auth = State(initialValue: FirebaseAuthStore())
     }

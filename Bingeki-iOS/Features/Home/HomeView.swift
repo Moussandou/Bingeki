@@ -91,6 +91,7 @@ struct HomeView: View {
                 Text("On reprend ?")
                     .font(BKFont.largeTitle)
                     .bkLabelStyle()
+                    .accessibilityIdentifier("home_title")
             }
             Spacer()
             NavigationLink(value: ProfileRoute.main) {

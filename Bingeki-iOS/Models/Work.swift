@@ -154,7 +154,6 @@ extension Work {
     }
 }
 
-#if DEBUG
 extension Work {
     static let sampleFrieren = Work(
         id: "154587",
@@ -178,4 +177,3 @@ extension Work {
 
     static let sampleLibrary: [Work] = [.sampleFrieren, .sampleOnePiece]
 }
-#endif

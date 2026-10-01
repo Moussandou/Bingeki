@@ -36,6 +36,7 @@ struct BKTabBar: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Rechercher")
+            .accessibilityIdentifier("tab_search")
         }
         .padding(.horizontal, 12)
         .padding(.bottom, 4)
@@ -68,6 +69,10 @@ struct BKTabBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+        .accessibilityIdentifier("tab_\(tab.rawValue)")
+        .accessibilityShowsLargeContentViewer {
+            Label(label, systemImage: icon)
+        }
         .accessibilityAddTraits(isOn ? [.isSelected, .isButton] : .isButton)
     }
 }

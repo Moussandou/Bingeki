@@ -107,7 +107,6 @@ extension UserProfile {
     }
 }
 
-#if DEBUG
 extension UserProfile {
     static let sample = UserProfile(
         uid: "preview-user",
@@ -125,4 +124,3 @@ extension UserProfile {
         top3Favorites: [Work.sampleFrieren.id, Work.sampleOnePiece.id]
     )
 }
-#endif

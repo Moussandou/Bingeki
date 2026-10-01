@@ -50,6 +50,17 @@
                ReferencedContainer = "container:Bingeki.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "FB2CCF9E21153B310EE1F2A3"
+               BuildableName = "BingekiUITests.xctest"
+               BlueprintName = "BingekiUITests"
+               ReferencedContainer = "container:Bingeki.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
          <CommandLineArgument

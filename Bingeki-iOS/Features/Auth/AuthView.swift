@@ -112,6 +112,7 @@ struct AuthView: View {
                 .signInWithAppleButtonStyle(.black)
                 .frame(height: BKSize.ctaHeight)
                 .clipShape(RoundedRectangle(cornerRadius: 0))
+                .accessibilityIdentifier("auth_apple_button")
                 .disabled(isSigningIn)
 
                 Button {
@@ -125,6 +126,7 @@ struct AuthView: View {
                 }
                 .overlay(RoundedRectangle(cornerRadius: 0).stroke(BKColor.border, lineWidth: 2))
                 .foregroundStyle(BKColor.textPrimary)
+                .accessibilityIdentifier("auth_google_button")
                 .disabled(isSigningIn)
 
                 if let errorMessage {
@@ -147,6 +149,7 @@ struct AuthView: View {
                         .underline()
                 }
                 .foregroundStyle(BKColor.textSecondary)
+                .accessibilityIdentifier("auth_dev_bypass_button")
                 .disabled(isSigningIn)
                 #endif
             }

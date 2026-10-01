@@ -25,7 +25,14 @@ Ce document a servi de base à l'implémentation ; voici ce qui existe réelleme
 - Feed Découvrir sur de **vraies données Tenrai** : recommandations à partir de la biblio (titres vus, sinon « À voir »), complétées par la saison en cours ; titres passés mémorisés ; filtre `sfw` appliqué partout tant que « Contenu 18+ » est désactivé (comme le web).
 - Board États : 1 onboarding (3 titres aimés), 2 tutoriel des gestes, 3 squelettes, 4 biblio vide, 5 aucun résultat + « Tu voulais dire », 6 bandeau hors ligne avec modifs en attente, 7 erreur du feed, 8 tampon + toast Annuler, 9 « Dans ta biblio », 10 fiche disparue à la source, 11 note de fin de série, 12 level up.
 - Badges du web lus en lecture seule (icônes lucide → SF Symbols), badge vedette sur la licence.
-- `BingekiTests` : 11 tests Swift Testing (gamification, store, décodage des badges web), tous verts.
+- `BingekiTests` : 21 tests unitaires Swift Testing (modèles `Work`, `UserProfile`, `Tenrai`, calculs Nen, gamification, stores in-memory, décodage des badges web), 100 % passés.
+- `BingekiUITests` : 3 suites de tests d'interface automatisés XCTest (`AuthFlowUITests`, `NavigationUITests`, `LibraryFlowUITests`) validant les flux clés et l'accessibilité.
+- **Pipeline Qualité & CI** :
+  - `scripts/check-ios.sh` : script unifié de validation locale (audit de secrets, génération xcodegen, tests unitaires, tests UI, build de validation en configuration Release).
+  - `scripts/build-archive.sh` : script d'archivage release pour déploiement TestFlight / App Store.
+  - `.github/workflows/ios-ci.yml` : workflow GitHub Actions CI exécuté sur runner macOS (XcodeGen, cache SPM, tests unitaires & UI, build Release, upload des rapports `.xcresult`).
+  - `.husky/pre-push` : hook de pré-push déclenchant `npm run test:ios` sur les branches iOS ou lors de modifications dans `Bingeki-iOS/`.
+  - Scripts npm dans `package.json` : `test:ios`, `test:ios:unit`, `test:ios:ui`, `build:ios:archive`.
 - `scripts/run-simulator.sh` : build + install + launch + capture ; `--tab home|discover|library`. Arguments de lancement DEBUG pour les captures : `-bk.searchQuery`, `-bk.openWork <malId>:<type>`, `-bk.openProfile YES`, `-bk.discoverSegment browse`, `-bk.forceOnboarding YES`, `-bk.forceOffline YES`, `-bk.coach.swipe NO`.
 
 **Pas encore fait** :
@@ -33,7 +40,6 @@ Ce document a servi de base à l'implémentation ; voici ce qui existe réelleme
 - Merge par œuvre avec tombstones (le web a `mergeLibraryData`) — `FirebaseLibraryStore` fait un dernier-écrit-gagne au niveau du document entier ; documenté comme simplification volontaire dans le code.
 - Google Sign-In, notifications push (FCM), scan ISBN, personnages favoris sur le profil.
 - Streak / `data/gamification` (le badge de série affiche la valeur serveur du profil).
-- Tests UI XCTest (seuls des tests unitaires existent).
 
 **Écart avec la stack technique initialement proposée (§4)** : SwiftData n'a pas encore été introduit ; les stores actuels (`InMemory*`/`Firebase*`) suffisent pour le MVP en cours de développement. L'ajouter reste pertinent pour la Phase 4 (hors-ligne).
 
@@ -69,7 +75,8 @@ Repris tel quel du board *02 · MVP & navigation* :
 | Données externes | **Tenrai** (`https://api.tenrai.org/v1`, schéma Jikan v4) en appel direct, avec repli sur les Cloud Functions `jikanProxy` existantes | Jikan est discontinué (mémoire projet) ; le web utilise déjà ce même repli direct→proxy dans `src/services/animeApi.ts` |
 | Auth | **Sign in with Apple** (obligatoire si Google proposé) + **Sign in with Google** | Recommandation initiale confirmée par le board *02* |
 | Notifications | **APNs** via `FirebaseMessaging` | Le web utilise déjà FCM (`usePushNotifications.ts`) ; réutiliser les mêmes topics côté serveur |
-| Tests | **Swift Testing** (`swift-testing-pro`) + tests UI XCTest ciblés sur les flows du board *03* | |
+| Tests | **Swift Testing** (`BingekiTests` : modèles, stores, décodage) + **XCTest** (`BingekiUITests` : flux auth, navigation, bibliothèque, accessibilité) | Tests automatisés garantissant la non-régression et la robustesse des flux critiques |
+| CI / Déploiement | **GitHub Actions** (`ios-ci.yml`) + scripts `check-ios.sh`, `build-archive.sh`, hooks Husky | Validation automatisée avant push et sur PR/main (XcodeGen, build Release, tests, archivage) |
 | Localisation | `String Catalog` (.xcstrings), FR par défaut + EN | Miroir de `i18next` côté web (voir §12) |
 
 ## 5. Architecture applicative
@@ -252,10 +259,10 @@ FR uniquement pour l'instant (pas de `String Catalog`, les chaînes sont en dur 
 | **1 — Bibliothèque** | `LibraryListView`, `WorkDetailView`, `ProgressSheetView`, sync Firestore `data/library` | Biblio synchronisée web ↔ iOS | 2–3 semaines | **Fait** (sans merge par œuvre, voir §8.2) |
 | **2 — Découverte & Recherche** | Feed swipe, Parcourir, `SearchView`, intégration Tenrai | Ajout de titres depuis le mobile | 2,5–3,5 semaines | **Fait** |
 | **3 — Profil & personnalisation** | `HunterLicenseCard`, `ProfileEditView`, Profil Nen, `SettingsView` | Profil complet, thème clair/sombre | 2–3 semaines | **Fait** |
-| **4 — États, polish, accessibilité** | Tous les états du board *États*, micro-interactions, VoiceOver, tests | Prêt pour TestFlight | 1,5–2,5 semaines | **Bien avancé** — les 12 états du board faits ; restent reduce motion sur le level-up et les tests UI |
+| **4 — États, polish, accessibilité & CI** | Tous les états du board *États*, micro-interactions, VoiceOver, tests unitaires, tests UI, CI/CD | Prêt pour TestFlight | 1,5–2,5 semaines | **Fait** — 12 états faits, tests unitaires + UI passés, scripts et CI en place |
 | **5 — Bêta fermée** | Distribution TestFlight, retours, corrections | Prêt pour soumission App Store | 1–2 semaines | Pas commencé (besoin d'un `DEVELOPMENT_TEAM`) |
 
-Prochaines étapes concrètes pour qui reprend ce projet : (1) obtenir/configurer un `DEVELOPMENT_TEAM` pour que Sign in with Apple fonctionne réellement, (2) activer le fournisseur Anonymous dans la console Firebase pour débloquer les tests sans attendre (1), (3) finir la Phase 4 (reduce motion du level-up, tests UI XCTest des flows du board *03*), (4) porter le merge par œuvre avec tombstones avant une bêta multi-appareils.
+Prochaines étapes concrètes pour qui reprend ce projet : (1) obtenir/configurer un `DEVELOPMENT_TEAM` pour que Sign in with Apple fonctionne réellement et permettre l'export d'archive signée, (2) activer le fournisseur Anonymous dans la console Firebase pour débloquer les tests sans attendre (1), (3) porter le merge par œuvre avec tombstones avant une bêta multi-appareils.
 
 ## 15. Definition of Done (par écran)
 

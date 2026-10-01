@@ -52,6 +52,7 @@ struct SearchView: View {
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .accessibilityLabel("Rechercher un anime ou un manga")
+                    .accessibilityIdentifier("search_text_field")
                 if !query.isEmpty {
                     Button { query = "" } label: {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(BKColor.textSecondary)
@@ -69,6 +70,7 @@ struct SearchView: View {
                 .font(.body.weight(.semibold))
                 .foregroundStyle(BKColor.accentText)
                 .frame(minHeight: BKSize.minTapTarget)
+                .accessibilityIdentifier("search_cancel_button")
         }
         .padding(.horizontal, BKSpace.screenMargin)
         .padding(.top, BKSpace.lg)

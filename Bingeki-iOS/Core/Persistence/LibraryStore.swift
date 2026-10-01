@@ -56,8 +56,6 @@ final class InMemoryLibraryStore: LibraryStoring {
     }
 }
 
-#if DEBUG
 extension InMemoryLibraryStore {
     static var preview: InMemoryLibraryStore { InMemoryLibraryStore(seed: Work.sampleLibrary) }
 }
-#endif
