@@ -142,19 +142,29 @@ enum BrowseFeed: Hashable {
     }
 
     func load(sfw: Bool) async throws -> [Work] {
+        try await load(page: 1, sfw: sfw).works
+    }
+
+    /// One page of the feed and whether a next page exists.
+    func load(page: Int, sfw: Bool) async throws -> (works: [Work], hasMore: Bool) {
         let client = TenraiClient.shared
         switch self {
         case .season:
-            return try await client.topSeasonalAnime(limit: 24, sfw: sfw).data.map { $0.asWork(mediaType: .anime) }
+            let response = try await client.topSeasonalAnime(limit: 24, page: page, sfw: sfw)
+            return (response.data.map { $0.asWork(mediaType: .anime) }, response.pagination?.hasNextPage ?? false)
         case .top:
-            return try await client.top(type: .anime, limit: 24, sfw: sfw).data.map { $0.asWork(mediaType: .anime) }
+            let response = try await client.top(type: .anime, limit: 24, page: page, sfw: sfw)
+            return (response.data.map { $0.asWork(mediaType: .anime) }, response.pagination?.hasNextPage ?? false)
         case .short:
-            async let season = client.topSeasonalAnime(limit: 24, sfw: sfw)
-            async let top = client.top(type: .anime, limit: 24, sfw: sfw)
-            let all = try await season.data + top.data
-            return all.map { $0.asWork(mediaType: .anime) }.filter { ($0.totalEpisodes ?? 99) <= 13 }.uniqued()
+            async let season = client.topSeasonalAnime(limit: 24, page: page, sfw: sfw)
+            async let top = client.top(type: .anime, limit: 24, page: page, sfw: sfw)
+            let (s, t) = try await (season, top)
+            let works = (s.data + t.data).map { $0.asWork(mediaType: .anime) }
+                .filter { ($0.totalEpisodes ?? 99) <= 13 }.uniqued()
+            return (works, (s.pagination?.hasNextPage ?? false) || (t.pagination?.hasNextPage ?? false))
         case .genre(let id, _):
-            return try await client.byGenre(id, type: .anime, sfw: sfw).data.map { $0.asWork(mediaType: .anime) }
+            let response = try await client.byGenre(id, type: .anime, page: page, sfw: sfw)
+            return (response.data.map { $0.asWork(mediaType: .anime) }, response.pagination?.hasNextPage ?? false)
         }
     }
 
@@ -173,6 +183,9 @@ struct BrowseGridView: View {
     @Environment(\.userStore) private var userStore
     @State private var works: [Work] = []
     @State private var state: Phase = .loading
+    @State private var page = 1
+    @State private var hasMore = false
+    @State private var isLoadingMore = false
 
     private enum Phase { case loading, loaded, failed }
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
@@ -193,10 +206,15 @@ struct BrowseGridView: View {
                         .accessibilityLabel(work.title)
                         BKAddCornerButton(work: work, size: 28)
                     }
+                    .onAppear { if work.id == works.last?.id { loadMore() } }
                 }
             }
             .padding(.horizontal, BKSpace.screenMargin)
             .padding(.vertical, BKSpace.md)
+
+            if isLoadingMore {
+                ProgressView().frame(maxWidth: .infinity, minHeight: 56)
+            }
 
             if state == .failed {
                 VStack(spacing: BKSpace.md) {
@@ -215,10 +233,27 @@ struct BrowseGridView: View {
     private func load() async {
         state = .loading
         do {
-            works = try await feed.load(sfw: !userStore.profile.nsfwMode)
+            let first = try await feed.load(page: 1, sfw: !userStore.profile.nsfwMode)
+            works = first.works
+            hasMore = first.hasMore
+            page = 1
             state = .loaded
         } catch {
             state = .failed
+        }
+    }
+
+    /// Next page when the last cover scrolls into view.
+    private func loadMore() {
+        guard state == .loaded, hasMore, !isLoadingMore else { return }
+        isLoadingMore = true
+        Task {
+            defer { isLoadingMore = false }
+            guard let next = try? await feed.load(page: page + 1, sfw: !userStore.profile.nsfwMode) else { return }
+            let seen = Set(works.map(\.id))
+            works += next.works.filter { !seen.contains($0.id) }
+            page += 1
+            hasMore = next.hasMore
         }
     }
 }

@@ -18,6 +18,19 @@ final class DiscoverDeck {
     private var enriched: Set<String> = []
     private static let passedKey = "bk.discover.passed"
     private static let seasonTag = "LA SAISON EN COURS"
+    private static let popularTag = "POPULAIRE EN CE MOMENT"
+    /// Refill the deck when this many cards are left, so the user never
+    /// reaches the "Recommencer" end screen while more titles exist.
+    private static let refillThreshold = 5
+
+    // Infinite feed: the season's later pages, then the all-time top.
+    private var seasonPage = 1
+    private var seasonHasMore = true
+    private var topPage = 0
+    private var topHasMore = true
+    private var isRefilling = false
+    private var excludedIds: Set<String> = []
+    private var sfw = true
 
     init(client: TenraiClient = .shared, defaults: UserDefaults = .standard, pool: [Work] = []) {
         self.client = client
@@ -29,7 +42,46 @@ final class DiscoverDeck {
     var currentCard: Work? { pool.indices.contains(index) ? pool[index] : nil }
     var nextCard: Work? { pool.indices.contains(index + 1) ? pool[index + 1] : nil }
 
-    func advance() { index += 1 }
+    func advance() {
+        index += 1
+        if pool.count - index <= Self.refillThreshold {
+            Task { await refill() }
+        }
+    }
+
+    /// Appends the next page of titles not already owned, passed or in the deck.
+    func refill() async {
+        guard phase == .loaded, !isRefilling, seasonHasMore || topHasMore else { return }
+        isRefilling = true
+        defer { isRefilling = false }
+
+        let response: TenraiListResponse<TenraiMedia>?
+        let tag: String
+        if seasonHasMore {
+            seasonPage += 1
+            response = try? await client.topSeasonalAnime(limit: 24, page: seasonPage, sfw: sfw)
+            seasonHasMore = response?.pagination?.hasNextPage ?? false
+            tag = Self.seasonTag
+        } else {
+            topPage += 1
+            response = try? await client.top(type: .anime, limit: 24, page: topPage, sfw: sfw)
+            topHasMore = response?.pagination?.hasNextPage ?? false
+            tag = Self.popularTag
+        }
+        guard let response else { return }
+
+        let inDeck = Set(pool.map(\.id))
+        let fresh = response.data
+            .map { $0.asWork(mediaType: .anime) }
+            .filter { !inDeck.contains($0.id) && !excludedIds.contains($0.id) && !passed.contains($0.id) }
+        for work in fresh { reasons[work.id] = tag }
+        pool.append(contentsOf: fresh)
+        // A page made only of known titles: keep going.
+        if fresh.isEmpty, pool.count - index <= Self.refillThreshold {
+            isRefilling = false
+            await refill()
+        }
+    }
 
     /// Titles swiped left — never shown again.
     private var passed: Set<String> {
@@ -47,8 +99,14 @@ final class DiscoverDeck {
     func load(library: [Work], sfw: Bool = true) async {
         phase = .loading
         index = 0
+        seasonPage = 1
+        seasonHasMore = true
+        topPage = 0
+        topHasMore = true
+        self.sfw = sfw
         let owned = Set(library.map(\.id))
         let excluded = owned.union(passed)
+        excludedIds = owned
         var cards: [Work] = []
         var reasons: [String: String] = [:]
 
@@ -69,6 +127,7 @@ final class DiscoverDeck {
 
         do {
             let seasonal = try await client.topSeasonalAnime(limit: 24, sfw: sfw)
+            seasonHasMore = seasonal.pagination?.hasNextPage ?? false
             for media in seasonal.data {
                 let work = media.asWork(mediaType: .anime)
                 guard reasons[work.id] == nil else { continue }
@@ -94,6 +153,8 @@ final class DiscoverDeck {
         pool = mixed.filter { !excluded.contains($0.id) }
         self.reasons = reasons
         phase = .loaded
+        // Everything was already seen or owned: pull more right away.
+        if pool.count <= Self.refillThreshold { await refill() }
     }
 
     /// Recommendation payloads lack genres/synopsis — fetch them for visible cards.

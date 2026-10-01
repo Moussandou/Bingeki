@@ -14,7 +14,32 @@ struct SearchView: View {
     @State private var typeFilter: WorkType?
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
+    @State private var page = 1
+    @State private var hasMore = false
+    @State private var isLoadingMore = false
+    @AppStorage("bk.recentSearches") private var recentSearchesData = ""
     @FocusState private var fieldFocused: Bool
+
+    private static let recentLimit = 8
+
+    private var recentSearches: [String] {
+        (try? JSONDecoder().decode([String].self, from: Data(recentSearchesData.utf8))) ?? []
+    }
+
+    private func saveRecent(_ list: [String]) {
+        recentSearchesData = (try? String(data: JSONEncoder().encode(list), encoding: .utf8)) ?? ""
+    }
+
+    private func commitQueryToHistory() {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        if trimmed.count >= 2 { recordRecent(trimmed) }
+    }
+
+    private func recordRecent(_ text: String) {
+        var list = recentSearches.filter { $0.caseInsensitiveCompare(text) != .orderedSame }
+        list.insert(text, at: 0)
+        saveRecent(Array(list.prefix(Self.recentLimit)))
+    }
 
     private var filtered: [Work] { results.filter { typeFilter == nil || $0.type == typeFilter } }
 
@@ -27,7 +52,9 @@ struct SearchView: View {
             }
             .background(BKColor.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(for: Work.self) { WorkDetailView(work: $0) }
+            .navigationDestination(for: Work.self) { work in
+                WorkDetailView(work: work).onAppear { commitQueryToHistory() }
+            }
             .overlay { BKToastOverlay(bottomInset: BKSpace.lg) }
         }
         .onAppear {
@@ -49,6 +76,9 @@ struct SearchView: View {
                     .font(.body)
                     .focused($fieldFocused)
                     .submitLabel(.search)
+                    // Only deliberate searches go to history, not every
+                    // intermediate string typed on the way.
+                    .onSubmit { commitQueryToHistory() }
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .accessibilityLabel("Rechercher un anime ou un manga")
@@ -116,7 +146,13 @@ struct SearchView: View {
         } else {
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(filtered) { work in SearchRow(work: work, onAdd: add) }
+                    ForEach(filtered, id: \.searchKey) { work in SearchRow(work: work, onAdd: add) }
+                    if hasMore {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, minHeight: 64)
+                            .onAppear { loadMore() }
+                            .accessibilityLabel("Chargement de la suite")
+                    }
                 }
             }
             .scrollDismissesKeyboard(.immediately)
@@ -124,22 +160,53 @@ struct SearchView: View {
     }
 
     private var hints: some View {
-        VStack(alignment: .leading, spacing: BKSpace.sm) {
-            Text("ESSAIE").font(BKFont.caption).foregroundStyle(BKColor.textSecondary)
-            ForEach(["Chainsaw Man", "Kaiju No. 8", "Frieren", "Berserk"], id: \.self) { hint in
-                Button {
-                    query = hint
-                } label: {
-                    Label(hint, systemImage: "arrow.up.left")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(BKColor.textPrimary)
-                        .frame(minHeight: BKSize.minTapTarget, alignment: .leading)
+        ScrollView {
+            VStack(alignment: .leading, spacing: BKSpace.sm) {
+                if !recentSearches.isEmpty {
+                    HStack {
+                        Text("RÉCENTES").font(BKFont.caption).foregroundStyle(BKColor.textSecondary)
+                        Spacer()
+                        Button("Effacer") { saveRecent([]) }
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(BKColor.accentText)
+                    }
+                    ForEach(recentSearches, id: \.self) { recent in
+                        HStack {
+                            hintButton(recent, icon: "clock.arrow.circlepath")
+                            Spacer()
+                            Button {
+                                saveRecent(recentSearches.filter { $0 != recent })
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.footnote.weight(.bold))
+                                    .foregroundStyle(BKColor.textSecondary)
+                                    .frame(width: BKSize.minTapTarget, height: BKSize.minTapTarget)
+                            }
+                            .accessibilityLabel("Retirer \(recent) de l'historique")
+                        }
+                    }
+                    Spacer().frame(height: BKSpace.md)
+                }
+                Text("ESSAIE").font(BKFont.caption).foregroundStyle(BKColor.textSecondary)
+                ForEach(["Chainsaw Man", "Kaiju No. 8", "Frieren", "Berserk"], id: \.self) { hint in
+                    hintButton(hint, icon: "arrow.up.left")
                 }
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, BKSpace.screenMargin)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, BKSpace.screenMargin)
+        .scrollDismissesKeyboard(.immediately)
+    }
+
+    private func hintButton(_ text: String, icon: String) -> some View {
+        Button {
+            query = text
+        } label: {
+            Label(text, systemImage: icon)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(BKColor.textPrimary)
+                .frame(minHeight: BKSize.minTapTarget, alignment: .leading)
+        }
     }
 
     private var skeletonRows: some View {
@@ -183,6 +250,7 @@ struct SearchView: View {
     }
 
     private func add(_ work: Work) {
+        commitQueryToHistory()
         var added = work
         added.status = .planToRead
         added.dateAdded = .now
@@ -203,31 +271,56 @@ struct SearchView: View {
             return
         }
         isSearching = true
+        page = 1
+        hasMore = false
         searchTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
             let sfw = !userStore.profile.nsfwMode
-            let found = await Self.search(trimmed, sfw: sfw)
+            let found = await Self.search(trimmed, page: 1, sfw: sfw)
             guard !Task.isCancelled else { return }
-            results = found
-            suggestion = found.isEmpty ? await Self.suggest(for: trimmed, sfw: sfw) : nil
+            results = found.works
+            hasMore = found.hasMore
+            suggestion = found.works.isEmpty ? await Self.suggest(for: trimmed, sfw: sfw) : nil
             guard !Task.isCancelled else { return }
             isSearching = false
         }
     }
 
-    private static func search(_ text: String, sfw: Bool) async -> [Work] {
-        async let anime = try? TenraiClient.shared.search(query: text, type: .anime, limit: 10, sfw: sfw)
-        async let manga = try? TenraiClient.shared.search(query: text, type: .manga, limit: 10, sfw: sfw)
-        let a = (await anime)?.data.map { $0.asWork(mediaType: .anime) } ?? []
-        let m = (await manga)?.data.map { $0.asWork(mediaType: .manga) } ?? []
+    /// Next page of both types, appended below; duplicates (same work
+    /// returned on two pages) are skipped.
+    private func loadMore() {
+        guard hasMore, !isLoadingMore, !isSearching else { return }
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        isLoadingMore = true
+        let nextPage = page + 1
+        Task {
+            let found = await Self.search(trimmed, page: nextPage, sfw: !userStore.profile.nsfwMode)
+            // The query changed while loading: drop the stale page.
+            guard trimmed == query.trimmingCharacters(in: .whitespaces) else { isLoadingMore = false; return }
+            let seen = Set(results.map(\.searchKey))
+            results += found.works.filter { !seen.contains($0.searchKey) }
+            page = nextPage
+            hasMore = found.hasMore
+            isLoadingMore = false
+        }
+    }
+
+    private static func search(_ text: String, page: Int = 1, sfw: Bool) async -> (works: [Work], hasMore: Bool) {
+        async let anime = try? TenraiClient.shared.search(query: text, type: .anime, page: page, limit: 10, sfw: sfw)
+        async let manga = try? TenraiClient.shared.search(query: text, type: .manga, page: page, limit: 10, sfw: sfw)
+        let animeResponse = await anime
+        let mangaResponse = await manga
+        let a = animeResponse?.data.map { $0.asWork(mediaType: .anime) } ?? []
+        let m = mangaResponse?.data.map { $0.asWork(mediaType: .manga) } ?? []
         // Interleave so both types show above the fold.
         var merged: [Work] = []
         for i in 0..<max(a.count, m.count) {
             if i < a.count { merged.append(a[i]) }
             if i < m.count { merged.append(m[i]) }
         }
-        return merged
+        let hasMore = (animeResponse?.pagination?.hasNextPage ?? false) || (mangaResponse?.pagination?.hasNextPage ?? false)
+        return (merged, hasMore)
     }
 
     /// Typo recovery: retry with shorter prefixes ("chainsow" → "chains").
@@ -236,10 +329,16 @@ struct SearchView: View {
         for _ in 0..<3 {
             prefix = String(prefix.dropLast())
             guard prefix.count >= 3, !Task.isCancelled else { return nil }
-            if let hit = await search(prefix, sfw: sfw).first { return hit }
+            if let hit = await search(prefix, sfw: sfw).works.first { return hit }
         }
         return nil
     }
+}
+
+private extension Work {
+    /// MAL ids are per type, so an anime and a manga can share one —
+    /// unique only together with the type.
+    var searchKey: String { "\(type.rawValue)-\(id)" }
 }
 
 private struct SearchRow: View {
