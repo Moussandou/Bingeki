@@ -30,8 +30,12 @@ protocol AuthProviding: AnyObject {
     /// this to construct the Firestore-backed `libraryStore`/`userStore`
     /// for that specific account.
     var uid: String? { get }
+    /// How the current account signs in, for the Settings "Compte" row.
+    var accountLabel: String { get }
     func signIn(with credential: AuthCredential) async throws
     func signOut() throws
+    /// Deletes the account and all its data (App Store guideline 5.1.1(v)).
+    func deleteAccount() async throws
 }
 
 enum AuthError: LocalizedError {
@@ -53,6 +57,8 @@ final class InMemoryAuthStore: AuthProviding {
     private(set) var isSignedIn: Bool
     private(set) var uid: String?
 
+    var accountLabel: String { isSignedIn ? "Apple" : "Non connecté" }
+
     init(isSignedIn: Bool = false) {
         self.isSignedIn = isSignedIn
         self.uid = isSignedIn ? "preview-user" : nil
@@ -66,6 +72,10 @@ final class InMemoryAuthStore: AuthProviding {
     func signOut() throws {
         isSignedIn = false
         uid = nil
+    }
+
+    func deleteAccount() async throws {
+        try signOut()
     }
 }
 

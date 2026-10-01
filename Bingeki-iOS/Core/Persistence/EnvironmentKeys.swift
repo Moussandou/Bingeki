@@ -47,6 +47,8 @@ private final class UnconfiguredUserStore: UserStoring {
 private final class UnconfiguredAuthStore: AuthProviding {
     var isSignedIn: Bool { false }
     var uid: String? { nil }
+    var accountLabel: String { "" }
     func signIn(with credential: AuthCredential) async throws {}
     func signOut() throws {}
+    func deleteAccount() async throws {}
 }

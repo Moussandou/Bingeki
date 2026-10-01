@@ -11,6 +11,9 @@ struct SettingsView: View {
     @AppStorage("bk.themePreference") private var themePreference = ThemePreference.system.rawValue
     @AppStorage("bk.episodeNotifications") private var episodeNotifications = true
     @AppStorage("bk.streakReminders") private var streakReminders = true
+    @State private var confirmingDeletion = false
+    @State private var isDeleting = false
+    @State private var deletionError: String?
 
     var body: some View {
         Form {
@@ -46,12 +49,51 @@ struct SettingsView: View {
             }
 
             Section("Compte") {
-                Label("Apple · connecté", systemImage: "applelogo")
-                Button("Ouvrir Bingeki sur le web") {}
+                LabeledContent("Connecté avec", value: auth.accountLabel)
+                Link("Ouvrir Bingeki sur le web", destination: URL(string: "https://bingeki.web.app")!)
                 Button("Se déconnecter", role: .destructive) { try? auth.signOut() }
+            }
+
+            Section {
+                Button("Supprimer mon compte", role: .destructive) { confirmingDeletion = true }
+                    .disabled(isDeleting)
+                    // Attached to the button so the iOS 27 popover points at it.
+                    .confirmationDialog("Supprimer ton compte ?", isPresented: $confirmingDeletion, titleVisibility: .visible) {
+                        Button("Supprimer définitivement", role: .destructive) { deleteAccount() }
+                    } message: {
+                        Text("Cette action est irréversible.")
+                    }
+            } footer: {
+                Text("Supprime définitivement ton profil, ta bibliothèque et ta progression, sur l'app et sur le web.")
             }
         }
         .navigationTitle("Réglages")
+        // A pushed Form doesn't inherit `bkTabPage()`'s bottom inset, so the
+        // last rows would sit under the floating BKTabBar.
+        .contentMargins(.bottom, BKSize.tabBarHeight + BKSpace.lg, for: .scrollContent)
+        .alert("Suppression impossible", isPresented: Binding(
+            get: { deletionError != nil },
+            set: { if !$0 { deletionError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deletionError ?? "")
+        }
+        .overlay {
+            if isDeleting { ProgressView().controlSize(.large) }
+        }
+    }
+
+    private func deleteAccount() {
+        isDeleting = true
+        Task {
+            do {
+                try await auth.deleteAccount()
+            } catch {
+                deletionError = "Vérifie ta connexion et réessaie."
+            }
+            isDeleting = false
+        }
     }
 
     /// A two-way `Binding` into a single `Bool` field of `UserProfile`,

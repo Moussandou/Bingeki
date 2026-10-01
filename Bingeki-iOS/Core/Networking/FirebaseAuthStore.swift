@@ -1,4 +1,5 @@
 import FirebaseAuth
+import FirebaseFunctions
 import Observation
 
 /// Real `AuthProviding` implementation — same "bingeki" Firebase project as
@@ -12,18 +13,45 @@ import Observation
 final class FirebaseAuthStore: AuthProviding {
     private(set) var isSignedIn: Bool
     private(set) var uid: String?
+    private(set) var accountLabel: String
     private var handle: AuthStateDidChangeListenerHandle?
 
     init() {
         let user = Auth.auth().currentUser
         isSignedIn = user != nil
         uid = user?.uid
+        accountLabel = Self.label(for: user)
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            let label = Self.label(for: user)
+            let signedIn = user != nil
+            let uid = user?.uid
             Task { @MainActor in
-                self?.isSignedIn = user != nil
-                self?.uid = user?.uid
+                self?.isSignedIn = signedIn
+                self?.uid = uid
+                self?.accountLabel = label
             }
         }
+    }
+
+    private nonisolated static func label(for user: User?) -> String {
+        guard let user else { return "Non connecté" }
+        if user.isAnonymous { return "Invité (sans compte)" }
+        let providers = Set(user.providerData.map(\.providerID))
+        if providers.contains("apple.com") { return "Apple" }
+        if providers.contains("google.com") { return "Google" }
+        return user.email ?? "Compte Bingeki"
+    }
+
+    /// Server-side (`deleteOwnAccount` Cloud Function): the rules don't let
+    /// a client delete its own profile document, and the function also
+    /// removes the Auth account, so no "recent login" re-auth is needed.
+    func deleteAccount() async throws {
+        guard let uid else { return }
+        _ = try await Functions.functions(region: "europe-west9")
+            .httpsCallable("deleteOwnAccount")
+            .call()
+        TombstoneStore(uid: uid).clear()
+        try? Auth.auth().signOut()
     }
 
     func signIn(with credential: AuthCredential) async throws {

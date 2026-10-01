@@ -31,6 +31,7 @@ final class FirebaseUserStore: UserStoring {
 
     init(uid: String) {
         profile = UserProfile(uid: uid)
+        Task { await Self.ensureProfileDocument(uid: uid) }
         listener = Firestore.firestore().collection("users").document(uid)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self, let snapshot, snapshot.exists else { return }
@@ -90,5 +91,36 @@ final class FirebaseUserStore: UserStoring {
 
     func clearLevelUp() {
         recentLevelUp = nil
+    }
+
+    /// Same contract as the web's `saveUserProfileToFirestore`: create the
+    /// document explicitly on the very first sign-in (an iOS-only account
+    /// would otherwise have no profile until its first library write), and
+    /// only bump `lastLogin` afterwards. `createdAt` is set on creation only
+    /// — the rules reject it on update. Email goes to the owner-only
+    /// `private/contact` doc, never the world-readable profile.
+    private static func ensureProfileDocument(uid: String) async {
+        let ref = Firestore.firestore().collection("users").document(uid)
+        let now = Date.now.timeIntervalSince1970 * 1000
+        do {
+            // Server source: a cache miss offline would wrongly look like
+            // "no profile yet" and attempt a create over an existing doc.
+            let snapshot = try await ref.getDocument(source: .server)
+            if snapshot.exists {
+                try await ref.setData(["lastLogin": now], merge: true)
+                return
+            }
+            let user = Auth.auth().currentUser
+            var data: [String: Any] = ["uid": uid, "createdAt": now, "lastLogin": now]
+            if let name = user?.displayName, !name.isEmpty { data["displayName"] = name }
+            if let photo = user?.photoURL?.absoluteString { data["photoURL"] = photo }
+            try await ref.setData(data, merge: true)
+            if let email = user?.email {
+                try await ref.collection("private").document("contact")
+                    .setData(["email": email, "updatedAt": now], merge: true)
+            }
+        } catch {
+            // Offline on first launch: the next launch retries.
+        }
     }
 }
