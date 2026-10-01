@@ -39,12 +39,12 @@ final class DiscoverDeck {
 
     func markPassed(_ work: Work) { passed.insert(work.id) }
 
-    func loadIfNeeded(library: [Work]) async {
+    func loadIfNeeded(library: [Work], sfw: Bool = true) async {
         guard phase == .idle else { return }
-        await load(library: library)
+        await load(library: library, sfw: sfw)
     }
 
-    func load(library: [Work]) async {
+    func load(library: [Work], sfw: Bool = true) async {
         phase = .loading
         index = 0
         let owned = Set(library.map(\.id))
@@ -68,7 +68,7 @@ final class DiscoverDeck {
         }
 
         do {
-            let seasonal = try await client.topSeasonalAnime(limit: 24)
+            let seasonal = try await client.topSeasonalAnime(limit: 24, sfw: sfw)
             for media in seasonal.data {
                 let work = media.asWork(mediaType: .anime)
                 guard reasons[work.id] == nil else { continue }

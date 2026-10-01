@@ -6,6 +6,7 @@ struct BrowseView: View {
     @State private var seasonal: [Work] = []
     @State private var isLoading = true
     @Environment(\.libraryStore) private var library
+    @Environment(\.userStore) private var userStore
     @Environment(ToastCenter.self) private var toasts
 
     private let columns = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
@@ -45,7 +46,7 @@ struct BrowseView: View {
 
     private func loadSeasonal() async {
         do {
-            let response = try await TenraiClient.shared.topSeasonalAnime(limit: 18)
+            let response = try await TenraiClient.shared.topSeasonalAnime(limit: 18, sfw: !userStore.profile.nsfwMode)
             seasonal = response.data.map { $0.asWork(mediaType: .anime) }
         } catch {
             toasts.show("Le feed a buggé · réessaie")

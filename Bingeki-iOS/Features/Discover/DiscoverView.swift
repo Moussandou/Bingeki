@@ -64,7 +64,7 @@ struct DiscoverFeedView: View {
         }
         .task(id: library.hasLoaded) {
             guard library.hasLoaded else { return }
-            await deck.loadIfNeeded(library: library.works)
+            await deck.loadIfNeeded(library: library.works, sfw: !userStore.profile.nsfwMode)
         }
         .task(id: deck.currentCard?.id) { await deck.enrichVisibleCards() }
     }
@@ -112,7 +112,7 @@ struct DiscoverFeedView: View {
     }
 
     private func reload() {
-        Task { await deck.load(library: library.works) }
+        Task { await deck.load(library: library.works, sfw: !userStore.profile.nsfwMode) }
     }
 
     private func cardView(_ work: Work, interactive: Bool, height: CGFloat) -> some View {

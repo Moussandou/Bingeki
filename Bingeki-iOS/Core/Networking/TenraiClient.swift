@@ -47,20 +47,25 @@ actor TenraiClient {
         }
     }
 
-    func search(query: String, type: TenraiMediaType, page: Int = 1, limit: Int = 20) async throws -> TenraiListResponse<TenraiMedia> {
+    // `sfw` mirrors the web: adult titles hidden unless the user enabled 18+.
+    private func sfwItem(_ sfw: Bool) -> [URLQueryItem] {
+        sfw ? [.init(name: "sfw", value: "true")] : []
+    }
+
+    func search(query: String, type: TenraiMediaType, page: Int = 1, limit: Int = 20, sfw: Bool = true) async throws -> TenraiListResponse<TenraiMedia> {
         try await get("/\(type.rawValue)", query: [
             .init(name: "q", value: query),
             .init(name: "page", value: String(page)),
             .init(name: "limit", value: String(limit)),
-        ])
+        ] + sfwItem(sfw))
     }
 
-    func topSeasonalAnime(limit: Int = 20) async throws -> TenraiListResponse<TenraiMedia> {
-        try await get("/seasons/now", query: [.init(name: "limit", value: String(limit))])
+    func topSeasonalAnime(limit: Int = 20, sfw: Bool = true) async throws -> TenraiListResponse<TenraiMedia> {
+        try await get("/seasons/now", query: [.init(name: "limit", value: String(limit))] + sfwItem(sfw))
     }
 
-    func top(type: TenraiMediaType, limit: Int = 24) async throws -> TenraiListResponse<TenraiMedia> {
-        try await get("/top/\(type.rawValue)", query: [.init(name: "limit", value: String(limit))])
+    func top(type: TenraiMediaType, limit: Int = 24, sfw: Bool = true) async throws -> TenraiListResponse<TenraiMedia> {
+        try await get("/top/\(type.rawValue)", query: [.init(name: "limit", value: String(limit))] + sfwItem(sfw))
     }
 
     func details(id: String, type: TenraiMediaType) async throws -> TenraiDetailResponse {

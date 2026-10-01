@@ -47,6 +47,10 @@ private struct SignedInRootView: View {
         if let raw = UserDefaults.standard.string(forKey: "bk.initialTab"), let tab = RootTab(rawValue: raw) {
             _selectedTab = State(initialValue: tab)
         }
+        // `-bk.searchQuery chainsow` opens search pre-filled.
+        if UserDefaults.standard.string(forKey: "bk.searchQuery") != nil {
+            _showSearch = State(initialValue: true)
+        }
         #endif
     }
 

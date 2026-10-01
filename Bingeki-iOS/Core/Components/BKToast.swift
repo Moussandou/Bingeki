@@ -35,6 +35,8 @@ final class ToastCenter {
 }
 
 struct BKToastOverlay: View {
+    /// Distance from the bottom safe area; defaults to clearing `BKTabBar`.
+    var bottomInset: CGFloat = BKSize.tabBarHeight + BKSpace.lg
     @Environment(ToastCenter.self) private var center
 
     var body: some View {
@@ -67,7 +69,7 @@ struct BKToastOverlay: View {
                 .bkInkBorder()
                 .bkPanelShadow(BKColor.brandPink)
                 .padding(.horizontal, BKSpace.screenMargin)
-                .padding(.bottom, BKSize.tabBarHeight + BKSpace.lg)
+                .padding(.bottom, bottomInset)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .accessibilityElement(children: .combine)
             }
