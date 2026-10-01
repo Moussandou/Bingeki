@@ -283,34 +283,13 @@ struct WorkDetailView: View {
     }
 
     private func similarTile(_ item: Work) -> some View {
-        NavigationLink(value: item) {
-            BKCover(url: item.imageSmall ?? item.image)
-                .frame(width: 92, height: 132)
-                .overlay(alignment: .topTrailing) {
-                    if library.work(id: item.id) == nil {
-                        Button {
-                            var added = item
-                            added.status = .planToRead
-                            added.dateAdded = .now
-                            added.lastUpdated = .now
-                            library.upsert(added)
-                            userStore.addXP(GamificationCore.XPReward.addWork)
-                            HapticEngine.added()
-                            toasts.show("\(item.title) → À voir") { [weak library] in library?.remove(id: item.id) }
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.subheadline.weight(.black))
-                                .frame(width: 32, height: 32)
-                                .foregroundStyle(BKColor.brandPink)
-                                .background(.black)
-                                .overlay(Rectangle().stroke(BKColor.brandPink, lineWidth: 2))
-                        }
-                        .padding(4)
-                        .accessibilityLabel("Ajouter \(item.title)")
-                    }
-                }
+        ZStack(alignment: .topTrailing) {
+            NavigationLink(value: item) {
+                BKCover(url: item.imageSmall ?? item.image).frame(width: 92, height: 132)
+            }
+            .accessibilityLabel(item.title)
+            BKAddCornerButton(work: item)
         }
-        .accessibilityLabel(item.title)
     }
 
     // MARK: - Actions

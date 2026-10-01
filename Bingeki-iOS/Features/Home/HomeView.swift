@@ -5,7 +5,9 @@ import SwiftUI
 struct HomeView: View {
     @Environment(\.libraryStore) private var library
     @Environment(\.userStore) private var userStore
+    @Environment(DiscoverDeck.self) private var deck
     @Binding var selectedTab: RootTab
+    @State private var ratingWork: Work?
 
     private var reading: [Work] { library.works(status: .reading) }
     private var planned: [Work] { library.works(status: .planToRead) }
@@ -28,6 +30,11 @@ struct HomeView: View {
                                         library.upsert(updated)
                                         userStore.addXP(GamificationCore.XPReward.updateProgress * delta)
                                         HapticEngine.progressTick()
+                                        if updated.status == .completed {
+                                            userStore.addXP(GamificationCore.XPReward.completeWork)
+                                            HapticEngine.success()
+                                            ratingWork = updated
+                                        }
                                     }
                                 }
                             }
@@ -36,7 +43,7 @@ struct HomeView: View {
                     }
                 }
 
-                section(title: "À voir ensuite", trailingAction: ("Tout voir", { selectedTab = .library })) {
+                section(title: "À voir ensuite", trailingAction: ("Tout voir ›", { selectedTab = .library })) {
                     if planned.isEmpty {
                         emptyRowHint("Vide. Glisse → dans Découvrir pour la remplir.")
                     } else {
@@ -47,7 +54,10 @@ struct HomeView: View {
                                         NavigationLink(value: work) {
                                             BKCover(url: work.image).frame(width: 104, height: 150)
                                         }
-                                        Text(work.title).font(.caption).lineLimit(1)
+                                        Text(caption(for: work))
+                                            .font(.caption)
+                                            .foregroundStyle(BKColor.textSecondary)
+                                            .lineLimit(1)
                                     }
                                     .frame(width: 104)
                                 }
@@ -62,8 +72,14 @@ struct HomeView: View {
             .padding(.top, BKSpace.lg)
             .padding(.bottom, BKSpace.xl)
         }
-        .background(BKColor.background)
+        .background(alignment: .top) { HalftoneBand().frame(height: 230).ignoresSafeArea(edges: .top) }
+        .background(BKColor.background.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: Work.self) { WorkDetailView(work: $0) }
+        .sheet(item: $ratingWork) { work in
+            RatingSheetView(work: work, xpGained: GamificationCore.XPReward.completeWork)
+                .presentationDetents([.height(340)])
+        }
     }
 
     private var header: some View {
@@ -87,26 +103,48 @@ struct HomeView: View {
         .padding(.horizontal, BKSpace.screenMargin)
     }
 
-    @ViewBuilder
+    private func caption(for work: Work) -> String {
+        let type = work.type == .anime ? (work.format == "Movie" ? "Film" : "Anime") : "Manga"
+        guard let total = work.total else { return type }
+        return "\(type) · \(total) \(work.type == .anime ? "ép." : "ch.")"
+    }
+
+    /// Teaser into the deck: real upcoming covers, count and reason.
     private var discoverTeaser: some View {
-        Button {
+        let upcoming = Array(deck.pool.dropFirst(deck.index).prefix(3))
+        let reason = upcoming.first.flatMap { deck.reasons[$0.id] }
+        let remaining = max(0, deck.pool.count - deck.index)
+        return Button {
             selectedTab = .discover
         } label: {
             HStack(spacing: 14) {
-                ZStack {
-                    BKCover(url: reading.first?.image ?? planned.first?.image)
-                        .frame(width: 96, height: 84)
-                        .rotationEffect(.degrees(-6))
+                ZStack(alignment: .leading) {
+                    ForEach(Array(upcoming.enumerated()), id: \.element.id) { i, work in
+                        BKCover(url: work.imageSmall ?? work.image)
+                            .frame(width: 64, height: 92)
+                            .rotationEffect(.degrees([-8, 2, 10][i]))
+                            .offset(x: CGFloat(i) * 28, y: [10, 4, 14][i] - 8)
+                    }
+                    if upcoming.isEmpty {
+                        Rectangle().fill(BKColor.surfaceTint).frame(width: 64, height: 92)
+                    }
                 }
+                .frame(width: 120, height: 118, alignment: .leading)
+                .accessibilityHidden(true)
+
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("POUR TOI").font(BKFont.caption).foregroundStyle(BKColor.cyanText)
-                    Text("Ta sélection du jour est prête").font(.subheadline.weight(.semibold))
-                    Text("SWIPER →").font(BKFont.display(14)).foregroundStyle(BKColor.cyanText)
+                    Text(remaining > 0 ? "POUR TOI · \(remaining) TITRES" : "POUR TOI")
+                        .font(BKFont.display(11, weight: .heavy)).tracking(0.9)
+                        .foregroundStyle(BKColor.cyanText)
+                    Text(teaserLine(reason))
+                        .font(.body.weight(.bold))
+                        .multilineTextAlignment(.leading)
+                    Text("SWIPER LA SÉLECTION →").font(BKFont.display(14)).foregroundStyle(BKColor.cyanText)
                 }
-                Spacer()
+                Spacer(minLength: 0)
             }
-            .padding(BKSpace.md)
-            .frame(minHeight: 110)
+            .padding(14)
+            .frame(minHeight: 150)
         }
         .buttonStyle(.plain)
         .foregroundStyle(BKColor.textPrimary)
@@ -114,6 +152,18 @@ struct HomeView: View {
         .bkInkBorder()
         .bkPanelShadow(BKColor.brandCyan)
         .padding(.horizontal, BKSpace.screenMargin)
+        .task(id: library.hasLoaded) {
+            guard library.hasLoaded else { return }
+            await deck.loadIfNeeded(library: library.works, sfw: !userStore.profile.nsfwMode)
+        }
+    }
+
+    /// "PARCE QUE TU AS AIMÉ FRIEREN" → "Parce que tu as aimé Frieren".
+    private func teaserLine(_ reason: String?) -> String {
+        guard let reason, reason.hasPrefix("PARCE"), let title = reason.components(separatedBy: "AIMÉ ").last else {
+            return "Ta sélection du jour est prête"
+        }
+        return "Parce que tu as aimé \(title.capitalized)"
     }
 
     @ViewBuilder
@@ -153,32 +203,46 @@ private struct ContinueCard: View {
     let work: Work
     let onIncrement: (Int) -> Void
 
+    private var meta: String {
+        let unit = work.type == .anime ? "Ép." : "Ch."
+        let count = "\(unit) \(work.progress)" + (work.total.map { " / \($0)" } ?? "")
+        return count + " · " + (work.type == .anime ? "Anime" : "Manga")
+    }
+
     var body: some View {
         HStack(spacing: BKSpace.md) {
             NavigationLink(value: work) {
                 BKCover(url: work.image).frame(width: 100, height: 146)
             }
-            VStack(alignment: .leading, spacing: BKSpace.sm) {
-                Text(work.title).font(.subheadline.weight(.bold)).lineLimit(2)
-                Text(work.type == .anime ? "Ép. \(work.progress)" + (work.total.map { " / \($0)" } ?? "") : "Ch. \(work.progress)")
-                    .font(.caption).foregroundStyle(BKColor.textSecondary)
-                ProgressView(value: work.progressFraction)
-                    .tint(BKColor.brandPink)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(work.title).font(.body.weight(.bold)).lineLimit(2)
+                Text(meta).font(.caption).foregroundStyle(BKColor.textSecondary)
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Rectangle().fill(BKColor.surfaceTint)
+                        Rectangle().fill(BKColor.brandPink).frame(width: proxy.size.width * work.progressFraction)
+                    }
+                }
+                .frame(height: 6)
+                Spacer(minLength: 0)
                 Button {
                     onIncrement(1)
                 } label: {
                     Text(work.type == .anime ? "+1 ÉPISODE" : "+1 CHAPITRE")
-                        .font(BKFont.display(14))
+                        .font(BKFont.display(16))
                         .frame(maxWidth: .infinity)
-                        .frame(height: 40)
+                        .frame(height: 46)
                         .foregroundStyle(.white)
                         .background(BKColor.ctaFill)
+                        .clipShape(BKChamferedShape(cut: 10))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Plus un pour \(work.title)")
             }
+            .frame(height: 146)
         }
-        .padding(BKSpace.sm)
-        .frame(width: 296)
+        .padding(10)
+        .frame(width: 300)
         .background(BKColor.surface)
         .bkInkBorder()
         .bkPanelShadow()
@@ -230,5 +294,25 @@ private struct LevelAvatar: View {
         HomeView(selectedTab: .constant(.home))
             .environment(\.libraryStore, InMemoryLibraryStore.preview)
             .environment(\.userStore, InMemoryUserStore.preview)
+            .environment(DiscoverDeck(pool: Work.sampleLibrary))
+    }
+}
+
+/// Dotted halftone backdrop behind the header (`.ht` on the mockups).
+private struct HalftoneBand: View {
+    var body: some View {
+        Canvas { context, size in
+            var x: CGFloat = 0
+            while x < size.width {
+                var y: CGFloat = 0
+                while y < size.height {
+                    context.fill(Path(ellipseIn: CGRect(x: x, y: y, width: 2.8, height: 2.8)), with: .color(BKColor.textPrimary.opacity(0.08)))
+                    y += 14
+                }
+                x += 14
+            }
+        }
+        .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
+        .accessibilityHidden(true)
     }
 }

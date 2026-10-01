@@ -68,6 +68,16 @@ actor TenraiClient {
         try await get("/top/\(type.rawValue)", query: [.init(name: "limit", value: String(limit))] + sfwItem(sfw))
     }
 
+    /// Most popular titles of a Jikan genre id (e.g. 27 = Shounen).
+    func byGenre(_ genreId: Int, type: TenraiMediaType, limit: Int = 24, sfw: Bool = true) async throws -> TenraiListResponse<TenraiMedia> {
+        try await get("/\(type.rawValue)", query: [
+            .init(name: "genres", value: String(genreId)),
+            .init(name: "order_by", value: "members"),
+            .init(name: "sort", value: "desc"),
+            .init(name: "limit", value: String(limit)),
+        ] + sfwItem(sfw))
+    }
+
     func details(id: String, type: TenraiMediaType) async throws -> TenraiDetailResponse {
         try await get("/\(type.rawValue)/\(id)/full")
     }

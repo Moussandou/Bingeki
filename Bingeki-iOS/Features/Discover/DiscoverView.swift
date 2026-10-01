@@ -2,8 +2,16 @@ import SwiftUI
 
 /// Découvrir — "Pour toi" (swipe deck) / "Parcourir" (grid), boards `S02`–`S04`.
 struct DiscoverView: View {
+    var onSearch: () -> Void = {}
+
     enum Segment: String, CaseIterable { case forYou = "POUR TOI", browse = "PARCOURIR" }
-    @State private var segment: Segment = .forYou
+    @State private var segment: Segment = {
+        #if DEBUG
+        // `-bk.discoverSegment browse` for simulator screenshots.
+        if UserDefaults.standard.string(forKey: "bk.discoverSegment") == "browse" { return .browse }
+        #endif
+        return .forYou
+    }()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -32,7 +40,7 @@ struct DiscoverView: View {
             if segment == .forYou {
                 DiscoverFeedView { segment = .browse }
             } else {
-                BrowseView()
+                BrowseView(onSearch: onSearch)
             }
         }
         .background(BKColor.background.ignoresSafeArea())

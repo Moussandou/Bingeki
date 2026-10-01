@@ -109,7 +109,7 @@ private struct SignedInRootView: View {
             .bkTabPage()
             .tag(RootTab.home)
 
-            NavigationStack { DiscoverView().bkOfflineBanner() }
+            NavigationStack { DiscoverView { showSearch = true }.bkOfflineBanner() }
                 .bkTabPage()
                 .tag(RootTab.discover)
 
