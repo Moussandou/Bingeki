@@ -309,6 +309,33 @@ runIfEmulator('Firestore security rules', () => {
                 bonusXp: 230,
             }));
         });
+
+        describe('doc created by the server trigger, without bonusXp', () => {
+            beforeEach(async () => {
+                await testEnv.withSecurityRulesDisabled(async (ctx) => {
+                    await setDoc(doc(ctx.firestore(), 'users', ALICE, 'data', 'gamification'), {
+                        level: 5, totalXp: 430, badges: [], streak: 0, verifiedStreak: 0,
+                    });
+                });
+            });
+
+            it('allows the first daily bonus', async () => {
+                const db = testEnv.authenticatedContext(ALICE).firestore();
+                await assertSucceeds(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
+                    bonusXp: 25,
+                    streak: 1,
+                    lastActivityDate: '2026-10-01T10:00:00.000Z',
+                }));
+            });
+
+            it('still blocks an absurd first jump', async () => {
+                const db = testEnv.authenticatedContext(ALICE).firestore();
+                await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), {
+                    bonusXp: 40_000,
+                    streak: 1,
+                }));
+            });
+        });
     });
 
     describe('feedback submission', () => {

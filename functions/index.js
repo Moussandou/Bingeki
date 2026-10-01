@@ -33,6 +33,9 @@ exports.sendFriendRequestFn = social.sendFriendRequestFn;
 exports.acceptFriendRequestFn = social.acceptFriendRequestFn;
 exports.rejectFriendRequestFn = social.rejectFriendRequestFn;
 
+const account = require("./account");
+exports.deleteOwnAccount = account.deleteOwnAccount;
+
 // 4. Jikan Proxy & Cache
 const jikanProxy = require("./jikan_proxy");
 exports.getWorkDetails = jikanProxy.getWorkDetails;

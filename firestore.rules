@@ -93,9 +93,11 @@ service cloud.firestore {
                           request.resource.data.bonusXp is number &&
                           // Monotonic, except an exact reset to 0 (the "erase my data"
                           // button). Going to zero only ever hurts the owner.
+                          // A doc created by the server trigger has no bonusXp yet:
+                          // count it as 0, or the comparison errors and denies every write.
                           (request.resource.data.bonusXp == 0 || (
-                            request.resource.data.bonusXp >= resource.data.bonusXp &&
-                            request.resource.data.bonusXp <= resource.data.bonusXp + 1000
+                            request.resource.data.bonusXp >= resource.data.get('bonusXp', 0) &&
+                            request.resource.data.bonusXp <= resource.data.get('bonusXp', 0) + 1000
                           )) &&
                           request.resource.data.bonusXp <= 50000 &&
                           request.resource.data.streak is number &&
