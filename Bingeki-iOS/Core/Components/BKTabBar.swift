@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Bottom nav from the mockups: inked panel with 3 tabs + a square search button.
+/// Bottom nav from the mockups: inked panel with 3 tabs + a square profile
+/// tab. Search lives top right on each tab (`BKSearchButton`).
 struct BKTabBar: View {
     @Binding var selection: RootTab
-    let onSearch: () -> Void
 
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -25,21 +25,33 @@ struct BKTabBar: View {
             .bkInkBorder()
             .bkPanelShadow()
 
-            Button(action: onSearch) {
-                Image(systemName: "magnifyingglass")
-                    .font(.title3.weight(.bold))
-                    .frame(width: BKSize.tabBarHeight, height: BKSize.tabBarHeight)
-                    .foregroundStyle(BKColor.textPrimary)
-                    .background(BKColor.surface)
-                    .bkInkBorder()
-                    .bkPanelShadow()
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Rechercher")
-            .accessibilityIdentifier("tab_search")
+            profileButton
         }
         .padding(.horizontal, 12)
         .padding(.bottom, 4)
+    }
+
+    private var profileButton: some View {
+        let isOn = selection == .profile
+        return Button {
+            if !isOn { HapticEngine.tabChanged() }
+            selection = .profile
+        } label: {
+            Image(systemName: isOn ? "person.fill" : "person")
+                .font(.title3.weight(.bold))
+                .frame(width: BKSize.tabBarHeight, height: BKSize.tabBarHeight)
+                .foregroundStyle(isOn ? BKColor.accentText : BKColor.textPrimary)
+                .background(BKColor.surface)
+                .overlay(alignment: .bottom) {
+                    if isOn { Rectangle().fill(BKColor.brandPink).frame(height: 3) }
+                }
+                .bkInkBorder()
+                .bkPanelShadow()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Profil")
+        .accessibilityIdentifier("tab_profile")
+        .accessibilityAddTraits(isOn ? [.isSelected, .isButton] : .isButton)
     }
 
     private func tabButton(_ tab: RootTab, label: String, icon: String) -> some View {
@@ -74,6 +86,25 @@ struct BKTabBar: View {
             Label(label, systemImage: icon)
         }
         .accessibilityAddTraits(isOn ? [.isSelected, .isButton] : .isButton)
+    }
+}
+
+/// Top-right search entry, same inked square on every tab.
+struct BKSearchButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "magnifyingglass")
+                .font(.body.weight(.bold))
+                .frame(width: 44, height: 44)
+                .foregroundStyle(BKColor.textPrimary)
+                .background(BKColor.surface)
+                .bkInkBorder()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Rechercher")
+        .accessibilityIdentifier("search_button")
     }
 }
 
@@ -131,7 +162,7 @@ struct BKOfflineBanner: View {
 #Preview {
     VStack {
         Spacer()
-        BKTabBar(selection: .constant(.discover)) {}
+        BKTabBar(selection: .constant(.discover))
     }
     .background(BKColor.background)
 }

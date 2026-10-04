@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum RootTab: String, Hashable { case home, discover, library }
+enum RootTab: String, Hashable { case home, discover, library, profile }
 
 /// Branches on auth state (§5.1 of the handoff doc) before showing the
 /// signed-in shell.
@@ -57,6 +57,7 @@ private struct SignedInRootView: View {
     @State private var selectedTab: RootTab = .home
     @State private var discoverSegment: DiscoverView.Segment = .forYou
     @State private var homePath = NavigationPath()
+    @State private var profilePath = NavigationPath()
     @State private var showSearch = false
     @AppStorage("bk.onboardingDone") private var onboardingDone = false
     @Environment(\.scenePhase) private var scenePhase
@@ -128,11 +129,9 @@ private struct SignedInRootView: View {
             path.append(Work(id: parts[0], title: "", type: parts.last == "manga" ? .manga : .anime, status: .planToRead))
             _homePath = State(initialValue: path)
         }
-        // `-bk.openProfile YES` pushes the profile on Home.
+        // `-bk.openProfile YES` opens the profile tab.
         if UserDefaults.standard.bool(forKey: "bk.openProfile") {
-            var path = NavigationPath()
-            path.append(ProfileRoute.main)
-            _homePath = State(initialValue: path)
+            _selectedTab = State(initialValue: .profile)
         }
         #endif
     }
@@ -141,17 +140,11 @@ private struct SignedInRootView: View {
         // System tab bar hidden in favour of the mockups' inked `BKTabBar`.
         TabView(selection: $selectedTab) {
             NavigationStack(path: $homePath) {
-                HomeView(selectedTab: $selectedTab) {
+                HomeView(selectedTab: $selectedTab, onSearch: { showSearch = true }) {
                     discoverSegment = .browse
                     selectedTab = .discover
                 }
-                    .bkOfflineBanner()
-                    .navigationDestination(for: ProfileRoute.self) { route in
-                        switch route {
-                        case .main: ProfileView()
-                        case .settings: SettingsView()
-                        }
-                    }
+                .bkOfflineBanner()
             }
             .bkTabPage()
             .tag(RootTab.home)
@@ -163,10 +156,23 @@ private struct SignedInRootView: View {
             NavigationStack { LibraryListView(selectedTab: $selectedTab) { showSearch = true }.bkOfflineBanner() }
                 .bkTabPage()
                 .tag(RootTab.library)
+
+            NavigationStack(path: $profilePath) {
+                ProfileView()
+                    .bkOfflineBanner()
+                    .navigationDestination(for: ProfileRoute.self) { route in
+                        switch route {
+                        case .main: ProfileView()
+                        case .settings: SettingsView()
+                        }
+                    }
+            }
+            .bkTabPage()
+            .tag(RootTab.profile)
         }
         .background(BKColor.background.ignoresSafeArea())
         .overlay(alignment: .bottom) {
-            BKTabBar(selection: $selectedTab) { showSearch = true }
+            BKTabBar(selection: $selectedTab)
         }
         .environment(\.libraryStore, library)
         .environment(\.userStore, userStore)

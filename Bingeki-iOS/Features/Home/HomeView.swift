@@ -7,6 +7,7 @@ struct HomeView: View {
     @Environment(\.userStore) private var userStore
     @Environment(DiscoverDeck.self) private var deck
     @Binding var selectedTab: RootTab
+    var onSearch: () -> Void = {}
     /// Opens Découvrir on "Parcourir" (deck exhausted).
     var onBrowse: () -> Void = {}
     @State private var ratingWork: Work?
@@ -107,9 +108,7 @@ struct HomeView: View {
             .buttonStyle(.plain)
             .accessibilityHint("Affiche le détail de ta série")
             .accessibilityIdentifier("home_streak_badge")
-            NavigationLink(value: ProfileRoute.main) {
-                LevelAvatar(profile: userStore.profile)
-            }
+            BKSearchButton(action: onSearch)
         }
         .padding(.horizontal, BKSpace.screenMargin)
     }
@@ -363,28 +362,6 @@ private struct StreakSheet: View {
         .padding(.horizontal, BKSpace.md)
         .frame(minHeight: 48)
         .overlay(alignment: .bottom) { Rectangle().fill(BKColor.surfaceTint).frame(height: 1) }
-    }
-}
-
-private struct LevelAvatar: View {
-    let profile: UserProfile
-
-    var body: some View {
-        ZStack {
-            Circle().stroke(BKColor.surfaceTint, lineWidth: 4)
-            Circle()
-                .trim(from: 0, to: min(1, Double(profile.xp) / Double(max(profile.xpToNextLevel, 1))))
-                .stroke(BKColor.brandPink, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-            Circle()
-                .fill(LinearGradient(colors: [BKColor.brandCyan, .indigo], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .padding(5)
-            Text("\(profile.level)")
-                .font(BKFont.display(14))
-                .foregroundStyle(.white)
-        }
-        .frame(width: 48, height: 48)
-        .accessibilityLabel("Profil, niveau \(profile.level)")
     }
 }
 

@@ -17,6 +17,10 @@ final class DiscoverDeck {
     private let defaults: UserDefaults
     private var enriched: Set<String> = []
     private static let passedKey = "bk.discover.passed"
+    /// Titles scrolled past in the feed, oldest first — kept out of later
+    /// sessions like a TikTok feed, capped so old ones eventually return.
+    private static let seenKey = "bk.discover.seen"
+    private static let seenCap = 600
     private static let seasonTag = "LA SAISON EN COURS"
     private static let popularTag = "POPULAIRE EN CE MOMENT"
     /// Refill the deck when this many cards are left, so the user never
@@ -45,8 +49,13 @@ final class DiscoverDeck {
     func advance() { setIndex(index + 1) }
 
     /// The feed's current page; pulls more titles when nearing the end.
+    /// Moving down marks the pages left behind as seen.
     func setIndex(_ newIndex: Int) {
-        index = max(0, newIndex)
+        let target = max(0, newIndex)
+        if target > index {
+            markSeen(pool[index..<min(target, pool.count)].map(\.id))
+        }
+        index = target
         if pool.count - index <= Self.refillThreshold {
             Task { await refill() }
         }
@@ -76,7 +85,8 @@ final class DiscoverDeck {
         let inDeck = Set(pool.map(\.id))
         let fresh = response.data
             .map { $0.asWork(mediaType: .anime) }
-            .filter { !inDeck.contains($0.id) && !excludedIds.contains($0.id) && !passed.contains($0.id) }
+            .filter { !inDeck.contains($0.id) && !excludedIds.contains($0.id) }
+            .shuffled()
         for work in fresh { reasons[work.id] = tag }
         pool.append(contentsOf: fresh)
         // A page made only of known titles: keep going.
@@ -86,10 +96,21 @@ final class DiscoverDeck {
         }
     }
 
-    /// Titles swiped left — never shown again.
+    /// Titles swiped left in the old card deck — never shown again.
     private var passed: Set<String> {
         get { Set(defaults.stringArray(forKey: Self.passedKey) ?? []) }
         set { defaults.set(Array(newValue.suffix(500)), forKey: Self.passedKey) }
+    }
+
+    private var seen: [String] {
+        get { defaults.stringArray(forKey: Self.seenKey) ?? [] }
+        set { defaults.set(Array(newValue.suffix(Self.seenCap)), forKey: Self.seenKey) }
+    }
+
+    private func markSeen(_ ids: [String]) {
+        let known = Set(seen)
+        let fresh = ids.filter { !known.contains($0) }
+        if !fresh.isEmpty { seen += fresh }
     }
 
     func markPassed(_ work: Work) { passed.insert(work.id) }
@@ -108,15 +129,17 @@ final class DiscoverDeck {
         topHasMore = true
         self.sfw = sfw
         let owned = Set(library.map(\.id))
-        let excluded = owned.union(passed)
-        excludedIds = owned
+        var excluded = owned.union(passed).union(seen)
+        excludedIds = excluded
         var cards: [Work] = []
         var reasons: [String: String] = [:]
 
-        // Up to two seeds: watched titles first, else ones on the "À voir" list.
+        // Two seeds picked at random among the recent watched titles (else the
+        // "À voir" list), so each session recommends from a different angle.
         let byRecent = library.sorted { ($0.lastUpdated ?? .distantPast) > ($1.lastUpdated ?? .distantPast) }
         let engaged = byRecent.filter { $0.status == .completed || $0.status == .reading }
-        let seeds = (engaged.isEmpty ? byRecent.filter { $0.status == .planToRead } : engaged).prefix(2)
+        let candidates = (engaged.isEmpty ? byRecent.filter { $0.status == .planToRead } : engaged).prefix(8)
+        let seeds = candidates.shuffled().prefix(2)
         for seed in seeds {
             guard let recs = try? await client.recommendations(id: seed.id, type: seed.type.tenrai) else { continue }
             let because = seed.status == .planToRead ? "PROCHE DE" : "PARCE QUE TU AS AIMÉ"
@@ -144,9 +167,9 @@ final class DiscoverDeck {
             }
         }
 
-        // Interleave so recommendations don't all come first.
-        let recs = cards.filter { reasons[$0.id] != Self.seasonTag }
-        let season = cards.filter { reasons[$0.id] == Self.seasonTag }
+        // Shuffled, then interleaved so recommendations don't all come first.
+        let recs = cards.filter { reasons[$0.id] != Self.seasonTag }.shuffled()
+        let season = cards.filter { reasons[$0.id] == Self.seasonTag }.shuffled()
         var mixed: [Work] = []
         for i in 0..<max(recs.count, season.count) {
             if i < recs.count { mixed.append(recs[i]) }
@@ -154,6 +177,14 @@ final class DiscoverDeck {
         }
 
         pool = mixed.filter { !excluded.contains($0.id) }
+        // Everything already seen: start the history over rather than show
+        // an empty feed.
+        if pool.isEmpty, !seen.isEmpty {
+            seen = []
+            excluded = owned.union(passed)
+            excludedIds = excluded
+            pool = mixed.filter { !excluded.contains($0.id) }
+        }
         self.reasons = reasons
         phase = .loaded
         // Everything was already seen or owned: pull more right away.

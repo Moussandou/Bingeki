@@ -30,6 +30,8 @@ struct DiscoverView: View {
                     .accessibilityAddTraits(segment == item ? .isSelected : [])
                 }
                 Spacer()
+                BKSearchButton(action: onSearch)
+                    .padding(.trailing, BKSpace.screenMargin - BKSpace.sm)
             }
             .padding(.horizontal, BKSpace.sm)
 

@@ -62,6 +62,7 @@ struct LibraryListView: View {
                     .foregroundStyle(BKColor.textSecondary)
             }
             Spacer()
+            if !isSelecting { BKSearchButton(action: onSearch) }
             if isSelecting {
                 Button("OK") { selection = nil }
                     .font(BKFont.display(15, weight: .heavy))
