@@ -156,7 +156,6 @@ struct HomeView: View {
     private var deckTeaser: some View {
         let upcoming = Array(deck.pool.dropFirst(deck.index).prefix(3))
         let reason = upcoming.first.flatMap { deck.reasons[$0.id] }
-        let remaining = max(0, deck.pool.count - deck.index)
         return Button {
             selectedTab = .discover
         } label: {
@@ -176,7 +175,7 @@ struct HomeView: View {
                 .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(remaining > 0 ? "POUR TOI · \(remaining) TITRES" : "POUR TOI")
+                    Text("POUR TOI")
                         .font(BKFont.display(11, weight: .heavy)).tracking(0.9)
                         .foregroundStyle(BKColor.cyanText)
                     Text(teaserLine(reason))
