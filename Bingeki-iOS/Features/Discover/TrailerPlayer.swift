@@ -141,12 +141,12 @@ struct TrailerPlayer: UIViewRepresentable {
                 ready = true;
                 muted ? e.target.mute() : e.target.unMute();
                 if (want) { e.target.playVideo(); }
-                else { e.target.mute(); e.target.playVideo(); setTimeout(function(){
+                else { e.target.mute(); e.target.setPlaybackQuality && e.target.setPlaybackQuality('medium'); e.target.playVideo(); setTimeout(function(){
                   // Buffer the start for an instant play later, then hold.
                   if (!want) { e.target.pauseVideo(); e.target.seekTo(0, true); }
                   else if (e.target.getPlayerState() === 1) { post('playing'); }
                   muted ? e.target.mute() : e.target.unMute();
-                }, 400); }
+                }, 900); }
               },
               onStateChange: function(e){
                 if (e.data === 1 && want) post('playing');

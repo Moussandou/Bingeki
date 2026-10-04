@@ -263,7 +263,7 @@ struct DiscoverFeedView: View {
         }
     }
 
-    /// Play on screen, preload the next page, nothing elsewhere — and
+    /// Play on screen, preload the next two pages, nothing elsewhere — and
     /// nothing at all off screen or (data saver) unless asked.
     private func trailerMode(_ work: Work, offset: Int) -> FeedBackdrop.Mode {
         guard feedVisible, scenePhase == .active else { return .off }
@@ -272,7 +272,8 @@ struct DiscoverFeedView: View {
         }
         switch offset {
         case 0: return .play
-        case 1: return .preload
+        // Two pages ahead, so a quick double swipe still lands on a ready video.
+        case 1, 2: return .preload
         default: return .off
         }
     }
@@ -372,8 +373,9 @@ private struct FeedBackdrop: View {
     private func reveal() {
         revealTask?.cancel()
         revealTask = Task { @MainActor in
-            // YouTube's play/pause flash and title fade out in this window.
-            try? await Task.sleep(for: .milliseconds(350))
+            // YouTube's chrome is hidden by CSS now; this only skips the
+            // first black frames.
+            try? await Task.sleep(for: .milliseconds(120))
             guard !Task.isCancelled, mode == .play else { return }
             withAnimation(.easeOut(duration: 0.25)) { playing = true }
         }
