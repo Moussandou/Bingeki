@@ -95,7 +95,7 @@ struct DiscoverFeedView: View {
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
                 ForEach(deck.pool.indices, id: \.self) { i in
-                    page(deck.pool[i], isCurrent: i == deck.index)
+                    page(deck.pool[i], offset: i - deck.index)
                         .containerRelativeFrame(.vertical)
                 }
                 DeckEmptyState(onRestart: reload, onBrowse: onBrowse)
@@ -121,15 +121,11 @@ struct DiscoverFeedView: View {
 
     // MARK: - Page
 
-    private func page(_ work: Work, isCurrent: Bool) -> some View {
+    /// `offset`: 0 for the page on screen, 1 for the next one, etc.
+    private func page(_ work: Work, offset: Int) -> some View {
         let existing = library.work(id: work.id)
-        let mayPlay = !userStore.profile.dataSaver || requestedTrailerId == work.id
         return ZStack(alignment: .bottom) {
-            FeedBackdrop(
-                work: work,
-                autoplay: isCurrent && feedVisible && scenePhase == .active && mayPlay,
-                muted: trailerMuted
-            )
+            FeedBackdrop(work: work, mode: trailerMode(work, offset: offset), muted: trailerMuted)
             LinearGradient(
                 stops: [
                     .init(color: .black.opacity(0.35), location: 0),
@@ -265,6 +261,20 @@ struct DiscoverFeedView: View {
         }
     }
 
+    /// Play on screen, preload the next page, nothing elsewhere — and
+    /// nothing at all off screen or (data saver) unless asked.
+    private func trailerMode(_ work: Work, offset: Int) -> FeedBackdrop.Mode {
+        guard feedVisible, scenePhase == .active else { return .off }
+        if userStore.profile.dataSaver {
+            return requestedTrailerId == work.id && offset == 0 ? .play : .off
+        }
+        switch offset {
+        case 0: return .play
+        case 1: return .preload
+        default: return .off
+        }
+    }
+
     private func chips(for work: Work) -> [String] {
         var chips = [work.type == .anime ? "ANIME" : "MANGA"]
         if let year = work.year { chips.append(String(year)) }
@@ -317,46 +327,59 @@ struct DiscoverFeedView: View {
     }
 }
 
-/// Page background: the poster, then — on the current page, after a 1 s
-/// beat — the trailer, 16:9 near the top over a blurred poster. The poster
-/// stays until YouTube actually shows frames, and comes back if it fails.
+/// Page background: the poster, then the trailer, 16:9 near the top over
+/// a blurred poster. The next page's trailer is preloaded paused so it
+/// starts right away on arrival; the video is only revealed a beat after
+/// YouTube really plays, once its start-up overlays are gone.
 private struct FeedBackdrop: View {
+    enum Mode: Equatable { case off, preload, play }
+
     let work: Work
-    let autoplay: Bool
+    let mode: Mode
     let muted: Bool
 
-    @State private var armed = false
     @State private var playing = false
     @State private var failed = false
+    @State private var revealTask: Task<Void, Never>?
 
     var body: some View {
         ZStack(alignment: .top) {
             BKCover(url: work.image)
                 .blur(radius: playing ? 22 : 0)
                 .overlay(Color.black.opacity(playing ? 0.4 : 0))
-            if armed, !failed, let id = work.trailerYouTubeId {
+            if mode != .off, !failed, let id = work.trailerYouTubeId {
                 TrailerPlayer(
                     youtubeId: id,
+                    isPlaying: mode == .play,
                     muted: muted,
-                    onPlaying: { withAnimation(.easeOut(duration: 0.35)) { playing = true } },
-                    onFailure: { withAnimation { failed = true; playing = false } }
+                    onPlaying: reveal,
+                    onStopped: hide,
+                    onFailure: { failed = true; hide() }
                 )
                 .aspectRatio(16 / 9, contentMode: .fit)
+                .clipped()
                 .overlay(Rectangle().stroke(.black, lineWidth: 2))
                 .padding(.top, 56)
                 .opacity(playing ? 1 : 0)
                 .accessibilityHidden(true)
             }
         }
-        .task(id: autoplay) {
-            guard autoplay, work.trailerYouTubeId != nil else {
-                armed = false
-                playing = false
-                return
-            }
-            try? await Task.sleep(for: .seconds(1))
-            if !Task.isCancelled { armed = true }
+        .onChange(of: mode) { _, new in if new != .play { hide() } }
+    }
+
+    private func reveal() {
+        revealTask?.cancel()
+        revealTask = Task { @MainActor in
+            // YouTube's play/pause flash and title fade out in this window.
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled, mode == .play else { return }
+            withAnimation(.easeOut(duration: 0.25)) { playing = true }
         }
+    }
+
+    private func hide() {
+        revealTask?.cancel()
+        playing = false
     }
 }
 
