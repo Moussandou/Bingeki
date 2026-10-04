@@ -45,7 +45,11 @@ struct DiscoverView: View {
     }
 }
 
-/// Swipe deck: → À voir, ← passer, ↑ suivant sans avis (board *ExploreDiscover*).
+/// "Pour toi" as a vertical feed (board *ExploreDiscover*, concept B):
+/// one title per page, swipe up for the next, scroll back up to return.
+/// Nothing is decided by scrolling — skipping is just scrolling — so the
+/// only actions are on the right rail: À voir (also double tap), Déjà vu,
+/// Partager. Tapping the title opens the fiche.
 struct DiscoverFeedView: View {
     let onBrowse: () -> Void
 
@@ -54,17 +58,24 @@ struct DiscoverFeedView: View {
     @Environment(ToastCenter.self) private var toasts
     @Environment(DiscoverDeck.self) private var deck
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage("bk.coach.swipe") private var coachSeen = false
+    @AppStorage("bk.coach.feed") private var coachSeen = false
 
-    @State private var dragOffset: CGSize = .zero
-
-    // Fixed chrome around the card: top pad + gap + action bar + bottom pad.
-    private static let chromeHeight: CGFloat = BKSpace.md + BKSpace.xl + 80 + BKSpace.lg
+    @State private var position: Int?
+    /// Page that just got a double tap, for the stamp animation.
+    @State private var stampedId: String?
 
     var body: some View {
-        GeometryReader { proxy in
-            content(cardHeight: min(524, max(300, proxy.size.height - Self.chromeHeight)))
-                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+        Group {
+            switch deck.phase {
+            case .idle, .loading:
+                DeckSkeleton()
+            case .failed:
+                DeckErrorState(onRetry: reload, onBrowse: onBrowse)
+                    .padding(.vertical, BKSpace.md)
+                    .padding(.bottom, BKSize.tabBarHeight + BKSpace.md)
+            case .loaded:
+                feed
+            }
         }
         .task(id: library.hasLoaded) {
             guard library.hasLoaded else { return }
@@ -73,93 +84,47 @@ struct DiscoverFeedView: View {
         .task(id: deck.currentCard?.id) { await deck.enrichVisibleCards() }
     }
 
-    @ViewBuilder
-    private func content(cardHeight: CGFloat) -> some View {
-        VStack(spacing: BKSpace.xl) {
-            switch deck.phase {
-            case .idle, .loading:
-                DeckSkeleton(cardHeight: cardHeight)
-            case .failed:
-                DeckErrorState(onRetry: reload, onBrowse: onBrowse)
-                    .frame(height: cardHeight)
-            case .loaded:
-                if let card = deck.currentCard {
-                    ZStack {
-                        if let next = deck.nextCard {
-                            cardView(next, interactive: false, height: cardHeight)
-                                .scaleEffect(0.95)
-                                .offset(y: 10)
-                                .opacity(0.6)
-                        }
-                        cardView(card, interactive: true, height: cardHeight)
-                            .offset(dragOffset)
-                            .rotationEffect(.degrees(reduceMotion ? 0 : dragOffset.width / 20))
-                            .gesture(dragGesture(for: card))
-                            .animation(.interactiveSpring, value: dragOffset)
-                            .accessibilityElement(children: .combine)
-                            .accessibilityAction(named: "À voir") { decide(.right, for: card) }
-                            .accessibilityAction(named: "Passer") { decide(.left, for: card) }
-                            .accessibilityAction(named: "Déjà vu") { decide(.seen, for: card) }
-                    }
-                    .padding(.horizontal, BKSpace.screenMargin)
-                    .overlay { if !coachSeen { SwipeCoachMark { coachSeen = true } } }
-
-                    actionBar(for: card)
-                } else {
-                    DeckEmptyState(onRestart: reload, onBrowse: onBrowse)
-                        .frame(height: cardHeight)
+    private var feed: some View {
+        ScrollView(.vertical) {
+            LazyVStack(spacing: 0) {
+                ForEach(deck.pool.indices, id: \.self) { i in
+                    page(deck.pool[i])
+                        .containerRelativeFrame(.vertical)
                 }
+                DeckEmptyState(onRestart: reload, onBrowse: onBrowse)
+                    .padding(.vertical, BKSpace.md)
+                    .padding(.bottom, BKSize.tabBarHeight + BKSpace.md)
+                    .containerRelativeFrame(.vertical)
+                    .id(deck.pool.count)
             }
+            .scrollTargetLayout()
         }
-        .padding(.top, BKSpace.md)
-        .padding(.bottom, BKSpace.lg)
+        .scrollTargetBehavior(.paging)
+        .scrollIndicators(.hidden)
+        // The next page would otherwise peek into the home-indicator area.
+        .clipped()
+        .scrollPosition(id: $position)
+        // Only explicit actions dismiss the coach mark: the scroll position
+        // also moves on its own while the feed fills in.
+        .onChange(of: position) { _, new in deck.setIndex(new ?? 0) }
+        .overlay { if !coachSeen { FeedCoachMark { coachSeen = true } } }
     }
 
-    private func reload() {
-        Task { await deck.load(library: library.works, sfw: !userStore.profile.nsfwMode) }
-    }
+    // MARK: - Page
 
-    private func cardView(_ work: Work, interactive: Bool, height: CGFloat) -> some View {
-        ZStack(alignment: .bottomLeading) {
+    private func page(_ work: Work) -> some View {
+        let existing = library.work(id: work.id)
+        return ZStack(alignment: .bottom) {
             BKCover(url: work.image)
             LinearGradient(
                 stops: [
                     .init(color: .black.opacity(0.35), location: 0),
-                    .init(color: .clear, location: 0.22),
-                    .init(color: .clear, location: 0.42),
+                    .init(color: .clear, location: 0.2),
+                    .init(color: .clear, location: 0.4),
                     .init(color: .black.opacity(0.92), location: 1),
                 ],
                 startPoint: .top, endPoint: .bottom
             )
-
-            VStack(alignment: .leading, spacing: BKSpace.sm) {
-                if let reason = deck.reasons[work.id] {
-                    Text(reason)
-                        .font(BKFont.display(12, weight: .heavy))
-                        .tracking(0.7)
-                        .lineLimit(1)
-                        .foregroundStyle(BKColor.brandCyan)
-                }
-                Text(work.title)
-                    .font(BKFont.display(40))
-                    .textCase(.uppercase)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.6)
-                    .foregroundStyle(.white)
-                    .shadow(color: .black, radius: 0, x: 3, y: 3)
-                if !work.genres.isEmpty {
-                    Text(work.genres.prefix(3).joined(separator: " · "))
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
-                if let synopsis = work.synopsis, !synopsis.isEmpty {
-                    Text(synopsis)
-                        .font(.subheadline)
-                        .lineLimit(3)
-                        .foregroundStyle(Color(white: 0.85))
-                }
-            }
-            .padding(BKSpace.lg)
 
             VStack {
                 HStack(alignment: .top) {
@@ -167,7 +132,7 @@ struct DiscoverFeedView: View {
                         ForEach(chips(for: work), id: \.self) { CardChip(text: $0) }
                     }
                     Spacer()
-                    if let existing = library.work(id: work.id) {
+                    if let existing {
                         Label("DANS TA BIBLIO · \(existing.status.label.uppercased())", systemImage: "checkmark")
                             .font(BKFont.display(11))
                             .padding(.horizontal, 7).padding(.vertical, 4)
@@ -179,28 +144,95 @@ struct DiscoverFeedView: View {
             }
             .padding(BKSpace.md)
 
-            if interactive {
-                VStack {
-                    HStack {
-                        SwipeStamp(text: "PASSER", color: .white).opacity(dragOffset.width < -40 ? 1 : 0)
-                        Spacer()
-                        SwipeStamp(text: "+ À VOIR", color: BKColor.brandPink).opacity(dragOffset.width > 40 ? 1 : 0)
-                    }
-                    .padding(.top, 56)
-                    Spacer()
-                }
-                .padding(.horizontal, BKSpace.lg)
+            HStack(alignment: .bottom, spacing: BKSpace.md) {
+                info(work)
+                rail(work, existing: existing)
+            }
+            .padding(BKSpace.lg)
+
+            if stampedId == work.id {
+                FeedStamp()
+                    .transition(.scale(scale: 1.6).combined(with: .opacity))
+                    .frame(maxHeight: .infinity)
             }
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
         .contentShape(Rectangle())
+        .onTapGesture(count: 2) { doubleTap(work) }
         .bkInkBorder()
-        .bkPanelShadow()
-        .overlay {
-            NavigationLink(value: work) { Color.clear.contentShape(Rectangle()) }
-                .allowsHitTesting(interactive)
-                .accessibilityHidden(true)
+        .padding(.horizontal, BKSpace.screenMargin)
+        .padding(.top, BKSpace.sm)
+        .padding(.bottom, BKSize.tabBarHeight + BKSpace.lg)
+        .accessibilityElement(children: .combine)
+        .accessibilityAction(named: "À voir") { toggle(.planToRead, work) }
+        .accessibilityAction(named: "Déjà vu") { toggle(.completed, work) }
+    }
+
+    private func info(_ work: Work) -> some View {
+        VStack(alignment: .leading, spacing: BKSpace.sm) {
+            if let reason = deck.reasons[work.id] {
+                Text(reason)
+                    .font(BKFont.display(12, weight: .heavy))
+                    .tracking(0.7)
+                    .lineLimit(1)
+                    .foregroundStyle(BKColor.brandCyan)
+            }
+            NavigationLink(value: work) {
+                Text(work.title)
+                    .font(BKFont.display(36))
+                    .textCase(.uppercase)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.6)
+                    .foregroundStyle(.white)
+                    .shadow(color: .black, radius: 0, x: 3, y: 3)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Ouvre la fiche")
+            if !work.genres.isEmpty {
+                Text(work.genres.prefix(3).joined(separator: " · "))
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.white)
+            }
+            if let synopsis = work.synopsis, !synopsis.isEmpty {
+                NavigationLink(value: work) {
+                    (Text(synopsis).foregroundStyle(Color(white: 0.85))
+                     + Text("  Voir la fiche").bold().foregroundStyle(.white))
+                        .font(.subheadline)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(3)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func rail(_ work: Work, existing: Work?) -> some View {
+        VStack(spacing: BKSpace.lg) {
+            RailButton(
+                icon: existing?.status == .planToRead ? "checkmark" : "plus",
+                label: "À VOIR",
+                isOn: existing?.status == .planToRead,
+                tint: BKColor.brandPink
+            ) { toggle(.planToRead, work) }
+            .accessibilityIdentifier("discover_btn_want_to_see")
+
+            RailButton(
+                icon: "eye.fill",
+                label: "DÉJÀ VU",
+                isOn: existing?.status == .completed,
+                tint: BKColor.greenText
+            ) { toggle(.completed, work) }
+            .accessibilityIdentifier("discover_btn_seen")
+
+            if let url = URL(string: "https://bingeki.web.app/fr/work/\(work.id)?type=\(work.type.rawValue)") {
+                ShareLink(item: url, subject: Text(work.title)) {
+                    RailIcon(icon: "arrowshape.turn.up.right.fill", label: "PARTAGER", isOn: false, tint: .white)
+                }
+                .accessibilityLabel("Partager \(work.title)")
+            }
         }
     }
 
@@ -211,98 +243,104 @@ struct DiscoverFeedView: View {
         return chips
     }
 
-    private func actionBar(for work: Work) -> some View {
-        HStack(alignment: .top, spacing: 22) {
-            actionButton("xmark", label: "PASSER", a11y: "Passer, pas intéressé", identifier: "discover_btn_pass") { decide(.left, for: work) }
-            Button {
-                decide(.right, for: work)
-            } label: {
-                Label("À VOIR", systemImage: "plus")
-                    .font(BKFont.display(18))
-                    .frame(width: 172, height: 60)
-                    .foregroundStyle(.white)
-                    .background(BKColor.ctaFill)
-                    .clipShape(BKChamferedShape(cut: 10))
-            }
-            .accessibilityLabel("Ajouter à À voir")
-            .accessibilityIdentifier("discover_btn_want_to_see")
-            actionButton("checkmark", label: "DÉJÀ VU", a11y: "Déjà vu, ajouter en terminé", identifier: "discover_btn_seen") { decide(.seen, for: work) }
-        }
+    // MARK: - Actions
+
+    private func reload() {
+        position = 0
+        Task { await deck.load(library: library.works, sfw: !userStore.profile.nsfwMode) }
     }
 
-    private func actionButton(_ icon: String, label: String, a11y: String, identifier: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 5) {
-                Image(systemName: icon)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(BKColor.textPrimary)
-                    .frame(width: 56, height: 56)
-                    .background(BKColor.surface)
-                    .bkInkBorder(BKColor.border)
-                Text(label).font(BKFont.display(11, weight: .heavy))
-            }
-        }
-        .foregroundStyle(BKColor.textSecondary)
-        .accessibilityLabel(a11y)
-        .accessibilityIdentifier(identifier)
-    }
-
-    private func dragGesture(for work: Work) -> some Gesture {
-        DragGesture(minimumDistance: 12)
-            .onChanged { dragOffset = $0.translation }
-            .onEnded { value in
-                let t = value.translation
-                if t.width > 100 {
-                    decide(.right, for: work)
-                } else if t.width < -100 {
-                    decide(.left, for: work)
-                } else if t.height < -120, abs(t.width) < 80 {
-                    decide(.skip, for: work)
-                } else {
-                    dragOffset = .zero
-                }
-            }
-    }
-
-    private enum Decision { case left, right, seen, skip }
-
-    private func decide(_ decision: Decision, for work: Work) {
+    /// Like TikTok's heart: double tap only ever adds, never removes.
+    private func doubleTap(_ work: Work) {
         coachSeen = true
-        switch decision {
-        case .right:
-            var added = work
-            added.status = .planToRead
-            added.dateAdded = .now
-            added.lastUpdated = .now
-            library.upsert(added)
-            userStore.addXP(GamificationCore.XPReward.addWork)
-            HapticEngine.added()
-            toasts.show("\(work.title) → À voir") { [weak library] in
-                library?.remove(id: work.id)
-            }
-        case .seen:
-            var added = work
-            added.status = .completed
+        withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.3, dampingFraction: 0.5)) {
+            stampedId = work.id
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(700))
+            withAnimation(.easeOut(duration: 0.2)) { if stampedId == work.id { stampedId = nil } }
+        }
+        if library.work(id: work.id)?.status != .planToRead { toggle(.planToRead, work) }
+    }
+
+    /// Rail buttons toggle: tapping an active one takes the title back out,
+    /// so there's no need for an undo toast.
+    private func toggle(_ status: WorkStatus, _ work: Work) {
+        coachSeen = true
+        if let existing = library.work(id: work.id), existing.status == status {
+            library.remove(id: work.id)
+            HapticEngine.progressTick()
+            return
+        }
+        var added = library.work(id: work.id) ?? work
+        added.status = status
+        if status == .completed {
             added.currentEpisode = added.totalEpisodes ?? 0
             added.currentChapter = added.totalChapters ?? 0
-            added.dateAdded = .now
-            added.lastUpdated = .now
-            library.upsert(added)
-            userStore.addXP(GamificationCore.XPReward.addWork)
-            HapticEngine.success()
-            toasts.show("\(work.title) → Terminé") { [weak library] in
-                library?.remove(id: work.id)
-            }
-        case .left:
-            deck.markPassed(work)
-            toasts.show("Passé · moins de titres comme ça")
-        case .skip:
-            break
         }
-        withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring) {
-            dragOffset = .zero
-            deck.advance()
+        if added.dateAdded == nil { added.dateAdded = .now }
+        added.lastUpdated = .now
+        let isNew = library.work(id: work.id) == nil
+        library.upsert(added)
+        if isNew { userStore.addXP(GamificationCore.XPReward.addWork) }
+        if status == .completed { HapticEngine.success() } else { HapticEngine.added() }
+        toasts.show(status == .completed ? "\(work.title) → Terminé" : "\(work.title) → À voir")
+    }
+}
+
+/// Round action on the feed's right rail.
+private struct RailButton: View {
+    let icon: String
+    let label: String
+    let isOn: Bool
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) { RailIcon(icon: icon, label: label, isOn: isOn, tint: tint) }
+            .buttonStyle(.plain)
+            .accessibilityLabel(label.capitalized)
+            .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+}
+
+private struct RailIcon: View {
+    let icon: String
+    let label: String
+    let isOn: Bool
+    let tint: Color
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.title3.weight(.black))
+                .foregroundStyle(isOn ? .black : .white)
+                .frame(width: 54, height: 54)
+                .background(isOn ? tint : .black.opacity(0.45))
+                .overlay(Rectangle().stroke(isOn ? .black : .white.opacity(0.7), lineWidth: 2))
+            Text(label)
+                .font(BKFont.display(10, weight: .heavy))
+                .foregroundStyle(.white)
+                .shadow(color: .black, radius: 2)
         }
+        .frame(minWidth: 60)
+        .contentShape(Rectangle())
+    }
+}
+
+/// Double-tap feedback, the feed's equivalent of TikTok's heart.
+private struct FeedStamp: View {
+    var body: some View {
+        Text("+ À VOIR")
+            .font(BKFont.display(34))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14).padding(.vertical, 6)
+            .background(BKColor.brandPink)
+            .overlay(Rectangle().stroke(.black, lineWidth: 3))
+            .rotationEffect(.degrees(-8))
+            .shadow(color: .black.opacity(0.5), radius: 0, x: 4, y: 4)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }
 
@@ -320,47 +358,31 @@ private struct CardChip: View {
     }
 }
 
-private struct SwipeStamp: View {
-    let text: String
-    let color: Color
-
-    var body: some View {
-        Text(text)
-            .font(BKFont.display(24))
-            .foregroundStyle(color)
-            .padding(6)
-            .overlay(Rectangle().stroke(color, lineWidth: 4))
-            .rotationEffect(.degrees(-10))
-    }
-}
-
-/// États #3 — skeleton shaped like the real card, no spinner.
+/// États #3 — skeleton shaped like a feed page, no spinner.
 private struct DeckSkeleton: View {
-    let cardHeight: CGFloat
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
 
     var body: some View {
-        VStack(spacing: BKSpace.xl) {
-            ZStack(alignment: .bottomLeading) {
-                Rectangle().fill(BKColor.surfaceTint)
+        ZStack(alignment: .bottomLeading) {
+            Rectangle().fill(BKColor.surfaceTint)
+            HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: BKSpace.sm) {
                     Rectangle().fill(BKColor.surface).frame(width: 180, height: 12)
-                    Rectangle().fill(BKColor.surface).frame(width: 240, height: 36)
+                    Rectangle().fill(BKColor.surface).frame(width: 220, height: 36)
                     Rectangle().fill(BKColor.surface).frame(width: 200, height: 12)
                 }
-                .padding(BKSpace.lg)
+                Spacer()
+                VStack(spacing: BKSpace.lg) {
+                    ForEach(0..<3, id: \.self) { _ in Rectangle().fill(BKColor.surface).frame(width: 54, height: 54) }
+                }
             }
-            .frame(height: cardHeight)
-            .bkInkBorder(BKColor.border)
-            .padding(.horizontal, BKSpace.screenMargin)
-
-            HStack(spacing: 22) {
-                Rectangle().fill(BKColor.surfaceTint).frame(width: 56, height: 56)
-                Rectangle().fill(BKColor.surfaceTint).frame(width: 172, height: 60)
-                Rectangle().fill(BKColor.surfaceTint).frame(width: 56, height: 56)
-            }
+            .padding(BKSpace.lg)
         }
+        .bkInkBorder(BKColor.border)
+        .padding(.horizontal, BKSpace.screenMargin)
+        .padding(.top, BKSpace.sm)
+        .padding(.bottom, BKSize.tabBarHeight + BKSpace.lg)
         .opacity(pulse ? 0.55 : 1)
         .onAppear {
             guard !reduceMotion else { return }
@@ -431,31 +453,16 @@ private struct DeckEmptyState: View {
     }
 }
 
-/// États #2 — gesture tutorial over the card, shown once.
-private struct SwipeCoachMark: View {
+/// États #2 — gesture tutorial over the feed, shown once.
+private struct FeedCoachMark: View {
     let onDismiss: () -> Void
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.74)
+            Color.black.opacity(0.74).ignoresSafeArea()
             VStack(spacing: BKSpace.xl) {
-                direction("arrow.up", "Suivant sans avis", color: BKColor.brandCyan, size: 30)
-                HStack {
-                    direction("arrow.left", "Passer", color: .white, size: 38)
-                    Spacer()
-                    Circle()
-                        .strokeBorder(.white, style: StrokeStyle(lineWidth: 3, dash: [6, 5]))
-                        .frame(width: 74, height: 74)
-                        .overlay(Circle().fill(.white).frame(width: 30, height: 30))
-                        .accessibilityHidden(true)
-                    Spacer()
-                    direction("arrow.right", "À voir", color: BKColor.brandPink, size: 38)
-                }
-                .padding(.horizontal, BKSpace.lg)
-                Text("Les boutons sous la carte font la même chose.")
-                    .font(.subheadline)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Color(white: 0.85))
+                hint("arrow.up", "Glisse vers le haut", "pour le titre suivant", color: BKColor.brandCyan)
+                hint("hand.tap.fill", "Double tap", "pour l'ajouter à À voir", color: BKColor.brandPink)
                 Button(action: onDismiss) {
                     Text("COMPRIS")
                         .font(BKFont.ctaLabel)
@@ -467,17 +474,16 @@ private struct SwipeCoachMark: View {
             }
             .padding(BKSpace.lg)
         }
-        .padding(.horizontal, BKSpace.screenMargin)
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
     }
 
-    private func direction(_ icon: String, _ label: String, color: Color, size: CGFloat) -> some View {
+    private func hint(_ icon: String, _ title: String, _ detail: String, color: Color) -> some View {
         VStack(spacing: 6) {
-            Image(systemName: icon).font(.system(size: size, weight: .black))
-            Text(label).font(BKFont.display(16)).textCase(.uppercase)
+            Image(systemName: icon).font(.system(size: 38, weight: .black)).foregroundStyle(color)
+            Text(title).font(BKFont.display(18)).textCase(.uppercase).foregroundStyle(color)
+            Text(detail).font(.subheadline).foregroundStyle(Color(white: 0.85))
         }
-        .foregroundStyle(color)
     }
 }
 

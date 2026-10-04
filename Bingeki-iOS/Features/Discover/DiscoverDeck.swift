@@ -42,8 +42,11 @@ final class DiscoverDeck {
     var currentCard: Work? { pool.indices.contains(index) ? pool[index] : nil }
     var nextCard: Work? { pool.indices.contains(index + 1) ? pool[index + 1] : nil }
 
-    func advance() {
-        index += 1
+    func advance() { setIndex(index + 1) }
+
+    /// The feed's current page; pulls more titles when nearing the end.
+    func setIndex(_ newIndex: Int) {
+        index = max(0, newIndex)
         if pool.count - index <= Self.refillThreshold {
             Task { await refill() }
         }
