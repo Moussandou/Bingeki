@@ -22,27 +22,46 @@ struct ProfileView: View {
             .padding(.horizontal, BKSpace.screenMargin)
             .padding(.vertical, BKSpace.lg)
         }
+        .safeAreaInset(edge: .top, spacing: 0) { header }
         .background(alignment: .top) { HalftoneDots().frame(height: 260).ignoresSafeArea(edges: .top) }
         .background(BKColor.background.ignoresSafeArea())
-        .navigationTitle("MON PROFIL")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if let shareURL {
-                ToolbarItem(placement: .primaryAction) {
-                    ShareLink(item: shareURL) { Image(systemName: "square.and.arrow.up") }
-                        .accessibilityLabel("Partager ma licence")
-                }
-            }
-            ToolbarItem(placement: .primaryAction) {
-                NavigationLink(value: ProfileRoute.settings) { Image(systemName: "gearshape") }
-                    .accessibilityLabel("Réglages")
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $showEditor) {
             ProfileEditView()
                 .environment(\.userStore, userStore)
                 .environment(\.libraryStore, library)
         }
+    }
+
+    /// Inked square buttons like the mockup, title centred between them.
+    private var header: some View {
+        HStack(spacing: BKSpace.sm) {
+            Color.clear.frame(width: 44 * 2 + BKSpace.sm, height: 44)
+            Text("Mon profil")
+                .font(BKFont.display(16))
+                .textCase(.uppercase)
+                .tracking(1)
+                .frame(maxWidth: .infinity)
+                .accessibilityAddTraits(.isHeader)
+            if let shareURL {
+                ShareLink(item: shareURL) { headerIcon("square.and.arrow.up") }
+                    .accessibilityLabel("Partager ma licence")
+            }
+            NavigationLink(value: ProfileRoute.settings) { headerIcon("gearshape") }
+                .accessibilityLabel("Réglages")
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, BKSpace.screenMargin)
+        .padding(.vertical, BKSpace.sm)
+    }
+
+    private func headerIcon(_ systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(.body.weight(.bold))
+            .frame(width: 44, height: 44)
+            .foregroundStyle(BKColor.textPrimary)
+            .background(BKColor.surface)
+            .bkInkBorder(BKColor.border)
     }
 
     private var topWorks: [Work] {
@@ -134,12 +153,30 @@ struct HunterLicenseCard: View {
         profile.banner.flatMap(URL.init(string:)) ?? topWorks.first?.image
     }
 
+    private var idLine: String {
+        let id = "ID : \(String(profile.uid.prefix(8)).uppercased())"
+        guard let createdAt = profile.createdAt else { return id }
+        let since = createdAt.formatted(.dateTime.month(.wide).year().locale(Locale(identifier: "fr_FR")))
+        return "\(id) · depuis \(since)"
+    }
+
     private var featured: Badge? {
         profile.badges.first { $0.id == profile.featuredBadge }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            ZStack {
+                if let bannerURL {
+                    BKCover(url: bannerURL, showsBorder: false)
+                } else {
+                    LinearGradient(colors: [accent.opacity(0.6), cardBg], startPoint: .top, endPoint: .bottom)
+                }
+            }
+            .frame(height: 124)
+            .clipped()
+            .overlay(alignment: .bottom) { Rectangle().fill(border).frame(height: 2) }
+
             HStack {
                 Text("LICENCE DE CHASSEUR").font(BKFont.display(12)).tracking(1.7)
                 Spacer()
@@ -154,32 +191,25 @@ struct HunterLicenseCard: View {
             .padding(.horizontal, 12).padding(.vertical, 6)
             .background(border)
 
-            ZStack {
-                if let bannerURL {
-                    BKCover(url: bannerURL, showsBorder: false)
-                } else {
-                    LinearGradient(colors: [accent.opacity(0.6), cardBg], startPoint: .top, endPoint: .bottom)
-                }
-            }
-            .frame(height: 124)
-            .clipped()
-            .overlay(alignment: .bottom) { Rectangle().fill(border).frame(height: 2) }
-
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top, spacing: 14) {
-                    avatar.padding(.top, -48)
+                HStack(alignment: .bottom, spacing: 14) {
+                    avatar
                     VStack(alignment: .leading, spacing: 2) {
                         Text(profile.displayName ?? "Chasseur")
                             .font(BKFont.display(28))
                             .textCase(.uppercase)
                             .lineLimit(1)
                             .minimumScaleFactor(0.6)
-                        Text("ID : \(String(profile.uid.prefix(8)).uppercased())")
+                        Text(idLine)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(dim)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
-                    .padding(.top, 10)
+                    .padding(.bottom, 4)
                 }
+                // The avatar straddles the "Licence de chasseur" strip.
+                .padding(.top, -40)
                 .padding(.bottom, 6)
 
                 if let bio = profile.bio, !bio.isEmpty {

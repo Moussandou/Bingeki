@@ -40,6 +40,8 @@ struct UserProfile: Codable, Hashable, Sendable {
     var hideScores: Bool = false
     var dataSaver: Bool = false
     var nsfwMode: Bool = false
+    /// Account creation, for "depuis mars 2025" on the license.
+    var createdAt: Date?
 
     var xpToNextLevel: Int { GamificationCore.xpRequired(forLevel: level) }
     var rank: String { GamificationCore.rank(forLevel: level) }
@@ -67,6 +69,7 @@ extension UserProfile {
         case banner, bannerPosition, bio, themeColor, cardBgColor, borderColor
         case top3Favorites, featuredBadge, badges
         case profileVisibility, showActivityStatus, hideScores, dataSaver, nsfwMode
+        case createdAt
     }
 
     /// Every field but `uid` is read with `decodeIfPresent` + a fallback —
@@ -104,6 +107,12 @@ extension UserProfile {
         hideScores = try c.decodeIfPresent(Bool.self, forKey: .hideScores) ?? false
         dataSaver = try c.decodeIfPresent(Bool.self, forKey: .dataSaver) ?? false
         nsfwMode = try c.decodeIfPresent(Bool.self, forKey: .nsfwMode) ?? false
+        // Epoch ms from web (`Date.now()`), a Firestore Timestamp from iOS.
+        if let ms = try? c.decodeIfPresent(Double.self, forKey: .createdAt) {
+            createdAt = Date(timeIntervalSince1970: ms / 1000)
+        } else {
+            createdAt = try? c.decodeIfPresent(Date.self, forKey: .createdAt)
+        }
     }
 }
 
