@@ -7,6 +7,10 @@ struct ProfileView: View {
     @Environment(\.userStore) private var userStore
     @Environment(\.libraryStore) private var library
     @State private var showEditor = false
+    @Environment(\.dismiss) private var dismiss
+    /// Set when the profile is a tab root: goes back to the previous tab.
+    /// Otherwise (pushed) the back button pops.
+    var onBack: (() -> Void)?
 
     private var shareURL: URL? { URL(string: "https://bingeki.web.app/fr/profile/\(userStore.profile.uid)") }
 
@@ -36,7 +40,10 @@ struct ProfileView: View {
     /// Inked square buttons like the mockup, title centred between them.
     private var header: some View {
         HStack(spacing: BKSpace.sm) {
-            Color.clear.frame(width: 44 * 2 + BKSpace.sm, height: 44)
+            Button { if let onBack { onBack() } else { dismiss() } } label: { headerIcon("chevron.left") }
+                .accessibilityLabel("Retour")
+            // Balances the two right-hand buttons so the title stays centred.
+            Color.clear.frame(width: 44, height: 44)
             Text("Mon profil")
                 .font(BKFont.display(16))
                 .textCase(.uppercase)

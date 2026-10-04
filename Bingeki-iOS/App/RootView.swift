@@ -55,6 +55,8 @@ private struct SignedInRootView: View {
     @State private var deck = DiscoverDeck()
     @State private var network = NetworkMonitor()
     @State private var selectedTab: RootTab = .home
+    /// Where the profile's back button returns to.
+    @State private var tabBeforeProfile: RootTab = .home
     @State private var discoverSegment: DiscoverView.Segment = .forYou
     @State private var homePath = NavigationPath()
     @State private var profilePath = NavigationPath()
@@ -158,7 +160,7 @@ private struct SignedInRootView: View {
                 .tag(RootTab.library)
 
             NavigationStack(path: $profilePath) {
-                ProfileView()
+                ProfileView(onBack: { selectedTab = tabBeforeProfile })
                     .bkOfflineBanner()
                     .navigationDestination(for: ProfileRoute.self) { route in
                         switch route {
@@ -174,6 +176,7 @@ private struct SignedInRootView: View {
         .overlay(alignment: .bottom) {
             BKTabBar(selection: $selectedTab)
         }
+        .onChange(of: selectedTab) { old, new in if new == .profile, old != .profile { tabBeforeProfile = old } }
         .environment(\.libraryStore, library)
         .environment(\.userStore, userStore)
         .environment(deck)
