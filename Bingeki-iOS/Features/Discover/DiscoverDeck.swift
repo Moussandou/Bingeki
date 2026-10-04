@@ -160,14 +160,15 @@ final class DiscoverDeck {
         if pool.count <= Self.refillThreshold { await refill() }
     }
 
-    /// Recommendation payloads lack genres/synopsis — fetch them for visible cards.
+    /// Recommendation payloads lack genres/synopsis/trailer — fetch them for visible cards.
     func enrichVisibleCards() async {
         for offset in 0...1 {
             let i = index + offset
             guard pool.indices.contains(i), !enriched.contains(pool[i].id) else { continue }
             let card = pool[i]
             enriched.insert(card.id)
-            guard card.genres.isEmpty || card.synopsis == nil,
+            let needsTrailer = card.type == .anime && card.trailerYouTubeId == nil
+            guard card.genres.isEmpty || card.synopsis == nil || needsTrailer,
                   let full = try? await client.details(id: card.id, type: card.type.tenrai) else { continue }
             let detailed = full.data.asWork(mediaType: card.type.tenrai)
             guard let j = pool.firstIndex(where: { $0.id == card.id }) else { continue }

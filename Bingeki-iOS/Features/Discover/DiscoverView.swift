@@ -59,6 +59,13 @@ struct DiscoverFeedView: View {
     @Environment(DiscoverDeck.self) private var deck
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("bk.coach.feed") private var coachSeen = false
+    @AppStorage("bk.feed.muted") private var trailerMuted = false
+    @Environment(\.scenePhase) private var scenePhase
+    /// False while another tab, a pushed fiche or the background hides the
+    /// feed — trailers must not keep playing there.
+    @State private var feedVisible = false
+    /// Data saver: trailers only play when asked, per page.
+    @State private var requestedTrailerId: String?
 
     @State private var position: Int?
     /// Page that just got a double tap, for the stamp animation.
@@ -88,7 +95,7 @@ struct DiscoverFeedView: View {
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
                 ForEach(deck.pool.indices, id: \.self) { i in
-                    page(deck.pool[i])
+                    page(deck.pool[i], isCurrent: i == deck.index)
                         .containerRelativeFrame(.vertical)
                 }
                 DeckEmptyState(onRestart: reload, onBrowse: onBrowse)
@@ -107,15 +114,22 @@ struct DiscoverFeedView: View {
         // Only explicit actions dismiss the coach mark: the scroll position
         // also moves on its own while the feed fills in.
         .onChange(of: position) { _, new in deck.setIndex(new ?? 0) }
+        .onAppear { feedVisible = true }
+        .onDisappear { feedVisible = false }
         .overlay { if !coachSeen { FeedCoachMark { coachSeen = true } } }
     }
 
     // MARK: - Page
 
-    private func page(_ work: Work) -> some View {
+    private func page(_ work: Work, isCurrent: Bool) -> some View {
         let existing = library.work(id: work.id)
+        let mayPlay = !userStore.profile.dataSaver || requestedTrailerId == work.id
         return ZStack(alignment: .bottom) {
-            BKCover(url: work.image)
+            FeedBackdrop(
+                work: work,
+                autoplay: isCurrent && feedVisible && scenePhase == .active && mayPlay,
+                muted: trailerMuted
+            )
             LinearGradient(
                 stops: [
                     .init(color: .black.opacity(0.35), location: 0),
@@ -227,6 +241,21 @@ struct DiscoverFeedView: View {
             ) { toggle(.completed, work) }
             .accessibilityIdentifier("discover_btn_seen")
 
+            if work.trailerYouTubeId != nil {
+                if userStore.profile.dataSaver && requestedTrailerId != work.id {
+                    RailButton(icon: "play.fill", label: "TRAILER", isOn: false, tint: .white) {
+                        requestedTrailerId = work.id
+                    }
+                } else {
+                    RailButton(
+                        icon: trailerMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
+                        label: trailerMuted ? "SON COUPÉ" : "SON",
+                        isOn: false,
+                        tint: .white
+                    ) { trailerMuted.toggle() }
+                }
+            }
+
             if let url = URL(string: "https://bingeki.web.app/fr/work/\(work.id)?type=\(work.type.rawValue)") {
                 ShareLink(item: url, subject: Text(work.title)) {
                     RailIcon(icon: "arrowshape.turn.up.right.fill", label: "PARTAGER", isOn: false, tint: .white)
@@ -285,6 +314,49 @@ struct DiscoverFeedView: View {
         if isNew { userStore.addXP(GamificationCore.XPReward.addWork) }
         if status == .completed { HapticEngine.success() } else { HapticEngine.added() }
         toasts.show(status == .completed ? "\(work.title) → Terminé" : "\(work.title) → À voir")
+    }
+}
+
+/// Page background: the poster, then — on the current page, after a 1 s
+/// beat — the trailer, 16:9 near the top over a blurred poster. The poster
+/// stays until YouTube actually shows frames, and comes back if it fails.
+private struct FeedBackdrop: View {
+    let work: Work
+    let autoplay: Bool
+    let muted: Bool
+
+    @State private var armed = false
+    @State private var playing = false
+    @State private var failed = false
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            BKCover(url: work.image)
+                .blur(radius: playing ? 22 : 0)
+                .overlay(Color.black.opacity(playing ? 0.4 : 0))
+            if armed, !failed, let id = work.trailerYouTubeId {
+                TrailerPlayer(
+                    youtubeId: id,
+                    muted: muted,
+                    onPlaying: { withAnimation(.easeOut(duration: 0.35)) { playing = true } },
+                    onFailure: { withAnimation { failed = true; playing = false } }
+                )
+                .aspectRatio(16 / 9, contentMode: .fit)
+                .overlay(Rectangle().stroke(.black, lineWidth: 2))
+                .padding(.top, 56)
+                .opacity(playing ? 1 : 0)
+                .accessibilityHidden(true)
+            }
+        }
+        .task(id: autoplay) {
+            guard autoplay, work.trailerYouTubeId != nil else {
+                armed = false
+                playing = false
+                return
+            }
+            try? await Task.sleep(for: .seconds(1))
+            if !Task.isCancelled { armed = true }
+        }
     }
 }
 

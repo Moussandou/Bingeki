@@ -34,6 +34,9 @@ struct Work: Identifiable, Codable, Hashable, Sendable {
     var genres: [String] = []
     var season: String?
     var year: Int?
+    /// From Tenrai, for the feed's autoplay. Not part of the Firestore wire
+    /// format (not in `CodingKeys`), so it's never written to the library.
+    var trailerYouTubeId: String? = nil
 
     /// Current progress for the type (episodes for anime, chapters for manga).
     var progress: Int { type == .anime ? currentEpisode : currentChapter }

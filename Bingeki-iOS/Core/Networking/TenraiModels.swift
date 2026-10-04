@@ -39,6 +39,8 @@ struct TenraiMedia: Decodable, Sendable, Identifiable {
     let year: Int?
     let images: TenraiImages
     let genres: [TenraiNamed]?
+    /// Anime only; absent from recommendation payloads (see `enrichVisibleCards`).
+    let trailer: TenraiTrailer?
 
     var id: Int { malId }
 
@@ -47,7 +49,17 @@ struct TenraiMedia: Decodable, Sendable, Identifiable {
         case title
         case titleEnglish = "title_english"
         case titleJapanese = "title_japanese"
-        case type, chapters, episodes, synopsis, year, images, genres
+        case type, chapters, episodes, synopsis, year, images, genres, trailer
+    }
+}
+
+struct TenraiTrailer: Decodable, Sendable {
+    let youtubeId: String?
+    let embeddable: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case youtubeId = "youtube_id"
+        case embeddable
     }
 }
 
@@ -92,7 +104,9 @@ extension TenraiMedia {
             status: .planToRead,
             synopsis: synopsis,
             genres: (genres ?? []).map(\.name),
-            year: year
+            year: year,
+            // Some uploads refuse embedding; those would only show an error.
+            trailerYouTubeId: trailer?.embeddable == false ? nil : trailer?.youtubeId
         )
     }
 }

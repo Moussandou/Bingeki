@@ -56,6 +56,7 @@
 		AE6014A3B429C9D4CDA827C4 /* LibraryMergeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231BF842D19BCE5015366EB1 /* LibraryMergeTests.swift */; };
 		B4A9775DB680334E673D22FC /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = ADAC971F8713AD4E64C628B7 /* FirebaseFunctions */; };
 		B4C55D88D5FAF70755684CA1 /* TenraiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45BF3B49B9F409F61247A973 /* TenraiClient.swift */; };
+		B696B528D9FF68250FECAD6B /* TrailerPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA8A46A25A2A74EA119D104A /* TrailerPlayer.swift */; };
 		BD6C81B169DBD8D5C075057C /* .gitkeep in Resources */ = {isa = PBXBuildFile; fileRef = C58E52F0FA5AA386AE584223 /* .gitkeep */; };
 		BE654124FC48E9FFD4AD2345 /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BC677F926A7597677F20A55F /* Inter-Regular.ttf */; };
 		CF24D79A0A085CE82AD551EC /* BKContentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750164EF586FFAEAC9D04EFD /* BKContentCard.swift */; };
@@ -155,6 +156,7 @@
 		D17CB753C4F4D59A094E55FC /* Bingeki.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Bingeki.entitlements; sourceTree = "<group>"; };
 		D5433D9F6A5B5C93275F00F6 /* Outfit-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Outfit-ExtraBold.ttf"; sourceTree = "<group>"; };
 		D844CDCEC9739476A1EF4122 /* LibraryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryListView.swift; sourceTree = "<group>"; };
+		DA8A46A25A2A74EA119D104A /* TrailerPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrailerPlayer.swift; sourceTree = "<group>"; };
 		E00B045072A171569E43BF7B /* StreakTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakTests.swift; sourceTree = "<group>"; };
 		E0958E1F4B72BB14062B59ED /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		E1FC8A6950C2AF46DE36E321 /* BKColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKColor.swift; sourceTree = "<group>"; };
@@ -236,6 +238,7 @@
 				E2FB04EB2F9CA6D488A55404 /* BrowseView.swift */,
 				CB90118FC155B9708B16FE7C /* DiscoverDeck.swift */,
 				EC2AC0F5876ADA35BA3EA514 /* DiscoverView.swift */,
+				DA8A46A25A2A74EA119D104A /* TrailerPlayer.swift */,
 			);
 			path = Discover;
 			sourceTree = "<group>";
@@ -645,6 +648,7 @@
 				791E0D5FFBF732AA447B0FEF /* SettingsView.swift in Sources */,
 				B4C55D88D5FAF70755684CA1 /* TenraiClient.swift in Sources */,
 				ED49A5F52A645A0B076E1EC0 /* TenraiModels.swift in Sources */,
+				B696B528D9FF68250FECAD6B /* TrailerPlayer.swift in Sources */,
 				0B6936E7DD57C29EC1CD7432 /* UserProfile.swift in Sources */,
 				4FC811575130D8AF8FC5382A /* UserStore.swift in Sources */,
 				8055F7DF66A7FCD524CE9080 /* Work.swift in Sources */,
