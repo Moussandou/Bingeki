@@ -24,9 +24,11 @@ struct ProfileView: View {
                 if !userStore.profile.badges.isEmpty { recentBadges }
             }
             .padding(.horizontal, BKSpace.screenMargin)
-            .padding(.vertical, BKSpace.lg)
+            .padding(.top, BKSpace.lg)
+            // Clears the floating BKTabBar so the last section can scroll into view.
+            .padding(.bottom, BKSize.tabBarHeight + BKSpace.xl)
         }
-        .safeAreaInset(edge: .top, spacing: 0) { header }
+        .safeAreaInset(edge: .top, spacing: 0) { header.bkPinnedHeaderBackground() }
         .background(alignment: .top) { HalftoneDots().frame(height: 260).ignoresSafeArea(edges: .top) }
         .background(BKColor.background.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
@@ -63,12 +65,7 @@ struct ProfileView: View {
     }
 
     private func headerIcon(_ systemName: String) -> some View {
-        Image(systemName: systemName)
-            .font(.body.weight(.bold))
-            .frame(width: 44, height: 44)
-            .foregroundStyle(BKColor.textPrimary)
-            .background(BKColor.surface)
-            .bkInkBorder(BKColor.border)
+        BKHeaderIcon(systemName: systemName)
     }
 
     private var topWorks: [Work] {
@@ -175,7 +172,9 @@ struct HunterLicenseCard: View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack {
                 if let bannerURL {
-                    BKCover(url: bannerURL, showsBorder: false)
+                    BKAnimatedImage(url: bannerURL, focusY: BKImageFocus.y(fromCSS: profile.bannerPosition)) {
+                        LinearGradient(colors: [accent.opacity(0.6), cardBg], startPoint: .top, endPoint: .bottom)
+                    }
                 } else {
                     LinearGradient(colors: [accent.opacity(0.6), cardBg], startPoint: .top, endPoint: .bottom)
                 }
@@ -186,7 +185,9 @@ struct HunterLicenseCard: View {
 
             HStack {
                 Text("LICENCE DE CHASSEUR").font(BKFont.display(12)).tracking(1.7)
-                Spacer()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Spacer(minLength: 8)
                 Text("RANG \(profile.rank)")
                     .font(BKFont.display(12))
                     .padding(.horizontal, 8).padding(.vertical, 2)
@@ -195,11 +196,13 @@ struct HunterLicenseCard: View {
                     .bkInkBorder()
             }
             .foregroundStyle(onBorder)
-            .padding(.horizontal, 12).padding(.vertical, 6)
+            // The avatar straddles this strip: start the label after it, in line with the name.
+            .padding(.leading, Self.avatarSize + 30)
+            .padding(.trailing, 12).padding(.vertical, 6)
             .background(border)
 
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .bottom, spacing: 14) {
+                HStack(alignment: .top, spacing: 14) {
                     avatar
                     VStack(alignment: .leading, spacing: 2) {
                         Text(profile.displayName ?? "Chasseur")
@@ -213,10 +216,11 @@ struct HunterLicenseCard: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
-                    .padding(.bottom, 4)
+                    // Clear the strip the avatar is pulled over, then leave a gap.
+                    .padding(.top, Self.avatarLift + 10)
                 }
                 // The avatar straddles the "Licence de chasseur" strip.
-                .padding(.top, -40)
+                .padding(.top, -Self.avatarLift)
                 .padding(.bottom, 6)
 
                 if let bio = profile.bio, !bio.isEmpty {
@@ -276,7 +280,12 @@ struct HunterLicenseCard: View {
         .accessibilityLabel("Licence de chasseur de \(profile.displayName ?? "Chasseur"), niveau \(profile.level), rang \(profile.rank)")
     }
 
-    private var avatar: some View {
+    private static let avatarSize: CGFloat = 88
+    /// How far the avatar is pulled up over the strip and banner.
+    private static let avatarLift: CGFloat = 40
+
+    /// Shown while the photo loads, or when the account has none.
+    private var initialAvatar: some View {
         ZStack {
             LinearGradient(colors: [BKColor.brandCyan, Color(red: 0.145, green: 0.165, blue: 0.204)], startPoint: .topLeading, endPoint: .bottomTrailing)
             Text(String((profile.displayName ?? "C").prefix(1)).uppercased())
@@ -284,7 +293,18 @@ struct HunterLicenseCard: View {
                 .foregroundStyle(.white)
                 .shadow(color: .black, radius: 0, x: 2, y: 2)
         }
-        .frame(width: 88, height: 88)
+    }
+
+    private var avatar: some View {
+        ZStack {
+            if let photo = profile.photoURL {
+                BKAnimatedImage(url: photo) { initialAvatar }
+            } else {
+                initialAvatar
+            }
+        }
+        .frame(width: Self.avatarSize, height: Self.avatarSize)
+        .clipped()
         .overlay(Rectangle().stroke(border, lineWidth: 3))
         .overlay(alignment: .bottom) {
             Text("LVL \(profile.level)")
