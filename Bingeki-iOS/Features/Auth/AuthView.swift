@@ -96,23 +96,15 @@ struct AuthView: View {
     /// pattern for Sign in with Apple + Firebase.
     @State private var currentNonce: String?
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var heroIn = false
+
     var body: some View {
-        VStack(spacing: BKSpace.xxl) {
-            Spacer()
-
-            VStack(spacing: BKSpace.md) {
-                Text("BINGEKI")
-                    .font(BKFont.display(48))
-                    .padding(.horizontal, BKSpace.lg).padding(.vertical, BKSpace.sm)
-                    .background(BKColor.textPrimary)
-                    .foregroundStyle(BKColor.background)
-                    .rotationEffect(.degrees(-1))
-                Text("Ton binge, dans le pouce.")
-                    .font(.subheadline)
-                    .foregroundStyle(BKColor.textSecondary)
-            }
-
-            Spacer()
+        VStack(spacing: 0) {
+            Spacer(minLength: BKSpace.lg)
+            hero
+            Spacer(minLength: BKSpace.xl)
 
             VStack(spacing: BKSpace.md) {
                 SignInWithAppleButton(.signIn) { request in
@@ -123,22 +115,29 @@ struct AuthView: View {
                 } onCompletion: { result in
                     handleApple(result)
                 }
-                .signInWithAppleButtonStyle(.black)
+                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                 .frame(height: BKSize.ctaHeight)
                 .clipShape(RoundedRectangle(cornerRadius: 0))
+                .bkPanelShadow(BKColor.brandPink)
                 .accessibilityIdentifier("auth_apple_button")
                 .disabled(isSigningIn)
 
                 Button {
                     Task { await signInWithGoogle() }
                 } label: {
-                    HStack {
-                        Image(systemName: "g.circle.fill")
-                        Text("Continuer avec Google").font(BKFont.display(15, weight: .heavy))
+                    HStack(spacing: BKSpace.md) {
+                        Image("GoogleG")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 22, height: 22)
+                            .accessibilityHidden(true)
+                        Text("Continuer avec Google").font(BKFont.display(17, weight: .heavy))
                     }
-                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .frame(maxWidth: .infinity, minHeight: BKSize.ctaHeight)
+                    .background(BKColor.surface)
+                    .bkInkBorder(BKColor.border)
                 }
-                .overlay(RoundedRectangle(cornerRadius: 0).stroke(BKColor.border, lineWidth: 2))
+                .bkPanelShadow()
                 .foregroundStyle(BKColor.textPrimary)
                 .accessibilityIdentifier("auth_google_button")
                 .disabled(isSigningIn)
@@ -168,10 +167,73 @@ struct AuthView: View {
                 #endif
             }
             .padding(.horizontal, BKSpace.screenMargin)
-            .padding(.bottom, BKSpace.xxxl)
+            .padding(.bottom, BKSpace.xxl)
         }
-        .background(BKColor.background)
+        .background {
+            ZStack {
+                BKColor.background
+                AuthHalftone().ignoresSafeArea()
+            }
+            .ignoresSafeArea()
+        }
+        .onAppear {
+            guard !heroIn else { return }
+            if reduceMotion { heroIn = true } else {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.72).delay(0.05)) { heroIn = true }
+            }
+        }
     }
+
+    // MARK: - Hero
+
+    /// App icon on a tilted pink manga panel, then the wordmark — the same
+    /// panel/ink/offset-shadow language as the S01–S09 mockups.
+    private var hero: some View {
+        VStack(spacing: BKSpace.xl) {
+            ZStack {
+                Rectangle()
+                    .fill(BKColor.brandPink)
+                    .overlay(AuthHalftone(color: .white.opacity(0.28), spacing: 11, dot: 3, fades: false))
+                    .bkInkBorder(BKColor.ink, width: 3)
+                    .bkPanelShadow(BKColor.ink, offset: 6)
+                    .frame(width: 236, height: 168)
+                    .rotationEffect(.degrees(heroIn ? -6 : -14))
+                    .scaleEffect(heroIn ? 1 : 0.85)
+
+                ZStack {
+                    BKLogoInk().fill(Color.black, style: FillStyle(eoFill: true))
+                    BKLogoBolt().fill(Self.boltRed, style: FillStyle(eoFill: true))
+                        .offset(x: heroIn ? 0 : 12, y: heroIn ? 0 : -24)
+                }
+                .frame(width: 96 * BKLogo.aspectRatio, height: 96)
+                .frame(width: 136, height: 136)
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 30, style: .continuous).stroke(BKColor.ink, lineWidth: 3))
+                .background(
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(BKColor.ink)
+                        .offset(x: 5, y: 5)
+                )
+                .rotationEffect(.degrees(heroIn ? 4 : 16))
+                .scaleEffect(heroIn ? 1 : 0.6)
+            }
+            .frame(height: 200)
+
+            Text("BINGEKI")
+                .font(BKFont.display(48))
+                .padding(.horizontal, BKSpace.lg).padding(.vertical, BKSpace.sm)
+                .background(BKColor.textPrimary)
+                .foregroundStyle(BKColor.background)
+                .rotationEffect(.degrees(-2))
+                .opacity(heroIn ? 1 : 0)
+                .offset(y: heroIn ? 0 : 12)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Bingeki")
+    }
+
+    private static let boltRed = Color(red: 0.898, green: 0.118, blue: 0.165)
 
     private func handleApple(_ result: Result<ASAuthorization, Error>) {
         switch result {
@@ -255,6 +317,38 @@ struct AuthView: View {
 
     private static func sha256(_ input: String) -> String {
         SHA256.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+/// Pink halftone backdrop, densest at the top like the web landing.
+private struct AuthHalftone: View {
+    var color: Color = BKColor.brandPink.opacity(0.16)
+    var spacing: CGFloat = 18
+    var dot: CGFloat = 3.4
+    var fades = true
+
+    var body: some View {
+        Canvas { context, size in
+            var y: CGFloat = 0
+            var row = 0
+            while y < size.height {
+                var x: CGFloat = row.isMultiple(of: 2) ? 0 : spacing / 2
+                while x < size.width {
+                    context.fill(Path(ellipseIn: CGRect(x: x, y: y, width: dot, height: dot)), with: .color(color))
+                    x += spacing
+                }
+                y += spacing * 0.87
+                row += 1
+            }
+        }
+        .mask {
+            if fades {
+                LinearGradient(colors: [.black, .black.opacity(0.35), .clear], startPoint: .top, endPoint: .bottom)
+            } else {
+                Color.black
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 
