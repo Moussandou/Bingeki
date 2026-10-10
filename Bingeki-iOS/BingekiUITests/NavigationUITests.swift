@@ -16,6 +16,7 @@ final class NavigationUITests: XCTestCase {
             "-AppleLocale", "fr_FR"
         ]
         app.launch()
+        app.waitForIntroToFinish()
 
         // 1. Verify Home Screen is visible
         let homeGreeting = app.staticTexts["home_title"]

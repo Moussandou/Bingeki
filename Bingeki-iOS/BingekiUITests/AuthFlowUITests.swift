@@ -14,6 +14,7 @@ final class AuthFlowUITests: XCTestCase {
             "-AppleLocale", "fr_FR"
         ]
         app.launch()
+        app.waitForIntroToFinish()
 
         // Verify branding
         let brandingTitle = app.staticTexts["BINGEKI"]

@@ -60,6 +60,7 @@ struct BKSplashView: View {
         .ignoresSafeArea()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(isReady ? "Bingeki, prêt" : "Bingeki, chargement")
+        .accessibilityIdentifier("bk_splash")
         .onChange(of: clock.seconds) { _, seconds in advance(seconds) }
         .onChange(of: isReady) { _, _ in advance(clock.seconds) }
         .onAppear {

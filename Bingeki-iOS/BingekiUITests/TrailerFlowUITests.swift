@@ -28,6 +28,7 @@ final class TrailerFlowUITests: XCTestCase {
 
     func testTrailerFlow() {
         app.launch()
+        app.waitForIntroToFinish()
         mark("launched")
         XCTAssertTrue(app.staticTexts["home_title"].waitForExistence(timeout: 15))
         wait(2.0)

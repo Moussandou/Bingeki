@@ -16,6 +16,7 @@ final class LibraryFlowUITests: XCTestCase {
             "-AppleLocale", "fr_FR"
         ]
         app.launch()
+        app.waitForIntroToFinish()
 
         // 1. Verify on Library Tab
         let biblioHeader = app.staticTexts["Biblio"]
