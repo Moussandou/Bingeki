@@ -20,17 +20,11 @@ struct RootView: View {
         }
         .overlay {
             if showSplash {
-                BKSplashView().transition(.asymmetric(insertion: .identity, removal: .opacity.combined(with: .scale(scale: 1.15))))
+                BKSplashView(isReady: contentReady) {
+                    withAnimation(.easeIn(duration: 0.3)) { showSplash = false }
+                }
+                .transition(.asymmetric(insertion: .identity, removal: .opacity.combined(with: .scale(scale: 1.15))))
             }
-        }
-        // Long enough for the stamp to land, never stuck if loading stalls.
-        .task {
-            try? await Task.sleep(for: .milliseconds(850))
-            let deadline = Date.now.addingTimeInterval(1.8)
-            while !contentReady, Date.now < deadline {
-                try? await Task.sleep(for: .milliseconds(100))
-            }
-            withAnimation(.easeIn(duration: 0.25)) { showSplash = false }
         }
         .preferredColorScheme((ThemePreference(rawValue: themePreference) ?? .system).colorScheme)
         .environment(\.bkAmoled, themePreference == ThemePreference.amoled.rawValue)
