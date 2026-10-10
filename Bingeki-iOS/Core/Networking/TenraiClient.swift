@@ -1,3 +1,4 @@
+import FirebaseCore
 import FirebaseFunctions
 import Foundation
 
@@ -107,6 +108,8 @@ actor TenraiClient {
     }
 
     private static func callProxy(_ proxy: ProxyCall) async throws -> Data {
+        // Demo/mock launches skip FirebaseApp.configure(); Functions would trap.
+        guard FirebaseApp.app() != nil else { throw ClientError.badStatus(-1) }
         func plain(_ dict: [String: any Sendable]) -> [String: Any] {
             dict.mapValues { value -> Any in
                 if let nested = value as? [String: any Sendable] { return plain(nested) }
@@ -195,6 +198,43 @@ actor TenraiClient {
     func details(id: String, type: TenraiMediaType) async throws -> TenraiDetailResponse {
         try await get("/\(type.rawValue)/\(id)/full",
                       proxy: ProxyCall(name: "getWorkDetails", payload: ["id": id, "type": type.rawValue], wrapsData: true))
+    }
+
+    func characters(id: String, type: TenraiMediaType) async throws -> TenraiListResponse<TenraiCharacterRole> {
+        try await get("/\(type.rawValue)/\(id)/characters",
+                      proxy: ProxyCall(name: "getWorkCharacters", payload: ["id": id, "type": type.rawValue], wrapsData: true))
+    }
+
+    /// Anime only, 100 per page.
+    func episodes(animeId: String, page: Int = 1) async throws -> TenraiListResponse<TenraiEpisode> {
+        try await get("/anime/\(animeId)/episodes", query: [.init(name: "page", value: String(page))],
+                      proxy: ProxyCall(name: "getAnimeEpisodes", payload: ["id": animeId, "page": page], wrapsData: false))
+    }
+
+    func statistics(id: String, type: TenraiMediaType) async throws -> TenraiStatisticsResponse {
+        try await get("/\(type.rawValue)/\(id)/statistics",
+                      proxy: ProxyCall(name: "getWorkStatistics", payload: ["id": id, "type": type.rawValue], wrapsData: true))
+    }
+
+    func reviews(id: String, type: TenraiMediaType) async throws -> TenraiListResponse<TenraiReview> {
+        try await get("/\(type.rawValue)/\(id)/reviews", query: [.init(name: "spoilers", value: "false"), .init(name: "preliminary", value: "false")],
+                      proxy: ProxyCall(name: "getWorkReviews", payload: ["id": id, "type": type.rawValue], wrapsData: true))
+    }
+
+    func news(id: String, type: TenraiMediaType) async throws -> TenraiListResponse<TenraiNews> {
+        try await get("/\(type.rawValue)/\(id)/news",
+                      proxy: ProxyCall(name: "getWorkNews", payload: ["id": id, "type": type.rawValue], wrapsData: true))
+    }
+
+    func pictures(id: String, type: TenraiMediaType) async throws -> TenraiListResponse<TenraiPicture> {
+        try await get("/\(type.rawValue)/\(id)/pictures",
+                      proxy: ProxyCall(name: "getWorkPictures", payload: ["id": id, "type": type.rawValue], wrapsData: true))
+    }
+
+    /// Anime only.
+    func staff(animeId: String) async throws -> TenraiListResponse<TenraiStaff> {
+        try await get("/anime/\(animeId)/staff",
+                      proxy: ProxyCall(name: "getAnimeStaff", payload: ["id": animeId], wrapsData: true))
     }
 
     func recommendations(id: String, type: TenraiMediaType) async throws -> TenraiListResponse<TenraiRecommendationWrapper> {

@@ -1,23 +1,31 @@
 import SwiftUI
 
-/// Fiche œuvre — pushed from anywhere (board `S06-Work`).
+/// Fiche œuvre — pushed from anywhere (board `S06-Work`), laid out like the
+/// web fiche: cover and tabs, title and score, then the selected tab.
 struct WorkDetailView: View {
     let work: Work
     @Environment(\.libraryStore) private var library
     @Environment(\.userStore) private var userStore
     @Environment(ToastCenter.self) private var toasts
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     @State private var showProgressSheet = false
     @State private var showRating = false
     @State private var details: Work?
+    @State private var extras: TenraiFullExtras?
     @State private var unavailable = false
-    @State private var synopsisExpanded = false
-    @State private var similar: [Work] = []
-    @State private var similarState: LoadState = .loading
-
-    private enum LoadState { case loading, loaded, failed }
+    @State private var frenchSynopsis: String?
+    @State private var tab: WorkTab = .general
+    @State private var cast: [TenraiCharacterRole] = []
+    @State private var episodes: [TenraiEpisode] = []
+    @State private var episodesPage = 1
+    @State private var episodesHasMore = false
+    @State private var similar: [(work: Work, votes: Int?)] = []
+    @State private var stats: TenraiStatistics?
+    @State private var staff: [TenraiStaff] = []
+    @State private var reviews: [TenraiReview]?
+    @State private var news: [TenraiNews]?
+    @State private var pictures: [TenraiPicture]?
 
     private var owned: Work? { library.work(id: work.id) }
     /// Library copy wins (progress), enriched with fetched metadata when missing.
@@ -25,6 +33,7 @@ struct WorkDetailView: View {
         var base = owned ?? work
         if let details {
             if base.title.isEmpty { base.title = details.title; base.image = details.image; base.imageSmall = details.imageSmall }
+            if base.image == nil { base.image = details.image }
             if base.synopsis == nil { base.synopsis = details.synopsis }
             if base.genres.isEmpty { base.genres = details.genres }
             if base.total == nil { base.totalEpisodes = details.totalEpisodes; base.totalChapters = details.totalChapters }
@@ -38,30 +47,54 @@ struct WorkDetailView: View {
         URL(string: "https://bingeki.web.app/fr/work/\(work.id)?type=\(work.type.rawValue)")
     }
 
+    /// Same as the web "REGARDER": a search for the next episode/chapter.
+    private var watchURL: URL? {
+        let next = current.progress + 1
+        let query = current.type == .anime ? "\(current.title) épisode \(next) vostfr" : "\(current.title) chapitre \(next) scan"
+        var components = URLComponents(string: "https://www.google.com/search")
+        components?.queryItems = [.init(name: "q", value: query)]
+        return components?.url
+    }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: BKSpace.xl) {
-                header
-                if unavailable, owned != nil { unavailablePanel }
-                if owned != nil { progressCard } else { addButton }
-                synopsis
-                similarSection
+            VStack(spacing: BKSpace.lg) {
+                WorkCoverHero(work: current)
+                WorkTabBar(type: current.type, selection: $tab)
+                VStack(spacing: BKSpace.md) {
+                    Text(current.title.uppercased())
+                        .font(BKFont.display(28))
+                        .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.7)
+                        .foregroundStyle(BKColor.textPrimary)
+                    WorkChips(work: current, score: extras?.score, hideScore: userStore.profile.hideScores)
+                    WorkWatchRow(links: extras?.streaming ?? [], watchURL: current.type == .anime ? watchURL : nil)
+                }
+                .padding(.horizontal, BKSpace.screenMargin)
+
+                Group {
+                    if unavailable, owned != nil { unavailablePanel }
+                    tabContent
+                }
+                .padding(.horizontal, BKSpace.screenMargin)
+                .padding(.top, BKSpace.sm)
+                .zIndex(1) // status menu floats over the recommendations
+
+                WorkRecommendationsGrid(items: similar)
+                    .padding(.horizontal, BKSpace.screenMargin)
+                    .padding(.top, BKSpace.xl)
             }
             .padding(.bottom, BKSpace.xxxl)
-            .background(alignment: .top) { hero }
         }
         .background(BKColor.background.ignoresSafeArea())
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
+        .bkNavigationHeader {
             if let shareURL {
-                ToolbarItem(placement: .primaryAction) {
-                    ShareLink(item: shareURL) { Image(systemName: "square.and.arrow.up") }
-                        .accessibilityLabel("Partager")
-                }
+                ShareLink(item: shareURL) { BKHeaderIcon(systemName: "square.and.arrow.up") }
+                    .accessibilityLabel("Partager")
             }
         }
         .task(id: work.id) { await load() }
+        .task(id: tab) { await loadTab(tab) }
         .sheet(isPresented: $showProgressSheet) {
             ProgressSheetView(work: current, showsDetailLink: false)
                 .presentationDetents([.height(640), .large])
@@ -72,73 +105,63 @@ struct WorkDetailView: View {
         }
     }
 
-    // MARK: - Sections
+    // MARK: - Tabs
 
-    /// Blurred, dotted cover fading into the background.
-    private var hero: some View {
-        ZStack {
-            // Reduce Transparency: a flat opaque band instead of the blur,
-            // so the title below keeps full contrast.
-            if reduceTransparency {
-                BKColor.surfaceTint
+    @ViewBuilder
+    private var tabContent: some View {
+        switch tab {
+        case .general: general
+        case .episodes:
+            WorkEpisodeList(type: current.type, episodes: episodes, totalChapters: current.totalChapters,
+                            hasMore: episodesHasMore, progress: current.progress, canTrack: owned != nil,
+                            onLoadMore: { Task { await loadMoreEpisodes() } }, onSelect: jump(to:))
+        case .music:
+            if let theme = extras?.theme { WorkMusicSection(theme: theme) } else { placeholder }
+        case .reviews: WorkReviewsList(reviews: reviews)
+        case .news: WorkNewsList(news: news)
+        case .gallery: WorkGalleryGrid(pictures: pictures)
+        case .stats:
+            VStack(spacing: BKSpace.xl) {
+                WorkStaffSection(staff: staff)
+                if let stats { WorkStatsSection(stats: stats, type: current.type) } else { placeholder }
+            }
+        }
+    }
+
+    private var general: some View {
+        VStack(alignment: .leading, spacing: BKSpace.xl) {
+            if let text = frenchSynopsis ?? current.synopsis, !text.isEmpty { WorkSynopsisSection(text: text) }
+            if let extras { WorkInfoPanel(work: current, extras: extras) }
+            if let trailer = details?.trailerYouTubeId ?? current.trailerYouTubeId { WorkTrailerSection(youtubeId: trailer) }
+            WorkCastSection(cast: cast)
+            if let relations = extras?.relations { WorkFranchiseSection(relations: relations) }
+            if let owned {
+                VStack(alignment: .leading, spacing: BKSpace.md) {
+                    WorkHeading(text: "Ma progression")
+                    statusMenu(owned).zIndex(1)
+                    progressCard
+                }
+                .zIndex(1)
             } else {
-                BKCover(url: current.image, showsBorder: false)
-                    .blur(radius: 16)
-                    .saturation(0.9)
-                    .opacity(0.85)
-            }
-            LinearGradient(colors: [.clear, BKColor.background], startPoint: .center, endPoint: .bottom)
-        }
-        .frame(height: 330)
-        .clipped()
-        .padding(.top, -120)
-        .accessibilityHidden(true)
-    }
-
-    private var header: some View {
-        HStack(alignment: .bottom, spacing: 14) {
-            BKCover(url: current.image)
-                .frame(width: 120, height: 174)
-                .bkPanelShadow(offset: 5)
-            VStack(alignment: .leading, spacing: BKSpace.sm) {
-                Text(current.title)
-                    .font(BKFont.display(30))
-                    .textCase(.uppercase)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.7)
-                    .shadow(color: BKColor.background.opacity(0.6), radius: 0, x: 2, y: 2)
-                Text(metaLine)
-                    .font(.footnote)
-                    .foregroundStyle(BKColor.textSecondary)
-                if let owned { statusMenu(owned) }
+                WorkAddBox(onAdd: add)
             }
         }
-        .padding(.horizontal, BKSpace.screenMargin)
-        .padding(.top, BKSpace.lg)
     }
 
-    private var metaLine: String {
-        var first = [current.type == .anime ? "Anime" : "Manga"]
-        if let year = current.year { first.append(String(year)) }
-        if let total = current.total { first.append(current.type == .anime ? "\(total) ép." : "\(total) ch.") }
-        let second = [current.format, current.genres.first].compactMap { $0 }
-        return first.joined(separator: " · ") + (second.isEmpty ? "" : "\n" + second.joined(separator: " · "))
+    private var placeholder: some View {
+        ProgressView().frame(maxWidth: .infinity, minHeight: 120)
     }
 
     private func statusMenu(_ owned: Work) -> some View {
-        Menu {
-            ForEach(WorkStatus.allCases, id: \.self) { status in
-                Button {
-                    var updated = owned
-                    updated.status = status
-                    updated.lastUpdated = .now
-                    library.upsert(updated)
-                    HapticEngine.added()
-                } label: {
-                    Label(status.label, systemImage: status.iconName)
-                }
+        BKMenu(items: WorkStatus.allCases.map { status in
+            BKMenuItem(id: status.label, title: status.label, icon: status.iconName, isSelected: status == owned.status) {
+                var updated = owned
+                updated.status = status
+                updated.lastUpdated = .now
+                library.upsert(updated)
+                HapticEngine.added()
             }
-        } label: {
+        }, alignment: .leading) {
             HStack(spacing: 6) {
                 Image(systemName: owned.status.iconName)
                 Text(owned.status.label.uppercased())
@@ -152,21 +175,6 @@ struct WorkDetailView: View {
             .bkInkBorder()
         }
         .accessibilityLabel("Statut : \(owned.status.label), changer")
-    }
-
-    /// États #9 — not in library yet: one clear add CTA.
-    private var addButton: some View {
-        BKPrimaryButton(title: "À voir", systemImage: "plus") {
-            var added = current
-            added.status = .planToRead
-            added.dateAdded = .now
-            added.lastUpdated = .now
-            library.upsert(added)
-            userStore.addXP(GamificationCore.XPReward.addWork)
-            HapticEngine.added()
-            toasts.show("\(current.title) → À voir") { [weak library] in library?.remove(id: work.id) }
-        }
-        .padding(.horizontal, BKSpace.screenMargin)
     }
 
     private var progressCard: some View {
@@ -214,7 +222,6 @@ struct WorkDetailView: View {
         .background(BKColor.surface)
         .bkInkBorder()
         .bkPanelShadow()
-        .padding(.horizontal, BKSpace.screenMargin)
     }
 
     private func progressCaption(_ item: Work) -> String {
@@ -222,24 +229,6 @@ struct WorkDetailView: View {
         return [seen, "touche le nombre pour sauter"].compactMap { $0 }.joined(separator: " · ")
     }
 
-    @ViewBuilder
-    private var synopsis: some View {
-        if let text = current.synopsis, !text.isEmpty {
-            VStack(alignment: .leading, spacing: BKSpace.sm) {
-                Text("SYNOPSIS").font(BKFont.display(14, weight: .heavy)).tracking(1).foregroundStyle(BKColor.textSecondary)
-                Text(text)
-                    .font(.body)
-                    .lineSpacing(3)
-                    .lineLimit(synopsisExpanded ? nil : 4)
-                if !synopsisExpanded {
-                    Button("Plus") { synopsisExpanded = true }
-                        .font(.body.weight(.bold))
-                        .foregroundStyle(BKColor.accentText)
-                }
-            }
-            .padding(.horizontal, BKSpace.screenMargin)
-        }
-    }
 
     /// États #10 — gone at the source, user data kept.
     private var unavailablePanel: some View {
@@ -262,43 +251,6 @@ struct WorkDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(BKColor.surface)
         .bkInkBorder(BKColor.border)
-        .padding(.horizontal, BKSpace.screenMargin)
-    }
-
-    @ViewBuilder
-    private var similarSection: some View {
-        if !(similarState == .loaded && similar.isEmpty) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("SIMILAIRES").font(BKFont.display(14, weight: .heavy)).tracking(1).foregroundStyle(BKColor.textSecondary)
-                    .padding(.horizontal, BKSpace.screenMargin)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        switch similarState {
-                        case .loading:
-                            ForEach(0..<4, id: \.self) { _ in
-                                Rectangle().fill(BKColor.surfaceTint).frame(width: 92, height: 132)
-                            }
-                        case .failed:
-                            Text("Indisponible pour le moment").font(.caption).foregroundStyle(BKColor.textSecondary)
-                        case .loaded:
-                            ForEach(similar) { item in similarTile(item) }
-                        }
-                    }
-                    .padding(.horizontal, BKSpace.screenMargin)
-                }
-            }
-        }
-    }
-
-    private func similarTile(_ item: Work) -> some View {
-        ZStack(alignment: .topTrailing) {
-            NavigationLink(value: item) {
-                BKCover(url: item.imageSmall ?? item.image).frame(width: 92, height: 132)
-            }
-            .accessibilityLabel(item.title)
-            BKAddCornerButton(work: item)
-        }
     }
 
     // MARK: - Actions
@@ -317,20 +269,90 @@ struct WorkDetailView: View {
         }
     }
 
+    private func add() {
+        var added = current
+        added.status = .planToRead
+        added.dateAdded = .now
+        added.lastUpdated = .now
+        library.upsert(added)
+        userStore.addXP(GamificationCore.XPReward.addWork)
+        HapticEngine.added()
+        toasts.show("\(current.title) → À voir") { [weak library] in library?.remove(id: work.id) }
+    }
+
+    /// Episode list tap: place the progress on that episode.
+    private func jump(to episode: Int) {
+        guard owned != nil else { return }
+        var updated = current
+        let delta = episode - updated.progress
+        guard delta != 0 else { return }
+        let wasCompleted = updated.status == .completed
+        updated.incrementProgress(by: delta)
+        library.upsert(updated)
+        HapticEngine.progressTick()
+        toasts.show("\(current.title) → ép. \(episode)")
+        if !wasCompleted, updated.status == .completed {
+            userStore.addXP(GamificationCore.XPReward.completeWork)
+            showRating = true
+        }
+    }
+
+    private func loadMoreEpisodes() async {
+        guard episodesHasMore, let page = try? await TenraiClient.shared.episodes(animeId: work.id, page: episodesPage + 1) else { return }
+        episodes += page.data
+        episodesPage += 1
+        episodesHasMore = page.pagination?.hasNextPage ?? false
+    }
+
     private func load() async {
-        similarState = .loading
         let type = work.type.tenrai
         do {
-            details = try await TenraiClient.shared.details(id: work.id, type: type).data.asWork(mediaType: type)
+            let response = try await TenraiClient.shared.details(id: work.id, type: type)
+            details = response.data.asWork(mediaType: type)
+            extras = response.extras
         } catch TenraiClient.ClientError.badStatus(404) {
             unavailable = true
         } catch {}
-        do {
-            let response = try await TenraiClient.shared.recommendations(id: work.id, type: type)
-            similar = response.data.prefix(10).map { $0.entry.asWork(mediaType: type) }
-            similarState = .loaded
-        } catch {
-            similarState = .failed
+        if let synopsis = details?.synopsis ?? work.synopsis {
+            Task { frenchSynopsis = await SynopsisTranslation.french(for: synopsis, workId: work.id) }
+        }
+        // Spaced out a little: Tenrai allows ~3 requests per second.
+        async let castCall = try? TenraiClient.shared.characters(id: work.id, type: type)
+        async let recsCall = try? TenraiClient.shared.recommendations(id: work.id, type: type)
+        let castResult = await castCall
+        cast = (castResult?.data ?? []).sorted { ($0.role == "Main" ? 0 : 1) < ($1.role == "Main" ? 0 : 1) }
+        similar = (await recsCall?.data ?? []).map { ($0.entry.asWork(mediaType: type), $0.votes) }
+        if work.type == .anime, let page = try? await TenraiClient.shared.episodes(animeId: work.id) {
+            episodes = page.data
+            episodesPage = 1
+            episodesHasMore = page.pagination?.hasNextPage ?? false
+        }
+    }
+
+    /// Tab data is fetched the first time its tab opens, like the web.
+    private func loadTab(_ tab: WorkTab) async {
+        let type = work.type.tenrai
+        switch tab {
+        case .reviews where reviews == nil:
+            reviews = (try? await TenraiClient.shared.reviews(id: work.id, type: type))?.data ?? []
+        case .news where news == nil:
+            news = (try? await TenraiClient.shared.news(id: work.id, type: type))?.data ?? []
+        case .gallery where pictures == nil:
+            pictures = (try? await TenraiClient.shared.pictures(id: work.id, type: type))?.data ?? []
+        case .stats where stats == nil:
+            async let statsCall = try? TenraiClient.shared.statistics(id: work.id, type: type)
+            if work.type == .anime {
+                // Key roles first (director, writer, music…), producers last, like the web's "Staff (principal)".
+                let order = ["Director", "Series Composition", "Original Creator", "Music", "Character Design", "Sound Director", "Animation Director", "Script", "Producer"]
+                func rank(_ member: TenraiStaff) -> Int {
+                    member.positions.compactMap { position in order.firstIndex { position.hasPrefix($0) } }.min() ?? order.count
+                }
+                let fetched = (try? await TenraiClient.shared.staff(animeId: work.id))?.data ?? []
+                staff = fetched.enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }.map(\.element)
+            }
+            stats = await statsCall?.data
+        default:
+            break
         }
     }
 }
