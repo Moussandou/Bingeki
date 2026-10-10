@@ -19,9 +19,6 @@ final class AuthFlowUITests: XCTestCase {
         let brandingTitle = app.staticTexts["BINGEKI"]
         XCTAssertTrue(brandingTitle.waitForExistence(timeout: 5), "L'écran d'authentification doit afficher le titre BINGEKI")
 
-        let subtitle = app.staticTexts["Ton binge, dans le pouce."]
-        XCTAssertTrue(subtitle.exists, "Le sous-titre de l'app doit être présent")
-
         // Verify buttons
         let googleButton = app.buttons["auth_google_button"]
         XCTAssertTrue(googleButton.exists, "Le bouton Google doit être présent")

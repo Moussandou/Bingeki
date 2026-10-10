@@ -219,6 +219,7 @@ struct AuthView: View {
                 .scaleEffect(heroIn ? 1 : 0.6)
             }
             .frame(height: 200)
+            .accessibilityHidden(true)
 
             Text("BINGEKI")
                 .font(BKFont.display(48))
@@ -229,8 +230,7 @@ struct AuthView: View {
                 .opacity(heroIn ? 1 : 0)
                 .offset(y: heroIn ? 0 : 12)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Bingeki")
+        // The icon panel is decorative; the wordmark is the readable title.
     }
 
     private static let boltRed = Color(red: 0.898, green: 0.118, blue: 0.165)
