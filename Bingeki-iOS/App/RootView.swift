@@ -100,7 +100,11 @@ private struct SignedInRootView: View {
         self.uid = uid
         self.onReady = onReady
         #if DEBUG
-        if UserDefaults.standard.bool(forKey: "bk.useInMemoryStore") {
+        if UserDefaults.standard.bool(forKey: "bk.demoLibrary") {
+            // `-bk.demoLibrary YES`: rich fake account for trailers / screenshots.
+            _library = State(initialValue: InMemoryLibraryStore(seed: Work.demoLibrary))
+            _userStore = State(initialValue: InMemoryUserStore(profile: .demo))
+        } else if UserDefaults.standard.bool(forKey: "bk.useInMemoryStore") {
             _library = State(initialValue: InMemoryLibraryStore.preview)
             _userStore = State(initialValue: InMemoryUserStore.preview)
         } else {
