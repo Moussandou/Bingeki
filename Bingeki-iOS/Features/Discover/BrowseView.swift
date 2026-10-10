@@ -225,8 +225,7 @@ struct BrowseGridView: View {
             }
         }
         .background(BKColor.background.ignoresSafeArea())
-        .navigationTitle(feed.title)
-        .navigationBarTitleDisplayMode(.inline)
+        .bkNavigationHeader(feed.title)
         .task { if works.isEmpty { await load() } }
     }
 

@@ -57,10 +57,15 @@ struct ProfileEditView: View {
             }
             .padding(.top, BKSpace.md)
             .background(BKColor.background.ignoresSafeArea())
-            .navigationTitle("Personnaliser")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("OK") { dismiss() } }
+            .bkNavigationHeader("Personnaliser", showsBack: false) {
+                Button { dismiss() } label: {
+                    Text("OK")
+                        .font(BKFont.display(15))
+                        .frame(width: 56, height: 44)
+                        .foregroundStyle(.white)
+                        .background(BKColor.ctaFill)
+                        .bkInkBorder(BKColor.border)
+                }
             }
         }
     }

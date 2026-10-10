@@ -24,6 +24,7 @@ struct LibraryListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
+                .zIndex(1) // the sort menu floats over the list
             if library.hasLoaded && library.works.isEmpty {
                 LibraryEmptyState(onDiscover: { selectedTab = .discover }, onSearch: onSearch)
             } else {
@@ -72,13 +73,9 @@ struct LibraryListView: View {
                     .bkInkBorder(BKColor.border)
                     .accessibilityIdentifier("library_select_done")
             } else {
-                Menu {
-                    Picker("Trier par", selection: $sort) {
-                        ForEach(LibrarySort.allCases, id: \.self) { option in
-                            Label(option.label, systemImage: option.icon).tag(option)
-                        }
-                    }
-                } label: {
+                BKMenu(items: LibrarySort.allCases.map { option in
+                    BKMenuItem(id: option.label, title: option.label, icon: option.icon, isSelected: option == sort) { sort = option }
+                }) {
                     headerIcon(sort.icon)
                 }
                 .accessibilityLabel("Tri : \(sort.label)")
@@ -115,11 +112,9 @@ struct LibraryListView: View {
                 .foregroundStyle(BKColor.textSecondary)
             Spacer()
             Group {
-                Menu {
-                    ForEach(WorkStatus.allCases.filter { $0 != filter }, id: \.self) { status in
-                        Button(status.label) { move(selected, to: status) }
-                    }
-                } label: {
+                BKMenu(items: WorkStatus.allCases.filter { $0 != filter }.map { status in
+                    BKMenuItem(id: status.label, title: status.label, icon: status.iconName) { move(selected, to: status) }
+                }, opensUpward: true) {
                     Label("Statut", systemImage: "arrow.right.circle")
                         .font(.subheadline.weight(.bold))
                         .frame(minHeight: 44)
@@ -245,6 +240,8 @@ struct LibraryListView: View {
                         }
                     }
                 }
+                // Clears the floating BKTabBar; in selection mode the selection bar's inset already does.
+                .padding(.bottom, selection == nil ? BKSize.tabBarHeight + BKSpace.xl : 0)
             }
         }
     }

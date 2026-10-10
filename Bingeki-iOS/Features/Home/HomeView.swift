@@ -74,7 +74,12 @@ struct HomeView: View {
                 discoverTeaser
             }
             .padding(.top, BKSpace.lg)
-            .padding(.bottom, BKSpace.xl)
+            // Clears the floating BKTabBar so the last section can scroll into view.
+            .padding(.bottom, BKSize.tabBarHeight + BKSpace.xl)
+        }
+        // Scrolled content would otherwise run under the clock; back the status bar.
+        .overlay(alignment: .top) {
+            Color.clear.frame(height: 0).background(BKColor.background.ignoresSafeArea(edges: .top))
         }
         .background(alignment: .top) { HalftoneDots().frame(height: 230).ignoresSafeArea(edges: .top) }
         .background(BKColor.background.ignoresSafeArea())
