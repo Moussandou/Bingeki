@@ -65,14 +65,31 @@ export function partInfoFor(title: string | undefined): { index: number; total: 
 
 const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 
-export function viewsOf(reach: PlatformReach | undefined): number {
+/**
+ * Valeur d'une métrique Buffer. Buffer range ses métriques dans `raw`
+ * avec un `type` stable (views, reactions…) et un `name` d'affichage qui
+ * change selon le réseau (« Views », « Video Views »…) : on lit d'abord
+ * le type, puis les clés à plat en ignorant la casse.
+ */
+function metric(reach: PlatformReach | undefined, types: string[], names: string[]): number {
     if (!reach) return 0;
-    return num(reach.views) || num(reach.video_views) || num(reach.impressions) || num(reach.reach);
+    const raw = Array.isArray(reach.raw) ? reach.raw : [];
+    for (const t of types) {
+        const m = raw.find((x) => x?.type?.toLowerCase() === t.toLowerCase());
+        if (m) return num(m.value);
+    }
+    const wanted = names.map((n) => n.toLowerCase());
+    for (const [k, v] of Object.entries(reach)) {
+        if (wanted.includes(k.toLowerCase())) return num(v);
+    }
+    return 0;
 }
 
-export function likesOf(reach: PlatformReach | undefined): number {
-    return num(reach?.likes);
-}
+export const viewsOf = (reach: PlatformReach | undefined): number =>
+    metric(reach, ['views', 'videoViews', 'impressions'], ['views', 'video views', 'video_views', 'impressions']);
+
+export const likesOf = (reach: PlatformReach | undefined): number =>
+    metric(reach, ['reactions', 'likes'], ['reactions', 'likes']);
 
 export const isManualPost = (p: PublishedPost): boolean =>
     p.results?.insta?.provider === 'manual' || p.results?.tiktok?.provider === 'manual';
