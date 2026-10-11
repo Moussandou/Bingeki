@@ -8,7 +8,6 @@
  *
  * Ce composant sera SUPPRIMÉ avant merge production.
  */
-import { useMemo } from 'react';
 import AdminSocial from '@/pages/admin/AdminSocial';
 import type { PendingPost, PublishedPost, BotConfig } from '@/shared/socialBot';
 
@@ -136,21 +135,30 @@ Notez vos épisodes sur https://bingeki.web.app`,
     },
 ];
 
+const DAY = 86400_000;
+const pub = (id: string, title: string, daysAgo: number, hour: number, opts: Partial<PublishedPost>): PublishedPost => {
+    const d = new Date(Date.now() - daysAgo * DAY);
+    d.setHours(hour, 4, 0, 0);
+    return {
+        id, type: 'daily', createdAt: d.getTime(), scheduledAt: d.getTime(), status: 'ready',
+        title, caption: '', hashtags: '',
+        slides: [{ format: 'feed', url: 'https://cdn.myanimelist.net/images/anime/1244/138851l.jpg', index: 0 }],
+        sourceData: {}, platforms: { insta: true, tiktok: true, x: false },
+        publishedAt: d.getTime(), publishedBy: 'demo',
+        results: { insta: { id: 'ig', permalink: '#', publishedAt: d.getTime(), provider: 'buffer' }, tiktok: { id: 'tt', publishedAt: d.getTime(), provider: 'buffer' } },
+        ...opts,
+    };
+};
+
 const MOCK_PUBLISHED: PublishedPost[] = [
-    {
-        id: 'x1', type: 'daily',
-        createdAt: Date.now() - 86400_000,
-        scheduledAt: Date.now() - 86400_000,
-        status: 'ready',
-        title: 'Sorties du jour · 11 mars',
-        caption: '', hashtags: '',
-        slides: [], sourceData: {},
-        platforms: { insta: true, tiktok: false, x: false },
-        publishedAt: Date.now() - 86400_000,
-        publishedBy: 'demo',
-        results: { insta: { id: 'ig1', permalink: '#', publishedAt: Date.now() }, tiktok: null },
-        reach: { insta: { impressions: 2300, likes: 180, comments: 12, capturedAt: Date.now() } },
-    },
+    pub('x1', 'Sorties du jour · hier', 1, 22, {
+        results: { insta: { id: 'manual', permalink: '', publishedAt: Date.now(), provider: 'manual' }, tiktok: { id: 'manual', publishedAt: Date.now(), provider: 'manual' } },
+    }),
+    pub('x2', 'Coup de cœur · Frieren', 3, 21, { type: 'favorite', reach: { tiktok: { views: 318 }, insta: { likes: 52 } } }),
+    pub('x3', 'Sorties du jour · One Piece', 4, 21, { reach: { tiktok: { views: 742 }, insta: { likes: 61 } } }),
+    pub('x4', 'Récap hebdo', 7, 19, { type: 'weekly', reach: { tiktok: { views: 402 }, insta: { likes: 47 } } }),
+    pub('x5', 'Sorties du jour', 9, 22, { reach: { tiktok: { views: 253 }, insta: { likes: 30 } } }),
+    pub('x6', 'Sorties du jour', 10, 21, { reach: { tiktok: { views: 380 }, insta: { likes: 44 } }, errors: { tiktok: 'Buffer quota' } }),
 ];
 
 const MOCK_CONFIG: BotConfig = {
@@ -158,7 +166,9 @@ const MOCK_CONFIG: BotConfig = {
     schedules: {
         daily: { hour: 19, enabled: true },
         weekly: { dayOfWeek: 0, hour: 19, enabled: true },
-        favorite: { dayOfWeek: 3, hour: 12, enabled: false },
+        favorite: { dayOfWeek: 3, hour: 12, enabled: true },
+        newseason: { mode: 'auto', enabled: true },
+        cultureNewsAuto: { mode: 'off', enabled: false },
     },
     platforms: {
         insta: { accountId: 'demo', tokenRef: 'INSTA_PAGE_TOKEN', enabled: true },
@@ -168,17 +178,17 @@ const MOCK_CONFIG: BotConfig = {
     discordWebhook: '',
 };
 
+// Installé au chargement du module (route preview uniquement), avant que
+// AdminSocial monte, pour que les helpers d'abonnement lisent le mock.
+if (typeof window !== 'undefined') {
+    window.__BINGEKI_SOCIAL_MOCK__ = {
+        pending: MOCK_PENDING,
+        published: MOCK_PUBLISHED,
+        config: MOCK_CONFIG,
+    };
+}
+
 export default function AdminSocialPreview() {
-    // Set the mock BEFORE AdminSocial mounts so subscribe helpers can read it.
-    useMemo(() => {
-        if (typeof window !== 'undefined') {
-            window.__BINGEKI_SOCIAL_MOCK__ = {
-                pending: MOCK_PENDING,
-                published: MOCK_PUBLISHED,
-                config: MOCK_CONFIG,
-            };
-        }
-    }, []);
 
     return (
         <>

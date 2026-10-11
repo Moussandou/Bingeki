@@ -5,6 +5,7 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
+const { getModeForKey } = require('../shared/modes');
 const { computeWeeklyTop } = require('../generators/stats');
 const { fetchSeasonalTopRated } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
@@ -18,7 +19,7 @@ const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 async function runWeeklyRecap() {
     return withCronHealth('weeklyRecap', async () => {
         const config = await loadBotConfig();
-        if (isKilled(config) || !config.schedules?.weekly?.enabled) {
+        if (isKilled(config) || getModeForKey(config, 'weekly') === 'off') {
             console.log('[social/weeklyRecap] skipped — kill-switch or schedule disabled');
             return { note: 'skipped: kill-switch or schedule disabled' };
         }

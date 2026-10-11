@@ -11,6 +11,7 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
+const { getModeForKey } = require('../shared/modes');
 const { fetchTodaysReleases, fetchLatestEpisodeNumber } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
@@ -43,7 +44,7 @@ function normaliseAnime(a) {
 async function runDailyReleases() {
     return withCronHealth('dailyReleases', async () => {
         const config = await loadBotConfig();
-        if (isKilled(config) || !config.schedules?.daily?.enabled) {
+        if (isKilled(config) || getModeForKey(config, 'daily') === 'off') {
             console.log('[social/dailyReleases] skipped — kill-switch or schedule disabled');
             return { note: 'skipped: kill-switch or schedule disabled' };
         }

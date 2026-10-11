@@ -85,7 +85,8 @@ async function refreshAll(apiKey) {
 
         for (const platform of PLATFORMS) {
             const bufferPostId = post?.results?.[platform]?.id;
-            if (!bufferPostId) continue;
+            // Publié à la main depuis le tel : pas de post Buffer à interroger.
+            if (!bufferPostId || post.results[platform].provider === 'manual') continue;
             await new Promise((r) => setTimeout(r, CALL_SPACING_MS));
             try {
                 const { raw, flat, updatedAt } = await fetchMetrics(bufferPostId, apiKey);

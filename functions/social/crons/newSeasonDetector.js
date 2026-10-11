@@ -7,6 +7,7 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
+const { getModeForKey } = require('../shared/modes');
 const { detectNewSeasons } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
@@ -19,8 +20,8 @@ const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 async function runNewSeasonDetector() {
     return withCronHealth('newSeasonDetector', async () => {
         const config = await loadBotConfig();
-        if (isKilled(config)) {
-            console.log('[social/newSeasonDetector] skipped — kill-switch');
+        if (isKilled(config) || getModeForKey(config, 'newseason') === 'off') {
+            console.log('[social/newSeasonDetector] skipped — kill-switch or mode off');
             return { note: 'skipped: kill-switch' };
         }
 

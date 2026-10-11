@@ -20,6 +20,7 @@ const crypto = require('crypto');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
+const { getModeForKey } = require('../shared/modes');
 const { fetchFeed } = require('../generators/rssParser');
 const { fetchOgMetadata, downloadAndReuploadImage } = require('../generators/ogScraper');
 const { inferCultureNewsFields } = require('../generators/gemini');
@@ -208,7 +209,7 @@ async function runCultureNewsAuto() {
             console.log('[social/cultureNewsAuto] skipped — kill-switch');
             return { note: 'skipped: kill-switch' };
         }
-        if (config?.schedules?.cultureNewsAuto?.enabled === false) {
+        if (getModeForKey(config, 'cultureNewsAuto') === 'off') {
             console.log('[social/cultureNewsAuto] skipped — disabled in config');
             return { note: 'skipped: disabled in config' };
         }

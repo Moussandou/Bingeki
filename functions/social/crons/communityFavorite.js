@@ -7,6 +7,7 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
+const { getModeForKey } = require('../shared/modes');
 const { fetchWeeklyTopEpisodes } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
@@ -19,7 +20,7 @@ const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 async function runCommunityFavorite() {
     return withCronHealth('communityFavorite', async () => {
         const config = await loadBotConfig();
-        if (isKilled(config) || !config.schedules?.favorite?.enabled) {
+        if (isKilled(config) || getModeForKey(config, 'favorite') === 'off') {
             console.log('[social/communityFavorite] skipped — kill-switch or schedule disabled');
             return { note: 'skipped: kill-switch or schedule disabled' };
         }

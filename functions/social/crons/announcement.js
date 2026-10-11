@@ -13,6 +13,7 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
+const { getModeForKey } = require('../shared/modes');
 const { fetchUpcomingSeasons, fetchAnimeById, fetchPrequelChain, parseSeasonFromTitle } = require('../generators/jikan');
 const { generateCaption } = require('../generators/gemini');
 const { renderSlides } = require('../generators/renderer');
@@ -104,8 +105,8 @@ async function createDigestPost(enrichedList, config) {
 async function runAnnouncement() {
     return withCronHealth('announcement', async () => {
         const config = await loadBotConfig();
-        if (isKilled(config)) {
-            console.log('[social/announcement] skipped — kill-switch');
+        if (isKilled(config) || getModeForKey(config, 'announcement') === 'off') {
+            console.log('[social/announcement] skipped — kill-switch or mode off');
             return { note: 'skipped: kill-switch' };
         }
 

@@ -71,14 +71,21 @@ export interface PendingPost {
     platforms: PostPlatforms;
 
     error?: string;
+
+    /** Validé par l'admin (mode Manuel) : prêt à être publié depuis le tel. */
+    validatedAt?: number;
+    /** Réseaux déjà publiés à la main (« J'ai publié »). */
+    manualPublished?: { insta?: { publishedAt: number; by: string }; tiktok?: { publishedAt: number; by: string } };
+    /** Mode Auto mais Buffer a échoué : le post repasse en Manuel. */
+    manualFallback?: boolean;
 }
 
 export interface PublishedPost extends PendingPost {
     publishedAt: number;
     publishedBy: string;
     results: {
-        insta: { id: string; permalink: string; publishedAt: number } | null;
-        tiktok: { id: string; publishedAt: number } | null;
+        insta: { id: string; permalink: string; publishedAt: number; provider?: 'buffer' | 'manual' } | null;
+        tiktok: { id: string; publishedAt: number; provider?: 'buffer' | 'manual' } | null;
     };
     /** Per-platform error messages from a partial publish. Empty/absent
      *  when everything published cleanly. Present values mean at least
@@ -111,13 +118,32 @@ export interface BufferMetric {
     unit?: string;
 }
 
+/** 'auto' = Buffer sans validation · 'manual' = validé puis publié à la main · 'off' = plus généré. */
+export type PublishMode = 'auto' | 'manual' | 'off';
+
+/** Clés de `config.schedules` pilotées par l'écran Automatisations. */
+export type ModeKey = 'daily' | 'weekly' | 'favorite' | 'newseason' | 'announcement' | 'seasonPreview' | 'cultureNewsAuto';
+
+export interface ScheduleEntry {
+    enabled?: boolean;
+    mode?: PublishMode;
+    hour?: number;
+    dayOfWeek?: number;
+}
+
 export interface BotConfig {
     enabled: boolean;
     schedules: {
-        daily: { hour: number; enabled: boolean };
-        weekly: { dayOfWeek: number; hour: number; enabled: boolean };
-        favorite: { dayOfWeek: number; hour: number; enabled: boolean };
+        daily: { hour: number; enabled: boolean; mode?: PublishMode };
+        weekly: { dayOfWeek: number; hour: number; enabled: boolean; mode?: PublishMode };
+        favorite: { dayOfWeek: number; hour: number; enabled: boolean; mode?: PublishMode };
+        newseason?: ScheduleEntry;
+        announcement?: ScheduleEntry;
+        seasonPreview?: ScheduleEntry;
+        cultureNewsAuto?: ScheduleEntry;
     };
+    /** Mode Auto : si Buffer échoue, le post repasse en Manuel (défaut : oui). */
+    fallbackToManual?: boolean;
     platforms: {
         insta: {
             accountId: string;
@@ -198,17 +224,48 @@ export const FIRESTORE_COLLECTIONS = {
     archivedPosts: 'social_archived_posts',
 } as const;
 
-export type CronId = 'dailyReleases' | 'weeklyRecap' | 'communityFavorite' | 'newSeasonDetector' | 'announcement' | 'pollReach' | 'cleanupPending' | 'cultureNewsAuto';
+export type CronId = 'dailyReleases' | 'weeklyRecap' | 'communityFavorite' | 'newSeasonDetector' | 'announcement' | 'pollReach' | 'cleanupPending' | 'cultureNewsAuto' | 'seasonPreviewAuto' | 'autoPublish';
+
+export const TYPE_TO_MODE_KEY: Record<PostType, ModeKey> = {
+    daily: 'daily',
+    weekly: 'weekly',
+    favorite: 'favorite',
+    newseason: 'newseason',
+    announcement: 'announcement',
+    announcement_digest: 'announcement',
+    season_preview: 'seasonPreview',
+    culture_news: 'cultureNewsAuto',
+};
+
+export const DEFAULT_MODES: Record<ModeKey, PublishMode> = {
+    daily: 'manual',
+    weekly: 'manual',
+    favorite: 'manual',
+    newseason: 'manual',
+    announcement: 'manual',
+    seasonPreview: 'manual',
+    cultureNewsAuto: 'off',
+};
+
+/** Même logique que functions/social/shared/modes.js. */
+export function getMode(config: BotConfig, key: ModeKey): PublishMode {
+    const sched = config.schedules?.[key] as ScheduleEntry | undefined;
+    if (sched?.enabled === false) return 'off';
+    if (sched?.mode === 'auto' || sched?.mode === 'manual' || sched?.mode === 'off') return sched.mode;
+    return DEFAULT_MODES[key];
+}
 
 export const CRON_META: Record<CronId, { label: string; schedule: string; description: string }> = {
-    dailyReleases:     { label: 'Sorties du jour',      schedule: 'Tous les jours · 10h',       description: 'Top 5 des épisodes qui sortent aujourd\'hui.' },
+    dailyReleases:     { label: 'Sorties du jour',      schedule: 'Tous les jours · 10h',       description: 'Génère le carrousel des épisodes du jour.' },
     weeklyRecap:       { label: 'Récap hebdo',          schedule: 'Dimanche · 19h',             description: 'Top 3 anime notés par la communauté cette semaine.' },
     communityFavorite: { label: 'Coup de cœur',         schedule: 'Dimanche · 21h',             description: 'Top 3 épisodes les mieux notés sur MAL cette semaine.' },
     newSeasonDetector: { label: 'Nouvelle saison',      schedule: 'Tous les jours · 8h',        description: 'Détecte les nouvelles saisons qui démarrent aujourd\'hui.' },
-    announcement:      { label: 'Prochainement',        schedule: 'Lun / Mer / Ven · 15h',      description: '1 gros digest regroupant jusqu\'à 20 annonces d\'animes à venir.' },
-    pollReach:         { label: 'Analytics reach',      schedule: 'Toutes les 6h',              description: 'Poll Buffer pour les métriques à J+1, J+7, J+30.' },
-    cleanupPending:    { label: 'Cleanup pending',      schedule: 'Tous les jours · 4h',        description: 'Archive les posts en attente non validés depuis 3 jours.' },
-    cultureNewsAuto:   { label: 'Culture anime auto',   schedule: 'Toutes les 6h',              description: 'Surveille ANN, Journal du Japon, Anime UK News → crée automatiquement des posts culture avec source vérifiée.' },
+    announcement:      { label: 'Prochainement',        schedule: 'Lun / Mer / Ven · 15h',      description: 'Digest des annonces d\'animes à venir.' },
+    seasonPreviewAuto: { label: 'Preview de saison',    schedule: '21 mars, juin, sept., déc. · 18h', description: 'Preview de la saison suivante, une dizaine de jours avant.' },
+    cultureNewsAuto:   { label: 'Actu culture anime',   schedule: 'Toutes les 6h',              description: 'Surveille des flux RSS et crée des posts d\'actu.' },
+    autoPublish:       { label: 'Publication auto',     schedule: 'Toutes les 15 min',          description: 'Publie via Buffer les posts des types en mode Auto.' },
+    pollReach:         { label: 'Statistiques',         schedule: 'Tous les jours · 5h',        description: 'Récupère vues et likes des posts publiés via Buffer.' },
+    cleanupPending:    { label: 'Nettoyage',            schedule: 'Tous les jours · 4h',        description: 'Archive les posts en attente depuis plus de 3 jours.' },
 };
 
 export interface CronHealth {
@@ -222,4 +279,14 @@ export interface CronHealth {
     lastNote?: string | null;
     successCount?: number;
     errorCount?: number;
+    /** lastRunAt déjà relancé par le watchdog (une seule relance par échec). */
+    autoRetriedFor?: number | null;
+    lastAutoRetryAt?: number;
+}
+
+/** Doc `social_cron_health/_watchdog` écrit par le cron cronWatchdog. */
+export interface WatchdogStatus {
+    checkedAt?: number;
+    retried?: string[];
+    stuck?: string[];
 }

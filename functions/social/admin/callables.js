@@ -24,6 +24,7 @@ const {
     publishToTikTok: bufferPublishTikTok,
 } = require('../publishers/buffer');
 const { notifyPublishError } = require('../shared/discord');
+const { publishPendingPost } = require('../publishers/publishPending');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 const BUFFER_API_KEY = defineSecret('BUFFER_API_KEY');
@@ -146,81 +147,26 @@ exports.socialPublishNow = onCall(
             throw new HttpsError('invalid-argument', 'postId is required');
         }
 
-        const db = admin.firestore();
-        const ref = db.collection(COLLECTIONS.pending).doc(postId);
-        const snap = await ref.get();
-        if (!snap.exists) throw new HttpsError('not-found', `pending post ${postId} not found`);
-        const post = snap.data();
-
         const config = await loadBotConfig();
         if (isKilled(config)) {
             throw new HttpsError('failed-precondition', 'Kill-switch is active');
         }
 
-        await markPendingProcessing(postId);
-
-        const combinedCaption = `${post.caption || ''}\n\n${post.hashtags || ''}`.trim();
-        const results = { insta: null, tiktok: null };
-        const errors = {};
-        const apiKey = process.env.BUFFER_API_KEY;
-
-        // Instagram (via Buffer)
-        if (post.platforms?.insta) {
-            const channelId = config.platforms?.insta?.bufferChannelId;
-            if (!channelId) {
-                errors.insta = 'missing bufferChannelId in config';
-            } else {
-                try {
-                    results.insta = await bufferPublishInstagram(
-                        post.slides,
-                        combinedCaption,
-                        {
-                            apiKey,
-                            channelId,
-                            mode: config.platforms?.insta?.mode || 'photo',
-                        },
-                    );
-                } catch (err) {
-                    console.error(`[social/publishNow] Buffer→Instagram failed for ${postId}:`, err);
-                    errors.insta = err.message || String(err);
-                }
-            }
+        let outcome;
+        try {
+            outcome = await publishPendingPost(postId, {
+                config,
+                apiKey: process.env.BUFFER_API_KEY,
+                publishedBy: request.auth.uid,
+            });
+        } catch (err) {
+            const msg = err.message || String(err);
+            throw new HttpsError(/not found/.test(msg) ? 'not-found' : 'internal', msg);
         }
-
-        // TikTok (via Buffer)
-        if (post.platforms?.tiktok) {
-            const channelId = config.platforms?.tiktok?.bufferChannelId;
-            if (!channelId) {
-                errors.tiktok = 'missing bufferChannelId in config';
-            } else {
-                try {
-                    results.tiktok = await bufferPublishTikTok(
-                        post.slides,
-                        combinedCaption,
-                        {
-                            apiKey,
-                            channelId,
-                            mode: config.platforms?.tiktok?.mode || 'photo',
-                        },
-                    );
-                } catch (err) {
-                    console.error(`[social/publishNow] Buffer→TikTok failed for ${postId}:`, err);
-                    errors.tiktok = err.message || String(err);
-                }
-            }
-        }
-
-        const anySuccess = Object.values(results).some((r) => r);
+        const { ok, results, errors, post } = outcome;
         const hasErrors = Object.keys(errors).length > 0;
 
-        // Partial-success policy: if at least one platform published, move
-        // the post to `published` with results + errors recorded, so the
-        // admin sees what worked and what didn't and can retry manually.
-        // If nothing succeeded, keep it in `pending` marked as failed.
-        if (anySuccess) {
-            await movePendingToPublished(postId, results, request.auth.uid, {
-                errors: hasErrors ? errors : null,
-            });
+        if (ok) {
             if (hasErrors) {
                 await notifyPublishError(config, {
                     title: post.title,
@@ -342,32 +288,57 @@ exports.socialRetryPublish = onCall(
 );
 
 /* ==========================================================================
+   MARK PUBLISHED — publication faite à la main depuis le téléphone
+   ========================================================================== */
+
+/**
+ * L'admin publie lui-même sur Instagram / TikTok (pour choisir le son),
+ * puis tape « J'ai publié » réseau par réseau. Chaque réseau coché est
+ * noté sur le post ; quand tous les réseaux du post sont faits, il passe
+ * dans `published`.
+ */
+exports.socialMarkPublished = onCall(async (request) => {
+    await assertAdminOrThrow(request);
+    const { postId, platform } = request.data || {};
+    if (!postId || typeof postId !== 'string') {
+        throw new HttpsError('invalid-argument', 'postId is required');
+    }
+    if (platform !== 'insta' && platform !== 'tiktok') {
+        throw new HttpsError('invalid-argument', 'platform must be insta or tiktok');
+    }
+
+    const db = admin.firestore();
+    const ref = db.collection(COLLECTIONS.pending).doc(postId);
+    const now = Date.now();
+    const done = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) throw new HttpsError('not-found', `pending post ${postId} not found`);
+        const post = snap.data();
+        const manual = { ...(post.manualPublished || {}), [platform]: { publishedAt: now, by: request.auth.uid } };
+        tx.update(ref, { manualPublished: manual });
+        const targets = ['insta', 'tiktok'].filter((p) => post.platforms?.[p]);
+        return targets.every((p) => manual[p]) ? manual : null;
+    });
+
+    if (done) {
+        const results = {
+            insta: done.insta ? { id: 'manual', permalink: '', publishedAt: done.insta.publishedAt, provider: 'manual' } : null,
+            tiktok: done.tiktok ? { id: 'manual', publishedAt: done.tiktok.publishedAt, provider: 'manual' } : null,
+        };
+        await movePendingToPublished(postId, results, request.auth.uid);
+    }
+    return { ok: true, complete: Boolean(done) };
+});
+
+/* ==========================================================================
    TRIGGER CRON — run a scheduled cron on demand for testing/demo
    ========================================================================== */
 
-const { runDailyReleases } = require('../crons/dailyReleases');
-const { runWeeklyRecap } = require('../crons/weeklyRecap');
-const { runCommunityFavorite } = require('../crons/communityFavorite');
-const { runNewSeasonDetector } = require('../crons/newSeasonDetector');
-const { runAnnouncement } = require('../crons/announcement');
-const { runPollReach } = require('../crons/pollReach');
-const { runCleanupPending } = require('../crons/cleanupPending');
+const { CRON_RUNNERS } = require('../crons/runners');
 const { runSeasonPreview } = require('../crons/seasonPreview');
 const { runCultureNews } = require('../crons/cultureNews');
-const { runCultureNewsAuto } = require('../crons/cultureNewsAuto');
 const { fetchOgMetadata, downloadAndReuploadImage } = require('../generators/ogScraper');
 const { inferCultureNewsFields } = require('../generators/gemini');
-
-const CRON_RUNNERS = {
-    dailyReleases: runDailyReleases,
-    weeklyRecap: runWeeklyRecap,
-    communityFavorite: runCommunityFavorite,
-    newSeasonDetector: runNewSeasonDetector,
-    announcement: runAnnouncement,
-    pollReach: runPollReach,
-    cleanupPending: runCleanupPending,
-    cultureNewsAuto: runCultureNewsAuto,
-};
 
 exports.socialTriggerCron = onCall(
     {

@@ -8,12 +8,13 @@
  */
 import {
     collection, doc, query, orderBy, limit as fbLimit,
-    onSnapshot, updateDoc, setDoc, getDoc,
+    onSnapshot, updateDoc, setDoc, getDoc, deleteField,
 } from 'firebase/firestore';
 import { db } from './config';
 import { logger } from '@/utils/logger';
 import type {
     PendingPost, PublishedPost, BotConfig, PostPlatforms, PostSourceData, CronHealth, CronId,
+    ModeKey, PublishMode, WatchdogStatus,
 } from '@/shared/socialBot';
 import { DEFAULT_BOT_CONFIG, FIRESTORE_COLLECTIONS } from '@/shared/socialBot';
 
@@ -316,6 +317,76 @@ export async function updatePendingPostDraft(
     await updateDoc(ref, patch);
 }
 
+/**
+ * Mode de publication d'un type (Auto / Manuel / Off). Écrit aussi
+ * `enabled` pour que les crons qui lisent encore ce champ suivent.
+ * superAdmin only per Firestore rules.
+ */
+export async function setTypeMode(key: ModeKey, mode: PublishMode): Promise<void> {
+    const mock = readMock();
+    if (mock) {
+        mock.config = {
+            ...mock.config,
+            schedules: {
+                ...mock.config.schedules,
+                [key]: { ...(mock.config.schedules[key] || {}), mode, enabled: mode !== 'off' },
+            },
+        };
+        fireMock('config');
+        return;
+    }
+    await setDoc(
+        doc(db, CONFIG, CONFIG_DOC),
+        { schedules: { [key]: { mode, enabled: mode !== 'off' } } },
+        { merge: true },
+    );
+}
+
+/** Mode Auto : bascule en Manuel quand Buffer échoue. superAdmin only. */
+export async function setFallbackToManual(value: boolean): Promise<void> {
+    const mock = readMock();
+    if (mock) {
+        mock.config = { ...mock.config, fallbackToManual: value };
+        fireMock('config');
+        return;
+    }
+    await setDoc(doc(db, CONFIG, CONFIG_DOC), { fallbackToManual: value }, { merge: true });
+}
+
+/**
+ * Valide un post (mode Manuel) en enregistrant les dernières retouches :
+ * il passe dans « À publier » avec slides, légende et son prêts.
+ */
+export async function validatePost(
+    postId: string,
+    patch: { caption: string; hashtags: string; platforms: PostPlatforms },
+): Promise<void> {
+    const mock = readMock();
+    if (mock) {
+        mock.pending = mock.pending.map((p) =>
+            p.id === postId ? { ...p, ...patch, validatedAt: Date.now() } : p
+        );
+        fireMock('pending');
+        return;
+    }
+    await updateDoc(doc(db, PENDING, postId), { ...patch, validatedAt: Date.now() });
+}
+
+/** Annule la validation : le post revient dans « À valider ». */
+export async function unvalidatePost(postId: string): Promise<void> {
+    const mock = readMock();
+    if (mock) {
+        mock.pending = mock.pending.map((p) => {
+            if (p.id !== postId) return p;
+            const { validatedAt: _v, ...rest } = p;
+            return rest;
+        });
+        fireMock('pending');
+        return;
+    }
+    await updateDoc(doc(db, PENDING, postId), { validatedAt: deleteField() });
+}
+
 /* ==========================================================================
    ADMIN CALLABLES (Phase 4 backend, wrappers ready now)
    ========================================================================== */
@@ -404,6 +475,43 @@ export const createCultureNewsFromUrl = (url: string) =>
         }
     >('socialCreateCultureNewsFromUrl', { url });
 
+/**
+ * « J'ai publié » sur un réseau. Quand tous les réseaux du post sont
+ * faits, le serveur le déplace dans les publiés.
+ */
+export const markPublished = (postId: string, platform: 'insta' | 'tiktok') => {
+    const mock = readMock();
+    if (mock) {
+        const post = mock.pending.find((p) => p.id === postId);
+        if (!post) return Promise.resolve({ ok: true as const, complete: false });
+        const manual = { ...(post.manualPublished || {}), [platform]: { publishedAt: Date.now(), by: 'preview' } };
+        const targets = (['insta', 'tiktok'] as const).filter((k) => post.platforms[k]);
+        const complete = targets.every((k) => manual[k]);
+        if (complete) {
+            mock.pending = mock.pending.filter((p) => p.id !== postId);
+            mock.published = [{
+                ...post,
+                manualPublished: manual,
+                publishedAt: Date.now(),
+                publishedBy: 'preview',
+                results: {
+                    insta: manual.insta ? { id: 'manual', permalink: '', publishedAt: manual.insta.publishedAt, provider: 'manual' } : null,
+                    tiktok: manual.tiktok ? { id: 'manual', publishedAt: manual.tiktok.publishedAt, provider: 'manual' } : null,
+                },
+            }, ...mock.published];
+            fireMock('published');
+        } else {
+            mock.pending = mock.pending.map((p) => (p.id === postId ? { ...p, manualPublished: manual } : p));
+        }
+        fireMock('pending');
+        return Promise.resolve({ ok: true as const, complete });
+    }
+    return callAdminFn<{ postId: string; platform: 'insta' | 'tiktok' }, { ok: true; complete: boolean }>(
+        'socialMarkPublished',
+        { postId, platform },
+    );
+};
+
 export const retryPublish = (postId: string) =>
     callAdminFn<
         { postId: string },
@@ -416,25 +524,36 @@ export const retryPublish = (postId: string) =>
  * `withCronHealth` (functions/social/shared/cronHealth.js).
  */
 export function subscribeToCronHealth(
-    callback: (records: Record<string, CronHealth>) => void,
+    callback: (records: Record<string, CronHealth>, watchdog: WatchdogStatus | null) => void,
 ): () => void {
     const mock = readMock();
     if (mock) {
-        setTimeout(() => callback({}), 0);
+        setTimeout(() => callback(
+            {
+                dailyReleases: { cronId: 'dailyReleases', lastStatus: 'success', lastRunEndAt: Date.now() - 2 * 3600_000 },
+                autoPublish: { cronId: 'autoPublish', lastStatus: 'success', lastRunEndAt: Date.now() - 6 * 60_000 },
+            },
+            { checkedAt: Date.now() - 4 * 60_000 },
+        ), 0);
         return () => {};
     }
     return onSnapshot(
         collection(db, CRON_HEALTH),
         (snap) => {
             const out: Record<string, CronHealth> = {};
+            let watchdog: WatchdogStatus | null = null;
             for (const d of snap.docs) {
+                if (d.id === '_watchdog') {
+                    watchdog = d.data() as WatchdogStatus;
+                    continue;
+                }
                 out[d.id] = { cronId: d.id as CronId, ...(d.data() as Omit<CronHealth, 'cronId'>) };
             }
-            callback(out);
+            callback(out, watchdog);
         },
         (error) => {
             logger.error('[SocialBot] cron health subscription error:', error);
-            callback({});
+            callback({}, null);
         },
     );
 }
