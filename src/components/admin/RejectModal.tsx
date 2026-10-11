@@ -1,6 +1,6 @@
 /**
- * RejectModal — confirm rejection with a mandatory reason field.
- * Reason is passed to the callable, stored in social_admin_audit for
+ * RejectModal — confirm rejection, with an optional reason.
+ * When given, the reason is passed to the callable, stored in social_admin_audit for
  * traceability (who rejected what and why).
  */
 import { useState } from 'react';
@@ -17,7 +17,7 @@ interface Props {
 export function RejectModal({ postTitle, onCancel, onConfirm, busy }: Props) {
     const [reason, setReason] = useState('');
     const trimmed = reason.trim();
-    const canSubmit = trimmed.length > 0 && !busy;
+    const canSubmit = !busy;
 
     return (
         <div
@@ -46,11 +46,14 @@ export function RejectModal({ postTitle, onCancel, onConfirm, busy }: Props) {
                         fontSize: '0.7rem', letterSpacing: '0.08em',
                         textTransform: 'uppercase', color: '#666',
                     }}>
-                        Raison du rejet (obligatoire)
+                        Raison du rejet (facultatif)
                     </label>
                     <textarea
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canSubmit) onConfirm(trimmed);
+                        }}
                         rows={4}
                         autoFocus
                         placeholder="Ex: caption pas alignée avec la ligne éditoriale, cover cassée…"
@@ -60,7 +63,7 @@ export function RejectModal({ postTitle, onCancel, onConfirm, busy }: Props) {
                     <div style={{
                         marginTop: '6px', fontSize: '0.65rem', color: '#666',
                     }}>
-                        Cette raison sera enregistrée dans <code>social_admin_audit</code> pour traçabilité.
+                        Si tu en mets une, elle est gardée dans l'historique admin.
                     </div>
                 </div>
 
