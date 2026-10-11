@@ -18,6 +18,8 @@ const { CRON_RUNNERS } = require('./runners');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 const BUFFER_API_KEY = defineSecret('BUFFER_API_KEY');
+const TIKTOK_CLIENT_KEY = defineSecret('TIKTOK_CLIENT_KEY');
+const TIKTOK_CLIENT_SECRET = defineSecret('TIKTOK_CLIENT_SECRET');
 
 const STUCK_AFTER_MS = 3600_000;
 const WATCHDOG_DOC = '_watchdog';
@@ -77,7 +79,7 @@ exports.cronWatchdog = onSchedule(
         schedule: '*/30 * * * *',
         timeZone: 'Europe/Paris',
         retryCount: 0,
-        secrets: [GEMINI_API_KEY, BUFFER_API_KEY],
+        secrets: [GEMINI_API_KEY, BUFFER_API_KEY, TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET],
         memory: '2GiB',
         timeoutSeconds: 540,
     },

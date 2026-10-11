@@ -15,6 +15,7 @@ const { runCleanupPending } = require('./cleanupPending');
 const { runCultureNewsAuto } = require('./cultureNewsAuto');
 const { runSeasonPreviewAuto } = require('./seasonPreviewAuto');
 const { runAutoPublish } = require('./autoPublish');
+const { runTiktokStats } = require('./tiktokStats');
 
 const CRON_RUNNERS = {
     dailyReleases: runDailyReleases,
@@ -27,6 +28,7 @@ const CRON_RUNNERS = {
     cultureNewsAuto: runCultureNewsAuto,
     seasonPreviewAuto: runSeasonPreviewAuto,
     autoPublish: runAutoPublish,
+    tiktokStats: runTiktokStats,
 };
 
 module.exports = { CRON_RUNNERS };

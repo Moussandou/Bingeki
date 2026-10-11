@@ -331,6 +331,70 @@ exports.socialMarkPublished = onCall(async (request) => {
 });
 
 /* ==========================================================================
+   TIKTOK — connexion du compte Bingeki (Login Kit) pour lire ses stats
+   ========================================================================== */
+
+const crypto = require('crypto');
+const tiktokApi = require('../publishers/tiktokApi');
+const { runTiktokStats } = require('../crons/tiktokStats');
+
+const TIKTOK_CLIENT_KEY = defineSecret('TIKTOK_CLIENT_KEY');
+const TIKTOK_CLIENT_SECRET = defineSecret('TIKTOK_CLIENT_SECRET');
+const OAUTH_STATE_TTL_MS = 15 * 60_000;
+
+/** Adresse de la page TikTok où l'admin autorise le compte Bingeki. */
+exports.socialTiktokAuthUrl = onCall(
+    { secrets: [TIKTOK_CLIENT_KEY] },
+    async (request) => {
+        await assertAdminOrThrow(request);
+        const state = crypto.randomBytes(16).toString('hex');
+        await admin.firestore().collection('social_secrets').doc('tiktok_oauth_state').set({
+            state,
+            uid: request.auth.uid,
+            createdAt: Date.now(),
+        });
+        return { url: tiktokApi.buildAuthUrl(state) };
+    },
+);
+
+/** Retour de TikTok sur la Redirect URI : échange du code, puis 1re synchro. */
+exports.socialTiktokConnect = onCall(
+    { secrets: [TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET] },
+    async (request) => {
+        await assertAdminOrThrow(request);
+        const { code, state } = request.data || {};
+        if (!code || typeof code !== 'string' || !state || typeof state !== 'string') {
+            throw new HttpsError('invalid-argument', 'code and state are required');
+        }
+        const stateRef = admin.firestore().collection('social_secrets').doc('tiktok_oauth_state');
+        const saved = (await stateRef.get()).data();
+        if (!saved || saved.state !== state || Date.now() - saved.createdAt > OAUTH_STATE_TTL_MS) {
+            throw new HttpsError('failed-precondition', 'Lien de connexion expiré, relance la connexion TikTok');
+        }
+        await stateRef.delete();
+
+        try {
+            await tiktokApi.exchangeCode(code);
+        } catch (err) {
+            throw new HttpsError('internal', err.message || String(err));
+        }
+        await tiktokApi.statusRef().set({
+            connected: true,
+            connectedAt: Date.now(),
+            connectedBy: request.auth.uid,
+            lastError: null,
+        }, { merge: true });
+
+        try {
+            const result = await runTiktokStats();
+            return { ok: true, note: result?.note || null };
+        } catch (err) {
+            return { ok: true, note: `connecté, mais la 1re synchro a échoué : ${err.message || err}` };
+        }
+    },
+);
+
+/* ==========================================================================
    TRIGGER CRON — run a scheduled cron on demand for testing/demo
    ========================================================================== */
 
@@ -342,7 +406,7 @@ const { inferCultureNewsFields } = require('../generators/gemini');
 
 exports.socialTriggerCron = onCall(
     {
-        secrets: [GEMINI_API_KEY, BUFFER_API_KEY],
+        secrets: [GEMINI_API_KEY, BUFFER_API_KEY, TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET],
         memory: '1GiB',
         timeoutSeconds: 300,
     },

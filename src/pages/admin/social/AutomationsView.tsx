@@ -12,6 +12,7 @@ import {
     setTypeMode, setFallbackToManual, setPlatformMode, setBotEnabled, triggerCron,
 } from '@/firebase/socialBot';
 import { CultureNewsGenerator, SeasonPreviewGenerator } from './ManualTools';
+import { TiktokAccountCard } from './TiktokAccountCard';
 import { HEALTH_ORDER, formatAgo, healthSummary } from './helpers';
 import s from './SocialBot.module.css';
 
@@ -163,6 +164,8 @@ export function AutomationsView({ config, health, watchdog, isSuperAdmin }: Prop
                         })}
                     </ul>
                 </section>
+
+                <TiktokAccountCard isSuperAdmin={isSuperAdmin} />
 
                 <section className={s.panel} aria-labelledby="buffer-title">
                     <h2 id="buffer-title" className={s.panelTitle}>Buffer (mode Auto)</h2>

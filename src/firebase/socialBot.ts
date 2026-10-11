@@ -14,7 +14,7 @@ import { db } from './config';
 import { logger } from '@/utils/logger';
 import type {
     PendingPost, PublishedPost, BotConfig, PostPlatforms, PostSourceData, CronHealth, CronId,
-    ModeKey, PublishMode, WatchdogStatus,
+    ModeKey, PublishMode, WatchdogStatus, TiktokStatus,
 } from '@/shared/socialBot';
 import { DEFAULT_BOT_CONFIG, FIRESTORE_COLLECTIONS } from '@/shared/socialBot';
 
@@ -511,6 +511,35 @@ export const markPublished = (postId: string, platform: 'insta' | 'tiktok') => {
         { postId, platform },
     );
 };
+
+/** Adresse TikTok où autoriser le compte Bingeki (Login Kit). */
+export const getTiktokAuthUrl = () =>
+    callAdminFn<Record<string, never>, { url: string }>('socialTiktokAuthUrl', {});
+
+/** Retour de TikTok sur /fr/admin/social?code=…&state=… */
+export const connectTiktok = (code: string, state: string) =>
+    callAdminFn<{ code: string; state: string }, { ok: true; note: string | null }>(
+        'socialTiktokConnect',
+        { code, state },
+    );
+
+export function subscribeToTiktokStatus(callback: (status: TiktokStatus | null) => void): () => void {
+    const mock = readMock();
+    if (mock) {
+        setTimeout(() => callback({
+            connected: true, displayName: 'Bingeki', followerCount: 1284, lastSyncAt: Date.now() - 3 * 3600_000,
+        }), 0);
+        return () => {};
+    }
+    return onSnapshot(
+        doc(db, CONFIG, 'tiktok'),
+        (snap) => callback(snap.exists() ? (snap.data() as TiktokStatus) : null),
+        (error) => {
+            logger.error('[SocialBot] tiktok status subscription error:', error);
+            callback(null);
+        },
+    );
+}
 
 export const retryPublish = (postId: string) =>
     callAdminFn<

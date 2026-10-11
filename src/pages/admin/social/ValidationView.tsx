@@ -2,7 +2,7 @@
  * Onglet Valider : chiffres de la semaine, file des posts (à publier,
  * à valider, partira tout seul), post sélectionné, derniers publiés.
  */
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import type { BotConfig, PendingPost, PublishedPost } from '@/shared/socialBot';
 import { TYPE_TO_MODE_KEY, getMode } from '@/shared/socialBot';
@@ -75,15 +75,9 @@ export function ValidationView({
         [groups],
     );
 
-    useEffect(() => {
-        if (ordered.length === 0) {
-            if (activeId) onSelect(null);
-            return;
-        }
-        if (!activeId || !ordered.find((p) => p.id === activeId)) onSelect(ordered[0].id);
-    }, [ordered, activeId, onSelect]);
-
-    const active = ordered.find((p) => p.id === activeId) ?? null;
+    // Post ouvert : celui de l'URL s'il est encore dans la file, sinon le
+    // premier (sans réécrire l'URL, pour ne pas écraser d'autres paramètres).
+    const active = ordered.find((p) => p.id === activeId) ?? ordered[0] ?? null;
     const idx = active ? ordered.indexOf(active) : -1;
     const stats = useMemo(() => weekStats(published), [published]);
 
@@ -126,7 +120,7 @@ export function ValidationView({
                                 <QueueItem
                                     key={p.id}
                                     post={p}
-                                    active={p.id === activeId}
+                                    active={p.id === active?.id}
                                     onSelect={() => onSelect(p.id)}
                                     note={`Prévu ${formatWhen(p.scheduledAt).toLowerCase()}`}
                                 />
@@ -148,7 +142,7 @@ export function ValidationView({
                             <QueueItem
                                 key={p.id}
                                 post={p}
-                                active={p.id === activeId}
+                                active={p.id === active?.id}
                                 onSelect={() => onSelect(p.id)}
                                 warn={p.manualFallback || p.status === 'failed'}
                                 note={p.manualFallback
@@ -169,7 +163,7 @@ export function ValidationView({
                                 <QueueItem
                                     key={p.id}
                                     post={p}
-                                    active={p.id === activeId}
+                                    active={p.id === active?.id}
                                     onSelect={() => onSelect(p.id)}
                                     note={`Buffer · ${formatWhen(p.scheduledAt).toLowerCase()}`}
                                 />

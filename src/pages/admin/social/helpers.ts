@@ -152,7 +152,7 @@ export function trend(cur: number, prev: number): { label: string; up: boolean }
 
 export const HEALTH_ORDER: CronId[] = [
     'dailyReleases', 'weeklyRecap', 'communityFavorite', 'newSeasonDetector', 'announcement',
-    'seasonPreviewAuto', 'cultureNewsAuto', 'autoPublish', 'pollReach', 'cleanupPending',
+    'seasonPreviewAuto', 'cultureNewsAuto', 'autoPublish', 'pollReach', 'tiktokStats', 'cleanupPending',
 ];
 
 export function healthSummary(health: Record<string, CronHealth>) {

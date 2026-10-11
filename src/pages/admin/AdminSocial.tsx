@@ -6,7 +6,7 @@
  * vivent dans l'URL (?tab=…&post=…) pour pouvoir ouvrir un post précis
  * depuis le téléphone. Sur mobile, les onglets passent en barre du bas.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CheckCheck, History, SlidersHorizontal } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -14,7 +14,9 @@ import type { BotConfig, CronHealth, PendingPost, PublishedPost, WatchdogStatus 
 import { DEFAULT_BOT_CONFIG } from '@/shared/socialBot';
 import {
     subscribeToBotConfig, subscribeToCronHealth, subscribeToPendingPosts, subscribeToPublishedPosts,
+    connectTiktok,
 } from '@/firebase/socialBot';
+import { logger } from '@/utils/logger';
 import { PublishedPostModal } from '@/components/admin/PublishedPostModal';
 import { ValidationView } from './social/ValidationView';
 import { PublishedView } from './social/PublishedView';
@@ -47,6 +49,37 @@ export default function AdminSocial() {
     const [watchdog, setWatchdog] = useState<WatchdogStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [openPublished, setOpenPublished] = useState<PublishedPost | null>(null);
+    // Retour de TikTok après l'autorisation du compte (Redirect URI de
+    // Login Kit = cette page) : ?code=…&state=… ou ?error=…
+    const [tiktokReturn] = useState(() => {
+        const q = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+        return { code: q.get('code'), state: q.get('state'), error: q.get('error') };
+    });
+    const [notice, setNotice] = useState<string | null>(() => {
+        if (tiktokReturn.error || (tiktokReturn.code && !tiktokReturn.state)) {
+            return `Connexion TikTok annulée${tiktokReturn.error ? ` (${tiktokReturn.error})` : ''}.`;
+        }
+        return tiktokReturn.code ? 'Connexion du compte TikTok…' : null;
+    });
+    const tiktokHandled = useRef(false);
+    useEffect(() => {
+        const { code, state, error } = tiktokReturn;
+        if (tiktokHandled.current || (!code && !error)) return;
+        tiktokHandled.current = true;
+        setParams((prev) => {
+            const p = new URLSearchParams(prev);
+            ['code', 'state', 'scopes', 'error', 'error_description'].forEach((k) => p.delete(k));
+            p.set('tab', 'autos');
+            return p;
+        }, { replace: true });
+        if (!code || !state) return;
+        connectTiktok(code, state)
+            .then((res) => setNotice(`Compte TikTok connecté.${res.note ? ` ${res.note}` : ''}`))
+            .catch((e) => {
+                logger.error('[AdminSocial] tiktok connect failed:', e);
+                setNotice(`La connexion TikTok a échoué : ${e instanceof Error ? e.message : String(e)}`);
+            });
+    }, [tiktokReturn, setParams]);
 
     useEffect(() => {
         const unsubs = [
@@ -113,6 +146,13 @@ export default function AdminSocial() {
                 <div className={s.banner} role="status">
                     Bot coupé : plus aucun post n'est généré ni publié automatiquement.
                     {isSuperAdmin && <button type="button" className={s.linkBtn} onClick={() => setTab('autos')}>Relancer</button>}
+                </div>
+            )}
+
+            {notice && (
+                <div className={s.banner} role="status">
+                    {notice}
+                    <button type="button" className={s.linkBtn} onClick={() => setNotice(null)}>Fermer</button>
                 </div>
             )}
 

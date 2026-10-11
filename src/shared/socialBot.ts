@@ -224,7 +224,7 @@ export const FIRESTORE_COLLECTIONS = {
     archivedPosts: 'social_archived_posts',
 } as const;
 
-export type CronId = 'dailyReleases' | 'weeklyRecap' | 'communityFavorite' | 'newSeasonDetector' | 'announcement' | 'pollReach' | 'cleanupPending' | 'cultureNewsAuto' | 'seasonPreviewAuto' | 'autoPublish';
+export type CronId = 'dailyReleases' | 'weeklyRecap' | 'communityFavorite' | 'newSeasonDetector' | 'announcement' | 'pollReach' | 'cleanupPending' | 'cultureNewsAuto' | 'seasonPreviewAuto' | 'autoPublish' | 'tiktokStats';
 
 export const TYPE_TO_MODE_KEY: Record<PostType, ModeKey> = {
     daily: 'daily',
@@ -264,6 +264,7 @@ export const CRON_META: Record<CronId, { label: string; schedule: string; descri
     seasonPreviewAuto: { label: 'Preview de saison',    schedule: '21 mars, juin, sept., déc. · 18h', description: 'Preview de la saison suivante, une dizaine de jours avant.' },
     cultureNewsAuto:   { label: 'Actu culture anime',   schedule: 'Toutes les 6h',              description: 'Surveille des flux RSS et crée des posts d\'actu.' },
     autoPublish:       { label: 'Publication auto',     schedule: 'Toutes les 15 min',          description: 'Publie via Buffer les posts des types en mode Auto.' },
+    tiktokStats:       { label: 'Stats TikTok',         schedule: 'Tous les jours · 6h30 et 18h30', description: 'Lit le compte TikTok pour les chiffres des posts publiés à la main.' },
     pollReach:         { label: 'Statistiques',         schedule: 'Tous les jours · 5h',        description: 'Récupère vues et likes des posts publiés via Buffer.' },
     cleanupPending:    { label: 'Nettoyage',            schedule: 'Tous les jours · 4h',        description: 'Archive les posts en attente depuis plus de 3 jours.' },
 };
@@ -282,6 +283,19 @@ export interface CronHealth {
     /** lastRunAt déjà relancé par le watchdog (une seule relance par échec). */
     autoRetriedFor?: number | null;
     lastAutoRetryAt?: number;
+}
+
+/** Doc `social_bot_config/tiktok` : compte TikTok connecté (infos publiques). */
+export interface TiktokStatus {
+    connected?: boolean;
+    connectedAt?: number;
+    displayName?: string | null;
+    avatarUrl?: string | null;
+    followerCount?: number;
+    likesCount?: number;
+    videoCount?: number;
+    lastSyncAt?: number;
+    lastError?: string | null;
 }
 
 /** Doc `social_cron_health/_watchdog` écrit par le cron cronWatchdog. */
