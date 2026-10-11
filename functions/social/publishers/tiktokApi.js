@@ -32,15 +32,17 @@ const secretRef = () => admin.firestore().collection(SECRET_DOC[0]).doc(SECRET_D
 const statusRef = () => admin.firestore().collection(STATUS_DOC[0]).doc(STATUS_DOC[1]);
 
 function credentials() {
-    const clientKey = process.env.TIKTOK_CLIENT_KEY;
-    const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
+    // trim() : une valeur collée depuis le presse-papier peut garder un
+    // retour à la ligne, que TikTok refuse.
+    const clientKey = (process.env.TIKTOK_CLIENT_KEY || '').trim();
+    const clientSecret = (process.env.TIKTOK_CLIENT_SECRET || '').trim();
     if (!clientKey || !clientSecret) throw new Error('TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET manquants');
     return { clientKey, clientSecret };
 }
 
 function buildAuthUrl(state) {
     // Seule la Client key est nécessaire ici (la fonction n'a pas accès au secret).
-    const clientKey = process.env.TIKTOK_CLIENT_KEY;
+    const clientKey = (process.env.TIKTOK_CLIENT_KEY || '').trim();
     if (!clientKey) throw new Error('TIKTOK_CLIENT_KEY manquant');
     const params = new URLSearchParams({
         client_key: clientKey,
