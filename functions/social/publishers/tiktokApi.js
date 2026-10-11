@@ -39,7 +39,9 @@ function credentials() {
 }
 
 function buildAuthUrl(state) {
-    const { clientKey } = credentials();
+    // Seule la Client key est nécessaire ici (la fonction n'a pas accès au secret).
+    const clientKey = process.env.TIKTOK_CLIENT_KEY;
+    if (!clientKey) throw new Error('TIKTOK_CLIENT_KEY manquant');
     const params = new URLSearchParams({
         client_key: clientKey,
         scope: SCOPES,
