@@ -4,8 +4,13 @@
  * Buffer's Publish API exposes per-post metrics through a single GraphQL
  * `post(input: {id})` query. The metrics are cumulative and Buffer keeps
  * them updated on their side, so we just re-fetch on every tick — no need
- * for milestone windows. Every 6h we walk every post from the last 30
- * days and overwrite `reach.<platform>` with the latest snapshot.
+ * for milestone windows. Once a day we walk the posts of the last 7 days
+ * and overwrite `reach.<platform>` with the latest snapshot.
+ *
+ * Buffer rate-limits the API key as a whole: this cron shares its quota
+ * with publishing. It used to walk 30 days every 6h (~70 calls a run),
+ * which kept the key throttled and made "Publier" fail. So it now stays
+ * small, spaces its calls and stops at the first rate-limit error.
  *
  * Buffer returns `metrics[]` as generic `{type, name, value, unit}`. We
  * keep the raw list and flatten by name for cheap admin lookups.
@@ -20,7 +25,10 @@ const { withCronHealth } = require('../shared/cronHealth');
 
 const BUFFER_API_KEY = defineSecret('BUFFER_API_KEY');
 const ONE_DAY = 24 * 3600_000;
-const LOOKBACK_MS = 30 * ONE_DAY;
+const LOOKBACK_MS = 7 * ONE_DAY;
+const CALL_SPACING_MS = 1500;
+
+const isRateLimited = (err) => /too many requests|rate limit/i.test(err?.message || '');
 
 const POST_METRICS_QUERY = /* GraphQL */ `
     query GetPostMetrics($input: PostInput!) {
@@ -68,7 +76,9 @@ async function refreshAll(apiKey) {
     let updated = 0;
     let skipped = 0;
     let failed = 0;
+    let rateLimited = false;
     for (const doc of snap.docs) {
+        if (rateLimited) break;
         const post = doc.data();
         const reachPatch = { ...(post.reach || {}) };
         let touchedAnyPlatform = false;
@@ -76,6 +86,7 @@ async function refreshAll(apiKey) {
         for (const platform of PLATFORMS) {
             const bufferPostId = post?.results?.[platform]?.id;
             if (!bufferPostId) continue;
+            await new Promise((r) => setTimeout(r, CALL_SPACING_MS));
             try {
                 const { raw, flat, updatedAt } = await fetchMetrics(bufferPostId, apiKey);
                 reachPatch[platform] = {
@@ -89,6 +100,8 @@ async function refreshAll(apiKey) {
             } catch (err) {
                 console.error(`[social/pollReach] ${platform} failed for ${doc.id}:`, err.message || err);
                 failed += 1;
+                // Leave the remaining quota to publishing; retry tomorrow.
+                if (isRateLimited(err)) { rateLimited = true; break; }
             }
         }
 
@@ -99,8 +112,8 @@ async function refreshAll(apiKey) {
             skipped += 1;
         }
     }
-    console.log(`[social/pollReach] refreshed ${updated}, skipped ${skipped} (no buffer id), failed ${failed} of ${snap.size} posts in the last 30 days`);
-    return { updated, skipped, failed, total: snap.size };
+    console.log(`[social/pollReach] refreshed ${updated}, skipped ${skipped} (no buffer id), failed ${failed} of ${snap.size} posts in the last 7 days${rateLimited ? ' (stopped: Buffer rate limit)' : ''}`);
+    return { updated, skipped, failed, total: snap.size, rateLimited };
 }
 
 async function runPollReach() {
@@ -110,17 +123,19 @@ async function runPollReach() {
             console.error('[social/pollReach] BUFFER_API_KEY not configured, aborting');
             return { note: 'BUFFER_API_KEY missing' };
         }
-        const { updated, skipped, failed, total } = await refreshAll(apiKey);
-        return { note: `${updated}/${total} refreshed · ${skipped} skipped · ${failed} failed` };
+        const { updated, skipped, failed, total, rateLimited } = await refreshAll(apiKey);
+        return { note: `${updated}/${total} refreshed · ${skipped} skipped · ${failed} failed${rateLimited ? ' · rate-limited, stopped' : ''}` };
     });
 }
 
 exports.runPollReach = runPollReach;
 exports.pollReach = onSchedule(
     {
-        schedule: 'every 6 hours',
+        // 05:00, well away from the 21h–22h publishing slots.
+        schedule: '0 5 * * *',
         timeZone: 'Europe/Paris',
-        retryCount: 1,
+        retryCount: 0,
+        timeoutSeconds: 540,
         secrets: [BUFFER_API_KEY],
     },
     runPollReach,

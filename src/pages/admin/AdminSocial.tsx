@@ -281,7 +281,7 @@ export default function AdminSocial() {
     }, [active?.title]);
     const templateSlides = useMemo(() => {
         if (!active || !templateData) return [];
-        return buildSlidesHTML(active.type, templateData, { partInfo });
+        return buildSlidesHTML(active.type, templateData, { partInfo, date: new Date(active.createdAt) });
     }, [active?.type, templateData, active, partInfo]);
 
     const puppeteerSlides = active?.slides.filter((sl) => sl.format === slideFormat) ?? [];

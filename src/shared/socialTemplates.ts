@@ -740,8 +740,7 @@ export function formatAnnouncementDate(data: AnnouncementDateInput): Announcemen
 const DAY_FR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 const MONTH_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 
-function todayLabel(): string {
-    const d = new Date();
+function todayLabel(d: Date = new Date()): string {
     return `${DAY_FR[d.getDay()]} ${d.getDate()} ${MONTH_FR[d.getMonth()]}`;
 }
 
@@ -795,6 +794,10 @@ export interface BuiltSlide {
 
 export interface BuildSlidesOpts {
     partInfo?: { index: number; total: number };
+    /** Day the post is about (its creation date). Defaults to now; the
+     *  admin preview passes the post's date so an older pending post
+     *  keeps its own date instead of today's. */
+    date?: Date;
 }
 
 export type CultureNewsCategory = 'game' | 'movie' | 'goodies' | 'industry' | 'event' | 'other';
@@ -895,6 +898,7 @@ export function buildSlidesHTML(
         slides.push({
             name: 'intro',
             html: introSlide({
+                date: opts.date,
                 typeLabel: "Épisodes anime · aujourd'hui",
                 chipText,
                 titleMain: `${arr.length}`,
@@ -929,7 +933,7 @@ export function buildSlidesHTML(
                         { text: a.currentEpisode ? `NOUVEL ÉPISODE ${a.currentEpisode}` : 'NOUVEL ÉPISODE' },
                     ],
                     title: a.title,
-                    subtitle: todayLabel().toUpperCase(),
+                    subtitle: todayLabel(opts.date).toUpperCase(),
                     index: i + 2, total,
                 }),
             }));
@@ -959,7 +963,8 @@ export function buildSlidesHTML(
         slides.push({
             name: 'intro',
             html: introSlide({
-                typeLabel: `Anime · Semaine ${isoWeek()}`,
+                date: opts.date,
+                typeLabel: `Anime · Semaine ${isoWeek(opts.date)}`,
                 chipText: 'RÉCAP HEBDO',
                 titleMain: 'Le',
                 titleAccent: `TOP ${arr.length}`,
@@ -998,7 +1003,8 @@ export function buildSlidesHTML(
         slides.push({
             name: 'intro',
             html: introSlide({
-                typeLabel: `Anime · Semaine ${isoWeek()}`,
+                date: opts.date,
+                typeLabel: `Anime · Semaine ${isoWeek(opts.date)}`,
                 chipText: 'COUP DE CŒUR',
                 titleMain: 'Le',
                 titleAccent: `TOP ${arr.length}`,
@@ -1052,7 +1058,7 @@ export function buildSlidesHTML(
                 ribbonVariant: 'ribbon-rose',
                 metas: [
                     { text: 'NOUVELLE SAISON', variant: 'cyan' },
-                    { text: d.airing_from ? new Date(d.airing_from).toLocaleDateString('fr-FR').toUpperCase() : todayLabel().toUpperCase() },
+                    { text: d.airing_from ? new Date(d.airing_from).toLocaleDateString('fr-FR').toUpperCase() : todayLabel(opts.date).toUpperCase() },
                 ],
                 title: d.title,
                 subtitle: (d.studios || []).slice(0, 1).join('') || '',
