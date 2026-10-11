@@ -165,7 +165,7 @@ export function AutomationsView({ config, health, watchdog, isSuperAdmin }: Prop
                     </ul>
                 </section>
 
-                <TiktokAccountCard isSuperAdmin={isSuperAdmin} />
+                <TiktokAccountCard />
 
                 <section className={s.panel} aria-labelledby="buffer-title">
                     <h2 id="buffer-title" className={s.panelTitle}>Buffer (mode Auto)</h2>

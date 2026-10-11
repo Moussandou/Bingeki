@@ -384,6 +384,13 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    // Cron health (one doc per cron + `_watchdog`): written by the crons,
+    // read by any admin for the Santé panel.
+    match /social_cron_health/{id} {
+      allow read: if isAdmin();
+      allow write: if false; // server-only (Cloud Functions)
+    }
+
     // Admin audit trail: written server-side (from callables) whenever
     // an admin rejects/publishes/regenerates a post. Read-only for admins.
     match /social_admin_audit/{id} {

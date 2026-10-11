@@ -10,7 +10,7 @@ import { getTiktokAuthUrl, subscribeToTiktokStatus, triggerCron } from '@/fireba
 import { formatAgo, formatCount } from './helpers';
 import s from './SocialBot.module.css';
 
-export function TiktokAccountCard({ isSuperAdmin }: { isSuperAdmin: boolean }) {
+export function TiktokAccountCard() {
     const [status, setStatus] = useState<TiktokStatus | null>(null);
     const [busy, setBusy] = useState<null | 'connect' | 'sync'>(null);
 
@@ -73,24 +73,22 @@ export function TiktokAccountCard({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                 </p>
             )}
 
-            {isSuperAdmin && (
-                <div className={s.chipRow}>
-                    {connected && (
-                        <button type="button" className={`${s.btn} ${s.btnSmall}`} onClick={sync} disabled={busy !== null}>
-                            {busy === 'sync' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Lire maintenant
-                        </button>
-                    )}
-                    <button
-                        type="button"
-                        className={`${s.btn} ${s.btnSmall} ${connected ? '' : s.btnPrimary}`}
-                        onClick={connect}
-                        disabled={busy !== null}
-                    >
-                        {busy === 'connect' && <Loader2 size={14} className="animate-spin" />}
-                        {connected ? 'Reconnecter' : 'Connecter TikTok'}
+            <div className={s.chipRow}>
+                {connected && (
+                    <button type="button" className={`${s.btn} ${s.btnSmall}`} onClick={sync} disabled={busy !== null}>
+                        {busy === 'sync' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Lire maintenant
                     </button>
-                </div>
-            )}
+                )}
+                <button
+                    type="button"
+                    className={`${s.btn} ${s.btnSmall} ${connected ? '' : s.btnPrimary}`}
+                    onClick={connect}
+                    disabled={busy !== null}
+                >
+                    {busy === 'connect' && <Loader2 size={14} className="animate-spin" />}
+                    {connected ? 'Reconnecter' : 'Connecter TikTok'}
+                </button>
+            </div>
         </section>
     );
 }
