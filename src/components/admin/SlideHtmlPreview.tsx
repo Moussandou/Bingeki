@@ -20,16 +20,18 @@ interface Props {
     slideIndex: number;
     format?: SlideFormat;
     partInfo?: { index: number; total: number };
+    /** Post creation time (ms): the slides show that day, not today. */
+    postDate?: number;
 }
 
 const NATIVE_W = 1080;
 const NATIVE_H_FEED = 1350;
 const NATIVE_H_STORY = 1920;
 
-export function SlideHtmlPreview({ type, data, slideIndex, format = 'feed', partInfo }: Props) {
+export function SlideHtmlPreview({ type, data, slideIndex, format = 'feed', partInfo, postDate }: Props) {
     const slides = useMemo(
-        () => buildSlidesHTML(type, data, { partInfo }),
-        [type, data, partInfo],
+        () => buildSlidesHTML(type, data, { partInfo, date: postDate ? new Date(postDate) : undefined }),
+        [type, data, partInfo, postDate],
     );
     const slide = slides[slideIndex] ?? slides[0];
 

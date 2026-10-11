@@ -759,6 +759,7 @@ export default function AdminSocial() {
                                             slideIndex={activeSlideIndex}
                                             format={slideFormat}
                                             partInfo={partInfo}
+                                            postDate={active.createdAt}
                                         />
                                     ) : puppeteerSlides[activeSlideIndex] ? (
                                         <img src={puppeteerSlides[activeSlideIndex].url} alt="" style={{
@@ -805,6 +806,7 @@ export default function AdminSocial() {
                                                         slideIndex={i}
                                                         format={slideFormat}
                                                         partInfo={partInfo}
+                                                        postDate={active.createdAt}
                                                     />
                                                 ) : puppeteerSlides[i]?.url ? (
                                                     <img src={puppeteerSlides[i].url} alt="" style={{
