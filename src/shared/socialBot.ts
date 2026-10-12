@@ -298,6 +298,17 @@ export interface TiktokStatus {
     lastError?: string | null;
 }
 
+/** Doc `social_bot_config/buffer_usage` : appels à l'API Buffer comptés par jour. */
+export interface BufferUsage {
+    days?: Record<string, number>;
+    lastCallAt?: number;
+    lastRateLimitAt?: number | null;
+    lastHeaders?: Record<string, string>;
+}
+
+export const BUFFER_LIMIT_30D = 3000;
+export const BUFFER_LIMIT_24H = 250;
+
 /** Doc `social_cron_health/_watchdog` écrit par le cron cronWatchdog. */
 export interface WatchdogStatus {
     checkedAt?: number;

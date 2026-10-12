@@ -14,7 +14,7 @@ import { db } from './config';
 import { logger } from '@/utils/logger';
 import type {
     PendingPost, PublishedPost, BotConfig, PostPlatforms, PostSourceData, CronHealth, CronId,
-    ModeKey, PublishMode, WatchdogStatus, TiktokStatus,
+    ModeKey, PublishMode, WatchdogStatus, TiktokStatus, BufferUsage,
 } from '@/shared/socialBot';
 import { DEFAULT_BOT_CONFIG, FIRESTORE_COLLECTIONS } from '@/shared/socialBot';
 
@@ -536,6 +536,23 @@ export function subscribeToTiktokStatus(callback: (status: TiktokStatus | null) 
         (snap) => callback(snap.exists() ? (snap.data() as TiktokStatus) : null),
         (error) => {
             logger.error('[SocialBot] tiktok status subscription error:', error);
+            callback(null);
+        },
+    );
+}
+
+export function subscribeToBufferUsage(callback: (usage: BufferUsage | null) => void): () => void {
+    const mock = readMock();
+    if (mock) {
+        const day = (offset: number) => new Date(Date.now() - offset * 86_400_000).toISOString().slice(0, 10);
+        setTimeout(() => callback({ days: { [day(0)]: 9, [day(1)]: 14, [day(2)]: 15 }, lastCallAt: Date.now() - 3600_000 }), 0);
+        return () => {};
+    }
+    return onSnapshot(
+        doc(db, CONFIG, 'buffer_usage'),
+        (snap) => callback(snap.exists() ? (snap.data() as BufferUsage) : null),
+        (error) => {
+            logger.error('[SocialBot] buffer usage subscription error:', error);
             callback(null);
         },
     );

@@ -40,6 +40,7 @@
  */
 
 const BUFFER_ENDPOINT = 'https://api.buffer.com';
+const { recordBufferCall } = require('../shared/bufferUsage');
 
 const CREATE_POST_MUTATION = /* GraphQL */ `
     mutation CreatePost($input: CreatePostInput!) {
@@ -72,10 +73,17 @@ async function graphql(query, variables, apiKey) {
         signal: AbortSignal.timeout(90_000),
     });
     const body = await res.json().catch(() => ({}));
-    if (!res.ok || body?.errors?.length) {
-        const msg = body?.errors?.[0]?.message || `HTTP ${res.status}`;
-        throw new Error(`Buffer API error: ${msg}`);
-    }
+    const limitHeaders = {};
+    res.headers.forEach((value, name) => {
+        if (/ratelimit|rate-limit|retry-after/i.test(name)) limitHeaders[name] = value;
+    });
+    const msg = body?.errors?.[0]?.message || `HTTP ${res.status}`;
+    const failed = !res.ok || body?.errors?.length;
+    await recordBufferCall({
+        rateLimited: failed && (res.status === 429 || /too many requests|rate limit/i.test(msg)),
+        headers: limitHeaders,
+    });
+    if (failed) throw new Error(`Buffer API error: ${msg}`);
     return body?.data || {};
 }
 

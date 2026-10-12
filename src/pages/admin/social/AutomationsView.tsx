@@ -13,6 +13,7 @@ import {
 } from '@/firebase/socialBot';
 import { CultureNewsGenerator, SeasonPreviewGenerator } from './ManualTools';
 import { TiktokAccountCard } from './TiktokAccountCard';
+import { BufferQuotaCard } from './BufferQuotaCard';
 import { HEALTH_ORDER, formatAgo, healthSummary } from './helpers';
 import s from './SocialBot.module.css';
 
@@ -166,6 +167,8 @@ export function AutomationsView({ config, health, watchdog, isSuperAdmin }: Prop
                 </section>
 
                 <TiktokAccountCard />
+
+                <BufferQuotaCard />
 
                 <section className={s.panel} aria-labelledby="buffer-title">
                     <h2 id="buffer-title" className={s.panelTitle}>Buffer (mode Auto)</h2>

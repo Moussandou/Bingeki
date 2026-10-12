@@ -22,6 +22,7 @@ const { defineSecret } = require('firebase-functions/params');
 const { COLLECTIONS } = require('../shared/firestore');
 const { graphql } = require('../publishers/buffer');
 const { withCronHealth } = require('../shared/cronHealth');
+const { shouldPauseStats, pruneBufferUsage } = require('../shared/bufferUsage');
 
 const BUFFER_API_KEY = defineSecret('BUFFER_API_KEY');
 const ONE_DAY = 24 * 3600_000;
@@ -123,6 +124,12 @@ async function runPollReach() {
         if (!apiKey) {
             console.error('[social/pollReach] BUFFER_API_KEY not configured, aborting');
             return { note: 'BUFFER_API_KEY missing' };
+        }
+        await pruneBufferUsage();
+        const pause = await shouldPauseStats();
+        if (pause) {
+            console.log(`[social/pollReach] paused to keep Buffer quota for publishing: ${pause}`);
+            return { note: `en pause (quota Buffer) · ${pause}` };
         }
         const { updated, skipped, failed, total, rateLimited } = await refreshAll(apiKey);
         return { note: `${updated}/${total} refreshed · ${skipped} skipped · ${failed} failed${rateLimited ? ' · rate-limited, stopped' : ''}` };
