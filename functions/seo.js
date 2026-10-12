@@ -478,7 +478,9 @@ app.get('/api/og-image/:type?/:id?', async (req, res) => {
 app.get('/*', async (req, res) => {
     const url = req.url;
 
-    if (url.includes('.') || url.startsWith('/assets/')) {
+    // Seul le chemin compte : les paramètres peuvent contenir des points
+    // (ex. retour de TikTok ?scopes=user.info.basic,…).
+    if (req.path.includes('.') || req.path.startsWith('/assets/')) {
         return res.status(404).send('Not Found');
     }
 
