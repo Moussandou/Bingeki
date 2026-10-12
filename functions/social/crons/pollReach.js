@@ -128,6 +128,9 @@ async function runPollReach() {
         await pruneBufferUsage();
         const pause = await shouldPauseStats();
         if (pause) {
+            // Une requête minimale suffit à rafraîchir les vrais compteurs
+            // renvoyés par Buffer dans ses en-têtes (même si elle est refusée).
+            await graphql('query { __typename }', {}, apiKey).catch(() => {});
             console.log(`[social/pollReach] paused to keep Buffer quota for publishing: ${pause}`);
             return { note: `en pause (quota Buffer) · ${pause}` };
         }

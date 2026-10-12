@@ -304,6 +304,9 @@ export interface BufferUsage {
     lastCallAt?: number;
     lastRateLimitAt?: number | null;
     lastHeaders?: Record<string, string>;
+    /** Compteurs réels renvoyés par Buffer (en-têtes RateLimit) au dernier appel. */
+    real?: Partial<Record<'w15m' | 'w24h' | 'w30d', { limit: number | null; remaining: number | null; resetIn: number | null }>>;
+    realAt?: number;
 }
 
 export const BUFFER_LIMIT_30D = 3000;

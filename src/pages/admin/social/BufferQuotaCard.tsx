@@ -43,10 +43,24 @@ export function BufferQuotaCard() {
 
     const days = usage?.days ?? {};
     const cutoff = dayKey(now - 29 * 86_400_000);
-    const last30 = Object.entries(days).reduce((sum, [d, n]) => (d >= cutoff ? sum + (Number(n) || 0) : sum), 0);
-    const today = Number(days[dayKey(now)]) || 0;
+    const counted30 = Object.entries(days).reduce((sum, [d, n]) => (d >= cutoff ? sum + (Number(n) || 0) : sum), 0);
+    const countedToday = Number(days[dayKey(now)]) || 0;
     const firstDay = Object.keys(days).sort()[0];
-    const blocked = !!usage?.lastRateLimitAt && now - usage.lastRateLimitAt < 86_400_000;
+
+    // Les vrais chiffres de Buffer (en-têtes de sa dernière réponse) priment
+    // sur notre compteur, qui ne voit que les appels faits depuis sa mise en place.
+    const fresh = !!usage?.realAt && now - usage.realAt < 86_400_000;
+    const used = (w?: { limit: number | null; remaining: number | null }) =>
+        (w && w.limit != null && w.remaining != null ? w.limit - w.remaining : null);
+    const real30 = fresh ? used(usage?.real?.w30d) : null;
+    const real24 = fresh ? used(usage?.real?.w24h) : null;
+    const last30 = real30 ?? counted30;
+    const today = real24 ?? countedToday;
+    const max30 = (fresh && usage?.real?.w30d?.limit) || BUFFER_LIMIT_30D;
+    const max24 = (fresh && usage?.real?.w24h?.limit) || BUFFER_LIMIT_24H;
+    const resetIn = fresh ? usage?.real?.w30d?.resetIn : null;
+    const blocked = (real30 != null && real30 >= max30)
+        || (!!usage?.lastRateLimitAt && now - usage.lastRateLimitAt < 86_400_000);
 
     return (
         <section className={s.panel} aria-labelledby="quota-title">
@@ -54,16 +68,21 @@ export function BufferQuotaCard() {
                 <h2 id="quota-title" className={s.panelTitle}>Quota Buffer</h2>
                 {blocked && <span className={`${s.chip} ${s.chipErr}`}>Atteint</span>}
             </div>
-            <Gauge value={last30} max={BUFFER_LIMIT_30D} label="sur 30 jours" />
-            <Gauge value={today} max={BUFFER_LIMIT_24H} label="aujourd'hui" />
+            <Gauge value={last30} max={max30} label="sur 30 jours" />
+            <Gauge value={today} max={max24} label="sur 24 h" />
             {blocked && (
                 <p className={s.errText}>
-                    Buffer a refusé une requête {formatAgo(usage!.lastRateLimitAt!)} (quota dépassé) : publication auto et stats reprendront quand il se libère.
+                    Quota atteint : la publication via Buffer et les stats reprendront quand des requêtes se libèrent
+                    {resetIn ? ` (fenêtre de 30 jours : remise à zéro dans ${Math.ceil(resetIn / 86_400)} j)` : ''}.
                 </p>
             )}
             <p className={s.small}>
-                Au-delà de 80 %, les stats se mettent en pause pour garder la publication.
-                {firstDay ? ` Compté depuis le ${new Date(firstDay).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}.` : ' Le comptage démarre au prochain appel à Buffer.'}
+                {fresh
+                    ? `Chiffres donnés par Buffer ${formatAgo(usage!.realAt!)}.`
+                    : firstDay
+                        ? `Appels comptés depuis le ${new Date(firstDay).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} (les vrais chiffres de Buffer s'afficheront à son prochain appel).`
+                        : 'Les vrais chiffres de Buffer s\'afficheront à son prochain appel.'}
+                {' '}Au-delà de 80 %, les stats se mettent en pause pour garder la publication.
             </p>
         </section>
     );
