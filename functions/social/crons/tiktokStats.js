@@ -76,7 +76,7 @@ async function runTiktokStats() {
                 if (!best) continue;
                 used.add(best.id);
                 const update = { 'reach.tiktok': reachFromVideo(best, now) };
-                if (best.share_url) update['results.tiktok.permalink'] = best.share_url;
+                if (best.share_url) update['results.tiktok.permalink'] = best.share_url.split('?')[0];
                 await doc.ref.update(update);
                 matched += 1;
             }
