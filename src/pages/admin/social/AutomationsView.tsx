@@ -148,18 +148,17 @@ export function AutomationsView({ config, health, watchdog, isSuperAdmin }: Prop
                                     <span className={s.small}>
                                         {status === 'running' ? 'en cours' : h ? formatAgo(h.lastRunEndAt || h.lastRunAt) : 'jamais lancé'}
                                     </span>
-                                    {isSuperAdmin && (
-                                        <button
-                                            type="button"
-                                            className={s.iconBtn}
-                                            aria-label={`Lancer ${CRON_META[id].label}`}
-                                            title="Lancer maintenant"
-                                            onClick={() => runNow(id)}
-                                            disabled={running !== null}
-                                        >
-                                            {running === id ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                                        </button>
-                                    )}
+                                    {/* Le callable socialTriggerCron est ouvert à tous les admins. */}
+                                    <button
+                                        type="button"
+                                        className={s.iconBtn}
+                                        aria-label={`Lancer ${CRON_META[id].label}`}
+                                        title="Lancer maintenant"
+                                        onClick={() => runNow(id)}
+                                        disabled={running !== null}
+                                    >
+                                        {running === id ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                                    </button>
                                 </li>
                             );
                         })}
