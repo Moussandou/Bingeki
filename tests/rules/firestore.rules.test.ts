@@ -33,7 +33,7 @@ runIfEmulator('Firestore security rules', () => {
     beforeAll(async () => {
         const [host, port] = (process.env.FIRESTORE_EMULATOR_HOST || 'localhost:8080').split(':');
         testEnv = await initializeTestEnvironment({
-            projectId: 'bingeki-rules-test',
+            projectId: process.env.GCLOUD_PROJECT || 'demo-bingeki-security',
             firestore: {
                 rules: readFileSync(resolve(__dirname, '../../firestore.rules'), 'utf8'),
                 host,
@@ -440,9 +440,9 @@ runIfEmulator('Firestore security rules', () => {
             createdBy,
         });
 
-        it('lets a user create a challenge they own', async () => {
+        it('requires the creation callable even for the creator', async () => {
             const db = testEnv.authenticatedContext(ALICE).firestore();
-            await assertSucceeds(setDoc(doc(db, 'challenges', 'ch1'), challenge(ALICE, [ALICE, BOB])));
+            await assertFails(setDoc(doc(db, 'challenges', 'ch1'), challenge(ALICE, [ALICE, BOB])));
         });
 
         it('blocks creating a challenge attributed to someone else', async () => {
@@ -461,7 +461,10 @@ runIfEmulator('Firestore security rules', () => {
             });
             const db = testEnv.authenticatedContext(BOB).firestore();
             await assertSucceeds(updateDoc(doc(db, 'challenges', 'ch4'), {
-                participants: [{ id: BOB, name: 'Bob', progress: 12, joinedAt: 1, status: 'accepted' }],
+                participants: [
+                    { id: ALICE, name: ALICE, progress: 0, joinedAt: 1, status: 'pending' },
+                    { id: BOB, name: BOB, progress: 12, joinedAt: 1, status: 'accepted' },
+                ],
             }));
         });
 
