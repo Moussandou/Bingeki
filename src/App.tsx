@@ -4,7 +4,7 @@
  */
 import { logger } from '@/utils/logger';
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { MaintenanceScreen } from '@/components/ui/MaintenanceScreen';
 import { useAuthStore } from '@/store/authStore';
@@ -213,7 +213,6 @@ function App() {
 
   return (
     <ToastProvider>
-      <BrowserRouter>
         <ScrollToTop />
         <UsernameSelectionModal />
         <AvatarSelectionModal />
@@ -301,7 +300,6 @@ function App() {
           </Routes>
         </BotAwareSuspense>
         <MobileMenuFAB />
-      </BrowserRouter>
       <InstallInstructionsModal
         isOpen={showInstallModal}
         onClose={() => setShowInstallModal(false)}
