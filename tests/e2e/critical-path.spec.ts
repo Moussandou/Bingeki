@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test.describe('Critical Path', () => {
     test('should allow a user to signup, search for an anime, and add it to their library', async ({ page }) => {

@@ -8,6 +8,7 @@ import { Trash2, Image as ImageIcon, GitBranch } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage, auth } from '@/firebase/config';
 import { MangaSelect } from '@/components/ui/MangaSelect';
+import { logger } from '@/utils/logger';
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -164,7 +165,7 @@ export function TaskModal({
             const url = await getDownloadURL(snapshot.ref);
             setAttachments(prev => [...prev, url]);
         } catch (err) {
-            console.error('Error uploading file:', err);
+            logger.error('Error uploading file:', err);
         } finally {
             setUploading(false);
         }

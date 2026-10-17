@@ -23,6 +23,7 @@ export const SEO = ({ title, description, image, url }: SEOProps) => {
     const baseUrl = 'https://bingeki.web.app';
 
     useEffect(() => {
+        document.documentElement.lang = resolved.locale.startsWith('en') ? 'en' : 'fr';
         const fullTitle = title || resolved.title;
         document.title = fullTitle;
 

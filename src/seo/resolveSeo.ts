@@ -40,7 +40,8 @@ function stripLangPrefix(pathname: string): string {
 }
 
 export function resolveSeoFromPath(pathname: string, langInput?: string): SeoResult {
-  const lang = normalizeLang(langInput);
+  const prefix = pathname.split('/')[1];
+  const lang = prefix === 'fr' || prefix === 'en' ? prefix : normalizeLang(langInput);
   const defaults = routeSeoConfig.defaults[lang];
   const localPath = stripLangPrefix(pathname);
 

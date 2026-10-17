@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { GitCommit, GitFork, Star, Info, RefreshCw, ExternalLink } from 'lucide-react';
 import styles from './Orga.module.css';
+import { logger } from '@/utils/logger';
 
 interface GitHubRepo {
     name: string;
@@ -54,9 +55,9 @@ export function RepoStats() {
                 const commitsData = await commitsRes.json();
                 setCommits(commitsData);
             }
-        } catch (err: any) {
-            console.error('Error fetching GitHub data:', err);
-            setError(err.message || 'Impossible de se connecter à GitHub.');
+        } catch (err) {
+            logger.error('Error fetching GitHub data:', err);
+            setError(err instanceof Error ? err.message : 'Impossible de se connecter à GitHub.');
         } finally {
             setLoading(false);
         }

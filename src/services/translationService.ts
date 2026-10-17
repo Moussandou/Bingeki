@@ -93,30 +93,26 @@ export function useTranslationData(
     sourceField: string,
     targetLang: string
 ) {
-    const [translatedText, setTranslatedText] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const langCode = targetLang ? targetLang.split('-')[0].toLowerCase() : '';
+    const enabled = !!text && !!sourceId && !!langCode && langCode !== 'en';
+    const key = JSON.stringify([text, sourceId, sourceType, sourceField, langCode]);
+    const [result, setResult] = useState<{ key: string; text: string | null } | null>(null);
 
     useEffect(() => {
-        const langCode = targetLang ? targetLang.split('-')[0].toLowerCase() : '';
-        
-        if (!text || !sourceId || !langCode || langCode === 'en') {
-            setTranslatedText(null);
-            setLoading(false);
-            return;
-        }
+        if (!enabled || !text || !sourceId) return;
+        let active = true;
 
         const docId = getTranslationDocId(sourceType, sourceId, sourceField);
         const docRef = doc(db, 'translations', docId);
 
-        setLoading(true);
-
         // Safety net: never leave the caller stuck on a spinner.
         const giveUpTimer = setTimeout(() => {
             logger.log(`[Translation] Gave up waiting for "${langCode}" on ${docId}, using source text`);
-            setLoading(false);
+            if (active) setResult({ key, text: null });
         }, TRANSLATION_WAIT_MS);
 
         const unsubscribe = onSnapshot(docRef, async (snap) => {
+            if (!active) return;
             const data = snap.exists() ? (snap.data() as TranslationData) : null;
 
             if (!data || data.input !== text) {
@@ -130,25 +126,28 @@ export function useTranslationData(
             const translated = isFresh ? data.translated?.[langCode] : undefined;
             if (translated) {
                 logger.log(`%c[Translation] Received "${langCode}" for ${docId}`, 'color: #10b981; font-weight: bold');
-                setTranslatedText(translated);
             } else {
                 // Request is queued but not fulfilled yet: show the source text now and
                 // stay subscribed so a late translation still swaps in.
                 logger.log(`%c[Translation] Waiting for "${langCode}" for ${docId}...`, 'color: #f59e0b; font-weight: bold');
             }
             clearTimeout(giveUpTimer);
-            setLoading(false);
+            setResult({ key, text: translated || null });
         }, (err) => {
             logger.error(`[Translation] Snapshot error for ${docId}:`, err);
             clearTimeout(giveUpTimer);
-            setLoading(false);
+            if (active) setResult({ key, text: null });
         });
 
         return () => {
+            active = false;
             clearTimeout(giveUpTimer);
             unsubscribe();
         };
-    }, [text, sourceId, sourceType, sourceField, targetLang]);
+    }, [text, sourceId, sourceType, sourceField, langCode, key, enabled]);
 
-    return { translatedText, loading };
+    return {
+        translatedText: enabled && result?.key === key ? result.text : null,
+        loading: enabled && result?.key !== key,
+    };
 }

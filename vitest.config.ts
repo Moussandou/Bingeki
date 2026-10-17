@@ -14,6 +14,7 @@ export default defineConfig({
         environment: 'jsdom',
         setupFiles: ['./src/test/setup.tsx'],
         include: [
+            'scripts/**/*.test.ts',
             'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
             // Pure (network-free) Cloud Function helpers
             'functions/__tests__/**/*.{test,spec}.{js,mjs,cjs}',

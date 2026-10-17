@@ -5,7 +5,7 @@ This guide will help you set up **Bingeki V2** on your local machine for develop
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
-- **Node.js** (v18 or higher recommended)
+- **Node.js 22.19+** (CI and Functions use Node 22)
 - **npm** (comes with Node.js)
 - **Git**
 - A **Firebase** account (for backend services)
@@ -14,13 +14,14 @@ Before you begin, ensure you have the following installed:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Moussandou/Bingeki-V2.git
-   cd Bingeki-V2
+   git clone https://github.com/Moussandou/Bingeki.git
+   cd Bingeki
    ```
 
 2. **Install dependencies**
    ```bash
-   npm install
+   npm ci
+   npm ci --prefix functions
    ```
 
 3. **Environment Configuration**
@@ -47,11 +48,18 @@ npm run dev
 ```
 The application will be available at `http://localhost:5173`.
 
+For isolated development, use `npm run dev:isolated` on port 5178 with the
+committed demo-only `.env.isolated`. Start local Firebase services with
+`bash scripts/start-emulators.sh "npm run dev:isolated"`; this never starts
+scheduled Functions. Do not use a real project/account for test signups.
+See [Testing](./Testing.md) for Java, browser installation and emulator details.
+
 ## Scripts
 
 | Command | Description |
 | :--- | :--- |
 | `npm run dev` | Starts Vite dev server with HMR. |
-| `npm run build` | Compiles TypeScript and builds for production. |
+| `npm run build` | Validates Firebase config, compiles TypeScript, bundles and validates prerender output. |
+| `npm run build:isolated` | Offline demo-only build for CI/local validation, never for production deployment. |
 | `npm run lint` | Runs ESLint to check for code quality issues. |
 | `npm run preview` | Previews the production build locally. |

@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/Button';
 import { Link } from '@/components/routing/LocalizedLink';
 import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { SEO } from '@/components/layout/SEO';
 
 export default function Privacy() {
     const { t } = useTranslation();
 
     return (
         <Layout>
+            <SEO />
             <div className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
                 <Link to="/">
                     <Button variant="ghost" icon={<ArrowLeft size={20} />} style={{ marginBottom: '2rem' }}>

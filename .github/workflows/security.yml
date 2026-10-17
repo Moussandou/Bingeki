@@ -1,81 +1,58 @@
 name: Security Scan
 
-
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   schedule:
-    # Run weekly on Sundays at 2am
     - cron: '0 2 * * 0'
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   dependency-audit:
     runs-on: ubuntu-latest
-    
-    permissions:
-      contents: read
-      security-events: write
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Run npm audit
-        run: |
-          echo "🔍 Running dependency security audit..."
-          npm audit --json > audit-report.json || true
-          
-          # Count vulnerabilities
-          HIGH=$(cat audit-report.json | jq '.metadata.vulnerabilities.high // 0')
-          CRITICAL=$(cat audit-report.json | jq '.metadata.vulnerabilities.critical // 0')
-          
-          echo "High severity: $HIGH"
-          echo "Critical severity: $CRITICAL"
-          
-          if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
-            echo "⚠️  High or Critical vulnerabilities found! Action required by maintainers soon."
-            npm audit || true
-            # Temporarily exit 0 due to serialize-javascript nested in Vite PWA
-            # Exit 1 would block deployments.
-            exit 0
-          else
-            echo "✅ No high/critical vulnerabilities"
-          fi
-
-      - name: Check for Outdated Dependencies
-        run: |
-          echo "📦 Checking for outdated dependencies..."
-          npm outdated || true
-
-
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix functions
+      - run: npm audit --audit-level=high
+      - run: npm audit --prefix functions --audit-level=high
 
   secrets-scan:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
-      - name: TruffleHog Secrets Scan
-        uses: trufflesecurity/trufflehog@main
-        continue-on-error: true
+      - name: Select scan range
+        id: range
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" = pull_request ]; then
+            echo "base=$PR_BASE" >> "$GITHUB_OUTPUT"
+            echo "head=$PR_HEAD" >> "$GITHUB_OUTPUT"
+          else
+            echo "head=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ] && [ "$BEFORE" != "$GITHUB_SHA" ]; then
+              echo "base=$BEFORE" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+      - name: Scan secrets (full history when no base)
+        uses: trufflesecurity/trufflehog@31d730383da3a2a71735410240ab9416f8f0eb54
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
+          base: ${{ steps.range.outputs.base }}
+          head: ${{ steps.range.outputs.head }}
           extra_args: --only-verified

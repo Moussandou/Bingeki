@@ -60,7 +60,7 @@ export function SprintModal({
                 setName('Sprint 01 - ');
             });
         }
-    }, [sprint, isOpen]);
+    }, [sprint, isOpen, getLastSprint]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -227,9 +227,9 @@ export default function FormSurvey() {
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
       if (currentStep === 0) {
-        logEvent(analytics, 'survey_start');
+        if (analytics) logEvent(analytics, 'survey_start');
       } else {
-        logEvent(analytics, 'survey_step_completed', { step: steps[currentStep].id });
+        if (analytics) logEvent(analytics, 'survey_step_completed', { step: steps[currentStep].id });
       }
       setDirection(1);
       setCurrentStep((prev: number) => prev + 1);
@@ -274,7 +274,7 @@ export default function FormSurvey() {
         });
       }
 
-      logEvent(analytics, 'survey_completed');
+      if (analytics) logEvent(analytics, 'survey_completed');
       localizedNavigate(`/${lang || 'fr'}/form/thank-you`);
     } catch (error) {
       logger.error('Erreur lors de l\'envoi :', error);

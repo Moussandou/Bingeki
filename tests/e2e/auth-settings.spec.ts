@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test.describe('Auth & Settings', () => {
 
@@ -33,7 +33,7 @@ test.describe('Auth & Settings', () => {
         await expect(html).not.toHaveAttribute('data-theme', initialTheme!);
     });
 
-    test('should allow user to login and persist session', async ({ page }) => {
+    test('should allow switching between login and registration forms', async ({ page }) => {
         // Start from Landing ensure loaded
         await page.goto('/');
 

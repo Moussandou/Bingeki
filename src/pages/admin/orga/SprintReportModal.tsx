@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Copy, Check, Eye, Code, CheckCircle2, Circle, Calendar, GitBranch } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
-import type { OrgaTask } from '@/types/orga';
+import type { OrgaTask, OrgaSprint } from '@/types/orga';
 import { getMemberColor, TASK_STATUSES } from '@/types/orga';
 import type { UserProfile } from '@/firebase/users';
 import styles from './Orga.module.css';
@@ -11,7 +11,7 @@ interface SprintReportModalProps {
     isOpen: boolean;
     onClose: () => void;
     reportMarkdown: string;
-    sprint: { name: string; objectif: string; startDate: any; endDate: any } | null;
+    sprint: OrgaSprint | null;
     tasks: OrgaTask[];
     members: UserProfile[];
 }

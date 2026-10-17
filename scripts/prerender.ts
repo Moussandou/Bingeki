@@ -1,8 +1,10 @@
 import express, { RequestHandler } from 'express';
-import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteer, { type Browser, type Page } from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { assertRenderedPage, type RenderedPage } from './prerender-validation';
+import { resolveSeoFromPath } from '../src/seo/resolveSeo';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,13 +16,14 @@ if (!fs.existsSync(distPath)) {
 }
 
 const app = express();
-app.use(express.static(distPath));
+const shell = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
+app.use(express.static(distPath, { index: false }));
 const catchAll: RequestHandler = (_req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+  res.type('html').send(shell);
 };
 app.use(catchAll);
 
-const PORT = 54321;
+const PORT = Number(process.env.PRERENDER_PORT || 54325);
 const CONCURRENCY = 4; // Number of parallel tabs
 
 // All public routes that should be prerendered for SEO
@@ -30,8 +33,8 @@ const ROUTES_TO_PRERENDER = [
   '/fr/news', '/en/news',
   '/fr/schedule', '/en/schedule',
   '/fr/seasons', '/en/seasons',
+  '/fr/releases', '/en/releases',
   '/fr/changelog', '/en/changelog',
-  '/fr/challenges', '/en/challenges',
   '/fr/social', '/en/social',
   '/fr/tierlist', '/en/tierlist',
   '/fr/donors', '/en/donors',
@@ -57,12 +60,15 @@ async function setupRequestInterception(page: Page) {
     // Block images, fonts, media, ads, analytics — we only need the DOM text
     if (
       ['image', 'font', 'media'].includes(type) ||
+      (process.argv.includes('--offline') && !url.startsWith(`http://127.0.0.1:${PORT}/`)) ||
       url.includes('googlesyndication') ||
       url.includes('google-analytics') ||
       url.includes('googletagmanager') ||
       url.includes('doubleclick') ||
       url.includes('firebase-messaging') ||
-      url.includes('firebaseinstallations')
+      url.includes('firebaseinstallations') ||
+      // Rendering is read-only, including when building with a real project.
+      (req.method() !== 'GET' && req.method() !== 'HEAD')
     ) {
       req.abort();
     } else {
@@ -72,9 +78,11 @@ async function setupRequestInterception(page: Page) {
 }
 
 /** Prerender a single route */
-async function prerenderRoute(browser: Browser, route: string): Promise<string[]> {
+async function prerenderRoute(browser: Browser, route: string): Promise<{ discoveredRoutes: string[]; html: string }> {
   const page = await browser.newPage();
   const discoveredRoutes: string[] = [];
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(String(error)));
   
   try {
     await page.setViewport({ width: 1280, height: 800 });
@@ -84,56 +92,53 @@ async function prerenderRoute(browser: Browser, route: string): Promise<string[]
     await setupRequestInterception(page);
 
     // Navigate with domcontentloaded (fast) then wait for React to render
-    await page.goto(`http://localhost:${PORT}${route}`, {
+    const response = await page.goto(`http://127.0.0.1:${PORT}${route}`, {
       waitUntil: 'domcontentloaded',
       timeout: 15000,
     });
+    if (!response?.ok()) throw new Error(`HTTP ${response?.status()}`);
 
     // Wait for React to render content into #root
     // Poll for meaningful content instead of using networkidle
-    const hasContent = await page.waitForFunction(
-      () => {
+    const langCode = route.startsWith('/en') ? 'en' : 'fr';
+    await page.waitForFunction(
+      (lang) => {
+        if (document.documentElement.dataset.languageReady !== lang) return false;
         const root = document.getElementById('root');
         if (!root) return false;
         // Check that root has actual rendered content (not just loading screen)
-        const text = root.innerText || '';
-        return (
-          root.children.length > 2 && 
-          text.length > 100 && 
-          !text.includes('CHARGEMENT')
-        );
+        const main = root.querySelector('main');
+        if (!main?.querySelector('h1, h2')) return false;
+        const content = main.cloneNode(true) as HTMLElement;
+        content.querySelectorAll('footer, nav, [role="status"]').forEach(el => el.remove());
+        return (content.textContent || '').trim().length >= 40;
       },
-      { timeout: 12000 }
-    ).then(() => true).catch(() => false);
-
-    if (!hasContent) {
-      // Fallback: wait a fixed amount of time
-      await new Promise(r => setTimeout(r, 3000));
-    }
+      { timeout: 12000, polling: 100 }, langCode
+    );
 
     // Inject prerender markers
-    const langCode = route.startsWith('/en') ? 'en' : 'fr';
     await page.evaluate((lang: string) => {
       document.body.classList.add('is-prerendered');
       document.documentElement.setAttribute('data-lang', lang);
-      // Remove loading screens
-      document.querySelectorAll('[class*="loading"], [class*="spinner"]')
-        .forEach(el => el.remove());
     }, langCode);
 
+    const snapshot: RenderedPage = await page.evaluate(() => {
+      const root = document.getElementById('root');
+      const main = root?.querySelector('main')?.cloneNode(true) as HTMLElement | undefined;
+      main?.querySelectorAll('footer, nav, [role="status"]').forEach(el => el.remove());
+      return {
+        text: main?.textContent?.trim() || '',
+        heading: !!main?.querySelector('h1, h2'),
+        lang: document.documentElement.lang,
+        title: document.title,
+      };
+    });
+    const currentPath = new URL(page.url()).pathname;
+    const expectedTitle = resolveSeoFromPath(currentPath, langCode).title;
+    const oppositePath = currentPath.replace(/^\/(en|fr)(?=\/|$)/, langCode === 'en' ? '/fr' : '/en');
+    const wrongTitle = resolveSeoFromPath(oppositePath, langCode === 'en' ? 'fr' : 'en').title;
+    assertRenderedPage(snapshot, langCode, expectedTitle === wrongTitle ? undefined : wrongTitle, errors);
     const html = await page.content();
-
-    // Verify content quality
-    if (html.length < 5000 || html.includes('CHARGEMENT')) {
-      console.warn(`  ⚠ ${route} — empty or loading page (${html.length}b). Skipped.`);
-      return discoveredRoutes;
-    }
-
-    // Save to dist
-    const outPath = route === '/' ? '/index.html' : `${route}/index.html`;
-    const fullPath = path.join(distPath, outPath);
-    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-    fs.writeFileSync(fullPath, html);
     console.log(`  ✅ ${route} (${(html.length / 1024).toFixed(0)}KB)`);
 
     // Discover news article links
@@ -147,13 +152,19 @@ async function prerenderRoute(browser: Browser, route: string): Promise<string[]
       });
       discoveredRoutes.push(...links.slice(0, 5));
     }
+    return { discoveredRoutes, html };
   } catch (err) {
-    console.warn(`  ❌ ${route} — ${(err as Error).message?.split('\n')[0]}`);
+    const state = await page.evaluate(() => ({
+      ready: document.documentElement.dataset.languageReady,
+      lang: document.documentElement.lang,
+      mainTextLength: document.querySelector('main')?.textContent?.trim().length || 0,
+      hasHeading: !!document.querySelector('main h1, main h2'),
+    }));
+    throw new Error(`${route}: ${err instanceof Error ? err.message : String(err)} ${JSON.stringify(state)} ${errors.join('; ')}`, { cause: err });
   } finally {
     await page.close();
   }
   
-  return discoveredRoutes;
 }
 
 /** Process routes in parallel batches */
@@ -163,6 +174,7 @@ async function processInBatches(browser: Browser, routes: string[]) {
   let completed = 0;
   const total = queue.length;
   const startTime = Date.now();
+  const rendered = new Map<string, string>();
 
   while (queue.length > 0) {
     // Take a batch of CONCURRENCY routes
@@ -175,9 +187,16 @@ async function processInBatches(browser: Browser, routes: string[]) {
     if (batch.length === 0) continue;
 
     // Process batch in parallel
-    const results = await Promise.all(
+    const settled = await Promise.allSettled(
       batch.map(route => prerenderRoute(browser, route))
     );
+    const failures = settled.filter(result => result.status === 'rejected');
+    if (failures.length) throw new AggregateError(failures.map(result => result.reason), 'Prerender failed');
+    const results = settled.map(result => {
+      if (result.status !== 'fulfilled') throw result.reason;
+      return result.value;
+    });
+    results.forEach((result, index) => rendered.set(batch[index], result.html));
 
     completed += batch.length;
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -185,23 +204,33 @@ async function processInBatches(browser: Browser, routes: string[]) {
 
     // Add discovered routes
     for (const discovered of results) {
-      for (const r of discovered) {
+      for (const r of discovered.discoveredRoutes) {
         if (!visited.has(r)) {
           queue.push(r);
         }
       }
     }
   }
+  for (const route of routes) {
+    if (!rendered.has(route)) throw new Error(`Missing required route ${route}`);
+  }
+  for (const [route, html] of rendered) {
+    const fullPath = path.join(distPath, route === '/' ? 'index.html' : `${route.slice(1)}/index.html`);
+    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+    fs.writeFileSync(fullPath, html);
+    if (fs.readFileSync(fullPath, 'utf8') !== html) throw new Error(`Failed to persist ${route}`);
+  }
 
   return { completed, elapsed: ((Date.now() - startTime) / 1000).toFixed(1) };
 }
 
 // Start
-app.listen(PORT, async () => {
+const server = app.listen(PORT, '127.0.0.1', async () => {
   console.log(`\n🚀 Prerender server on port ${PORT} (${CONCURRENCY} parallel tabs)\n`);
   
+  let browser: Browser | undefined;
   try {
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       headless: true,
       args: [
         '--no-sandbox',
@@ -213,11 +242,16 @@ app.listen(PORT, async () => {
 
     const { completed, elapsed } = await processInBatches(browser, ROUTES_TO_PRERENDER);
 
-    await browser.close();
     console.log(`\n✅ Done! ${completed} pages prerendered in ${elapsed}s\n`);
-    process.exit(0);
   } catch (error) {
     console.error('❌ Fatal error:', error);
-    process.exit(1);
+    process.exitCode = 1;
+  } finally {
+    await browser?.close();
+    server.close();
   }
+});
+server.on('error', error => {
+  console.error('Prerender server failed:', error);
+  process.exitCode = 1;
 });

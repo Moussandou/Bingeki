@@ -47,22 +47,23 @@ export function useOrga() {
     // Subscribe to active sprint
     useEffect(() => {
         const unsub = subscribeToActiveSprint((sprint) => {
-            setState(s => ({ ...s, sprint, loading: false }));
+            setState(s => ({
+                ...s, sprint, loading: false,
+                tasks: s.sprint?.id === sprint?.id ? s.tasks : [],
+            }));
         });
         return unsub;
     }, []);
 
     // Subscribe to sprint tasks
+    const sprintId = state.sprint?.id;
     useEffect(() => {
-        if (!state.sprint) {
-            setState(s => ({ ...s, tasks: [] }));
-            return;
-        }
-        const unsub = subscribeToSprintTasks(state.sprint.id, (tasks) => {
-            setState(s => ({ ...s, tasks }));
+        if (!sprintId) return;
+        const unsub = subscribeToSprintTasks(sprintId, (tasks) => {
+            setState(s => s.sprint?.id === sprintId ? { ...s, tasks } : s);
         });
         return unsub;
-    }, [state.sprint?.id]);
+    }, [sprintId]);
 
     // Subscribe to events
     useEffect(() => {
