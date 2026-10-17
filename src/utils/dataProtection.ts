@@ -3,6 +3,7 @@
  * Prevents data loss during local/cloud conflict resolution
  */
 import { logger } from '@/utils/logger';
+import { workKey } from '@/utils/workIdentity';
 import type { Tombstone, Work } from '@/store/libraryStore';
 import type { Badge } from '@/types/badge';
 import {
@@ -127,79 +128,36 @@ export function mergeLibraryData(
     cloud: Work[] | null,
     tombstones: Tombstone[] = []
 ): Work[] {
-    // A deletion only wins over a cloud edit that predates it.
-    const deletedAtById = new Map<number | string, number>();
-    (tombstones || []).forEach(t => {
-        if (!t) return;
-        const previous = deletedAtById.get(t.id) || 0;
-        if (t.deletedAt > previous) deletedAtById.set(t.id, t.deletedAt);
-    });
-
-    const isDeleted = (work: Work): boolean => {
-        const deletedAt = deletedAtById.get(work.id);
-        if (deletedAt === undefined) return false;
-        return (work.lastUpdated || 0) <= deletedAt;
-    };
-
-    const survivingCloud = (cloud || []).filter(work => !isDeleted(work));
-
-    if (survivingCloud.length === 0) {
-        return local || [];
+    const deletions = new Map(mergeTombstones(tombstones).map(t => [
+        t.type ? workKey({ type: t.type, id: t.id }) : `legacy:${t.id}`, t.deletedAt,
+    ]));
+    const workMap = new Map<string, Work>();
+    for (const work of [...(cloud || []), ...(local || [])]) {
+        const key = workKey(work);
+        const deletedAt = Math.max(deletions.get(key) ?? -1, deletions.get(`legacy:${work.id}`) ?? -1);
+        if ((work.lastUpdated || 0) <= deletedAt) continue;
+        const existing = workMap.get(key);
+        if (!existing || (work.lastUpdated || 0) >= (existing.lastUpdated || 0)) workMap.set(key, work);
     }
-
-    if (!local || local.length === 0) {
-        return survivingCloud;
+    const ordered = new Map<string, Work>();
+    for (const work of [...(local || []), ...(cloud || [])]) {
+        const key = workKey(work);
+        const latest = workMap.get(key);
+        if (latest && !ordered.has(key)) ordered.set(key, latest);
     }
+    return [...ordered.values()];
+}
 
-
-    const workMap = new Map<number | string, Work>();
-
-
-    survivingCloud.forEach(work => {
-        workMap.set(work.id, work);
-    });
-
-    // Local wins if same or newer
-    local.forEach(work => {
-        const existing = workMap.get(work.id);
-        if (!existing || (work.lastUpdated || 0) >= (existing.lastUpdated || 0)) {
-            workMap.set(work.id, work);
-        }
-    });
-
-    // Preserve local order, append cloud-only additions
-    const merged: Work[] = [];
-    const seenIds = new Set<number | string>();
-
-
-    local.forEach(work => {
-        const upToDateWork = workMap.get(work.id);
-        if (upToDateWork) {
-            merged.push(upToDateWork);
-            seenIds.add(work.id);
-        }
-    });
-
-
-    survivingCloud.forEach(work => {
-        if (!seenIds.has(work.id)) {
-            const upToDateWork = workMap.get(work.id);
-            if (upToDateWork) {
-                merged.push(upToDateWork);
-                seenIds.add(work.id);
-            }
-        }
-    });
-
-    logger.log('[DataProtection] Merged library:', {
-        localCount: local.length,
-        cloudCount: (cloud || []).length,
-        droppedByTombstone: (cloud || []).length - survivingCloud.length,
-        mergedCount: merged.length,
-        strategy: 'local-priority-order'
-    });
-
-    return merged;
+/** Keep deletion history indefinitely: an offline device can return after any TTL. */
+export function mergeTombstones(...sources: (Tombstone[] | undefined)[]): Tombstone[] {
+    const merged = new Map<string, Tombstone>();
+    for (const tombstone of sources.flatMap(source => source || [])) {
+        const key = tombstone.type
+            ? workKey({ type: tombstone.type, id: tombstone.id })
+            : `legacy:${tombstone.id}`;
+        if ((merged.get(key)?.deletedAt ?? -1) < tombstone.deletedAt) merged.set(key, tombstone);
+    }
+    return [...merged.values()];
 }
 
 /** Bonus XP earned in a single save; a day's login plus streak bonus is far below this. */

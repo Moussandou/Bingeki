@@ -9,6 +9,7 @@ export interface Comment {
     userName: string;
     userPhoto: string;
     workId: number;
+    workType?: 'anime' | 'manga';
     text: string;
     timestamp: number;
     likes: string[]; // Array of user IDs who liked

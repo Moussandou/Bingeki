@@ -70,6 +70,7 @@ import { ScrollToTop } from '@/components/layout/ScrollToTop';
 
 
 import { useAuthSync } from '@/hooks/useAuthSync';
+import { useLibraryStore } from '@/store/libraryStore';
 import { usePWAHandler } from '@/hooks/usePWAHandler';
 import { useThemeManager } from '@/hooks/useThemeManager';
 import { useMounted } from '@/hooks/useMounted';
@@ -158,6 +159,9 @@ function App() {
   // subscribing to the whole store would re-render the entire app
   const isSuperAdmin = useAuthStore((s) => s.userProfile?.isSuperAdmin === true);
   const loading = useAuthStore((s) => s.loading);
+  const currentUid = useAuthStore((s) => s.user?.uid || null);
+  const libraryOwner = useLibraryStore((s) => s.ownerId);
+  const syncError = useLibraryStore((s) => s.syncError);
   const setLoading = useAuthStore((s) => s.setLoading);
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
@@ -192,6 +196,11 @@ function App() {
   }, [loading, configLoaded, setLoading]);
 
   const isPrerendered = typeof document !== 'undefined' && document.body.classList.contains('is-prerendered');
+
+  // Never expose the previous account's persisted state, even after the loading timeout.
+  if (libraryOwner !== currentUid) {
+    return syncError ? <div role="alert">{syncError}</div> : <LoadingScreen />;
+  }
 
   if ((loading || !configLoaded) && !isBot() && !isPrerendered) {
     return <LoadingScreen />;

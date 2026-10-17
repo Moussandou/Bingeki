@@ -46,6 +46,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { logger } from '@/utils/logger';
+import { workKey } from '@/utils/workIdentity';
 
 // Sortable wrapper for library items
 function SortableWorkItem({ id, children, disabled }: { id: string | number; children: React.ReactNode; disabled: boolean }) {
@@ -93,6 +94,7 @@ export default function Library() {
         viewMode,
         setViewMode,
         sortBy,
+        syncError,
         setSortBy
     } = useLibraryStore();
     const { recalculateStats } = useGamificationStore();
@@ -129,7 +131,7 @@ export default function Library() {
                 try {
                     const [profile, libraryData] = await Promise.all([
                         getUserProfile(uid),
-                        loadFullLibraryData(uid)
+                        loadFullLibraryData(uid, searchParams.get('folder') || undefined)
                     ]);
                     setFriendProfile(profile);
 
@@ -319,18 +321,18 @@ export default function Library() {
         const { active, over } = event;
 
         if (over && active.id !== over.id && !isReadOnly) {
-            const oldIndex = filteredWorks.findIndex((w) => w.id === active.id);
-            const newIndex = filteredWorks.findIndex((w) => w.id === over.id);
+            const oldIndex = filteredWorks.findIndex((w) => workKey(w) === active.id);
+            const newIndex = filteredWorks.findIndex((w) => workKey(w) === over.id);
 
             if (oldIndex !== -1 && newIndex !== -1) {
                 const newFilteredWorks = arrayMove(filteredWorks, oldIndex, newIndex);
                 
                 // Update the main works array preserving non-filtered items
                 const resultWorks = [...localWorks];
-                const originalFilteredIds = filteredWorks.map(w => w.id);
+                const originalFilteredIds = filteredWorks.map(workKey);
                 
                 // Find all indices of filtered items in localWorks
-                const mainIndices = originalFilteredIds.map(id => resultWorks.findIndex(w => w.id === id))
+                const mainIndices = originalFilteredIds.map(id => resultWorks.findIndex(w => workKey(w) === id))
                     .sort((a, b) => a - b);
                 
                 // Place new order into those discovered indices
@@ -373,7 +375,7 @@ export default function Library() {
     const confirmDelete = () => {
         if (isReadOnly) return;
         if (workToDelete) {
-            removeWork(workToDelete.id);
+            removeWork(workKey(workToDelete));
             
             const updatedWorks = useLibraryStore.getState().works;
             recalculateStats(updatedWorks);
@@ -385,6 +387,7 @@ export default function Library() {
 
     return (
         <Layout>
+            {!isReadOnly && syncError && <div role="alert" className="container">{syncError}</div>}
             <SEO title={isReadOnly && friendProfile ? t('library.friend_title', { name: friendProfile.displayName }) : t('library.title')} />
             <div style={{ minHeight: 'calc(100vh - 80px)' }}>
                 <div className="container" style={{ paddingBottom: '4rem', paddingTop: '2rem' }}>
@@ -932,15 +935,15 @@ export default function Library() {
                             >
                                 <div className={viewMode === 'grid' ? styles.worksGrid : styles.worksList}>
                                     <SortableContext 
-                                        items={filteredWorks.map(w => w.id)} 
+                                        items={filteredWorks.map(workKey)}
                                         strategy={viewMode === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}
                                     >
                                         <AnimatePresence>
                                             {filteredWorks.map(work => {
                                                 return (
                                                     <SortableWorkItem 
-                                                        key={work.id} 
-                                                        id={work.id} 
+                                                        key={workKey(work)}
+                                                        id={workKey(work)}
                                                         disabled={sortBy !== 'custom' || isReadOnly || isSelectionMode}
                                                     >
                                                         <motion.div
@@ -962,12 +965,12 @@ export default function Library() {
                                                                     cursor: isSelectionMode ? 'default' : 'pointer',
                                                                     display: viewMode === 'list' ? 'flex' : 'block',
                                                                     alignItems: 'center',
-                                                                    border: selectedWorks.has(work.id) ? '2px solid var(--color-primary)' : undefined,
-                                                                    transform: selectedWorks.has(work.id) ? 'translate(-2px, -2px)' : undefined,
-                                                                    boxShadow: selectedWorks.has(work.id) ? '6px 6px 0 var(--color-primary)' : undefined
+                                                                    border: selectedWorks.has(workKey(work)) ? '2px solid var(--color-primary)' : undefined,
+                                                                    transform: selectedWorks.has(workKey(work)) ? 'translate(-2px, -2px)' : undefined,
+                                                                    boxShadow: selectedWorks.has(workKey(work)) ? '6px 6px 0 var(--color-primary)' : undefined
                                                                 }}
                                                                 onClick={() => {
-                                                                    if (isSelectionMode) toggleSelection(work.id);
+                                                                    if (isSelectionMode) toggleSelection(workKey(work));
                                                                     else navigate(`/work/${work.id}?type=${work.type}`);
                                                                 }}
                                                             >
@@ -976,7 +979,7 @@ export default function Library() {
                                                                     <div style={{
                                                                         position: 'absolute',
                                                                         inset: 0,
-                                                                        background: selectedWorks.has(work.id) ? 'rgba(255, 46, 99, 0.1)' : 'transparent',
+                                                                        background: selectedWorks.has(workKey(work)) ? 'rgba(255, 46, 99, 0.1)' : 'transparent',
                                                                         pointerEvents: 'none',
                                                                         zIndex: 10
                                                                     }} />
@@ -1096,7 +1099,7 @@ export default function Library() {
                                                                     right: 10,
                                                                     width: 24,
                                                                     height: 24,
-                                                                    background: selectedWorks.has(work.id) ? 'var(--color-primary)' : 'var(--color-surface)',
+                                                                    background: selectedWorks.has(workKey(work)) ? 'var(--color-primary)' : 'var(--color-surface)',
                                                                     border: '2px solid var(--color-border-heavy)',
                                                                     borderRadius: '50%',
                                                                     display: 'flex',
@@ -1105,7 +1108,7 @@ export default function Library() {
                                                                     zIndex: 20,
                                                                     boxShadow: '2px 2px 0 var(--color-shadow-solid)'
                                                                 }}>
-                                                                    {selectedWorks.has(work.id) && <CheckCircle size={16} color="#fff" />}
+                                                                    {selectedWorks.has(workKey(work)) && <CheckCircle size={16} color="#fff" />}
                                                                 </div>
                                                             )}
                                                         </motion.div>

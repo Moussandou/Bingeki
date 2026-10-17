@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import type { FavoriteCharacter } from '@/types/character';
+import { nextWorkTimestamp, resolveWork, workKey } from '@/utils/workIdentity';
 
 
 export const FOLDER_COLORS = [
@@ -69,14 +70,8 @@ export interface Work {
 /** Records a deletion so the cloud merge cannot resurrect the work. */
 export interface Tombstone {
     id: number | string;
+    type?: Work['type'];
     deletedAt: number;
-}
-
-// Deletions older than this are assumed propagated to every device.
-export const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
-
-export function pruneTombstones(tombstones: Tombstone[], now = Date.now()): Tombstone[] {
-    return (tombstones || []).filter((t) => now - t.deletedAt < TOMBSTONE_TTL_MS);
 }
 
 interface LibraryState {
@@ -86,6 +81,9 @@ interface LibraryState {
     deletedWorks: Tombstone[];
     /** False until the cloud library has been merged in; guards cold-start recalcs. */
     hydrated: boolean;
+    ownerId: string | null;
+    metadataUpdatedAt: number;
+    syncError: string | null;
 
     addWork: (work: Work) => void;
     removeWork: (id: number | string) => void;
@@ -123,48 +121,52 @@ export const useLibraryStore = create<LibraryState>()(
             favoriteCharacters: [],
             deletedWorks: [],
             hydrated: false,
+            ownerId: null,
+            metadataUpdatedAt: 0,
+            syncError: null,
 
             setHydrated: (value) => set({ hydrated: value }),
 
             addWork: (work) => set((state) => {
-                if (state.works.some((w) => w.id === work.id)) return state;
+                if (state.works.some((w) => workKey(w) === workKey(work))) return state;
+                const deletionTime = Math.max(0, ...state.deletedWorks
+                    .filter(t => String(t.id) === String(work.id) && (!t.type || t.type === work.type))
+                    .map(t => t.deletedAt));
                 return {
-                    // Re-adding clears the tombstone, otherwise the merge would drop it again.
-                    deletedWorks: state.deletedWorks.filter((t) => t.id !== work.id),
                     works: [...state.works, {
                         ...work,
                         dateAdded: Date.now(),
-                        lastUpdated: Date.now(),
-                        collections: []
+                        lastUpdated: Math.max(Date.now(), deletionTime + 1),
+                        collections: work.collections || []
                     }]
                 };
             }),
-            removeWork: (id) => set((state) => ({
-                works: state.works.filter((w) => w.id !== id),
-                deletedWorks: pruneTombstones([
-                    ...state.deletedWorks.filter((t) => t.id !== id),
-                    { id, deletedAt: Date.now() },
-                ]),
-            })),
-            updateProgress: (id, progress) => set((state) => ({
-                works: state.works.map((w) =>
-                    w.id === id ? { ...w, currentChapter: progress, lastUpdated: Date.now() } : w
-                ),
-            })),
-            updateStatus: (id, status) => set((state) => ({
-                works: state.works.map((w) =>
-                    w.id === id ? { ...w, status } : w
-                ),
-            })),
-            updateWorkDetails: (id, details) => set((state) => ({
-                works: state.works.map((w) =>
-                    w.id === id ? { ...w, ...details } : w
-                ),
-            })),
-            getWork: (id) => get().works.find((w) => w.id === id),
+            removeWork: (id) => set((state) => {
+                const work = resolveWork(state.works, id);
+                if (!work) return state;
+                return {
+                    works: state.works.filter(w => workKey(w) !== workKey(work)),
+                    deletedWorks: [
+                        ...state.deletedWorks.filter(t => !(t.type === work.type && String(t.id) === String(work.id))),
+                        { id: work.id, type: work.type, deletedAt: nextWorkTimestamp(work) },
+                    ],
+                };
+            }),
+            updateProgress: (id, progress) => get().updateWorkDetails(id, { currentChapter: progress }),
+            updateStatus: (id, status) => get().updateWorkDetails(id, { status }),
+            updateWorkDetails: (id, details) => set((state) => {
+                const work = resolveWork(state.works, id);
+                return {
+                    works: state.works.map(w => w === work
+                        ? { ...w, ...details, id: w.id, type: w.type, lastUpdated: nextWorkTimestamp(w) }
+                        : w),
+                };
+            }),
+            getWork: (id) => resolveWork(get().works, id),
 
 
             createFolder: (name, color, emoji) => set((state) => ({
+                metadataUpdatedAt: Math.max(Date.now(), state.metadataUpdatedAt + 1),
                 folders: [...state.folders, {
                     id: `folder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                     name,
@@ -174,35 +176,31 @@ export const useLibraryStore = create<LibraryState>()(
                 }]
             })),
             updateFolder: (id, updates) => set((state) => ({
+                metadataUpdatedAt: Math.max(Date.now(), state.metadataUpdatedAt + 1),
                 folders: state.folders.map((f) =>
                     f.id === id ? { ...f, ...updates } : f
                 )
             })),
             deleteFolder: (id) => set((state) => ({
+                metadataUpdatedAt: Math.max(Date.now(), state.metadataUpdatedAt + 1),
                 folders: state.folders.filter((f) => f.id !== id),
                 // Remove folder reference from all works
-                works: state.works.map((w) => ({
+                works: state.works.map((w) => w.collections?.includes(id) ? ({
                     ...w,
-                    collections: w.collections?.filter((c) => c !== id) || []
-                }))
+                    collections: w.collections?.filter((c) => c !== id) || [],
+                    lastUpdated: nextWorkTimestamp(w),
+                }) : w)
             })),
-            addToFolder: (workId, folderId) => set((state) => ({
-                works: state.works.map((w) => {
-                    if (w.id !== workId) return w;
-                    const collections = w.collections || [];
-                    if (collections.includes(folderId)) return w;
-                    return { ...w, collections: [...collections, folderId] };
-                })
-            })),
-            removeFromFolder: (workId, folderId) => set((state) => ({
-                works: state.works.map((w) => {
-                    if (w.id !== workId) return w;
-                    return {
-                        ...w,
-                        collections: w.collections?.filter((c) => c !== folderId) || []
-                    };
-                })
-            })),
+            addToFolder: (workId, folderId) => {
+                const work = get().getWork(workId);
+                if (!work || work.collections?.includes(folderId)) return;
+                get().updateWorkDetails(workId, { collections: [...(work.collections || []), folderId] });
+            },
+            removeFromFolder: (workId, folderId) => {
+                const work = get().getWork(workId);
+                if (!work) return;
+                get().updateWorkDetails(workId, { collections: (work.collections || []).filter(c => c !== folderId) });
+            },
             getWorksInFolder: (folderId) => get().works.filter((w) =>
                 w.collections?.includes(folderId)
             ),
@@ -217,17 +215,22 @@ export const useLibraryStore = create<LibraryState>()(
             })),
             isFavoriteCharacter: (id: number) => get().favoriteCharacters.some((c) => c.id === id),
             setFavoriteCharacters: (chars) => set({ favoriteCharacters: chars }),
-            reorderWorks: (newWorks) => set({ works: newWorks }),
+            reorderWorks: (newWorks) => set(state => ({
+                works: newWorks,
+                metadataUpdatedAt: Math.max(Date.now(), state.metadataUpdatedAt + 1),
+            })),
             viewMode: 'grid',
             sortBy: 'updated',
-            setViewMode: (mode) => set({ viewMode: mode }),
-            setSortBy: (sort) => set({ sortBy: sort }),
+            setViewMode: (mode) => set(state => ({ viewMode: mode, metadataUpdatedAt: Math.max(Date.now(), state.metadataUpdatedAt + 1) })),
+            setSortBy: (sort) => set(state => ({ sortBy: sort, metadataUpdatedAt: Math.max(Date.now(), state.metadataUpdatedAt + 1) })),
             resetStoreBase: () => set({
                 works: [],
                 folders: [],
                 favoriteCharacters: [],
                 deletedWorks: [],
                 hydrated: false,
+                metadataUpdatedAt: 0,
+                syncError: null,
                 viewMode: 'grid',
                 sortBy: 'updated'
             }),
@@ -241,8 +244,8 @@ export const useLibraryStore = create<LibraryState>()(
             // `hydrated` tracks this session's cloud load; it must never be restored.
             partialize: (state) => {
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { hydrated, ...rest } = state;
-                return rest as LibraryState;
+                const { hydrated, syncError, ...rest } = state;
+                return rest;
             },
         }
     )
