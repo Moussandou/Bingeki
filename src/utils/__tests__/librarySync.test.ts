@@ -91,4 +91,19 @@ describe('explicit Firestore size boundary', () => {
         expect(estimateLibraryBytes(snapshot({ deletedWorks: [{ id: 1, type: 'anime', deletedAt: 1 }] })))
             .toBeGreaterThan(estimateLibraryBytes(snapshot()));
     });
+
+    it('bounds thousands of small works and nested maps even when their JSON encoding is much smaller', () => {
+        const data = snapshot({ works: [{ ...work('anime'), notes: '' }] });
+        const smallWork = { ...work('manga'), genres: [{ name: 'x' }, { name: 'y' }] };
+        const perWork = estimateLibraryBytes(smallWork);
+        const count = Math.floor((MAX_LIBRARY_DOCUMENT_BYTES - estimateLibraryBytes(data)) / perWork);
+        data.works.push(...Array.from({ length: count }, (_, index) => ({ ...smallWork, id: index + 2 })));
+        expect(count).toBeGreaterThan(1000);
+        data.works[0].notes = 'x'.repeat(MAX_LIBRARY_DOCUMENT_BYTES - estimateLibraryBytes(data));
+        expect(estimateLibraryBytes(data)).toBe(MAX_LIBRARY_DOCUMENT_BYTES);
+        expect(new TextEncoder().encode(JSON.stringify(data)).length).toBeLessThan(MAX_LIBRARY_DOCUMENT_BYTES * 0.8);
+        expect(() => assertLibrarySize(data)).not.toThrow();
+        data.works.push({ ...smallWork, id: count + 2 });
+        expect(() => assertLibrarySize(data)).toThrow('Local data is preserved');
+    });
 });
