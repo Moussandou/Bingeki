@@ -26,8 +26,10 @@ describe('Settings deletion and reauthentication', () => {
     beforeEach(() => { vi.clearAllMocks(); });
     it('retries the server cleanup after reauthentication even while the UI is busy', async () => {
         const work: Work = { id: 1, title: 'Synthetic', image: '', type: 'anime', status: 'reading' };
+        const guest: Work = { ...work, id: 2, title: 'Restored guest' };
         useLibraryStore.setState({ works: [work] });
-        mocks.removeAccount.mockRejectedValueOnce({ details: { reason: 'requires-recent-login' } }).mockResolvedValueOnce(undefined);
+        mocks.removeAccount.mockRejectedValueOnce({ details: { reason: 'requires-recent-login' } })
+            .mockImplementationOnce(async () => { useLibraryStore.setState({ works: [guest] }); });
         mocks.reauthenticate.mockResolvedValue(undefined);
         render(<Settings />);
         fireEvent.click(screen.getByRole('button', { name: 'settings.data.delete_account' }));
@@ -38,7 +40,7 @@ describe('Settings deletion and reauthentication', () => {
         await waitFor(() => expect(mocks.removeAccount).toHaveBeenCalledTimes(2));
         expect(mocks.reauthenticate).toHaveBeenCalledOnce();
         await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith('settings.toast.account_deleted', 'success'));
-        expect(useLibraryStore.getState().works).toEqual([]);
+        expect(useLibraryStore.getState().works).toEqual([guest]);
     });
     it('keeps data and reports incomplete cleanup instead of showing success', async () => {
         mocks.removeAccount.mockRejectedValueOnce(new Error('cleanup unavailable'));

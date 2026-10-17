@@ -3,6 +3,7 @@ import { clearImageCache, exportData, importData, restoreBackup } from '../stora
 import { useLibraryStore, type Work } from '@/store/libraryStore';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { mergeLibraryData } from '@/utils/dataProtection';
 
 const work: Work = { id: 7, type: 'manga', title: 'Synthetic', image: '', status: 'reading', currentChapter: 3 };
 beforeEach(() => {
@@ -33,6 +34,31 @@ describe('validated backup restoration', () => {
         restoreBackup({ library: { works: [] } });
         expect(useLibraryStore.getState().works).toEqual([]);
         expect(useLibraryStore.getState().deletedWorks).toContainEqual(expect.objectContaining({ id: 7, type: 'manga' }));
+    });
+    it('keeps removals newer than known cloud works when the clock moves backwards', () => {
+        vi.spyOn(Date, 'now').mockReturnValue(100);
+        const old = { ...work, lastUpdated: 200 };
+        useLibraryStore.setState({ works: [old] });
+        restoreBackup({ library: { works: [] } });
+        const state = useLibraryStore.getState();
+        expect(state.deletedWorks).toContainEqual({ id: work.id, type: work.type, deletedAt: 201 });
+        expect(mergeLibraryData(state.works, [old], state.deletedWorks)).toEqual([]);
+    });
+    it.each([undefined, 'manga'] as const)('restores notes beyond prior/imported works and %s tombstones', type => {
+        vi.spyOn(Date, 'now').mockReturnValue(100);
+        const old = { ...work, notes: 'Old', lastUpdated: 200 };
+        useLibraryStore.setState({
+            works: [old], metadataUpdatedAt: 500,
+            deletedWorks: [{ id: work.id, type: work.type, deletedAt: 250 }],
+        });
+        restoreBackup({ library: {
+            works: [{ ...work, notes: 'Restored', lastUpdated: 350 }],
+            deletedWorks: [{ id: work.id, ...(type ? { type } : {}), deletedAt: 400 }],
+        } });
+        const state = useLibraryStore.getState();
+        expect(state.works[0]).toMatchObject({ notes: 'Restored', lastUpdated: 401 });
+        expect(state.metadataUpdatedAt).toBe(501);
+        expect(mergeLibraryData(state.works, [old], state.deletedWorks)[0]).toMatchObject({ notes: 'Restored' });
     });
     it('rejects invalid sections before touching any state or persisted storage', () => {
         useLibraryStore.setState({ works: [work] });

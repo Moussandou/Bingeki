@@ -47,6 +47,7 @@ import { useGamificationStore } from '@/store/gamificationStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { logger } from '@/utils/logger';
 import { validateBackup } from './backupValidation';
+import { nextWorkTimestamp, workKey } from './workIdentity';
 
 export function restoreBackup(value: unknown): void {
     // Parse every section before changing storage or notifying store subscribers.
@@ -62,7 +63,7 @@ export function restoreBackup(value: unknown): void {
             ...previousLibrary.deletedWorks,
             ...importedLibrary.deletedWorks,
             ...previousLibrary.works.filter(work => !importedLibrary.works.some(w => w.type === work.type && String(w.id) === String(work.id)))
-                .map(work => ({ id: work.id, type: work.type, deletedAt: now })),
+                .map(work => ({ id: work.id, type: work.type, deletedAt: nextWorkTimestamp(work) })),
         ];
         for (const tombstone of candidates) {
             const type = 'type' in tombstone ? tombstone.type : undefined;
@@ -73,8 +74,17 @@ export function restoreBackup(value: unknown): void {
     }
     const nextLibrary = importedLibrary ? {
         ...importedLibrary,
-        works: importedLibrary.works.map(work => ({ ...work, lastUpdated: now })),
-        metadataUpdatedAt: now,
+        works: importedLibrary.works.map(work => {
+            const previous = previousLibrary.works.find(old => workKey(old) === workKey(work));
+            const deletions = [...previousLibrary.deletedWorks, ...importedLibrary.deletedWorks]
+                .filter(t => String(t.id) === String(work.id) && (!t.type || t.type === work.type));
+            return {
+                ...work,
+                lastUpdated: Math.max(nextWorkTimestamp(work), (previous?.lastUpdated || 0) + 1,
+                    ...deletions.map(t => t.deletedAt + 1)),
+            };
+        }),
+        metadataUpdatedAt: Math.max(now, previousLibrary.metadataUpdatedAt + 1),
         deletedWorks: [...deletedWorks.values()],
     } : undefined;
     const patches = [
