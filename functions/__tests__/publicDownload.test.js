@@ -70,6 +70,12 @@ describe('bounded downloader', () => {
         expect(request).not.toHaveBeenCalled();
     });
 
+    it('rejects an empty DNS result before transport', async () => {
+        const { download, request } = transport([], []);
+        await expect(download('https://example.com')).rejects.toThrow('Non-public');
+        expect(request).not.toHaveBeenCalled();
+    });
+
     it('rejects DNS failure without transport', async () => {
         const request = vi.fn();
         const download = createPublicDownloader({
@@ -134,6 +140,11 @@ describe('bounded downloader', () => {
         expect(request).toHaveBeenCalledTimes(2);
     });
 
+    it('rejects a redirect without a Location header', async () => {
+        const { download } = transport([{ status: 302 }]);
+        await expect(download('https://example.com')).rejects.toThrow('no destination');
+    });
+
     it('accepts the exact byte limit', async () => {
         const { download } = transport([{ chunks: ['123', '45'] }]);
         expect((await download('https://example.com', { maxBytes: 5 })).buffer.length).toBe(5);
@@ -166,5 +177,39 @@ describe('bounded downloader', () => {
         const download = createPublicDownloader({ lookup: () => {}, request });
         await expect(download('https://example.com', { timeoutMs: 5 })).rejects.toThrow('timed out');
         expect(request).not.toHaveBeenCalled();
+    });
+
+    it('aborts a socket that never receives response headers', async () => {
+        const lookup = (_host, _options, callback) =>
+            callback(null, [{ address: '8.8.8.8', family: 4 }]);
+        const request = vi.fn((_url, options) => {
+            const req = new EventEmitter();
+            options.signal.addEventListener('abort', () => req.emit('error', options.signal.reason));
+            req.end = vi.fn();
+            return req;
+        });
+        const download = createPublicDownloader({ lookup, request });
+        await expect(download('https://example.com', { timeoutMs: 5 })).rejects.toThrow('timed out');
+        expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects an interrupted response instead of returning partial content', async () => {
+        const lookup = (_host, _options, callback) =>
+            callback(null, [{ address: '8.8.8.8', family: 4 }]);
+        const request = (_url, _options, callback) => {
+            const req = new EventEmitter();
+            req.end = () => queueMicrotask(() => {
+                const res = new PassThrough();
+                res.statusCode = 200;
+                res.headers = {};
+                callback(res);
+                res.write(Buffer.from('partial'));
+                res.emit('aborted');
+                res.destroy();
+            });
+            return req;
+        };
+        const download = createPublicDownloader({ lookup, request });
+        await expect(download('https://example.com')).rejects.toThrow('interrupted');
     });
 });
