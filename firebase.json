@@ -91,6 +91,15 @@
         ]
       },
       {
+        "source": "/[aA][pP][iI]/[oO][gG]-[iI][mM][aA][gG][eE]{,/**}",
+        "headers": [
+          {
+            "key": "Content-Security-Policy",
+            "value": "sandbox; default-src 'none'; script-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+          }
+        ]
+      },
+      {
         "source": "/sitemap{,.xml,-index.xml}",
         "headers": [
           {
