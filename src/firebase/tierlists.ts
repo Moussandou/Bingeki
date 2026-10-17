@@ -1,6 +1,6 @@
-import { doc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, addDoc, deleteDoc, startAfter, getCountFromServer } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit, runTransaction, addDoc, deleteDoc, startAfter, getCountFromServer } from 'firebase/firestore';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
-import { db } from './config';
+import { auth, db } from './config';
 import { logger } from '@/utils/logger';
 
 export interface TierList {
@@ -12,6 +12,7 @@ export interface TierList {
     description?: string;
     category: 'anime' | 'manga' | 'characters';
     likes: string[];
+    likesCount?: number;
     createdAt: number;
     isPublic: boolean;
     tiers: {
@@ -36,6 +37,8 @@ export async function createTierList(tierList: Omit<TierList, 'id'>): Promise<st
     try {
         const docRef = await addDoc(collection(db, 'tierLists'), {
             ...tierList,
+            likes: [],
+            likesCount: 0,
             createdAt: Date.now()
         });
         logger.log('[Firestore] Tier list created:', docRef.id);
@@ -106,6 +109,7 @@ export async function getUserTierLists(userId: string): Promise<TierList[]> {
         const q = query(
             collection(db, 'tierLists'),
             where('userId', '==', userId),
+            ...(auth.currentUser?.uid === userId ? [] : [where('isPublic', '==', true)]),
             orderBy('createdAt', 'desc')
         );
         const querySnapshot = await getDocs(q);
@@ -124,7 +128,8 @@ export async function getUserTierListsCount(userId: string): Promise<number> {
     try {
         const q = query(
             collection(db, 'tierLists'),
-            where('userId', '==', userId)
+            where('userId', '==', userId),
+            ...(auth.currentUser?.uid === userId ? [] : [where('isPublic', '==', true)])
         );
         const snapshot = await getCountFromServer(q);
         return snapshot.data().count;
@@ -147,19 +152,18 @@ export async function deleteTierList(listId: string): Promise<void> {
 export async function toggleTierListLike(listId: string, userId: string): Promise<void> {
     try {
         const listRef = doc(db, 'tierLists', listId);
-        const listSnap = await getDoc(listRef);
-
-        if (listSnap.exists()) {
+        await runTransaction(db, async transaction => {
+            const listSnap = await transaction.get(listRef);
+            if (!listSnap.exists()) throw new Error('Tier list not found');
             const list = listSnap.data() as TierList;
             const likes = list.likes || [];
-
-            if (likes.includes(userId)) {
-                await updateDoc(listRef, { likes: likes.filter(id => id !== userId) });
-            } else {
-                await updateDoc(listRef, { likes: [...likes, userId] });
-            }
-        }
+            const nextLikes = likes.includes(userId)
+                ? likes.filter(id => id !== userId)
+                : [...likes, userId];
+            transaction.update(listRef, { likes: nextLikes, likesCount: nextLikes.length });
+        });
     } catch (error) {
         logger.error('[Firestore] Error toggling tier list like:', error);
+        throw error;
     }
 }

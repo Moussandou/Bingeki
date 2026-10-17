@@ -228,6 +228,7 @@
     "see_more": "See more",
     "show_more": "Show more",
     "close": "Close",
+    "dialog": "Dialog",
     "yes": "Yes",
     "no": "No",
     "access_denied": "Access denied",
@@ -361,7 +362,8 @@
       "title": "PREFERENCES",
       "reduce_motion": "Reduce Motion",
       "sound_effects": "Sound Effects (UI)",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "push_unavailable": "Push notifications are unavailable: the delivery service is not configured. In-app notifications remain available."
     },
     "content": {
       "title": "CONTENT & DISPLAY",
@@ -442,7 +444,8 @@
       "reauth_error": "Verification failed",
       "relogin_manual": "Please log out and log back in manually.",
       "delete_error": "Deletion error",
-      "cache_cleared": "Cache cleared (simulated)"
+      "cache_cleared": "Application image caches cleared",
+      "cache_error": "Unable to clear the image caches."
     }
   },
   "mal_import": {

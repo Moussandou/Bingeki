@@ -3,6 +3,7 @@
  */
 
 const admin = require('firebase-admin');
+const { assertUnlocked } = require('../publishers/publicationCore');
 
 const COLLECTIONS = {
     pending: 'social_pending_posts',
@@ -37,48 +38,60 @@ async function createPendingPost(post) {
 async function movePendingToPublished(postId, results, publishedBy, extras = {}) {
     const db = admin.firestore();
     const pendingRef = db.collection(COLLECTIONS.pending).doc(postId);
-    const snap = await pendingRef.get();
-    if (!snap.exists) throw new Error(`pending post ${postId} not found`);
-    const data = snap.data();
-
-    const batch = db.batch();
-    batch.set(db.collection(COLLECTIONS.published).doc(postId), {
-        ...data,
-        publishedAt: Date.now(),
-        publishedBy,
-        results,
-        // When one platform succeeded but another failed, keep the
-        // per-platform errors alongside the successful results so the
-        // admin sees the partial state at a glance.
-        ...(extras.errors ? { errors: extras.errors } : {}),
+    const publishedRef = db.collection(COLLECTIONS.published).doc(postId);
+    await db.runTransaction(async batch => {
+        const [snap, published] = await Promise.all([batch.get(pendingRef), batch.get(publishedRef)]);
+        if (published.exists) return;
+        if (!snap.exists) throw new Error(`pending post ${postId} not found`);
+        const data = snap.data();
+        assertUnlocked(data);
+        batch.set(publishedRef, {
+            ...data,
+            publishedAt: Date.now(),
+            publishedBy,
+            results,
+            // When one platform succeeded but another failed, keep the
+            // per-platform errors alongside the successful results so the
+            // admin sees the partial state at a glance.
+            ...(extras.errors ? { errors: extras.errors } : {}),
+        });
+        batch.delete(pendingRef);
     });
-    batch.delete(pendingRef);
-    await batch.commit();
 }
 
 async function markPendingFailed(postId, errorMessage) {
-    const db = admin.firestore();
-    await db.collection(COLLECTIONS.pending).doc(postId).update({
+    await updatePendingCaption(postId, {
         status: 'failed',
         error: errorMessage,
     });
 }
 
 async function markPendingProcessing(postId) {
-    const db = admin.firestore();
-    await db.collection(COLLECTIONS.pending).doc(postId).update({
+    await updatePendingCaption(postId, {
         status: 'processing',
     });
 }
 
 async function deletePending(postId) {
     const db = admin.firestore();
-    await db.collection(COLLECTIONS.pending).doc(postId).delete();
+    const ref = db.collection(COLLECTIONS.pending).doc(postId);
+    await db.runTransaction(async tx => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) return;
+        assertUnlocked(snap.data());
+        tx.delete(ref);
+    });
 }
 
 async function updatePendingCaption(postId, patch) {
     const db = admin.firestore();
-    await db.collection(COLLECTIONS.pending).doc(postId).update(patch);
+    const ref = db.collection(COLLECTIONS.pending).doc(postId);
+    await db.runTransaction(async tx => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) throw new Error(`pending post ${postId} not found`);
+        assertUnlocked(snap.data());
+        tx.update(ref, patch);
+    });
 }
 
 /**
@@ -136,17 +149,18 @@ async function markAsAnnounced(malId, meta = {}) {
 async function archivePending(postId, reason) {
     const db = admin.firestore();
     const pendingRef = db.collection(COLLECTIONS.pending).doc(postId);
-    const snap = await pendingRef.get();
-    if (!snap.exists) return false;
-    const batch = db.batch();
-    batch.set(db.collection(COLLECTIONS.archived).doc(postId), {
-        ...snap.data(),
-        archivedAt: Date.now(),
-        archiveReason: reason || 'unspecified',
+    return db.runTransaction(async batch => {
+        const snap = await batch.get(pendingRef);
+        if (!snap.exists) return false;
+        assertUnlocked(snap.data());
+        batch.set(db.collection(COLLECTIONS.archived).doc(postId), {
+            ...snap.data(),
+            archivedAt: Date.now(),
+            archiveReason: reason || 'unspecified',
+        });
+        batch.delete(pendingRef);
+        return true;
     });
-    batch.delete(pendingRef);
-    await batch.commit();
-    return true;
 }
 
 module.exports = {

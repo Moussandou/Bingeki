@@ -15,7 +15,7 @@ const admin = require('firebase-admin');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { loadBotConfig, isKilled } = require('../shared/config');
-const { COLLECTIONS, markPendingFailed } = require('../shared/firestore');
+const { COLLECTIONS, markPendingFailed, updatePendingCaption } = require('../shared/firestore');
 const { getModeForType } = require('../shared/modes');
 const { withCronHealth } = require('../shared/cronHealth');
 const { publishPendingPost } = require('../publishers/publishPending');
@@ -35,7 +35,7 @@ async function runAutoPublish() {
 
         const due = snap.docs.filter((doc) => {
             const post = doc.data();
-            return post.status === 'ready'
+            return (post.status === 'ready' || (post.status === 'processing' && post.publishLease?.expiresAt <= Date.now()))
                 && !post.manualFallback
                 && getModeForType(config, post.type) === 'auto';
         }).slice(0, MAX_PER_RUN);
@@ -57,7 +57,7 @@ async function runAutoPublish() {
             if (config.fallbackToManual === false) {
                 await markPendingFailed(doc.id, summary);
             } else {
-                await doc.ref.update({
+                await updatePendingCaption(doc.id, {
                     status: 'ready',
                     manualFallback: true,
                     error: `Buffer a échoué, passé en Manuel — ${summary}`,

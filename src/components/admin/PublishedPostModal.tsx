@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { X, Camera, Music2, ExternalLink, Clock, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 import type { PublishedPost, PlatformReach, BufferMetric } from '@/shared/socialBot';
-import { retryPublish } from '@/firebase/socialBot';
+import { retryPublish, markPublished } from '@/firebase/socialBot';
 import { logger } from '@/utils/logger';
 import s from '@/pages/admin/AdminSocial.module.css';
 
@@ -134,8 +134,24 @@ export function PublishedPostModal({ post, onClose }: Props) {
     const ttReach = post.reach?.tiktok;
     const errors = post.errors || null;
     const hasErrors = errors && Object.keys(errors).length > 0;
+    const unknownPlatforms = (['insta', 'tiktok'] as const).filter(platform => post.publishAttempts?.[platform]?.state === 'unknown');
+    const canRetry = (['insta', 'tiktok'] as const).some(platform => errors?.[platform] && !unknownPlatforms.includes(platform));
     const [retrying, setRetrying] = useState(false);
     const [retryMessage, setRetryMessage] = useState<string | null>(null);
+
+    const handleReconcile = async (platform: 'insta' | 'tiktok') => {
+        if (retrying || !window.confirm(`Confirmer uniquement après avoir retrouvé cette publication ${platform} dans Buffer. Aucun nouvel envoi ne sera effectué.`)) return;
+        setRetrying(true);
+        try {
+            await markPublished(post.id, platform);
+            setRetryMessage(`Publication ${platform} confirmée après vérification manuelle.`);
+        } catch (error) {
+            logger.error('[PublishedPostModal] reconciliation failed:', error);
+            setRetryMessage(error instanceof Error ? error.message : String(error));
+        } finally {
+            setRetrying(false);
+        }
+    };
 
     const handleRetry = async () => {
         if (retrying) return;
@@ -204,11 +220,11 @@ export function PublishedPostModal({ post, onClose }: Props) {
                                 textTransform: 'uppercase',
                                 letterSpacing: 2,
                             }}>
-                                <AlertTriangle size={14} /> Publish partiel · à retenter
+                                <AlertTriangle size={14} /> {unknownPlatforms.length ? 'Résultat incertain · vérification Buffer requise' : 'Publish partiel · à retenter'}
                             </div>
                             <button
                                 onClick={handleRetry}
-                                disabled={retrying}
+                                disabled={retrying || !canRetry}
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
@@ -242,6 +258,11 @@ export function PublishedPostModal({ post, onClose }: Props) {
                             }}>
                                 <strong>{platform}:</strong> {msg}
                             </div>
+                        ))}
+                        {unknownPlatforms.map(platform => (
+                            <button key={platform} disabled={retrying} onClick={() => handleReconcile(platform)} style={{ marginTop: 8 }}>
+                                J'ai vérifié dans Buffer : {platform} est déjà publié
+                            </button>
                         ))}
                         {retryMessage && (
                             <div style={{

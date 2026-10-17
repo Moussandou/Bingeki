@@ -46,3 +46,37 @@ Every user profile has a unique SEO-optimized URL: `bingeki.app/profile/{usernam
 
 - **Watch Parties**: Real-time synchronized viewing sessions. State is held in `/watchparties/{partyId}` where participants subscribe for instant UI updates.
 - **Challenges (WIP)**: Competitive goals (e.g., "Read 50 chapters this week").
+
+### Canonical persistence contracts
+
+- Watch-party ownership uses `hostId`, and ending a party writes `status: ended`.
+  Account deletion also removes legacy `creatorId` parties.
+- Work identities retain the original numeric/string API ID and a separate
+  `workType` (`anime` or `manga`). Selection, recommendations and favorites must
+  distinguish both values. Existing ambiguous favorite IDs are retained but
+  are not resolved to an arbitrary category.
+- New comments use `workType`; typed queries do not include old untyped
+  comments because the original category cannot be inferred safely.
+- New tier lists start with `likes: []` and `likesCount: 0`. Likes and count
+  are updated together in a Firestore transaction. Public visitors query
+  only `isPublic: true`; the owner may query their private lists too.
+
+Before deploying indexed popularity sorting for historical lists, run the
+reviewed `scripts/repair-tierlist-counts.cjs` migration against a demo emulator:
+
+```sh
+GCLOUD_PROJECT=demo-bingeki-flows FIRESTORE_EMULATOR_HOST=127.0.0.1:8184 \
+  node scripts/repair-tierlist-counts.cjs
+```
+
+It normalizes counts from the current unique likes inside transactions,
+pages through the collection, and can be rerun. Without an emulator it
+refuses access unless the operator explicitly supplies a matching
+`--approve-production=<projectId>`; no production migration is run by tests.
+Deploy the matching composite indexes and security rules before rollout.
+Legacy profiles without `profileVisibility` need an operator-reviewed
+visibility migration before participating in public discovery queries;
+new profiles initialize the field to `public`.
+
+Account deletion, local backups and keyboard-dialog behavior are documented
+in [Account and local data](./Account-and-Local-Data.md).

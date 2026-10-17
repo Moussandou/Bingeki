@@ -8,6 +8,7 @@ export interface Challenge {
     title: string;
     type: 'race_to_finish' | 'most_chapters' | 'streak_battle';
     workId?: number;
+    workType?: 'anime' | 'manga';
     workTitle?: string;
     workImage?: string;
     participants: ChallengeParticipant[];
