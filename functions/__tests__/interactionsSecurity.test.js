@@ -18,16 +18,24 @@ const party = () => ({
     })),
 });
 
-function harness(profile = {}, deleted = false) {
+function harness(profile = { displayName: 'alice', photoURL: '' }, deleted = false, overrides = {}) {
     const writes = [];
+    const reads = [];
     class HttpsError extends Error {
         constructor(code, message) { super(message); this.code = code; }
     }
     const db = {
         collection: collection => ({ doc: (id = 'generated') => ({ path: `${collection}/${id}`, id }) }),
         runTransaction: callback => callback({
-            get: async ref => ref.path.startsWith('users/')
-                ? { exists: !!profile, data: () => profile } : { exists: deleted },
+            getAll: async (...refs) => refs.map(ref => {
+                reads.push(ref.path);
+                const id = ref.path.split('/')[1];
+                const value = Object.hasOwn(overrides, ref.path) ? overrides[ref.path]
+                    : ref.path.startsWith('users/')
+                        ? id === 'alice' ? profile : { displayName: id, photoURL: '' }
+                        : id === 'alice' && deleted ? {} : null;
+                return { exists: value !== null, data: () => value };
+            }),
             create: (ref, data) => { writes.push({ path: ref.path, data }); },
         }),
     };
@@ -40,7 +48,7 @@ function harness(profile = {}, deleted = false) {
             return require(`../${name.replace('./', '')}`);
         },
     });
-    return { ...exports, writes };
+    return { ...exports, writes, reads };
 }
 
 describe('validated group invitations', () => {
@@ -101,5 +109,48 @@ describe('validated group invitations', () => {
         await expect(harness().createChallengeFn({ data: challenge() })).rejects.toHaveProperty('code', 'unauthenticated');
         await expect(harness({}, true).createWatchPartyFn({ auth: { uid: 'alice' }, data: party() }))
             .rejects.toHaveProperty('code', 'permission-denied');
+    });
+    it.each(['bob', 'eve'])('checks inactive invitee %s before creating any references', async invitee => {
+        for (const overrides of [
+            { [`users/${invitee}`]: null },
+            { [`users/${invitee}`]: { deleting: true } },
+            { [`users/${invitee}`]: { isBanned: true } },
+            { [`accountDeletions/${invitee}`]: { deleting: false } },
+        ]) {
+            const api = harness(undefined, false, overrides);
+            await expect(api.createChallengeFn({ auth: { uid: 'alice' }, data: challenge() }))
+                .rejects.toHaveProperty('code', 'permission-denied');
+            await expect(api.createWatchPartyFn({ auth: { uid: 'alice' }, data: party() }))
+                .rejects.toHaveProperty('code', 'permission-denied');
+            expect(api.writes).toHaveLength(0);
+        }
+    });
+    it('derives caller and invitee names/photos from profiles, never the submitted metadata', async () => {
+        const api = harness({ displayName: 'Real Alice', photoURL: 'https://example.test/alice.png' }, false, {
+            'users/bob': { displayName: 'Real Bob', photoURL: 'https://example.test/bob.png' },
+            'users/eve': { displayName: 'Real Eve', photoURL: 'https://example.test/eve.png' },
+        });
+        const payload = challenge();
+        payload.participants = payload.participants.map(p => ({ ...p, name: 'Spoof', photo: 'https://example.test/spoof.png' }));
+        await api.createChallengeFn({ auth: { uid: 'alice' }, data: payload });
+        const watchParty = party();
+        watchParty.hostName = 'Spoof Host';
+        watchParty.participants = watchParty.participants.map(p => ({ ...p, name: 'Spoof', photo: '' }));
+        await api.createWatchPartyFn({ auth: { uid: 'alice' }, data: watchParty });
+        for (const write of api.writes) {
+            expect(write.data.participants.map(p => p.name)).toEqual(['Real Alice', 'Real Bob', 'Real Eve']);
+            expect(write.data.participants.map(p => p.photo)).toEqual([
+                'https://example.test/alice.png', 'https://example.test/bob.png', 'https://example.test/eve.png',
+            ]);
+            expect(JSON.stringify(write)).not.toContain('Spoof');
+        }
+        expect(api.writes[1].data.hostName).toBe('Real Alice');
+        expect(api.writes[0].data.participants.map(p => p.status)).toEqual(['accepted', 'pending', 'pending']);
+        expect(api.writes[1].data.participants.map(p => p.currentProgress)).toEqual([20, 0, 0]);
+        expect(api.reads).toEqual([
+            'users/alice', 'accountDeletions/alice', 'users/bob', 'accountDeletions/bob', 'users/eve', 'accountDeletions/eve',
+            'users/alice', 'accountDeletions/alice', 'users/bob', 'accountDeletions/bob', 'users/eve', 'accountDeletions/eve',
+        ]);
+        expect(payload.participants[0].name).toBe('Spoof');
     });
 });

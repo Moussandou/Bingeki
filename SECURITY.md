@@ -52,6 +52,10 @@ accepted with zero progress, all invitees start pending with zero progress,
 and `workType` can disambiguate anime/manga identifiers.
 Watch-party creation likewise uses `createWatchPartyFn`, preserving multi-friend
 invitations while validating host identity and initial invitee readiness/progress.
+Both creation callables read every participant's live profile and deletion
+tombstone in the write transaction, rejecting missing, banned or deleting accounts.
+Names, photos and the host name are derived from those profiles, never trusted
+from invitation payloads.
 
 Storage permits guest feedback attachments on **new paths only**; replacement is
 denied even for authenticated uploaders. Direct reads/deletes remain admin-only.

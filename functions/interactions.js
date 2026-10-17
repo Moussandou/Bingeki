@@ -2,16 +2,35 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const { CALLABLE_REGIONS } = require('./regions');
 
-async function createInteraction(uid, collection, data) {
+async function createInteraction(collection, data) {
     const db = admin.firestore();
     const ref = db.collection(collection).doc();
     await db.runTransaction(async transaction => {
-        const profile = await transaction.get(db.collection('users').doc(uid));
-        const deleted = await transaction.get(db.collection('accountDeletions').doc(uid));
-        if (!profile.exists || deleted.exists || profile.data().isBanned || profile.data().deleting) {
-            throw new HttpsError('permission-denied', 'Account cannot create social invitations.');
-        }
-        transaction.create(ref, collection === 'watchparties' ? { ...data, id: ref.id } : data);
+        // Include invitees in the read set so concurrent account cleanup retries this write.
+        const snapshots = await transaction.getAll(...data.participants.flatMap(participant => [
+            db.collection('users').doc(participant.id),
+            db.collection('accountDeletions').doc(participant.id),
+        ]));
+        const participants = data.participants.map((participant, index) => {
+            const profile = snapshots[index * 2];
+            const deleted = snapshots[index * 2 + 1];
+            const account = profile.data();
+            if (!profile.exists || deleted.exists || account.isBanned || account.deleting) {
+                throw new HttpsError('permission-denied', 'All participants must have active accounts.');
+            }
+            const identity = {
+                id: participant.id,
+                name: typeof account.displayName === 'string' ? account.displayName : '',
+                photo: typeof account.photoURL === 'string' ? account.photoURL : '',
+                joinedAt: participant.joinedAt,
+            };
+            return collection === 'watchparties'
+                ? { ...identity, isReady: participant.isReady, currentProgress: participant.currentProgress }
+                : { ...identity, progress: participant.progress, status: participant.status };
+        });
+        transaction.create(ref, collection === 'watchparties'
+            ? { ...data, participants, hostName: participants[0].name, id: ref.id }
+            : { ...data, participants });
     });
     return { id: ref.id };
 }
@@ -46,7 +65,7 @@ exports.createChallengeFn = onCall({ cors: true, region: CALLABLE_REGIONS }, asy
             || participant.status !== (index === 0 ? 'accepted' : 'pending'))) {
         throw new HttpsError('invalid-argument', 'Invalid challenge or invitations.');
     }
-    return createInteraction(uid, 'challenges', challenge);
+    return createInteraction('challenges', challenge);
 });
 
 exports.createWatchPartyFn = onCall({ cors: true, region: CALLABLE_REGIONS }, async request => {
@@ -80,5 +99,5 @@ exports.createWatchPartyFn = onCall({ cors: true, region: CALLABLE_REGIONS }, as
         || new Set(party.participants.map(participant => participant.id)).size !== party.participants.length) {
         throw new HttpsError('invalid-argument', 'Invalid watch party or invitations.');
     }
-    return createInteraction(uid, 'watchparties', party);
+    return createInteraction('watchparties', party);
 });
