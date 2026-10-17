@@ -2,6 +2,7 @@ import { Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import styles from '@/pages/WorkDetails.module.css';
 import type { Work } from '@/store/libraryStore';
+import { workKey } from '@/utils/workIdentity';
 
 interface RatingAndNotesSectionProps {
     libraryWork: Work | undefined;
@@ -31,7 +32,7 @@ export function RatingAndNotesSection({
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
                         <button
                             key={star}
-                            onClick={() => updateWorkDetails(work.id, { rating: star })}
+                            onClick={() => updateWorkDetails(workKey(work), { rating: star })}
                             style={{
                                 background: 'none',
                                 border: 'none',
@@ -75,7 +76,7 @@ export function RatingAndNotesSection({
                 {isNotesExpanded && (
                     <textarea
                         value={work.notes || ''}
-                        onChange={(e) => updateWorkDetails(work.id, { notes: e.target.value })}
+                        onChange={(e) => updateWorkDetails(workKey(work), { notes: e.target.value })}
                         placeholder={t('work_details.notes.placeholder')}
                         className={styles.notesArea}
                     />

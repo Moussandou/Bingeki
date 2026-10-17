@@ -6,6 +6,7 @@ import styles from '@/pages/WorkDetails.module.css';
 import logoCrunchyroll from '@/assets/logo_crunchyroll.png';
 import logoADN from '@/assets/logo_adn.png';
 import type { Work } from '@/store/libraryStore';
+import { workKey } from '@/utils/workIdentity';
 import type { JikanStreaming } from '@/services/animeApi';
 
 interface WorkMainHeaderProps {
@@ -42,7 +43,7 @@ export function WorkMainHeader({
                     onClick={() => {
                         const newTotal = prompt(t('work_details.chapters.prompt_total'), work.totalChapters?.toString() || "");
                         if (newTotal && !isNaN(Number(newTotal))) {
-                            updateWorkDetails(Number(work.id), { totalChapters: Number(newTotal) });
+                            updateWorkDetails(workKey(work), { totalChapters: Number(newTotal) });
                         }
                     }}
                     className={styles.metaItem}

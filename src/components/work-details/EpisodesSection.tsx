@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { ContentList, type ContentItem } from '@/components/library/ContentList';
 import type { Work } from '@/store/libraryStore';
+import { workKey } from '@/utils/workIdentity';
 import type { JikanStreaming } from '@/services/animeApi';
 
 interface EpisodesSectionProps {
@@ -44,7 +45,7 @@ export function EpisodesSection({
                     onClick={() => {
                         const newTotal = prompt(t('work_details.chapters.prompt'), "0");
                         if (newTotal && !isNaN(Number(newTotal))) {
-                            updateWorkDetails(work.id, { totalChapters: Number(newTotal) });
+                            updateWorkDetails(workKey(work), { totalChapters: Number(newTotal) });
                         }
                     }}
                     variant="manga"

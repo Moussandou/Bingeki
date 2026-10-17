@@ -20,6 +20,7 @@ import {
 import type { MALEntry } from '@/services/malImportService';
 import styles from './MALImportModal.module.css';
 import { logger } from '@/utils/logger';
+import { workKey } from '@/utils/workIdentity';
 
 interface MALImportModalProps {
     isOpen: boolean;
@@ -132,7 +133,7 @@ export function MALImportModal({ isOpen, onClose, initialFile }: MALImportModalP
 
                 const existingDuplicate = conflictConflicts.find((d) => d.entry.malId === entry.malId);
                 if (existingDuplicate) {
-                    updateWorkDetails(existingDuplicate.existingWork.id, work);
+                    updateWorkDetails(workKey(existingDuplicate.existingWork), work);
                 } else {
                     addWork(work);
                 }

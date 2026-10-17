@@ -32,9 +32,12 @@ import { SocialLinksBanner } from '@/components/social/SocialLinksBanner';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import styles from './Dashboard.module.css';
 import { useMounted } from '@/hooks/useMounted';
+import { workKey } from '@/utils/workIdentity';
+import { useToast } from '@/context/ToastContext';
 
 export default function Dashboard() {
     const { t } = useTranslation();
+    const { addToast } = useToast();
     const navigate = useLocalizedNavigate();
     const isMounted = useMounted();
     const { user, userProfile } = useAuthStore();
@@ -60,11 +63,18 @@ export default function Dashboard() {
 
     const loadFriendsActivity = useCallback(async () => {
         if (!user) return;
+        const uid = user.uid;
         setIsLoadingActivity(true);
-        const activity = await getFriendsActivity(user.uid, 5);
-        setFriendsActivity(activity);
-        setIsLoadingActivity(false);
-    }, [user]);
+        try {
+            const activity = await getFriendsActivity(uid, 5);
+            if (useAuthStore.getState().user?.uid === uid) setFriendsActivity(activity);
+        } catch (error) {
+            logger.error('[Dashboard] Could not load friends activity:', error);
+            if (useAuthStore.getState().user?.uid === uid) addToast(t('common.error'), 'error');
+        } finally {
+            if (useAuthStore.getState().user?.uid === uid) setIsLoadingActivity(false);
+        }
+    }, [user, addToast, t]);
 
     const loadRecommendations = useCallback(async () => {
         // Fetch top manga by popularity
@@ -101,7 +111,6 @@ export default function Dashboard() {
 
     const formatTimeAgo = (timestamp: number) => {
         if (!isMounted) return '...';
-        /* eslint-disable-next-line */
         const diff = Date.now() - timestamp;
         const hours = Math.floor(diff / (1000 * 60 * 60));
         if (hours < 1) return t('dashboard.just_now');
@@ -308,7 +317,7 @@ export default function Dashboard() {
                                     </div>
                                 ) : (
                                     inProgressWorks.map((work) => (
-                                        <motion.div key={work.id} whileHover={{ y: -5 }}>
+                                        <motion.div key={workKey(work)} whileHover={{ y: -5 }}>
                                             <Link to={`/work/${work.id}?type=${work.type}`} style={{ textDecoration: 'none', display: 'block' }}>
                                                 <div className={styles.progressCard}>
                                                     <OptimizedImage src={work.image} alt="" priority={true} />

@@ -37,57 +37,98 @@ export function useFirestoreSync() {
   useEffect(() => {
     let libraryTimeout: ReturnType<typeof setTimeout> | undefined;
     let gamificationTimeout: ReturnType<typeof setTimeout> | undefined;
+    let libraryDirty = false;
+    let gamificationDirty = false;
+    let librarySaving = false;
+    let libraryRevision = 0;
+    let disposed = false;
+    const readyUser = () => {
+      const user = useAuthStore.getState().user;
+      const library = useLibraryStore.getState();
+      return user && library.hydrated && library.ownerId === user.uid ? user : null;
+    };
+    const flushLibrary = () => {
+      clearTimeout(libraryTimeout);
+      const user = readyUser();
+      if (!user || !libraryDirty || librarySaving) return;
+      const uid = user.uid;
+      const savingRevision = libraryRevision;
+      let succeeded = false;
+      libraryDirty = false;
+      librarySaving = true;
+      const { works, folders, viewMode, sortBy, deletedWorks, metadataUpdatedAt } = useLibraryStore.getState();
+      saveLibraryToFirestore(uid, works, folders, viewMode, sortBy, {
+        tombstones: deletedWorks, metadataUpdatedAt,
+      }).then(() => {
+        succeeded = true;
+        if (readyUser()?.uid === uid) useLibraryStore.setState({ syncError: null });
+      }).catch(error => {
+        if (readyUser()?.uid === uid) {
+          libraryDirty = true;
+          useLibraryStore.setState({ syncError: error instanceof Error ? error.message : String(error) });
+        }
+        logger.error('[FirestoreSync] Library save failed; local data retained:', error);
+      }).finally(() => {
+        librarySaving = false;
+        if (!disposed && libraryDirty && (succeeded || libraryRevision > savingRevision || readyUser()?.uid !== uid)) {
+          libraryTimeout = setTimeout(flushLibrary, SAVE_DEBOUNCE_MS);
+        }
+      });
+    };
+    const flushGamification = () => {
+      clearTimeout(gamificationTimeout);
+      const user = readyUser();
+      if (!user || !gamificationDirty) return;
+      gamificationDirty = false;
+      const uid = user.uid;
+      saveGamificationToFirestore(uid, pickGamification(useGamificationStore.getState())).catch(error => {
+        if (readyUser()?.uid === uid) gamificationDirty = true;
+        logger.error('[FirestoreSync] Gamification save failed:', error);
+      });
+    };
 
     // Auto-save library (3s debounce)
     const unsubLibrary = useLibraryStore.subscribe((state, prevState) => {
-      const user = useAuthStore.getState().user;
-      if (!user) return;
+      if (!readyUser() || syncFlags.skipLibrarySave) return;
       if (
         state.works === prevState.works &&
         state.folders === prevState.folders &&
         state.viewMode === prevState.viewMode &&
-        state.sortBy === prevState.sortBy
+        state.sortBy === prevState.sortBy &&
+        state.deletedWorks === prevState.deletedWorks &&
+        state.metadataUpdatedAt === prevState.metadataUpdatedAt &&
+        state.hydrated === prevState.hydrated
       ) return;
 
-      const uid = user.uid;
+      libraryDirty = true;
+      libraryRevision++;
       clearTimeout(libraryTimeout);
-      libraryTimeout = setTimeout(() => {
-        // User may have logged out while the save was pending
-        if (useAuthStore.getState().user?.uid !== uid) return;
-        const { works, folders, viewMode, sortBy, deletedWorks } = useLibraryStore.getState();
-        saveLibraryToFirestore(uid, works, folders, viewMode, sortBy, {
-          tombstones: deletedWorks,
-        }).catch((error) => {
-          logger.error('[FirestoreSync] Library save failed:', error);
-        });
-      }, SAVE_DEBOUNCE_MS);
+      libraryTimeout = setTimeout(flushLibrary, SAVE_DEBOUNCE_MS);
     });
 
     // Auto-save gamification (3s debounce)
     const unsubGamification = useGamificationStore.subscribe((state, prevState) => {
-      const user = useAuthStore.getState().user;
-      if (!user) return;
+      if (!readyUser()) return;
       if (GAMIFICATION_KEYS.every((key) => state[key] === prevState[key])) return;
 
       // Change comes from Firestore hydration: don't write it back
       if (syncFlags.skipGamificationSave) return;
 
-      const uid = user.uid;
+      gamificationDirty = true;
       clearTimeout(gamificationTimeout);
-      gamificationTimeout = setTimeout(() => {
-        if (useAuthStore.getState().user?.uid !== uid) return;
-        saveGamificationToFirestore(
-          uid,
-          pickGamification(useGamificationStore.getState())
-        ).catch((error) => {
-          logger.error('[FirestoreSync] Gamification save failed:', error);
-        });
-      }, SAVE_DEBOUNCE_MS);
+      gamificationTimeout = setTimeout(flushGamification, SAVE_DEBOUNCE_MS);
     });
 
     // Hydrate stores from profile changes (other devices, cloud functions)
     const unsubProfile = useAuthStore.subscribe((state, prevState) => {
+      if (state.user?.uid !== prevState.user?.uid) {
+        clearTimeout(libraryTimeout);
+        clearTimeout(gamificationTimeout);
+        libraryDirty = false;
+        gamificationDirty = false;
+      }
       if (!state.user || !state.userProfile) return;
+      if (state.userProfile.uid !== state.user.uid) return;
       if (state.userProfile === prevState.userProfile) return;
 
       syncFlags.skipGamificationSave = true;
@@ -99,12 +140,25 @@ export function useFirestoreSync() {
       }
     });
 
+    const flush = () => {
+      flushLibrary();
+      flushGamification();
+    };
+    const onVisibility = () => flush();
+    window.addEventListener('pagehide', flush);
+    window.addEventListener('online', flush);
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
+      flush();
+      disposed = true;
       unsubLibrary();
       unsubGamification();
       unsubProfile();
       clearTimeout(libraryTimeout);
       clearTimeout(gamificationTimeout);
+      window.removeEventListener('pagehide', flush);
+      window.removeEventListener('online', flush);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
 }
