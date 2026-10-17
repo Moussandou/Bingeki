@@ -103,6 +103,7 @@ export function validateBackup(value: unknown) {
             deletedWorks: tombstones(data.deletedWorks ?? []),
             viewMode: data.viewMode === 'list' ? 'list' as const : 'grid' as const,
             sortBy: typeof data.sortBy === 'string' ? data.sortBy : 'updated',
+            metadataUpdatedAt: typeof data.metadataUpdatedAt === 'number' ? data.metadataUpdatedAt : 0,
         };
     })();
     const gamification = backup.gamification == null ? undefined : (() => {

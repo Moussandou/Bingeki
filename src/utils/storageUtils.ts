@@ -84,7 +84,7 @@ export function restoreBackup(value: unknown): void {
                     ...deletions.map(t => t.deletedAt + 1)),
             };
         }),
-        metadataUpdatedAt: Math.max(now, previousLibrary.metadataUpdatedAt + 1),
+        metadataUpdatedAt: Math.max(now, previousLibrary.metadataUpdatedAt + 1, importedLibrary.metadataUpdatedAt + 1),
         deletedWorks: [...deletedWorks.values()],
     } : undefined;
     const patches = [
