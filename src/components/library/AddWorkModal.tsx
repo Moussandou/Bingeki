@@ -15,6 +15,7 @@ import { useGamificationStore } from '@/store/gamificationStore';
 // Activity logging is now handled server-side by onLibraryUpdate trigger
 import { isValidImageSrc } from '@/utils/validation';
 import { logger } from '@/utils/logger';
+import { normalizeWorkType } from '@/utils/workIdentity';
 
 interface AddWorkModalProps {
     isOpen: boolean;
@@ -109,7 +110,7 @@ export function AddWorkModal({ isOpen, onClose, initialWork }: AddWorkModalProps
         if (isOpen && initialWork) {
             setQuery(initialWork.title);
             setResults([initialWork]);
-            setType(initialWork.type === 'Manga' ? 'manga' : 'anime'); // Simple heuristic
+            setType(normalizeWorkType(initialWork.type));
         } else if (isOpen && !initialWork) {
             // Reset if opening fresh
             setQuery('');
@@ -163,7 +164,7 @@ export function AddWorkModal({ isOpen, onClose, initialWork }: AddWorkModalProps
         // Activity logging is now handled server-side by onLibraryUpdate trigger
     };
 
-    const isAdded = (id: number) => works.some(w => w.id === id);
+    const isAdded = (id: number) => works.some(w => String(w.id) === String(id) && w.type === type);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={t('components.add_work_modal.title')} variant="manga">

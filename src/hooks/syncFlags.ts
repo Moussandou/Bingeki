@@ -3,6 +3,7 @@
  * Module-level to avoid coupling the hooks through React render cycles
  */
 export const syncFlags = {
+    skipLibrarySave: false,
     /**
      * When true, the next gamification store change is a hydration from
      * Firestore (initial sync or remote profile update) and must NOT be

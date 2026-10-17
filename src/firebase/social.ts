@@ -1,10 +1,16 @@
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from './config';
 import { logger } from '@/utils/logger';
-import { getUserProfile, getUserProfiles, type UserProfile } from './users';
+import { getUserProfile, type UserProfile } from './users';
 import { getUserLibrary } from './library';
 import type { ActivityEvent } from '@/types/activity';
 import type { Work } from '@/store/libraryStore';
+
+function isUnavailableSharedData(error: unknown): boolean {
+    const code = (error as { code?: string })?.code;
+    return code === 'permission-denied' || code === 'functions/permission-denied'
+        || code === 'not-found' || code === 'functions/not-found';
+}
 
 export interface Friend {
     uid: string;
@@ -82,22 +88,27 @@ export async function getFriends(userId: string): Promise<Friend[]> {
     }
 }
 
-export async function getFriendsReadingWork(userId: string, workId: number): Promise<{ count: number; friends: { profile: UserProfile; work: Work }[] }> {
+export async function getFriendsReadingWork(userId: string, workId: number, type?: Work['type']): Promise<{ count: number; friends: { profile: UserProfile; work: Work }[] }> {
     try {
         const friends = await getFriends(userId);
         const acceptedFriends = friends.filter(f => f.status === 'accepted');
 
         const friendSlice = acceptedFriends.slice(0, 15);
 
-        const [libraries, profiles] = await Promise.all([
-            Promise.all(friendSlice.map(f => getUserLibrary(f.uid))),
-            Promise.all(friendSlice.map(f => getUserProfile(f.uid)))
-        ]);
+        const sharedData = await Promise.allSettled(friendSlice.map(async friend => {
+            const [library, profile] = await Promise.all([getUserLibrary(friend.uid), getUserProfile(friend.uid)]);
+            return { library, profile };
+        }));
 
-        const friendsData = friendSlice
-            .map((_, i) => {
-                const friendWork = libraries[i]?.find(w => Number(w.id) === workId);
-                const profile = profiles[i];
+        const friendsData = sharedData
+            .map((result, i) => {
+                if (result.status === 'rejected') {
+                    if (!isUnavailableSharedData(result.reason)) throw result.reason;
+                    logger.log('[Firestore] Friend library not shared:', friendSlice[i].uid);
+                    return null;
+                }
+                const friendWork = result.value.library.find(w => Number(w.id) === workId && (!type || w.type === type));
+                const profile = result.value.profile;
                 if (friendWork && profile) {
                     return { profile, work: friendWork };
                 }
@@ -108,7 +119,7 @@ export async function getFriendsReadingWork(userId: string, workId: number): Pro
         return { count: friendsData.length, friends: friendsData };
     } catch (error) {
         logger.error('[Firestore] Error getting friends reading work:', error);
-        return { count: 0, friends: [] };
+        throw error;
     }
 }
 
@@ -126,10 +137,27 @@ export async function getFriendsActivity(userId: string, limitCount: number = 20
         const friendIds = friends.filter(f => f.status === 'accepted').map(f => f.uid);
         if (friendIds.length === 0) return [];
 
+        // Preflight individually: one private friend must not deny the entire feed query.
+        const profiles = await Promise.allSettled(friendIds.map(uid => getUserProfile(uid)));
+        const visibleProfiles: UserProfile[] = [];
+        profiles.forEach((result, index) => {
+            if (result.status === 'rejected') {
+                if (isUnavailableSharedData(result.reason)) {
+                    logger.log('[Firestore] Friend profile not shared:', friendIds[index]);
+                    return;
+                }
+                throw result.reason;
+            }
+            if (result.value && result.value.profileVisibility !== 'private' && result.value.showActivityStatus !== false) {
+                visibleProfiles.push(result.value);
+            }
+        });
+        const visibleIds = visibleProfiles.map(profile => profile.uid);
         const allActivities: ActivityEvent[] = [];
         
-        for (let i = 0; i < friendIds.length; i += 30) {
-            const batch = friendIds.slice(i, i + 30);
+        // Three profiles per query stays within the rules' document-access budget.
+        for (let i = 0; i < visibleIds.length; i += 3) {
+            const batch = visibleIds.slice(i, i + 3);
             const q = query(
                 collection(db, 'activities'),
                 where('userId', 'in', batch),
@@ -148,14 +176,8 @@ export async function getFriendsActivity(userId: string, limitCount: number = 20
             .sort((a, b) => b.timestamp - a.timestamp)
             .slice(0, limitCount);
 
-        const activeUserIds = Array.from(new Set(sortedActivities.map(a => a.userId)));
-        let freshProfiles: UserProfile[] = [];
-        if (activeUserIds.length > 0) {
-            freshProfiles = await getUserProfiles(activeUserIds);
-        }
-
         const activities: ActivityEvent[] = sortedActivities.map(data => {
-            const profile = freshProfiles.find(p => p.uid === data.userId);
+            const profile = visibleProfiles.find(p => p.uid === data.userId);
             if (profile) {
                 data.userName = profile.displayName || data.userName;
                 data.userPhoto = profile.photoURL || data.userPhoto;
@@ -172,11 +194,7 @@ export async function getFriendsActivity(userId: string, limitCount: number = 20
         
         return activities;
     } catch (error) {
-        const err = error as { code?: string };
-        if (err.code === 'permission-denied') {
-            return [];
-        }
         logger.error('[Firestore] Error loading friends activity:', error);
-        return [];
+        throw error;
     }
 }

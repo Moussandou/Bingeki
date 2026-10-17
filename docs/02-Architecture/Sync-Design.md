@@ -1,82 +1,55 @@
 # Synchronization & Offline Design
 
-Bingeki is designed as an "Offline-First" application. This document explains how we handle data persistence, cloud synchronization, and conflict resolution between multiple devices.
+The UI writes to Zustand, which persists immediately to localStorage. Signed-in libraries synchronize to the existing `users/{uid}/data/library` document. No subcollection migration or production data rewrite is required.
 
-## Overview
+## Local scopes and authentication
 
-The sync engine follows a **Local-First, Cloud-Synced** pattern:
-1.  **Direct Read/Write**: The UI always interacts with the local Zustand store.
-2.  **Immediate Persistence**: Zustand middleware automatically mirrors the store to `localStorage`.
-3.  **Debounced Cloud Sync**: Changes in the local store trigger a debounced (3s) write to Firestore.
-4.  **Smart Merge on Login**: When a user logs in, local data is merged with cloud data instead of being overwritten.
+- `bingeki-library-storage` holds the active library and its `ownerId` (`null` for guest). The gamification store belongs to the same active scope.
+- On an actual scope change, `libraryAccountScope.ts` retains the outgoing library, folders, favorites, tombstones and gamification in `bingeki-account-snapshot:guest` or `bingeki-account-snapshot:user:{uid}`, then restores the incoming scope. A first null auth notification does not clear guest data.
+- Legacy data without an owner is retained as guest. It is **not automatically uploaded to a newly signed-in account**: the old format cannot prove which account originally owned it. Export while in guest mode and explicitly import into the desired account to transfer it. Logging out restores the guest library.
+- Account A never seeds account B. Timers require the current UID, matching library owner and successful cloud hydration. Auth callbacks use a generation guard after each asynchronous step and before installing listeners. Subscriptions are detached on account changes and unmount.
+- The app does not render a library whose owner differs from the current auth UID, even after its loading timeout. If retaining an outgoing scope fails (for example, localStorage quota), the switch is blocked and the error is shown instead of exposing the previous account.
+- Initial read errors are not interpreted as empty cloud data. Writes stay paused and `syncError` reports the failure; the local library remains available. Refresh after correcting connectivity or permissions to restart hydration.
 
----
+Local account snapshots are persistence, not encryption. Signing out isolates app state but does not erase private data from browser storage. Use a trusted browser profile; clear site data when relinquishing the device.
 
-## Technical Stack
+## Identity and backwards compatibility
 
-*   **State Management**: Zustand
-*   **Local Persistence**: `zustand/middleware/persist` (Target: `localStorage`)
-*   **Cloud Provider**: Firebase Firestore
-*   **Conflict Resolution**: Custom logic in `src/utils/dataProtection.ts`
+`Work.id` remains the original MAL number (or existing manual ID); `Work.type` remains `anime` or `manga`. `workKey(work)` produces `anime:123` / `manga:123` for comparisons, selections, drag-and-drop and store operations. No ID rewrite is performed, so existing export and API formats remain compatible.
 
----
+Raw numeric/string IDs still work with store actions when exactly one work matches. Ambiguous raw IDs throw an explicit error rather than modifying both media types. New callers must pass the composed key. Details URLs retain `/work/{id}?type={type}` and API requests retain raw MAL IDs. Import deduplication also checks type.
 
-## 1. Local Storage Strategy
-We use `localStorage` to ensure the app is usable instantly even without an internet connection.
+New comments carry `workId` plus `workType`; typed queries require the corresponding composite index in `firestore.indexes.json`. Old comments without a type remain stored and available through the legacy untyped API, but are not guessed into an anime or manga discussion. There is no lossless automatic attribution for those records. Server activity generation similarly compares type plus ID while retaining its existing `workId` / `workType` event format.
 
-*   **Key Names**: 
-    *   `bingeki-library-storage`: Main manga/anime list.
-    *   `bingeki-gamification-storage`: XP, level, and stats.
-    *   `bingeki-settings`: UI preferences and language.
-*   **Reliability**: Since we use the `persist` middleware, data survives page refreshes and browser restarts.
+## Cloud lifecycle
 
----
+1. On login, load only the active account's local state and cloud document. Merge against the **current** local state when the read completes, so edits made during loading are included.
+2. Merge works and deletion history; select folders/order/preferences using `metadataUpdatedAt`. Legacy documents with no metadata timestamp retain their cloud metadata on initial load. The newest folder-sharing timestamp is retained separately.
+3. Mark hydration complete and schedule one save of the merged state. Subscribe to the library document with `onSnapshot` for other-device updates. Remote hydration does not echo-write itself.
+4. Local mutations debounce for three seconds. Writes read and merge **inside a Firestore transaction**, which retries against concurrent updates. Ordinary saves preserve library sharing and other existing document metadata. Sharing changes are independent from work edits.
+5. `pagehide`, `visibilitychange`, `online` and hook cleanup flush pending work. In-flight changes schedule a subsequent save. Failures retain pending local data and report the exact error; an online/visibility event or a further edit retries.
 
-## 2. Firestore Sync Lifecycle
+Closing a tab cannot guarantee completion of a network transaction. Immediate local persistence is the durable fallback; the next login merges unsent edits. There is no claim of a service-worker or unload-time delivery guarantee.
 
-The sync process is managed primarily in `src/App.tsx`.
+## Conflict semantics
 
-### A. Initialization (Auth Change)
-When the Auth state changes to "Logged In":
-1.  **Retrieve Local**: Get the current contents of `localStorage`.
-2.  **Fetch Cloud**: Pull the latest data from the user's Firestore document.
-3.  **Merge**: Run `mergeLibraryData` to resolve differences.
-4.  **Hydrate Store**: Update the Zustand store with the merged result.
+- Works are keyed by type plus ID, with last-update-wins for the **whole work**, not each field. Status, progress, ratings, notes and folder membership all advance `lastUpdated`, monotonically even within one clock tick.
+- Independent works from concurrent devices are retained. For simultaneous edits of different fields in the same work, the newer whole-work version wins. Clocks must be reasonably accurate; this is not a CRDT or server-clock ordering protocol.
+- Folder lists, manual order and preferences are a timestamped metadata snapshot, not a per-folder CRDT. Concurrent metadata edits resolve by the newest snapshot.
+- `deletedWorks` is synchronized in the same transaction. New tombstones contain `{ id, type, deletedAt }`; old untyped tombstones remain compatible and suppress both matching namespaces up to their timestamp.
+- Both local and cloud works are filtered by the combined deletion history. Deletions win over older/equal work versions; an explicit re-add receives a timestamp newer than its tombstone.
+- Tombstones have **no automatic TTL**: a device can return after months offline. Explicit replacement/wipe writes tombstones for omitted cloud works, rather than allowing an older device to resurrect them.
 
-### B. Reactive Saving (Auto-Save)
-Whenever the user modifies their library (e.g., adding a manga, updating a chapter):
-1.  The Zustand store updates immediately (UI is fast).
-2.  A `useEffect` hook in `App.tsx` detects the change.
-3.  A **3-second debounce timer** starts.
-4.  If no further changes occur within 3 seconds, `saveLibraryToFirestore()` is called. 
-    > [!NOTE]
-    > The debounce is critical to avoid hitting Firestore rate limits during rapid progress updates (e.g., clicking "+" multiple times).
+## Bounded document strategy
 
----
+Keep the monolithic document for compatibility, with a conservative **900 KiB (921,600 byte)** application limit, below Firestore's 1 MiB document hard limit. `estimateLibraryBytes` counts UTF-8 strings, numeric fields, field names and conservative container overhead, including tombstones and existing sharing metadata. `assertLibrarySize` accepts exactly 921,600 estimated bytes and rejects the next byte **before** scheduling a transaction write.
 
-## 3. Conflict Resolution Logic
+Oversized libraries are not truncated, split, or partially uploaded. Local data stays intact, errors are logged and displayed on the Library page. Export a backup, reduce inline images or unusually large notes, then retry. Very large libraries or deletion histories need a separately coordinated archival/subcollection design; silently dropping tombstones is not safe.
 
-To prevent data loss (e.g., using the app on a phone and a tablet simultaneously), we use a **Last-Update-Wins (Field Level)** and **Combined-Sets (Array Level)** strategy.
+Non-owner reads use the server `getSharedLibraryFn` projection, never the owner's full document. Folder links pass `folderId`; server authorization and field projection control which works and folders are returned. Deploy the companion security/projection changes before relying on shared reads.
 
-### Library Merging (`mergeLibraryData`)
-*   **Unique Items**: Works are tracked by a unique `id` (MAL/AniList ID).
-*   **Array Union**: If a work exists in Cloud but not Local, it is added.
-*   **Timestamp Check**: If a work exists in both, the version with the most recent `lastUpdated` timestamp is kept.
-*   **Deleted Items**: Currently, we prioritize "Existence". If an item was deleted on one device but modified on another, it might reappear (this is a known trade-off for data safety).
+The friends activity feed preflights profiles individually, excludes private/opted-out authors before querying, and batches at most three visible authors per query to stay within the rules' document-read budget. An inaccessible friend's shared library is omitted without dropping other accessible friends.
 
-### Gamification Merging (`mergeGamificationData`)
-*   **Highest Value**: For fields like `level` or `totalXp`, we typically take the `Math.max()` of local and cloud values to ensure progress is never lost.
+## Regression coverage
 
----
-
-## 4. Manual Backup & Restore
-
-Users can manually export their entire database as a JSON file via `src/utils/storageUtils.ts`.
-*   **Export**: Combines all `localStorage` keys into a single file with a timestamp.
-*   **Import**: Overwrites the Zustand store and triggers a cloud sync. This is the ultimate "fix-all" for synchronization issues.
-
----
-
-## 5. Future Improvements
-*   **Operational Transforms**: Move to a more granular diffing system to handle concurrent edits within the same manga entry.
-*   **Background Sync**: Implement Service Worker-based sync to handle updates even if the tab is closed immediately after a change.
+Network-free Vitest tests cover guest refresh, A/B/logout isolation, stale auth completions, listener cleanup, hydration failures, debounce/lifecycle flushing, edits during an in-flight save, namespace collisions, import deduplication, timestamped mutations, multi-device deletions/re-adds, transaction retry merges, sharing preservation, and exact ASCII/UTF-8 size boundaries. No production account or data is used.

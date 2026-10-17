@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import styles from '@/pages/WorkDetails.module.css';
 import type { Work } from '@/store/libraryStore';
+import { workKey } from '@/utils/workIdentity';
 import type { User } from 'firebase/auth';
 
 interface LibraryProgressSectionProps {
@@ -155,7 +156,7 @@ export function LibraryProgressSection({
                                     if (s === 'completed' && work.status !== 'completed') {
                                         setIsCompleteModalOpen(true);
                                     } else {
-                                        updateStatus(work.id, s as Work['status']);
+                                        updateStatus(workKey(work), s as Work['status']);
                                     }
                                 }}
                                 className={`${styles.statusButton} ${work.status === s ? styles.statusButtonActive : ''}`}
@@ -186,10 +187,10 @@ export function LibraryProgressSection({
                         <Button
                             variant="primary"
                             onClick={() => {
-                                updateStatus(work.id, 'completed');
+                                updateStatus(workKey(work), 'completed');
                                 if (work.totalChapters && work.totalChapters > 0) {
-                                    handleProgressUpdateWithXP(work.id, work.currentChapter || 0, work.totalChapters);
-                                    updateWorkDetails(work.id, { currentChapter: work.totalChapters }); // Force update store locally just in case
+                                    handleProgressUpdateWithXP(workKey(work), work.currentChapter || 0, work.totalChapters);
+                                    updateWorkDetails(workKey(work), { currentChapter: work.totalChapters }); // Force update store locally just in case
                                     setProgress(work.totalChapters);
                                 }
                                 addToast(t('work_details.progress.saved_toast'), 'success');

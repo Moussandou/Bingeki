@@ -22,11 +22,12 @@ export async function addComment(comment: Omit<Comment, 'id' | 'timestamp' | 'li
     }
 }
 
-export async function getComments(workId: number, limitCount: number = 50): Promise<Comment[]> {
+export async function getComments(workId: number, limitCount: number = 50, workType?: 'anime' | 'manga'): Promise<Comment[]> {
     try {
         const q = query(
             collection(db, 'comments'),
             where('workId', '==', workId),
+            ...(workType ? [where('workType', '==', workType)] : []),
             orderBy('timestamp', 'desc'),
             limit(limitCount)
         );
@@ -43,8 +44,8 @@ export async function getComments(workId: number, limitCount: number = 50): Prom
     }
 }
 
-export async function getCommentsWithReplies(workId: number): Promise<CommentWithReplies[]> {
-    const allComments = await getComments(workId, 50);
+export async function getCommentsWithReplies(workId: number, workType?: 'anime' | 'manga'): Promise<CommentWithReplies[]> {
+    const allComments = await getComments(workId, 50, workType);
 
     const buildTree = (comments: Comment[], parentId: string | undefined): CommentWithReplies[] => {
         return comments

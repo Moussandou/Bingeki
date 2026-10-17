@@ -321,5 +321,5 @@ export function delay(ms: number): Promise<void> {
  * Check if a work already exists in the library
  */
 export function findDuplicate(entry: MALEntry, existingWorks: Work[]): Work | undefined {
-    return existingWorks.find((w) => w.id === entry.malId);
+    return existingWorks.find((w) => String(w.id) === String(entry.malId) && w.type === entry.type);
 }
