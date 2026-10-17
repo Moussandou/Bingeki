@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, deleteDoc, onSnapshot, runTransaction } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './config';
 import { logger } from '@/utils/logger';
@@ -50,49 +50,53 @@ export async function saveUserProfileToFirestore(user: Partial<UserProfile>, for
         if (!user.uid) return;
 
         const docRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(docRef);
-        const exists = docSnap.exists();
+        const savedData = await runTransaction(db, async transaction => {
+            const docSnap = await transaction.get(docRef);
+            const exists = docSnap.exists();
 
-        const dataToSave: Partial<UserProfile> = {
-            lastLogin: Date.now()
-        };
+            const dataToSave: Partial<UserProfile> = {
+                lastLogin: Date.now()
+            };
 
-        if (!exists) {
-            dataToSave.createdAt = Date.now();
-        }
-
-        // NOTE: 'email' is intentionally NOT in this list. It is PII and the profile
-        // document is world-readable (public profiles / SEO / leaderboards). Email is
-        // stored separately in users/{uid}/private/contact — see writeUserEmail below.
-        // isAdmin/isSuperAdmin excluded: promotions go through toggleUserAdmin only
-        const allowedFields: (keyof UserProfile)[] = [
-            'uid', 'displayName', 'photoURL', 'banner', 'bannerPosition', 'bio',
-            'themeColor', 'cardBgColor', 'borderColor',
-            'favoriteManga', 'top3Favorites', 'featuredBadge',
-            'favoriteCharacters',
-            'profileVisibility', 'showActivityStatus',
-            'titlePriority', 'hideScores', 'dataSaver', 'nsfwMode'
-        ];
-
-        allowedFields.forEach(field => {
-            if (exists && !forceUpdate && (field === 'displayName' || field === 'photoURL')) {
-                return;
+            if (!exists) {
+                dataToSave.createdAt = Date.now();
+                dataToSave.profileVisibility = 'public';
             }
 
-            const value = user[field];
-            if (value !== undefined) {
-                (dataToSave as Record<string, unknown>)[field] = value;
-            }
+            // NOTE: 'email' is intentionally NOT in this list. It is PII and the profile
+            // document is world-readable (public profiles / SEO / leaderboards). Email is
+            // stored separately in users/{uid}/private/contact — see writeUserEmail below.
+            // isAdmin/isSuperAdmin excluded: promotions go through toggleUserAdmin only
+            const allowedFields: (keyof UserProfile)[] = [
+                'uid', 'displayName', 'photoURL', 'banner', 'bannerPosition', 'bio',
+                'themeColor', 'cardBgColor', 'borderColor',
+                'favoriteManga', 'top3Favorites', 'featuredBadge',
+                'favoriteCharacters',
+                'profileVisibility', 'showActivityStatus',
+                'titlePriority', 'hideScores', 'dataSaver', 'nsfwMode'
+            ];
+
+            allowedFields.forEach(field => {
+                if (exists && !forceUpdate && (field === 'displayName' || field === 'photoURL')) {
+                    return;
+                }
+
+                const value = user[field];
+                if (value !== undefined) {
+                    (dataToSave as Record<string, unknown>)[field] = value;
+                }
+            });
+
+            transaction.set(docRef, dataToSave, { merge: true });
+            return dataToSave;
         });
-
-        await setDoc(docRef, dataToSave, { merge: true });
 
         // Persist email to the private subcollection (never to the public profile).
         if (user.email) {
             await writeUserEmail(user.uid, user.email);
         }
 
-        logger.log('[Firestore] User profile saved:', dataToSave);
+        logger.log('[Firestore] User profile saved:', savedData);
     } catch (error) {
         logger.error('[Firestore] Error saving user profile:', error);
         throw error;
@@ -102,7 +106,7 @@ export async function saveUserProfileToFirestore(user: Partial<UserProfile>, for
 export async function updateUserProfile(uid: string, data: Partial<Pick<UserProfile, 'displayName' | 'bio' | 'photoURL' | 'banner'>>): Promise<void> {
     try {
         const docRef = doc(db, 'users', uid);
-        await updateDoc(docRef, { ...data, lastUpdated: Date.now() });
+        await updateDoc(docRef, data);
         logger.log('[Firestore] User profile updated:', data);
     } catch (error) {
         logger.error('[Firestore] Error updating user profile:', error);
@@ -158,16 +162,8 @@ export async function getUserProfiles(uids: string[]): Promise<UserProfile[]> {
     try {
         if (!uids || uids.length === 0) return [];
 
-        const results: UserProfile[] = [];
-        for (let i = 0; i < uids.length; i += 30) {
-            const batch = uids.slice(i, i + 30);
-            const q = query(collection(db, 'users'), where('__name__', 'in', batch));
-            const querySnapshot = await getDocs(q);
-            querySnapshot.forEach((doc) => {
-                results.push({ uid: doc.id, ...doc.data() } as UserProfile);
-            });
-        }
-        return results;
+        const profiles = await Promise.all(uids.map(uid => getUserProfile(uid)));
+        return profiles.filter((profile): profile is UserProfile => profile !== null);
     } catch (error) {
         logger.error('[Firestore] Error getting multiple user profiles:', error);
         return [];
@@ -235,7 +231,7 @@ export async function getUserEmails(uids: string[]): Promise<Record<string, stri
 
 export async function searchUserByName(name: string): Promise<UserProfile | null> {
     try {
-        const q = query(collection(db, 'users'), where('displayName', '==', name), limit(1));
+        const q = query(collection(db, 'users'), where('profileVisibility', '==', 'public'), where('displayName', '==', name), limit(1));
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
             const doc = querySnapshot.docs[0];
@@ -253,6 +249,7 @@ export async function searchUsersByPrefix(prefix: string, limitCount: number = 5
         if (!prefix) return [];
         const q = query(
             collection(db, 'users'),
+            where('profileVisibility', '==', 'public'),
             where('displayName', '>=', prefix),
             where('displayName', '<=', prefix + '\uf8ff'),
             orderBy('displayName'),
@@ -290,7 +287,7 @@ export async function deleteUserData(userId: string): Promise<void> {
         const commentDeletions = commentsSnap.docs.map(d => deleteDoc(d.ref));
         await Promise.all(commentDeletions);
 
-        const partiesQuery = query(collection(db, 'watchparties'), where('creatorId', '==', userId));
+        const partiesQuery = query(collection(db, 'watchparties'), where('hostId', '==', userId));
         const partiesSnap = await getDocs(partiesQuery);
         const partyDeletions = partiesSnap.docs.map(d => deleteDoc(d.ref));
         await Promise.all(partyDeletions);

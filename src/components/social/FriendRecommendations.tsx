@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface RecommendedWork {
-    id: number;
+    id: number | string;
     title: string;
     image: string;
     type: 'anime' | 'manga';
@@ -59,10 +59,10 @@ export function FriendRecommendations() {
 
             // Get user's own library to exclude works they already have
             const userLibrary = await getUserLibrary(user.uid);
-            const userWorkIds = new Set(userLibrary.map(w => w.id));
+            const userWorkIds = new Set(userLibrary.map(w => `${w.type}:${w.id}`));
 
             // Fetch all friend libraries in parallel
-            const workCounts: Map<number, { work: Work; friends: { name: string; photo: string }[] }> = new Map();
+            const workCounts: Map<string, { work: Work; friends: { name: string; photo: string }[] }> = new Map();
             const limitedFriends = acceptedFriends.slice(0, 10);
             const friendLibraries = await Promise.all(
                 limitedFriends.map(f => getUserLibrary(f.uid))
@@ -70,7 +70,7 @@ export function FriendRecommendations() {
 
             limitedFriends.forEach((friend, i) => {
                 for (const work of friendLibraries[i]) {
-                    const workId = Number(work.id);
+                    const workId = `${work.type}:${work.id}`;
                     if (userWorkIds.has(workId)) continue;
                     if (work.status !== 'reading') continue;
 
@@ -92,8 +92,8 @@ export function FriendRecommendations() {
             const sortedWorks = Array.from(workCounts.entries())
                 .sort((a, b) => b[1].friends.length - a[1].friends.length)
                 .slice(0, 6)
-                .map(([id, data]) => ({
-                    id,
+                .map(([, data]) => ({
+                    id: data.work.id,
                     title: data.work.title,
                     image: data.work.image,
                     type: data.work.type || ((data.work.totalChapters || data.work.currentChapter) ? 'manga' : 'anime'),
@@ -152,7 +152,7 @@ export function FriendRecommendations() {
             }}>
                 {recommendations.map(work => (
                     <div
-                        key={work.id}
+                        key={`${work.type}:${work.id}`}
                         onClick={() => navigate(`/work/${work.id}?type=${work.type}`)}
                         style={{
                             cursor: 'pointer',

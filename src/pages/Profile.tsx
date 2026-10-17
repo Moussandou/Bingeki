@@ -59,6 +59,11 @@ import { AddFavoriteCharacterModal } from '@/components/profile/AddFavoriteChara
 import { useShare } from '@/hooks/useShare';
 import { compressImage } from '@/utils/imageOptimization';
 
+function findFavoriteWork(works: Work[], id: string): Work | undefined {
+    const matches = works.filter(work => `${work.type}:${work.id}` === id || String(work.id) === id || work.title === id);
+    return matches.length === 1 ? matches[0] : undefined;
+}
+
 export default function Profile() {
     const { user, setUser, loading, userProfile } = useAuthStore();
     const navigate = useNavigate();
@@ -253,7 +258,7 @@ export default function Profile() {
 
             // If banner is a Data URL (new upload), upload to Storage
             if (bannerUrl && bannerUrl.startsWith('data:')) {
-                const storageRef = ref(storage, `banners/${user.uid}_${Date.now()}`);
+                const storageRef = ref(storage, `users/${user.uid}/banners/${Date.now()}`);
                 // Compress banner to 1200x400
                 const compressedBanner = await compressImage(bannerUrl, { maxWidth: 1200, maxHeight: 400, quality: 0.8 });
                 await uploadString(storageRef, compressedBanner, 'data_url');
@@ -519,12 +524,12 @@ export default function Profile() {
                                 featuredBadgeData={extendedProfile.featuredBadge ? displayBadges.find((b: Badge) => b.id === extendedProfile.featuredBadge) : null}
                                 favoriteMangaData={extendedProfile.favoriteManga ? (() => {
                                     if (!isOwnProfile) return null;
-                                    const w = works.find(w => w.id === Number(extendedProfile.favoriteManga) || w.title === extendedProfile.favoriteManga);
+                                    const w = findFavoriteWork(works.filter(work => work.type === 'manga'), extendedProfile.favoriteManga);
                                     return w ? { title: w.title, image: w.image } : null;
                                 })() : null}
                                 top3FavoritesData={extendedProfile.top3Favorites ? extendedProfile.top3Favorites.map(fid => {
-                                    const w = works.find(w => w.id === Number(fid) || w.title === fid);
-                                    return w ? { id: String(w.id), title: w.title, image: w.image } : null;
+                                    const w = isOwnProfile ? findFavoriteWork(works, fid) : undefined;
+                                    return w ? { id: `${w.type}:${w.id}`, title: w.title, image: w.image } : null;
                                 }).filter((item): item is { id: string; title: string; image: string } => item !== null) : []}
                                 stats={{
                                     ...displayStats,
@@ -711,7 +716,7 @@ export default function Profile() {
                                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                                         {commonWorks.common.slice(0, 8).map(work => (
                                             <div
-                                                key={work.id}
+                                                key={`${work.type}:${work.id}`}
                                                 onClick={() => navigate(`/work/${work.id}?type=${work.type || 'manga'}`)}
                                                 style={{
                                                     width: 80,
@@ -1126,7 +1131,7 @@ export default function Profile() {
                                                 >
                                                     <option value="">{t('profile.edit_modal.select_favorite', { index: index + 1 })}</option>
                                                     {works.sort((a, b) => a.title.localeCompare(b.title)).map(w => (
-                                                        <option key={w.id} value={w.id} disabled={editForm.top3Favorites.includes(String(w.id)) && editForm.top3Favorites[index] !== String(w.id)}>
+                                                        <option key={`${w.type}:${w.id}`} value={`${w.type}:${w.id}`} disabled={editForm.top3Favorites.includes(`${w.type}:${w.id}`) && editForm.top3Favorites[index] !== `${w.type}:${w.id}`}>
                                                             {w.title}
                                                         </option>
                                                     ))}
@@ -1190,8 +1195,8 @@ export default function Profile() {
                                                 isOwnProfile={false}
                                                 featuredBadgeData={editForm.featuredBadge ? displayBadges.find((b: Badge) => b.id === editForm.featuredBadge) : null}
                                                 top3FavoritesData={editForm.top3Favorites.map(fid => {
-                                                    const w = works.find(w => w.id === Number(fid) || w.title === fid);
-                                                    return w ? { id: String(w.id), title: w.title, image: w.image } : null;
+                                                    const w = findFavoriteWork(works, fid);
+                                                    return w ? { id: `${w.type}:${w.id}`, title: w.title, image: w.image } : null;
                                                 }).filter((item): item is { id: string; title: string; image: string } => item !== null)}
                                                 stats={{
                                                     ...displayStats,
@@ -1288,4 +1293,3 @@ export default function Profile() {
         </Layout>
     );
 }
-

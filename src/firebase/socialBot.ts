@@ -8,7 +8,7 @@
  */
 import {
     collection, doc, query, orderBy, limit as fbLimit,
-    onSnapshot, updateDoc, setDoc, getDoc, deleteField,
+    onSnapshot, updateDoc, setDoc, getDoc, deleteField, runTransaction,
 } from 'firebase/firestore';
 import { db } from './config';
 import { logger } from '@/utils/logger';
@@ -23,6 +23,18 @@ const PUBLISHED = FIRESTORE_COLLECTIONS.publishedPosts;
 const CONFIG = FIRESTORE_COLLECTIONS.botConfig;
 const CONFIG_DOC = FIRESTORE_COLLECTIONS.botConfigDoc;
 const CRON_HEALTH = FIRESTORE_COLLECTIONS.cronHealth;
+
+async function patchPendingPost(postId: string, patch: Record<string, unknown>): Promise<void> {
+    const ref = doc(db, PENDING, postId);
+    await runTransaction(db, async transaction => {
+        const snapshot = await transaction.get(ref);
+        if (!snapshot.exists()) throw new Error('Pending post not found');
+        if (snapshot.data().publishLease?.expiresAt > Date.now()) {
+            throw new Error('Publication in progress; draft changes are locked');
+        }
+        transaction.update(ref, patch);
+    });
+}
 
 /* ==========================================================================
    SUBSCRIPTIONS
@@ -313,8 +325,7 @@ export async function updatePendingPostDraft(
         fireMock('pending');
         return;
     }
-    const ref = doc(db, PENDING, postId);
-    await updateDoc(ref, patch);
+    await patchPendingPost(postId, patch);
 }
 
 /**
@@ -369,7 +380,7 @@ export async function validatePost(
         fireMock('pending');
         return;
     }
-    await updateDoc(doc(db, PENDING, postId), { ...patch, validatedAt: Date.now() });
+    await patchPendingPost(postId, { ...patch, validatedAt: Date.now() });
 }
 
 /** Annule la validation : le post revient dans « À valider ». */
@@ -384,7 +395,7 @@ export async function unvalidatePost(postId: string): Promise<void> {
         fireMock('pending');
         return;
     }
-    await updateDoc(doc(db, PENDING, postId), { validatedAt: deleteField() });
+    await patchPendingPost(postId, { validatedAt: deleteField() });
 }
 
 /* ==========================================================================

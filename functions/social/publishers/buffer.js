@@ -93,10 +93,16 @@ async function graphql(query, variables, apiKey) {
 // this ceiling until Buffer bumps their validation on their side.
 const CAROUSEL_MAX_SLIDES = 10;
 
+function definitiveError(message) {
+    const error = new Error(message);
+    error.definitive = true;
+    return error;
+}
+
 function buildImageAssets(slides, format) {
     const filtered = slides.filter((s) => s.format === format);
     if (filtered.length === 0) {
-        throw new Error(`Buffer: no ${format} slides to publish`);
+        throw definitiveError(`Buffer: no ${format} slides to publish`);
     }
     filtered.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
     return filtered.slice(0, CAROUSEL_MAX_SLIDES).map((s) => ({ image: { url: s.url } }));
@@ -106,11 +112,17 @@ async function buildVideoAssets(slides, format, thumbnailOffsetMs = 500) {
     const { renderSlideshowVideo } = require('../generators/videoRenderer');
     const filtered = slides.filter((s) => s.format === format);
     if (filtered.length === 0) {
-        throw new Error(`Buffer video: no ${format} slides to render`);
+        throw definitiveError(`Buffer video: no ${format} slides to render`);
     }
     filtered.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
-    const { url } = await renderSlideshowVideo(filtered, { perSlideSeconds: 3 });
-    return [{ video: { url, metadata: { thumbnailOffset: thumbnailOffsetMs } } }];
+    try {
+        const { url } = await renderSlideshowVideo(filtered, { perSlideSeconds: 3 });
+        return [{ video: { url, metadata: { thumbnailOffset: thumbnailOffsetMs } } }];
+    } catch (error) {
+        // Rendering/upload is before the Buffer mutation, so retry is safe.
+        error.definitive = true;
+        throw error;
+    }
 }
 
 function toIsoDueAt(scheduleAt) {
@@ -134,7 +146,7 @@ async function createBufferPost({ channelId, text, assets, dueAt, apiKey, metada
     const payload = data.createPost;
     if (!payload) throw new Error('Buffer: empty createPost response');
     if (payload.__typename === 'MutationError' || payload.__typename === 'InvalidInputError') {
-        throw new Error(`Buffer validation (${payload.__typename}): ${payload.message}`);
+        throw definitiveError(`Buffer validation (${payload.__typename}): ${payload.message}`);
     }
     if (payload.__typename !== 'PostActionSuccess' || !payload.post?.id) {
         throw new Error(`Buffer: unexpected response ${JSON.stringify(payload).slice(0, 200)}`);
@@ -149,9 +161,9 @@ async function createBufferPost({ channelId, text, assets, dueAt, apiKey, metada
  * existing publishToInstagram contract used by the admin callable.
  */
 async function publishToInstagram(slides, caption, auth) {
-    if (!slides?.length) throw new Error('No slides to publish');
+    if (!slides?.length) throw definitiveError('No slides to publish');
     if (!auth?.apiKey || !auth?.channelId) {
-        throw new Error('Buffer: missing apiKey or channelId (Instagram)');
+        throw definitiveError('Buffer: missing apiKey or channelId (Instagram)');
     }
     const mode = auth.mode === 'video' ? 'video' : 'photo';
     const assets = mode === 'video'
@@ -193,9 +205,9 @@ async function publishToInstagram(slides, caption, auth) {
  * with the existing publishToTikTok contract.
  */
 async function publishToTikTok(slides, caption, auth) {
-    if (!slides?.length) throw new Error('No slides to publish');
+    if (!slides?.length) throw definitiveError('No slides to publish');
     if (!auth?.apiKey || !auth?.channelId) {
-        throw new Error('Buffer: missing apiKey or channelId (TikTok)');
+        throw definitiveError('Buffer: missing apiKey or channelId (TikTok)');
     }
     const mode = auth.mode === 'video' ? 'video' : 'photo';
     // TikTok photo carousels post as a slideshow that gets letterboxed

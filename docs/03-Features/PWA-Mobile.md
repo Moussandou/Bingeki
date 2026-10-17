@@ -23,3 +23,24 @@ We use the `beforeinstallprompt` event to detect installability.
 Generated via `vite-plugin-pwa`.
 - **Strategy**: Stale-While-Revalidate for most resources.
 - **Precache**: Critical assets (HTML, CSS, JS) are downloaded on first load for instant subsequent startups.
+
+## Image-cache maintenance
+
+Settings removes the Cache Storage buckets `mal-images`,
+`dicebear-avatars` and `firebase-images`, as configured in `vite.config.ts`.
+It does not delete the application shell, authentication, preferences, or
+library data. Browser-managed HTTP cache cannot be cleared by JavaScript.
+Unsupported Cache Storage and failed deletions produce an error, not a
+simulated success.
+
+## Push delivery
+
+Push notifications are explicitly unavailable. Settings displays that state
+instead of an enabled switch, and `usePushNotifications` never requests
+permission, registers a worker or returns a pretend token.
+In-app Firestore notifications remain available.
+
+Re-enabling push requires a real VAPID public key, a correctly configured
+messaging worker and a private token lifecycle (register, refresh, revoke on
+sign-out/account deletion), together with supported-browser checks.
+Do not enable only the permission prompt or ship placeholder keys.
