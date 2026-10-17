@@ -25,6 +25,7 @@ import { handleProgressUpdateWithXP } from '@/utils/progressUtils';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { SEO } from '@/components/layout/SEO';
 import { getDisplayTitle } from '@/utils/titleUtils';
+import { workKey } from '@/utils/workIdentity';
 import styles from './WorkDetails.module.css';
 
 
@@ -111,7 +112,7 @@ export default function WorkDetails() {
 
     // const castingScrollRef = useRef<HTMLDivElement>(null); // Removed as we switched to grid
 
-    const libraryWork = getWork(Number(id));
+    const libraryWork = getWork(workKey({ id: id || '', type: typeParam || fetchedWork?.type || 'anime' }));
 
     // Merge library work with fetched details to get the best of both worlds (user progress + rich API data)
     const work = libraryWork ? {
@@ -176,40 +177,19 @@ export default function WorkDetails() {
     const [showScrollTop, setShowScrollTop] = useState(false);
 
 
-    // Reset fetch state when navigating to another work
+    // The query type is part of the identity even when the MAL number is unchanged.
     useEffect(() => {
+        let cancelled = false;
         setFetchedWork(null);
         setFetchError(null);
-        setIsFetchingDetails(false);
-    }, [id]);
-
-    // Initial Fetch for non-library items
-    useEffect(() => {
-        // Fetch details if we don't have them in state (fetchedWork), even if we have the library work (which might be stale/minimal)
-        // !fetchError: sans cette garde, un échec relançait le fetch en boucle infinie
-        if (id && !fetchedWork && !isFetchingDetails && !fetchError) {
+        if (id) {
             setIsFetchingDetails(true);
-            let typeToFetch: 'anime' | 'manga' = 'anime';
-            // 1. Priority: check library
-            if (libraryWork && libraryWork.type) {
-                const libType = (libraryWork.type as string).toLowerCase();
-                if (['manga', 'novel', 'manhwa', 'manhua', 'doujinshi', 'oneshot', 'oel'].includes(libType)) {
-                    typeToFetch = 'manga';
-                }
-            } 
-            // 2. Secondary: check URL parameter
-            else if (typeParam) {
-                const normalized = (typeParam as string).toLowerCase();
-                if (['manga', 'novel', 'manhwa', 'manhua', 'doujinshi', 'oneshot', 'oel'].includes(normalized)) {
-                    typeToFetch = 'manga';
-                }
-            }
+            const typeToFetch = typeParam === 'manga' ? 'manga' : 'anime';
 
             const loadWork = async (type: 'anime' | 'manga', isRetry = false) => {
                 try {
                     const res = await getWorkFull(Number(id), type);
-                    const workTypeNormalized = res.type ? res.type.toLowerCase() : type;
-                    const internalType = (workTypeNormalized === 'manga' || workTypeNormalized === 'manhwa' || workTypeNormalized === 'manhua' || workTypeNormalized === 'novel') ? 'manga' : 'anime';
+                    if (cancelled) return;
      
                     // Fix: Jikan API sometimes returns null for youtube_id even if embed_url is valid.
                     // Extract it manually to fix thumbnails and external links.
@@ -226,7 +206,7 @@ export default function WorkDetails() {
                         title: res.title,
                         title_english: res.title_english,
                         title_japanese: res.title_japanese,
-                        type: internalType,
+                        type,
                         format: res.type,
                         image: res.images.jpg.large_image_url,
                         image_small: res.images.jpg.small_image_url,
@@ -258,7 +238,8 @@ export default function WorkDetails() {
                     setFetchError(null);
                     setIsFetchingDetails(false);
                 } catch (err) {
-                    if (!isRetry && err instanceof ApiError && err.status === 404) {
+                    if (cancelled) return;
+                    if (!typeParam && !isRetry && err instanceof ApiError && err.status === 404) {
                         const nextType = type === 'anime' ? 'manga' : 'anime';
                         loadWork(nextType, true);
                     } else {
@@ -275,7 +256,8 @@ export default function WorkDetails() {
 
             loadWork(typeToFetch);
         }
-    }, [id, libraryWork, fetchedWork, typeParam, isFetchingDetails, fetchError]);
+        return () => { cancelled = true; };
+    }, [id, typeParam]);
 
     // Fetch Characters, Relations, Recommendations, Pictures
     // Fetch Characters, Relations, Recommendations, Pictures
@@ -321,7 +303,7 @@ export default function WorkDetails() {
     const handleSave = () => {
         if (!libraryWork || !work) return; // Guard for guests
         // Use centralized utility for progress & XP logic
-        const success = handleProgressUpdateWithXP(libraryWork.id!, progress, work.totalChapters || 0);
+        const success = handleProgressUpdateWithXP(workKey(libraryWork), progress, work.totalChapters || 0);
         if (success) {
             addToast(t('work_details.progress.saved_toast'), 'success');
         }
@@ -331,7 +313,7 @@ export default function WorkDetails() {
 
     const handleDelete = () => {
         if (!work) return;
-        removeWork(work.id);
+        removeWork(workKey(work));
         
         const updatedWorks = useLibraryStore.getState().works;
         recalculateStats(updatedWorks);
@@ -422,12 +404,12 @@ export default function WorkDetails() {
         if (work?.id) {
             // Load friends reading this work
             if (user) {
-                getFriendsReadingWork(user.uid, Number(work.id))
+                getFriendsReadingWork(user.uid, Number(work.id), work.type)
                     .then(data => setFriendsReading(data))
                     .catch(err => logger.error("[WorkDetails] Error fetching friends reading:", err));
             }
         }
-    }, [work?.id, user?.uid, user, t]);
+    }, [work?.id, work?.type, user?.uid, user, t]);
 
     // Scroll To Top Visibility
     useEffect(() => {
@@ -482,7 +464,7 @@ export default function WorkDetails() {
 
     const handleEpisodeSelect = (number: number) => {
         if (work && libraryWork) {
-            const success = handleProgressUpdateWithXP(work.id, number, work.totalChapters);
+            const success = handleProgressUpdateWithXP(workKey(work), number, work.totalChapters);
             if (success) {
                 setProgress(number);
                 // addToast(`Progression mise à jour...`); // Removed to prevent spam on rapid clicks
@@ -635,7 +617,7 @@ export default function WorkDetails() {
                                 <FriendsActivitySection friendsReading={friendsReading} />
 
                                 {/* Comments Section */}
-                                <CommentsSection workId={Number(work.id)} />
+                                <CommentsSection key={workKey(work)} workId={Number(work.id)} workType={work.type} />
 
                                 {/* Danger Zone */}
                                 {libraryWork && (
@@ -749,5 +731,3 @@ export default function WorkDetails() {
         </Layout >
     );
 }
-
-

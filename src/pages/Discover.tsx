@@ -25,6 +25,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { getDisplayTitle } from '@/utils/titleUtils';
 import styles from './Discover.module.css';
 import { logger } from '@/utils/logger';
+import { normalizeWorkType, workKey } from '@/utils/workIdentity';
 
 export default function Discover() {
     const navigate = useNavigate();
@@ -61,7 +62,7 @@ export default function Discover() {
     const [selectedWork, setSelectedWork] = useState<JikanResult | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const works = useLibraryStore(state => state.works);
-    const libraryIds = useMemo(() => new Set<string | number>(works.map(w => w.id)), [works]);
+    const libraryIds = useMemo(() => new Set(works.map(workKey)), [works]);
 
     const dataFetched = useRef(false);
 
@@ -636,7 +637,7 @@ export default function Discover() {
                             ) : (
                                 <div className={styles.resultsGrid}>
                                     {searchResults.map((work, index) => {
-                                        const isOwned = libraryIds.has(work.mal_id);
+                                        const isOwned = libraryIds.has(workKey({ id: work.mal_id, type: normalizeWorkType(work.type) }));
                                         const compositeKey = `${work.type || 'unknown'}-${work.mal_id}`;
                                         return (
                                             <motion.div key={compositeKey} whileHover={{ y: -5 }}>

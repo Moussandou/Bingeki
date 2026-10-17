@@ -11,9 +11,10 @@ import type { CommentWithReplies } from '@/types/comment';
 
 interface CommentsSectionProps {
     workId: number;
+    workType: 'anime' | 'manga';
 }
 
-export function CommentsSection({ workId }: CommentsSectionProps) {
+export function CommentsSection({ workId, workType }: CommentsSectionProps) {
     const { t } = useTranslation();
     const { user } = useAuthStore();
     const { addToast } = useToast();
@@ -30,12 +31,15 @@ export function CommentsSection({ workId }: CommentsSectionProps) {
     const [replyText, setReplyText] = useState('');
 
     useEffect(() => {
-        getCommentsWithReplies(workId)
+        let cancelled = false;
+        getCommentsWithReplies(workId, workType)
             .then(data => {
+                if (cancelled) return;
                 setComments(data);
                 setIsLoadingComments(false);
             })
             .catch(err => {
+                if (cancelled) return;
                 logger.error("Error loading comments:", err);
                 setIsLoadingComments(false);
                 if (err.message?.includes('permission-denied') || err.message?.includes('Missing or insufficient permissions')) {
@@ -44,7 +48,8 @@ export function CommentsSection({ workId }: CommentsSectionProps) {
                     setCommentError(t('work_details.comments.generic_error'));
                 }
             });
-    }, [workId, t]);
+        return () => { cancelled = true; };
+    }, [workId, workType, t]);
 
     const handleSubmitComment = async () => {
         if (!newComment.trim() || !user) {
@@ -58,6 +63,7 @@ export function CommentsSection({ workId }: CommentsSectionProps) {
                 userName: user.displayName || 'Anonyme',
                 userPhoto: user.photoURL || '',
                 workId: workId,
+                workType,
                 text: newComment,
                 spoiler: isSpoiler
             };
@@ -72,7 +78,7 @@ export function CommentsSection({ workId }: CommentsSectionProps) {
                 addToast(t('work_details.comments.added_toast'), 'success');
 
                 // Reload comments
-                const updated = await getCommentsWithReplies(workId);
+                const updated = await getCommentsWithReplies(workId, workType);
                 logger.log('[Comments] Reloaded comments:', updated.length);
                 setComments(updated);
             } else {
@@ -88,7 +94,7 @@ export function CommentsSection({ workId }: CommentsSectionProps) {
         if (!user) return;
         try {
             await toggleCommentLike(commentId, user.uid);
-            const updated = await getCommentsWithReplies(workId);
+            const updated = await getCommentsWithReplies(workId, workType);
             setComments(updated);
         } catch (error) {
             logger.error('[Comments] Error toggling like:', error);
@@ -105,6 +111,7 @@ export function CommentsSection({ workId }: CommentsSectionProps) {
                 userName: user.displayName || 'Anonyme',
                 userPhoto: user.photoURL || '',
                 workId: workId,
+                workType,
                 text: replyText,
                 spoiler: false,
                 replyTo: parentId
@@ -115,7 +122,7 @@ export function CommentsSection({ workId }: CommentsSectionProps) {
                 setReplyText('');
                 setReplyingTo(null);
                 addToast(t('work_details.comments.reply_added_toast'), 'success');
-                const updated = await getCommentsWithReplies(workId);
+                const updated = await getCommentsWithReplies(workId, workType);
                 setComments(updated);
             }
         } catch (error) {
