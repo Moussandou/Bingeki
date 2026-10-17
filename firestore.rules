@@ -55,10 +55,17 @@ service cloud.firestore {
       let removed = before.removeAll(after);
       let added = after.removeAll(before);
       return before is list && after is list
-        && after.size() <= 100 && after.toSet().size() == after.size()
+        && after.toSet().size() == after.size()
         && removed.size() <= 1 && added.size() <= 1
         && (removed.size() == 0 || removed[0].id == request.auth.uid)
         && (added.size() == 0 || added[0].id == request.auth.uid);
+    }
+
+    function acceptingChallengeInvitation() {
+      let removed = resource.data.participants.removeAll(request.resource.data.participants);
+      let added = request.resource.data.participants.removeAll(resource.data.participants);
+      return removed.size() == 1 && added.size() == 1
+        && removed[0].status == 'pending' && added[0].status == 'accepted';
     }
 
     function ownLikesChange() {
@@ -234,11 +241,8 @@ service cloud.firestore {
     // WATCH PARTIES
     match /watchparties/{partyId} {
       allow read: if true;
-      allow create: if isAuthenticated() && request.resource.data.hostId == request.auth.uid
-        && request.resource.data.participants is list
-        && request.resource.data.participants.size() == 1
-        && request.resource.data.participants[0].id == request.auth.uid
-        && request.resource.data.status in ['active', 'paused'];
+      // Group invitations are validated by createWatchPartyFn.
+      allow create: if false;
       allow update: if isAuthenticated() && (
         isAdmin() ||
         (request.resource.data.hostId == resource.data.hostId
@@ -294,27 +298,13 @@ service cloud.firestore {
     }
 
     // CHALLENGES
-    // User-created duels: the creator owns the doc, invited friends may accept/decline
+    // Group challenges: the creator owns the doc, invited friends may accept/decline
     // and report their own progress. participantIds drives the "my challenges" query.
     match /challenges/{challengeId} {
       allow read: if isAuthenticated()
                   && (request.auth.uid in resource.data.participantIds || isAdmin());
-      allow create: if isAuthenticated()
-                    && request.resource.data.createdBy == request.auth.uid
-                    && request.resource.data.participantIds is list
-                    && request.resource.data.participantIds.size() == 2
-                    && request.resource.data.participantIds.toSet().size() == 2
-                    && request.auth.uid in request.resource.data.participantIds
-                    && request.resource.data.participants.size() == 2
-                    && request.resource.data.participants[0].id == request.resource.data.participantIds[0]
-                    && request.resource.data.participants[1].id == request.resource.data.participantIds[1]
-                    && request.resource.data.participants[0].progress == 0
-                    && request.resource.data.participants[1].progress == 0
-                    && (request.resource.data.participants[0].id == request.auth.uid
-                        || request.resource.data.participants[0].status == 'pending')
-                    && (request.resource.data.participants[1].id == request.auth.uid
-                        || request.resource.data.participants[1].status == 'pending')
-                    && !request.resource.data.keys().hasAny(['winnerId']);
+      // The callable validates every invitation, without imposing a two-player limit.
+      allow create: if false;
       // Creator can manage the challenge; participants may only update the
       // mutable gameplay fields (their progress / invitation status).
       allow update: if isAuthenticated() && (
@@ -331,11 +321,9 @@ service cloud.firestore {
                           && (request.resource.data.participantIds == resource.data.participantIds
                               || request.resource.data.participantIds == resource.data.participantIds.removeAll([request.auth.uid]))
                           && (request.resource.data.status == resource.data.status
-                              || (resource.data.status == 'pending'
-                                  && request.resource.data.status == 'active'
-                                  && request.resource.data.participants.size() == 2
-                                  && request.resource.data.participants[0].status == 'accepted'
-                                  && request.resource.data.participants[1].status == 'accepted'))
+                              || (resource.data.status in ['pending', 'active']
+                                  && request.resource.data.status in ['pending', 'active']
+                                  && acceptingChallengeInvitation()))
                           && ownParticipantChange())
                     );
       allow delete: if isAuthenticated()

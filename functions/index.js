@@ -33,6 +33,8 @@ exports.sendFriendRequestFn = social.sendFriendRequestFn;
 exports.acceptFriendRequestFn = social.acceptFriendRequestFn;
 exports.rejectFriendRequestFn = social.rejectFriendRequestFn;
 exports.getSharedLibraryFn = require('./sharedLibrary').getSharedLibraryFn;
+exports.createChallengeFn = require('./interactions').createChallengeFn;
+exports.createWatchPartyFn = require('./interactions').createWatchPartyFn;
 
 const account = require("./account");
 exports.deleteOwnAccount = account.deleteOwnAccount;

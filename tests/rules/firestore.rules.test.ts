@@ -440,9 +440,9 @@ runIfEmulator('Firestore security rules', () => {
             createdBy,
         });
 
-        it('lets a user create a challenge they own', async () => {
+        it('requires the creation callable even for the creator', async () => {
             const db = testEnv.authenticatedContext(ALICE).firestore();
-            await assertSucceeds(setDoc(doc(db, 'challenges', 'ch1'), challenge(ALICE, [ALICE, BOB])));
+            await assertFails(setDoc(doc(db, 'challenges', 'ch1'), challenge(ALICE, [ALICE, BOB])));
         });
 
         it('blocks creating a challenge attributed to someone else', async () => {

@@ -46,6 +46,12 @@ Tier-list like updates must atomically write `likes` and `likesCount` equal to
 the new array length, changing only the caller's membership. Watch parties use
 `hostId` and the terminal status `ended`. Banned/deleting accounts and UIDs with
 a permanent `accountDeletions/{uid}` tombstone cannot write using an old token.
+Challenge creation uses `createChallengeFn` to validate every invitation in
+multi-friend challenges; direct SDK creation is denied. The creator starts
+accepted with zero progress, all invitees start pending with zero progress,
+and `workType` can disambiguate anime/manga identifiers.
+Watch-party creation likewise uses `createWatchPartyFn`, preserving multi-friend
+invitations while validating host identity and initial invitee readiness/progress.
 
 Storage permits guest feedback attachments on **new paths only**; replacement is
 denied even for authenticated uploaders. Direct reads/deletes remain admin-only.
@@ -65,8 +71,8 @@ Firebase project:
 
 ```sh
 firebase emulators:exec --project demo-bingeki-security --only firestore,storage 'npm run test:rules'
-npm run test:run -- functions/__tests__/seoSecurity.test.js functions/__tests__/sharedLibrary.test.js src/shared/__tests__/gamificationServer.test.ts src/shared/__tests__/gamificationParity.test.ts
+npm run test:run -- functions/__tests__ src/shared/__tests__
 ```
 
-Deploy the callable and its visitor-loader integration together with the rules.
+Deploy the callables and their visitor-loader/invitation integration together with the rules.
 The source library schema is unchanged; no production-data migration is required.

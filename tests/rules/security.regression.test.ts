@@ -159,7 +159,8 @@ suite('authorization regressions (#112)', () => {
 
     it('allows host control and self join/leave without permitting third-party participant edits', async () => {
         const party = { hostId: 'alice', status: 'active', participants: [alice], currentEpisode: 1 };
-        await assertSucceeds(setDoc(doc(db('alice'), 'watchparties/p'), party));
+        await assertFails(setDoc(doc(db('alice'), 'watchparties/p'), party));
+        await seed('watchparties/p', party);
         await assertSucceeds(update('bob', 'watchparties/p', { participants: [alice, bob], lastActivity: 2 }));
         await assertFails(update('bob', 'watchparties/p', { participants: [{ ...alice, progress: 999 }, bob] }));
         await assertFails(update('bob', 'watchparties/p', { participants: [bob] }));
@@ -183,5 +184,24 @@ suite('authorization regressions (#112)', () => {
         await assertSucceeds(update('alice', 'challenges/c', { winnerId: 'bob', status: 'completed', endDate: 2 }));
         await seed('challenges/d', { createdBy: 'alice', participants: [alice, bob], participantIds: ['alice', 'bob'], status: 'pending' });
         await assertSucceeds(update('bob', 'challenges/d', { participants: [alice, { ...bob, status: 'declined' }], participantIds: ['alice'] }));
+    });
+
+    it('preserves multi-friend invitation acceptance without changing another participant', async () => {
+        const eve = { ...bob, id: 'eve', name: 'Eve' };
+        await seed('challenges/group', {
+            createdBy: 'alice', participants: [alice, bob, eve],
+            participantIds: ['alice', 'bob', 'eve'], status: 'active', workType: 'anime',
+        });
+        const acceptedBob = { ...bob, status: 'accepted' };
+        await assertSucceeds(update('bob', 'challenges/group', {
+            participants: [alice, acceptedBob, eve], status: 'pending',
+        }));
+        await assertFails(update('eve', 'challenges/group', {
+            participants: [alice, { ...acceptedBob, progress: 100 }, { ...eve, status: 'accepted' }],
+            status: 'active',
+        }));
+        await assertSucceeds(update('eve', 'challenges/group', {
+            participants: [alice, acceptedBob, { ...eve, status: 'accepted' }], status: 'active',
+        }));
     });
 });
