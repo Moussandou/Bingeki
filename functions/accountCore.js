@@ -1,12 +1,26 @@
+const { FieldPath, FieldValue } = require("firebase-admin/firestore");
 const PAGE_SIZE = 200;
 
-async function visitDocuments(query, visit) {
-    let cursor;
+async function visitDocuments(query, visit, deletionRef, phase) {
+    const progress = deletionRef ? (await deletionRef.get()).data()?.cleanupProgress?.[phase] : undefined;
+    if (progress?.done) return;
+    let cursor = progress?.lastId;
+    query = query.orderBy(FieldPath.documentId());
     while (true) {
         const page = await (cursor ? query.startAfter(cursor) : query).limit(PAGE_SIZE).get();
-        for (const document of page.docs) await visit(document);
-        if (page.docs.length < PAGE_SIZE) return;
-        cursor = page.docs.at(-1);
+        for (const document of page.docs) {
+            await visit(document);
+            cursor = document.id;
+            if (deletionRef) {
+                await deletionRef.set({ cleanupProgress: { [phase]: { lastId: cursor, done: false } } }, { merge: true });
+            }
+        }
+        if (page.docs.length < PAGE_SIZE) {
+            if (deletionRef) {
+                await deletionRef.set({ cleanupProgress: { [phase]: { done: true } } }, { merge: true });
+            }
+            return;
+        }
     }
 }
 
@@ -32,7 +46,7 @@ async function cleanupAccount(db, bucket, auth, uid) {
                 await bucket.deleteFiles({ prefix: `feedback-attachments/${document.id}/` });
             }
             await db.recursiveDelete(document.ref);
-        });
+        }, deletionRef, `owned-${collection}-${field}`);
     }
 
     for (const collection of ["comments", "tierLists"]) {
@@ -45,7 +59,7 @@ async function cleanupAccount(db, bucket, auth, uid) {
                     likes,
                     ...(collection === "tierLists" ? { likesCount: likes.length } : {}),
                 });
-            })
+            }), deletionRef, `likes-${collection}`
         );
     }
 
@@ -58,30 +72,43 @@ async function cleanupAccount(db, bucket, auth, uid) {
             if (participants.some(participant => participant.id === uid)) {
                 transaction.update(document.ref, { participants: participants.filter(p => p.id !== uid) });
             }
-        })
+        }), deletionRef, "watchparty-participants"
     );
-    await visitDocuments(db.collection("challenges"), async document => {
-        const challenge = document.data();
-        if (challenge.participantIds?.includes(uid) || challenge.participants?.some(p => p.id === uid) || challenge.winnerId === uid) {
-            await db.recursiveDelete(document.ref);
-        }
-    });
+    await visitDocuments(db.collection("challenges"), document =>
+        db.runTransaction(async transaction => {
+            const current = await transaction.get(document.ref);
+            if (!current.exists) return;
+            const challenge = current.data();
+            const participants = (challenge.participants || []).filter(participant => participant.id !== uid);
+            const participantIds = (challenge.participantIds || []).filter(id => id !== uid);
+            if (participants.length === (challenge.participants || []).length &&
+                participantIds.length === (challenge.participantIds || []).length && challenge.winnerId !== uid) return;
+            if (!participants.length && !participantIds.length) {
+                transaction.delete(document.ref);
+                return;
+            }
+            transaction.update(document.ref, {
+                ...(challenge.participants ? { participants } : {}),
+                ...(challenge.participantIds ? { participantIds } : {}),
+                ...(challenge.winnerId === uid ? { winnerId: FieldValue.delete() } : {}),
+            });
+        }), deletionRef, "challenge-participants"
+    );
 
     // Scan parents as well as the caller's mirror: inconsistent/one-way
     // friendships must not retain names/photos on another user's account.
     await visitDocuments(db.collection("users"), async document => {
         await document.ref.collection("friends").doc(uid).delete();
-        await visitDocuments(document.ref.collection("notifications"), async notification => {
-            const data = notification.data();
-            if ([data.userId, data.fromUserId, data.senderId, data.actorId].includes(uid)) {
-                await notification.ref.delete();
-            }
-        });
-    });
+        for (const field of ["userId", "fromUserId", "senderId", "actorId"]) {
+            await visitDocuments(document.ref.collection("notifications").where(field, "==", uid),
+                notification => notification.ref.delete());
+        }
+    }, deletionRef, "user-references");
 
     for (const prefix of [`avatars/${uid}/`, `users/${uid}/`, `banners/${uid}_`]) {
         await bucket.deleteFiles({ prefix });
     }
+    await bucket.file(`avatars/${uid}`).delete({ ignoreNotFound: true });
     await db.recursiveDelete(userRef);
     await deletionRef.set({ dataCleanedAt: Date.now() }, { merge: true });
     // Auth is last: no fallible data write after the client loses its ability

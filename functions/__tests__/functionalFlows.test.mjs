@@ -67,11 +67,16 @@ describe.skipIf(!enabled)('functional flows on isolated demo emulators', () => {
             'watchparties/hosted': { hostId: 'departing' },
             'watchparties/legacy': { creatorId: 'departing' },
             'watchparties/joined': { hostId: 'remaining', participants: [{ id: 'departing', name: 'Remove me' }, { id: 'remaining' }] },
-            'challenges/joined': { createdBy: 'remaining', participantIds: ['departing', 'remaining'] },
+            'challenges/owned': { createdBy: 'departing', participantIds: ['departing', 'remaining'] },
+            'challenges/joined': {
+                createdBy: 'remaining', participantIds: ['departing', 'remaining'], winnerId: 'departing',
+                participants: [{ id: 'departing', name: 'Remove me' }, { id: 'remaining', progress: 12 }],
+            },
+            'challenges/empty': { createdBy: 'remaining', participantIds: ['departing'] },
             'feedback/f': { userId: 'departing' },
         };
         await Promise.all(Object.entries(fixtures).map(([path, data]) => db.doc(path).set(data)));
-        await Promise.all(['users/departing/banner.png', 'avatars/departing/a.png', 'banners/departing_legacy.png', 'feedback-attachments/f/a.png', 'users/remaining/keep.png']
+        await Promise.all(['users/departing/banner.png', 'avatars/departing', 'avatars/departing/a.png', 'avatars/departing-other', 'banners/departing_legacy.png', 'feedback-attachments/f/a.png', 'users/remaining/keep.png']
             .map(path => bucket.file(path).save('synthetic', { contentType: 'image/png', resumable: false })));
         const auth = { deleteUser: vi.fn().mockResolvedValue(undefined) };
         await cleanupAccount(db, bucket, auth, 'departing');
@@ -82,13 +87,56 @@ describe.skipIf(!enabled)('functional flows on isolated demo emulators', () => {
         expect((await db.doc('watchparties/hosted').get()).exists).toBe(false);
         expect((await db.doc('watchparties/legacy').get()).exists).toBe(false);
         expect((await db.doc('watchparties/joined').get()).data().participants).toEqual([{ id: 'remaining' }]);
-        expect((await db.doc('challenges/joined').get()).exists).toBe(false);
+        expect((await db.doc('challenges/owned').get()).exists).toBe(false);
+        expect((await db.doc('challenges/empty').get()).exists).toBe(false);
+        expect((await db.doc('challenges/joined').get()).data()).toEqual({
+            createdBy: 'remaining', participantIds: ['remaining'], participants: [{ id: 'remaining', progress: 12 }],
+        });
         expect((await db.doc('tierLists/liked').get()).data()).toMatchObject({ likes: ['remaining'], likesCount: 1 });
         expect((await db.doc('comments/liked').get()).data().likes).toEqual([]);
-        expect((await bucket.getFiles())[0].map(file => file.name)).toEqual(['users/remaining/keep.png']);
+        expect((await bucket.getFiles())[0].map(file => file.name).sort()).toEqual(['avatars/departing-other', 'users/remaining/keep.png']);
         expect((await db.doc('accountDeletions/departing').get()).exists).toBe(true);
         auth.deleteUser.mockRejectedValue(Object.assign(new Error('already removed'), { code: 'auth/user-not-found' }));
         await expect(cleanupAccount(db, bucket, auth, 'departing')).resolves.toBeUndefined();
+    }, 30_000);
+
+    it('resumes a long scan after its durable document cursor without revisiting completed documents', async () => {
+        await db.doc('users/departing').set({});
+        for (const id of ['a', 'b', 'c']) {
+            await db.doc(`watchparties/${id}`).set({ hostId: 'remaining', participants: [{ id: 'departing' }, { id: 'remaining' }] });
+        }
+        const reads = [];
+        let interrupted = false;
+        const run = db.runTransaction.bind(db);
+        const spy = vi.spyOn(db, 'runTransaction').mockImplementation(callback => run(transaction => {
+            const get = transaction.get.bind(transaction);
+            transaction.get = async ref => {
+                reads.push(ref.path);
+                if (ref.path === 'watchparties/b' && !interrupted) {
+                    interrupted = true;
+                    throw new Error('synthetic interruption mid-scan');
+                }
+                return get(ref);
+            };
+            return callback(transaction);
+        }));
+        const auth = { deleteUser: vi.fn() };
+        try {
+            await expect(cleanupAccount(db, bucket, auth, 'departing')).rejects.toThrow('interruption mid-scan');
+            expect(auth.deleteUser).not.toHaveBeenCalled();
+            expect((await db.doc('accountDeletions/departing').get()).data().cleanupProgress['watchparty-participants'])
+                .toMatchObject({ lastId: 'a', done: false });
+            reads.length = 0;
+            await cleanupAccount(db, bucket, auth, 'departing');
+            expect(reads).not.toContain('watchparties/a');
+            expect(reads).toContain('watchparties/b');
+            for (const id of ['a', 'b', 'c']) {
+                expect((await db.doc(`watchparties/${id}`).get()).data().participants).toEqual([{ id: 'remaining' }]);
+            }
+            expect(auth.deleteUser).toHaveBeenCalledOnce();
+        } finally {
+            spy.mockRestore();
+        }
     }, 30_000);
 
     it('keeps a tombstone and reports cleanup failures before Auth deletion', async () => {
@@ -275,7 +323,8 @@ describe.skipIf(!enabled)('functional flows on isolated demo emulators', () => {
             ...pending, platforms: { insta: true }, status: 'failed',
             publishAttempts: { insta: { state: 'unknown' } }, errors: { insta: 'unknown' },
         });
-        const request = { auth: { uid: 'admin', token: { admin: true } }, data: { postId: 'p', platform: 'insta' } };
+        await db.doc('users/admin').set({ isAdmin: true, profileVisibility: 'public' });
+        const request = { auth: { uid: 'admin', token: { isAdmin: true, admin: true } }, data: { postId: 'p', platform: 'insta' } };
         expect(await socialCallables.socialMarkPublished.run(request)).toMatchObject({ complete: true });
         expect(await socialCallables.socialMarkPublished.run(request)).toMatchObject({ complete: true });
         expect((await db.doc(`${collections.published}/p`).get()).data()).toMatchObject({

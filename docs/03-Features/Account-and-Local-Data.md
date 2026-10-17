@@ -18,12 +18,21 @@ cleanup cannot resurrect documents.
 Cleanup removes the profile and all subcollections; owned activities,
 comments, tier lists, watch parties, challenges, feedback and survey responses;
 mirrored friendships and notification references; likes/count references;
-embedded watch-party participants and challenges mentioning the account.
-It deletes user/avatar/banner storage (including the legacy banner prefix)
-and owned feedback attachments before deleting Auth. The tombstone remains
+embedded watch-party and challenge participants. Other users' challenges and
+progress remain; only the departing participant and their winner reference are
+removed (an empty challenge can be deleted).
+Long scans persist a phase/document-ID cursor after each processed document,
+so a timeout resumes without restarting previously completed phases.
+It deletes user/avatar/banner storage (including exact legacy avatars and the
+legacy banner prefix) and owned feedback attachments before deleting Auth.
+Attachment URLs never establish ownership; unassignable guest attachments stay.
+The tombstone remains
 without profile data. Errors propagate; incomplete cleanup is retryable and
 does not report success or delete Auth early. After server confirmation the
-client signs out **without** the normal library-flushing logout routine.
+client signs out **without** the normal library-flushing logout routine,
+completes the idempotent guest-scope transition, then removes only the deleted
+account's snapshot. Guest data and other accounts' caches remain intact even
+if the auth callback arrives later.
 
 Profile updates send client-owned fields only, not server `lastUpdated`.
 Creation/merge reads the profile inside a transaction, so concurrent Auth
@@ -43,7 +52,9 @@ owner metadata cannot replace store methods or the active account.
 The library restores works (including an empty array), folders, character
 favorites, tombstones, view mode and sort order. Preferences and supplied
 gamification fields are restored too. Imported works/metadata are dated as
-a current edit; missing current works get typed tombstones so cloud merging
+a monotonic edit newer than previous/imported works and relevant typed/legacy
+tombstones, even if the local clock moves backwards.
+Missing current works get newer typed tombstones so cloud merging
 does not immediately resurrect them. Malformed JSON, invalid schema,
 file-read errors and quota failures reject the import instead of returning
 success. Storage is preflighted before reactive store mutation; failures

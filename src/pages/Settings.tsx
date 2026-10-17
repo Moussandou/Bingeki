@@ -209,13 +209,6 @@ export default function Settings() {
         try {
             await deleteOwnAccount(user);
 
-            // 2. ONLY CLEAR DATA IF SUCCESSFUL
-            // Clear Local State
-            useLibraryStore.getState().resetStore();
-            useGamificationStore.getState().resetStore();
-            localStorage.removeItem('bingeki-library-storage');
-            localStorage.removeItem('bingeki-gamification-storage');
-
             addToast(t('settings.toast.account_deleted', 'Account successfully deleted'), 'success');
             navigate('/');
         } catch (error) {
