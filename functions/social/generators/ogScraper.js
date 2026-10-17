@@ -12,8 +12,9 @@
  */
 
 const admin = require('firebase-admin');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('node:crypto');
 const { URL } = require('url');
+const { downloadPublic } = require('./publicDownload');
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
@@ -60,18 +61,19 @@ async function fetchOembed(url, host) {
     const builder = Object.entries(OEMBED_ENDPOINTS).find(([d]) => host === d || host.endsWith(`.${d}`))?.[1];
     if (!builder) return null;
     try {
-        const res = await fetch(builder(url), {
+        const res = await downloadPublic(builder(url), {
             headers: { 'User-Agent': UA, Accept: 'application/json' },
-            signal: AbortSignal.timeout(10_000),
+            timeoutMs: 10_000,
+            maxBytes: 256 * 1024,
         });
-        if (!res.ok) return null;
-        const json = await res.json();
+        const json = JSON.parse(res.buffer.toString('utf8'));
         return {
             imageUrl: json.thumbnail_url || null,
             title: json.title || null,
             author: json.author_name || null,
         };
-    } catch {
+    } catch (error) {
+        console.warn('Social oEmbed metadata unavailable:', error.message);
         return null;
     }
 }
@@ -114,17 +116,17 @@ async function fetchOgMetadata(url) {
         throw new Error(`Invalid URL: ${url}`);
     }
 
-    const res = await fetch(url, {
+    const res = await downloadPublic(url, {
         headers: {
             'User-Agent': UA,
             Accept: 'text/html,application/xhtml+xml',
             'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
         },
-        redirect: 'follow',
-        signal: AbortSignal.timeout(15_000),
+        timeoutMs: 15_000,
+        maxBytes: 2 * 1024 * 1024,
     });
-    if (!res.ok) throw new Error(`Fetch ${url} failed: HTTP ${res.status}`);
-    const html = await res.text();
+    const html = res.buffer.toString('utf8');
+    host = new URL(res.url).hostname.replace(/^www\./, '').toLowerCase();
 
     let rawImage = extractMetaTag(html, 'og:image')
         || extractMetaTag(html, 'twitter:image')
@@ -146,7 +148,7 @@ async function fetchOgMetadata(url) {
     const isLegit = isLegitDomain(host);
 
     return {
-        imageUrl: rawImage ? decodeHtmlEntities(rawImage) : null,
+        imageUrl: rawImage ? new URL(decodeHtmlEntities(rawImage), res.url).href : null,
         title: rawTitle ? decodeHtmlEntities(rawTitle) : null,
         siteName: isLegit && rawSiteName ? decodeHtmlEntities(rawSiteName) : null,
         host,
@@ -158,21 +160,20 @@ async function fetchOgMetadata(url) {
  * avec une URL tokenisée Meta-compatible. Retourne { url, contentType, bytes }.
  */
 async function downloadAndReuploadImage(imageUrl, storagePath) {
-    const res = await fetch(imageUrl, {
+    const res = await downloadPublic(imageUrl, {
         headers: { 'User-Agent': UA, Accept: 'image/*' },
-        redirect: 'follow',
-        signal: AbortSignal.timeout(20_000),
+        timeoutMs: 20_000,
+        maxBytes: 10 * 1024 * 1024,
     });
-    if (!res.ok) throw new Error(`Image fetch failed: HTTP ${res.status}`);
-    const contentType = res.headers.get('content-type') || 'image/jpeg';
-    if (!/^image\//i.test(contentType)) {
+    const contentType = res.headers['content-type']?.split(';')[0].trim().toLowerCase();
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'].includes(contentType)) {
         throw new Error(`Not an image (Content-Type: ${contentType})`);
     }
-    const buffer = Buffer.from(await res.arrayBuffer());
+    const buffer = res.buffer;
 
     const bucket = admin.storage().bucket();
     const file = bucket.file(storagePath);
-    const token = uuidv4();
+    const token = randomUUID();
     await file.save(buffer, {
         metadata: {
             contentType,
