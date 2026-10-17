@@ -86,6 +86,7 @@ async function prerenderRoute(browser: Browser, route: string): Promise<{ discov
   
   try {
     await page.setViewport({ width: 1280, height: 800 });
+    await page.setBypassServiceWorker(true);
     await page.setUserAgent(
       'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
     );

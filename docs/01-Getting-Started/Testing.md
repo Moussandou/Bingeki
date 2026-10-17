@@ -66,7 +66,9 @@ CI blocks on lint, translation parity, coverage thresholds, root/Functions
 audits at **high**, isolated build, renderer smoke, rules and browser tests.
 Lighthouse executes but its configured score assertions remain warnings
 (performance 0.7; accessibility/best-practices/SEO 0.8); there is no 90+/100
-guarantee. The existing coverage thresholds are not reduced.
+guarantee. It checks both localized privacy routes and saves reports as private
+workflow artifacts, not temporary public storage. The existing coverage
+thresholds are not reduced.
 
 Root production dependencies and Functions audit clean after the targeted
 updates. Five moderate audit entries remain in development-only

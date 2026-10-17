@@ -2,6 +2,7 @@ import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { XPGainToast } from './XPGainToast';
+import { StrictMode } from 'react';
 
 vi.mock('framer-motion', () => ({
     motion: { div: ({ children }: { children: React.ReactNode }) => <div>{children}</div> },
@@ -14,9 +15,10 @@ describe('XP toast subscription', () => {
         useGamificationStore.setState({ xpGained: null });
     });
     afterEach(() => vi.useRealTimers());
-    it('consumes an existing gain once and removes it after two seconds', () => {
+    it('consumes an existing gain once in StrictMode and removes it after two seconds', async () => {
         useGamificationStore.setState({ xpGained: { amount: 15, timestamp: 1 } });
-        render(<XPGainToast />);
+        render(<StrictMode><XPGainToast /></StrictMode>);
+        await act(async () => vi.runAllTicks());
         expect(screen.getByText('+15 XP')).toBeInTheDocument();
         expect(useGamificationStore.getState().xpGained).toBeNull();
         act(() => vi.advanceTimersByTime(2000));

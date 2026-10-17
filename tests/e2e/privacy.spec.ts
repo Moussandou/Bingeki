@@ -6,6 +6,7 @@ test('privacy choices default off, persist, and can be withdrawn', async ({ page
         if (/googlesyndication|google-analytics|googletagmanager/.test(request.url())) optionalRequests.push(request.url());
     });
     await page.goto('/en/privacy');
+    await expect(page.getByRole('heading', { name: 'PRIVACY POLICY', exact: true })).toBeVisible({ timeout: 15000 });
     const preferences = page.getByRole('complementary', { name: 'Privacy preferences' });
     await expect(preferences.getByRole('button', { name: 'Accept', exact: true })).toBeVisible();
     expect(optionalRequests).toEqual([]);

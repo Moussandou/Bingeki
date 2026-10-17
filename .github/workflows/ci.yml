@@ -58,6 +58,11 @@ jobs:
       - run: npm run build:isolated
       - run: node scripts/smoke-renderer.cjs
       - run: npx lhci autorun
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: lighthouse-${{ github.run_id }}
+          path: .lighthouseci/reports/
 
   browser:
     name: Isolated rules and E2E

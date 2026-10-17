@@ -10,6 +10,7 @@ export function XPGainToast() {
     const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
     useEffect(() => {
+        let active = true;
         const consume = () => {
             const { xpGained, clearXpGained } = useGamificationStore.getState();
             if (!xpGained) return;
@@ -27,8 +28,9 @@ export function XPGainToast() {
             timersRef.current.push(removeTimer);
         };
         const unsubscribe = useGamificationStore.subscribe(consume);
-        consume();
-        return unsubscribe;
+        // Let StrictMode finish its setup/cleanup replay before consuming a pending event.
+        queueMicrotask(() => { if (active) consume(); });
+        return () => { active = false; unsubscribe(); };
     }, []);
 
     // Only cancel pending timers when the component actually unmounts

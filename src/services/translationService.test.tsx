@@ -19,7 +19,7 @@ describe('translation subscription state', () => {
     beforeEach(() => vi.clearAllMocks());
     it('never exposes a previous source or language translation', async () => {
         const { result, rerender } = renderHook(
-            ({ text, lang }) => useTranslationData(text, 1, 'anime', 'synopsis', lang),
+            ({ text, lang }) => useTranslationData(text, 1, 'work', 'synopsis', lang),
             { initialProps: { text: 'Source A', lang: 'fr' } }
         );
         await act(async () => { mocks.callback?.({
@@ -34,7 +34,7 @@ describe('translation subscription state', () => {
     });
     it('ignores late callbacks after a subscription was replaced', async () => {
         const { result, rerender } = renderHook(
-            ({ text }) => useTranslationData(text, 1, 'anime', 'synopsis', 'fr'),
+            ({ text }) => useTranslationData(text, 1, 'work', 'synopsis', 'fr'),
             { initialProps: { text: 'Source A' } }
         );
         const oldCallback = mocks.callback;
