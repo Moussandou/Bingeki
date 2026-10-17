@@ -8,7 +8,7 @@
 
 export type PostType = 'daily' | 'weekly' | 'favorite' | 'newseason' | 'announcement' | 'announcement_digest' | 'season_preview' | 'culture_news';
 
-export type PostStatus = 'pending' | 'processing' | 'ready' | 'failed';
+export type PostStatus = 'pending' | 'processing' | 'ready' | 'failed' | 'published';
 
 export type SlideFormat = 'feed' | 'story';
 
@@ -71,6 +71,14 @@ export interface PendingPost {
     platforms: PostPlatforms;
 
     error?: string;
+    publishLease?: { owner: string; expiresAt: number } | null;
+    publishAttempts?: Partial<Record<'insta' | 'tiktok', {
+        state: 'started' | 'succeeded' | 'failed' | 'unknown';
+        startedAt?: number;
+        attemptId?: string;
+        reconciledAt?: number;
+        reconciledBy?: string;
+    }>>;
 
     /** Validé par l'admin (mode Manuel) : prêt à être publié depuis le tel. */
     validatedAt?: number;
@@ -89,7 +97,8 @@ export interface PublishedPost extends PendingPost {
     };
     /** Per-platform error messages from a partial publish. Empty/absent
      *  when everything published cleanly. Present values mean at least
-     *  one platform failed and can be retried via socialRetryPublish. */
+     *  one platform failed. Unknown attempts require manual reconciliation;
+     *  only definitive failures can be retried via socialRetryPublish. */
     errors?: { insta?: string; tiktok?: string } | null;
     lastRetryAt?: number;
     lastRetryBy?: string;

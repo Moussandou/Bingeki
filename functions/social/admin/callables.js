@@ -16,13 +16,9 @@ const {
     updatePendingCaption,
     markPendingFailed,
     markPendingProcessing,
-    movePendingToPublished,
 } = require('../shared/firestore');
 const { generateCaption } = require('../generators/gemini');
-const {
-    publishToInstagram: bufferPublishInstagram,
-    publishToTikTok: bufferPublishTikTok,
-} = require('../publishers/buffer');
+const { assertUnlocked } = require('../publishers/publicationCore');
 const { notifyPublishError } = require('../shared/discord');
 const { publishPendingPost } = require('../publishers/publishPending');
 
@@ -211,67 +207,15 @@ exports.socialRetryPublish = onCall(
             throw new HttpsError('invalid-argument', 'postId is required');
         }
 
-        const db = admin.firestore();
-        // Retry targets a post that already lives in `published` with per-platform
-        // errors (partial success) — those are the only ones with something to
-        // retry. A fully-failed post stays in `pending` and uses socialPublishNow.
-        const publishedRef = db.collection(COLLECTIONS.published).doc(postId);
-        const snap = await publishedRef.get();
-        if (!snap.exists) {
-            throw new HttpsError('not-found', `published post ${postId} not found — use publishNow if it's still pending`);
-        }
-        const post = snap.data();
-        const existingErrors = post.errors || {};
-        const failedPlatforms = Object.keys(existingErrors);
-        if (failedPlatforms.length === 0) {
-            return { ok: true, results: post.results, note: 'nothing to retry' };
-        }
-
         const config = await loadBotConfig();
         if (isKilled(config)) {
             throw new HttpsError('failed-precondition', 'Kill-switch is active');
         }
 
-        const apiKey = process.env.BUFFER_API_KEY;
-        const combinedCaption = `${post.caption || ''}\n\n${post.hashtags || ''}`.trim();
-        const results = { ...(post.results || {}) };
-        const remainingErrors = { ...existingErrors };
-
-        for (const platform of failedPlatforms) {
-            const channelId = config.platforms?.[platform]?.bufferChannelId;
-            if (!channelId) {
-                remainingErrors[platform] = 'missing bufferChannelId in config';
-                continue;
-            }
-            const publisher = platform === 'insta'
-                ? bufferPublishInstagram
-                : platform === 'tiktok'
-                    ? bufferPublishTikTok
-                    : null;
-            if (!publisher) {
-                remainingErrors[platform] = `unknown platform ${platform}`;
-                continue;
-            }
-            try {
-                results[platform] = await publisher(post.slides, combinedCaption, {
-                    apiKey,
-                    channelId,
-                    mode: config.platforms?.[platform]?.mode || 'photo',
-                });
-                delete remainingErrors[platform];
-            } catch (err) {
-                console.error(`[social/retryPublish] ${platform} still failing for ${postId}:`, err);
-                remainingErrors[platform] = err.message || String(err);
-            }
-        }
-
-        const stillFailing = Object.keys(remainingErrors).length > 0;
-        await publishedRef.update({
-            results,
-            errors: stillFailing ? remainingErrors : null,
-            lastRetryAt: Date.now(),
-            lastRetryBy: request.auth.uid,
+        const { results, errors: remainingErrors, post } = await publishPendingPost(postId, {
+            config, apiKey: process.env.BUFFER_API_KEY, publishedBy: request.auth.uid, retry: true,
         });
+        const stillFailing = Object.keys(remainingErrors).length > 0;
 
         if (stillFailing) {
             await notifyPublishError(config, {
@@ -308,25 +252,35 @@ exports.socialMarkPublished = onCall(async (request) => {
     }
 
     const db = admin.firestore();
-    const ref = db.collection(COLLECTIONS.pending).doc(postId);
+    const pendingRef = db.collection(COLLECTIONS.pending).doc(postId);
+    const publishedRef = db.collection(COLLECTIONS.published).doc(postId);
     const now = Date.now();
     const done = await db.runTransaction(async (tx) => {
-        const snap = await tx.get(ref);
-        if (!snap.exists) throw new HttpsError('not-found', `pending post ${postId} not found`);
+        const [pending, published] = await Promise.all([tx.get(pendingRef), tx.get(publishedRef)]);
+        const snap = published.exists ? published : pending;
+        if (!snap.exists) throw new HttpsError('not-found', `post ${postId} not found`);
         const post = snap.data();
+        assertUnlocked(post);
+        if (!post.platforms?.[platform]) throw new HttpsError('invalid-argument', 'Platform is not targeted by this post');
         const manual = { ...(post.manualPublished || {}), [platform]: { publishedAt: now, by: request.auth.uid } };
-        tx.update(ref, { manualPublished: manual });
-        const targets = ['insta', 'tiktok'].filter((p) => post.platforms?.[p]);
-        return targets.every((p) => manual[p]) ? manual : null;
-    });
-
-    if (done) {
         const results = {
-            insta: done.insta ? { id: 'manual', permalink: '', publishedAt: done.insta.publishedAt, provider: 'manual' } : null,
-            tiktok: done.tiktok ? { id: 'manual', publishedAt: done.tiktok.publishedAt, provider: 'manual' } : null,
+            ...(post.results || {}),
+            [platform]: post.results?.[platform] || { id: 'manual', permalink: '', publishedAt: now, provider: 'manual' },
         };
-        await movePendingToPublished(postId, results, request.auth.uid);
-    }
+        const errors = { ...(post.errors || {}) };
+        delete errors[platform];
+        const publishAttempts = { ...(post.publishAttempts || {}), [platform]: { state: 'succeeded', reconciledBy: request.auth.uid, reconciledAt: now } };
+        const targets = ['insta', 'tiktok'].filter((p) => post.platforms?.[p]);
+        const complete = targets.every((p) => results[p]);
+        const patch = { manualPublished: manual, results, errors, publishAttempts, publishLease: null };
+        if (complete && !published.exists) {
+            tx.set(publishedRef, { ...post, ...patch, status: 'published', publishedAt: now, publishedBy: request.auth.uid });
+            tx.delete(pendingRef);
+        } else {
+            tx.update(snap.ref, patch);
+        }
+        return complete;
+    });
     return { ok: true, complete: Boolean(done) };
 });
 

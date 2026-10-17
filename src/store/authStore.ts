@@ -34,7 +34,7 @@ interface AuthState {
     subscribeToProfile: (uid: string) => () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
     userProfile: null,
     loading: true,
@@ -45,7 +45,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     syncUserProfile: async (uid: string) => {
         try {
             const profile = await getUserProfile(uid);
-            if (profile) {
+            if (profile && get().user?.uid === uid) {
                 set({ userProfile: withOwnEmail(profile) });
             }
         } catch (error) {
@@ -55,6 +55,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     subscribeToProfile: (uid: string) => {
 
         return subscribeToUserProfile(uid, (profile) => {
+            if (get().user?.uid !== uid) return;
             logger.log('[AuthStore] Real-time profile update received:', profile?.isAdmin ? 'Admin' : 'User');
             set({ userProfile: withOwnEmail(profile) });
         });

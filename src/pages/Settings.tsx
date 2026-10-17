@@ -18,7 +18,6 @@ import { getLocalStorageSize, exportData, importData, clearImageCache } from '@/
 import { useAuthStore } from '@/store/authStore';
 import { saveLibraryToFirestore, saveGamificationToFirestore, saveUserProfileToFirestore } from '@/firebase/firestore';
 import { 
-    deleteUser, 
     reauthenticateWithPopup, 
     GoogleAuthProvider, 
     OAuthProvider 
@@ -26,6 +25,8 @@ import {
 
 import { MALImportModal } from '@/components/library/MALImportModal';
 import { logger } from '@/utils/logger';
+import { deleteOwnAccount } from '@/firebase/account';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 /** Reusable pill-style option selector */
 function OptionSelector<T extends string>({ options, value, onChange }: {
@@ -80,16 +81,15 @@ export default function Settings() {
     const [storageSize] = useState(() => getLocalStorageSize());
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { user } = useAuthStore();
+    const push = usePushNotifications();
 
     const {
         reducedMotion,
         soundEnabled,
-        notifications,
         spoilerMode,
         accentColor,
         toggleReducedMotion,
         toggleSound,
-        toggleNotifications,
         toggleSpoilerMode,
         nsfwMode,
         toggleNsfwMode,
@@ -189,7 +189,7 @@ export default function Settings() {
             setNeedsReauth(false);
             addToast(t('settings.toast.reauth_success', 'Identity verified!'), 'success');
             // Automatically retry deletion
-            handleDeleteAccount();
+            await performAccountDeletion();
         } catch (error) {
             logger.error('Re-auth error:', error);
             addToast(t('settings.toast.reauth_error', 'Verification failed. Try again.'), 'error');
@@ -200,26 +200,29 @@ export default function Settings() {
 
     const handleDeleteAccount = async () => {
         if (!user || isDeleting) return;
+        setIsDeleting(true);
+        await performAccountDeletion();
+    };
 
+    const performAccountDeletion = async () => {
+        if (!user) return;
         try {
-            setIsDeleting(true);
-            
-            // 1. Attempt Delete Auth Account first
-            await deleteUser(user);
+            await deleteOwnAccount(user);
 
             // 2. ONLY CLEAR DATA IF SUCCESSFUL
             // Clear Local State
             useLibraryStore.getState().resetStore();
             useGamificationStore.getState().resetStore();
-            localStorage.clear();
+            localStorage.removeItem('bingeki-library-storage');
+            localStorage.removeItem('bingeki-gamification-storage');
 
             addToast(t('settings.toast.account_deleted', 'Account successfully deleted'), 'success');
             navigate('/');
         } catch (error) {
             logger.error('Delete account error:', error);
-            const err = error as { code?: string };
+            const err = error as { code?: string; details?: { reason?: string } };
             
-            if (err.code === 'auth/requires-recent-login') {
+            if (err.code === 'auth/requires-recent-login' || err.details?.reason === 'requires-recent-login') {
                 setNeedsReauth(true);
                 addToast(t('settings.toast.reauth_required', 'Security check required.'), 'info');
             } else {
@@ -230,9 +233,14 @@ export default function Settings() {
         }
     };
 
-    const handleClearCache = () => {
-        clearImageCache();
-        addToast(t('settings.toast.cache_cleared'), 'success');
+    const handleClearCache = async () => {
+        try {
+            await clearImageCache();
+            addToast(t('settings.toast.cache_cleared'), 'success');
+        } catch (error) {
+            logger.error('Image cache cleanup failed:', error);
+            addToast(t('settings.toast.cache_error', 'Unable to clear the image cache.'), 'error');
+        }
     };
 
     const COLORS = [
@@ -483,11 +491,10 @@ export default function Settings() {
                                     onToggle={toggleSound}
                                 />
                                 <div style={{ height: '1px', background: 'var(--color-border)' }} />
-                                <Switch
-                                    label={t('settings.preferences.notifications')}
-                                    isOn={notifications}
-                                    onToggle={toggleNotifications}
-                                />
+                                <p role="status">
+                                    {t('settings.preferences.push_unavailable', 'Push notifications are unavailable: the delivery service is not configured. In-app notifications remain available.')}
+                                    {!push.available && <span className="sr-only"> {push.reason}</span>}
+                                </p>
                             </div>
                         </section>
 

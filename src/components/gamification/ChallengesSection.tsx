@@ -41,6 +41,7 @@ export function ChallengesSection({ onNavigateToProfile }: ChallengesSectionProp
         title: '',
         type: 'race_to_finish' as Challenge['type'],
         workId: 0,
+        workType: 'anime' as 'anime' | 'manga',
         workTitle: '',
         workImage: '',
         selectedFriends: [] as string[]
@@ -99,7 +100,7 @@ export function ChallengesSection({ onNavigateToProfile }: ChallengesSectionProp
             title: newChallenge.title,
             type: newChallenge.type,
             // Firestore rejects `undefined`, so omit the optional work fields entirely
-            ...(newChallenge.workId ? { workId: newChallenge.workId } : {}),
+            ...(newChallenge.workId ? { workId: newChallenge.workId, workType: newChallenge.workType } : {}),
             ...(newChallenge.workTitle ? { workTitle: newChallenge.workTitle } : {}),
             ...(newChallenge.workImage ? { workImage: newChallenge.workImage } : {}),
             participants,
@@ -116,7 +117,7 @@ export function ChallengesSection({ onNavigateToProfile }: ChallengesSectionProp
         }
         addToast(t('components.challenges_section.toast_created'), 'success');
         setIsCreateModalOpen(false);
-        setNewChallenge({ title: '', type: 'race_to_finish', workId: 0, workTitle: '', workImage: '', selectedFriends: [] });
+        setNewChallenge({ title: '', type: 'race_to_finish', workId: 0, workType: 'anime', workTitle: '', workImage: '', selectedFriends: [] });
         loadData();
     };
 
@@ -379,18 +380,19 @@ export function ChallengesSection({ onNavigateToProfile }: ChallengesSectionProp
                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', maxHeight: '200px', overflowY: 'auto' }}>
                                 {works.map(work => (
                                     <div
-                                        key={work.id}
+                                        key={`${work.type}:${work.id}`}
                                         onClick={() => setNewChallenge(prev => ({
                                             ...prev,
                                             workId: Number(work.id),
+                                            workType: work.type,
                                             workTitle: work.title,
                                             workImage: work.image
                                         }))}
                                         style={{
                                             width: 70,
                                             cursor: 'pointer',
-                                            opacity: newChallenge.workId === work.id ? 1 : 0.6,
-                                            border: newChallenge.workId === work.id ? '2px solid var(--color-border-heavy)' : '2px solid transparent',
+                                            opacity: newChallenge.workId === Number(work.id) && newChallenge.workType === work.type ? 1 : 0.6,
+                                            border: newChallenge.workId === Number(work.id) && newChallenge.workType === work.type ? '2px solid var(--color-border-heavy)' : '2px solid transparent',
                                             borderRadius: '4px',
                                             padding: '2px'
                                         }}

@@ -109,8 +109,11 @@ export const logout = async (): Promise<void> => {
             logger.log("Data synced before logout");
         }
 
-        await signOut(auth);
     } catch (error) {
-        logger.error("Error logging out", error);
+        logger.error("Error syncing data before logout", error);
+    } finally {
+        // A blocked/partially deleted account must still be able to sign out
+        // and sign back in for a recent-login cleanup retry.
+        await signOut(auth);
     }
 };

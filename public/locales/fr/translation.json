@@ -139,6 +139,7 @@
     "see_more": "Voir plus",
     "show_more": "Afficher plus",
     "close": "Fermer",
+    "dialog": "Dialogue",
     "yes": "Oui",
     "no": "Non",
     "access_denied": "Accès refusé",
@@ -716,7 +717,8 @@
       "title": "PRÉFÉRENCES",
       "reduce_motion": "Réduire les animations",
       "sound_effects": "Effets sonores (UI)",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "push_unavailable": "Notifications push indisponibles : le service d'envoi n'est pas configuré. Les notifications dans l'application restent disponibles."
     },
     "content": {
       "title": "CONTENU & AFFICHAGE",
@@ -797,7 +799,8 @@
       "reauth_error": "Échec de la vérification",
       "relogin_manual": "Veuillez vous déconnecter et vous reconnecter manuellement.",
       "delete_error": "Erreur lors de la suppression",
-      "cache_cleared": "Cache nettoyé (simulation)"
+      "cache_cleared": "Caches d'images de l'application nettoyés",
+      "cache_error": "Impossible de nettoyer les caches d'images."
     }
   },
   "mal_import": {

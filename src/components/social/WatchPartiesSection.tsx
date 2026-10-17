@@ -35,7 +35,7 @@ export function WatchPartiesSection() {
 
     // Form state
     const [newParty, setNewParty] = useState({
-        workId: 0,
+        workId: '',
         title: '',
         selectedFriends: [] as string[]
     });
@@ -67,7 +67,7 @@ export function WatchPartiesSection() {
             return;
         }
 
-        const selectedWork = works.find(w => w.id === newParty.workId);
+        const selectedWork = works.find(w => `${w.type}:${w.id}` === newParty.workId);
         if (!selectedWork) return;
 
         const participants: PartyParticipant[] = [
@@ -110,20 +110,20 @@ export function WatchPartiesSection() {
         await createWatchParty(party);
         addToast(t('watch_parties.party_created'), 'success');
         setIsCreateModalOpen(false);
-        setNewParty({ workId: 0, title: '', selectedFriends: [] });
+        setNewParty({ workId: '', title: '', selectedFriends: [] });
         loadData();
     };
 
-    const handleAdvanceEpisode = async (partyId: string, currentEp: number, workId: number) => {
+    const handleAdvanceEpisode = async (partyId: string, currentEp: number, workId: number, workType: 'anime' | 'manga') => {
         const newEpisode = currentEp + 1;
 
         // Update watch party
         await updateWatchPartyProgress(partyId, newEpisode);
 
         // Sync with library
-        const libraryWork = works.find(w => Number(w.id) === workId);
+        const libraryWork = works.find(w => Number(w.id) === workId && w.type === workType);
         if (libraryWork && newEpisode > (libraryWork.currentChapter || 0)) {
-            handleProgressUpdateWithXP(libraryWork.id, newEpisode, libraryWork.totalChapters);
+            handleProgressUpdateWithXP(`${libraryWork.type}:${libraryWork.id}`, newEpisode, libraryWork.totalChapters);
         }
 
         addToast(t('watch_parties.episode_advanced'), 'success');
@@ -225,7 +225,7 @@ export function WatchPartiesSection() {
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
-                                                onClick={() => handleAdvanceEpisode(party.id, party.currentEpisode, party.workId)}
+                                                onClick={() => handleAdvanceEpisode(party.id, party.currentEpisode, party.workId, party.workType)}
                                                 style={{ marginLeft: 'auto' }}
                                             >
                                                 +1
@@ -296,13 +296,13 @@ export function WatchPartiesSection() {
                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', maxHeight: '200px', overflowY: 'auto' }}>
                                 {works.filter(w => w.status === 'reading').map(work => (
                                     <div
-                                        key={work.id}
-                                        onClick={() => setNewParty(prev => ({ ...prev, workId: Number(work.id) }))}
+                                        key={`${work.type}:${work.id}`}
+                                        onClick={() => setNewParty(prev => ({ ...prev, workId: `${work.type}:${work.id}` }))}
                                         style={{
                                             width: 70,
                                             cursor: 'pointer',
-                                            opacity: newParty.workId === work.id ? 1 : 0.6,
-                                            border: newParty.workId === work.id ? '2px solid var(--color-border-heavy)' : '2px solid transparent',
+                                            opacity: newParty.workId === `${work.type}:${work.id}` ? 1 : 0.6,
+                                            border: newParty.workId === `${work.type}:${work.id}` ? '2px solid var(--color-border-heavy)' : '2px solid transparent',
                                             borderRadius: '4px',
                                             padding: '2px'
                                         }}

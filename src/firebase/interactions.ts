@@ -1,5 +1,6 @@
-import { doc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, addDoc, setDoc } from 'firebase/firestore';
-import { db } from './config';
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit, updateDoc, addDoc } from 'firebase/firestore';
+import { db, functions } from './config';
+import { httpsCallable } from 'firebase/functions';
 import { logger } from '@/utils/logger';
 import type { Comment, CommentWithReplies } from '@/types/comment';
 import type { Challenge } from '@/types/challenge';
@@ -22,11 +23,12 @@ export async function addComment(comment: Omit<Comment, 'id' | 'timestamp' | 'li
     }
 }
 
-export async function getComments(workId: number, limitCount: number = 50): Promise<Comment[]> {
+export async function getComments(workId: number, limitCount: number = 50, workType?: 'anime' | 'manga'): Promise<Comment[]> {
     try {
         const q = query(
             collection(db, 'comments'),
             where('workId', '==', workId),
+            ...(workType ? [where('workType', '==', workType)] : []),
             orderBy('timestamp', 'desc'),
             limit(limitCount)
         );
@@ -43,8 +45,8 @@ export async function getComments(workId: number, limitCount: number = 50): Prom
     }
 }
 
-export async function getCommentsWithReplies(workId: number): Promise<CommentWithReplies[]> {
-    const allComments = await getComments(workId, 50);
+export async function getCommentsWithReplies(workId: number, workType?: 'anime' | 'manga'): Promise<CommentWithReplies[]> {
+    const allComments = await getComments(workId, 50, workType);
 
     const buildTree = (comments: Comment[], parentId: string | undefined): CommentWithReplies[] => {
         return comments
@@ -91,9 +93,10 @@ export async function toggleCommentLike(commentId: string, userId: string): Prom
 
 export async function createChallenge(challenge: Omit<Challenge, 'id'>): Promise<string | null> {
     try {
-        const challengeRef = await addDoc(collection(db, 'challenges'), challenge);
-        logger.log('[Firestore] Challenge created:', challengeRef.id);
-        return challengeRef.id;
+        const result = await httpsCallable<Omit<Challenge, 'id'>, { id: string }>(functions, 'createChallengeFn')(challenge);
+        if (!result.data.id) throw new Error('Challenge creation was not confirmed');
+        logger.log('[Firestore] Challenge created:', result.data.id);
+        return result.data.id;
     } catch (error) {
         logger.error('[Firestore] Error creating challenge:', error);
         return null;
@@ -213,14 +216,10 @@ export async function completeChallenge(challengeId: string, winnerId?: string):
 
 export async function createWatchParty(party: Omit<WatchParty, 'id'>): Promise<string> {
     try {
-        const partyRef = doc(collection(db, 'watchparties'));
-        const partyData: WatchParty = {
-            ...party,
-            id: partyRef.id
-        };
-        await setDoc(partyRef, partyData);
-        logger.log('[Firestore] Watch party created:', partyData.id);
-        return partyRef.id;
+        const result = await httpsCallable<Omit<WatchParty, 'id'>, { id: string }>(functions, 'createWatchPartyFn')(party);
+        if (!result.data.id) throw new Error('Watch party creation was not confirmed');
+        logger.log('[Firestore] Watch party created:', result.data.id);
+        return result.data.id;
     } catch (error) {
         logger.error('[Firestore] Error creating watch party:', error);
         throw error;
@@ -289,13 +288,14 @@ export async function updateWatchPartyProgress(partyId: string, newEpisode: numb
         });
     } catch (error) {
         logger.error('[Firestore] Error updating party progress:', error);
+        throw error;
     }
 }
 
 export async function endWatchParty(partyId: string): Promise<void> {
     try {
         await updateDoc(doc(db, 'watchparties', partyId), {
-            status: 'completed',
+            status: 'ended',
             lastActivity: Date.now()
         });
         logger.log('[Firestore] Watch party ended');
