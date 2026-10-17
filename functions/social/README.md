@@ -57,3 +57,22 @@ functions/social/
   côté serveur (le check `RequireAdmin` du front ne suffit pas).
 - Kill-switch : chaque cron lit `social_bot_config/singleton.enabled`
   et retourne immédiatement si `false`.
+
+### Téléchargements Open Graph
+
+`generators/publicDownload.js` est utilisé pour les pages, oEmbed et images.
+Seules les URL HTTP(S) sans identifiants sur les ports standards sont
+acceptées. Chaque destination, y compris après redirection, doit résoudre
+exclusivement vers des adresses publiques. La connexion utilise cette
+résolution vérifiée, sans seconde résolution DNS.
+
+Les téléchargements sont limités à 5 redirections et à une durée totale
+de 15 secondes pour le HTML, 10 secondes pour oEmbed et 20 secondes pour
+les images. Les limites sont respectivement de 2 Mio, 256 Kio et 10 Mio,
+y compris sans `Content-Length`. Les images doivent annoncer un type
+JPEG, PNG, WebP, GIF ou AVIF ; les SVG ne sont pas réhébergés. Une réponse
+compressée inattendue est refusée. Les erreurs de page/image remontent
+à l'appelant ; un échec oEmbed optionnel est journalisé.
+
+Les régressions réseau sont simulées, sans contacter de service externe :
+`npx vitest run functions/__tests__/publicDownload.test.js` depuis la racine.
