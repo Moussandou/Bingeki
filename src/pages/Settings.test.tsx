@@ -23,7 +23,11 @@ import Settings from './Settings';
 import { useLibraryStore, type Work } from '@/store/libraryStore';
 
 describe('Settings deletion and reauthentication', () => {
-    beforeEach(() => { vi.clearAllMocks(); });
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mocks.removeAccount.mockReset();
+        mocks.reauthenticate.mockReset();
+    });
     it('retries the server cleanup after reauthentication even while the UI is busy', async () => {
         const work: Work = { id: 1, title: 'Synthetic', image: '', type: 'anime', status: 'reading' };
         const guest: Work = { ...work, id: 2, title: 'Restored guest' };
@@ -32,9 +36,9 @@ describe('Settings deletion and reauthentication', () => {
             .mockImplementationOnce(async () => { useLibraryStore.setState({ works: [guest] }); });
         mocks.reauthenticate.mockResolvedValue(undefined);
         render(<Settings />);
-        fireEvent.click(screen.getByRole('button', { name: 'settings.data.delete_account' }));
-        fireEvent.click(screen.getByRole('button', { name: 'settings.data.goodbye' }));
-        const verify = await screen.findByRole('button', { name: 'settings.data.verify_identity' });
+        fireEvent.click(screen.getByText('settings.data.delete_account'));
+        fireEvent.click(screen.getByText('settings.data.goodbye'));
+        const verify = await screen.findByText('settings.data.verify_identity');
         expect(useLibraryStore.getState().works).toEqual([work]);
         fireEvent.click(verify);
         await waitFor(() => expect(mocks.removeAccount).toHaveBeenCalledTimes(2));
@@ -45,8 +49,8 @@ describe('Settings deletion and reauthentication', () => {
     it('keeps data and reports incomplete cleanup instead of showing success', async () => {
         mocks.removeAccount.mockRejectedValueOnce(new Error('cleanup unavailable'));
         render(<Settings />);
-        fireEvent.click(screen.getByRole('button', { name: 'settings.data.delete_account' }));
-        fireEvent.click(screen.getByRole('button', { name: 'settings.data.goodbye' }));
+        fireEvent.click(screen.getByText('settings.data.delete_account'));
+        fireEvent.click(screen.getByText('settings.data.goodbye'));
         await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith('settings.toast.delete_error', 'error'));
         expect(mocks.toast).not.toHaveBeenCalledWith('settings.toast.account_deleted', 'success');
     });
