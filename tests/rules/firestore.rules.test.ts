@@ -33,7 +33,7 @@ runIfEmulator('Firestore security rules', () => {
     beforeAll(async () => {
         const [host, port] = (process.env.FIRESTORE_EMULATOR_HOST || 'localhost:8080').split(':');
         testEnv = await initializeTestEnvironment({
-            projectId: 'demo-bingeki-security',
+            projectId: process.env.GCLOUD_PROJECT || 'demo-bingeki-security',
             firestore: {
                 rules: readFileSync(resolve(__dirname, '../../firestore.rules'), 'utf8'),
                 host,

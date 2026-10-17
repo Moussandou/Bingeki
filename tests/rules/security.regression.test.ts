@@ -17,7 +17,7 @@ suite('authorization regressions (#112)', () => {
     beforeAll(async () => {
         const [host, port] = process.env.FIRESTORE_EMULATOR_HOST!.split(':');
         env = await initializeTestEnvironment({
-            projectId: 'demo-bingeki-security',
+            projectId: process.env.GCLOUD_PROJECT || 'demo-bingeki-security',
             firestore: { host, port: Number(port), rules: readFileSync('firestore.rules', 'utf8') },
         });
     });
