@@ -25,7 +25,9 @@ bash scripts/start-emulators.sh "npm run test:emulator && npm run test:e2e"
 The harness pins Firebase CLI 15.34.0, explicitly selects
 `demo-bingeki-quality`, starts Auth (9099), Firestore (8080) and Storage (9199)
 on loopback, and shuts down even if tests fail. It does not start scheduled
-Functions or use `.firebaserc`'s real default project. Playwright uses port 5178,
+Functions or use `.firebaserc`'s real default project. Each worktree keeps emulator
+temporary blobs under its ignored `.firebase/emulator-tmp`, avoiding collisions
+with concurrent worktrees. Playwright uses port 5178,
 never reuses an existing server, and loads the committed `.env.isolated`.
 Client emulator mode refuses non-`demo-` project IDs and connects all four
 Firebase clients (Functions points at 5001; no Functions emulator is required

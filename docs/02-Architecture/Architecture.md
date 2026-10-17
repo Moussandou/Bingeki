@@ -9,6 +9,10 @@ Bingeki uses **React 19**, React Router 7 and Vite 8. The runtime mounts via
 hydration output. Prerender validates content and localized metadata rather
 than accepting a large empty shell.
 
+The browser router lives at the entry point, above authentication/loading
+gates. Its history instance survives synchronization transitions, including an
+asynchronous signup completing while a loading screen replaces the route.
+
 Firebase clients are initialized in `src/firebase/config.ts`. Isolated builds
 require a `demo-` project and connect Auth, Firestore, Storage and Functions to
 loopback emulators. Optional Analytics and AdSense stay disabled until an

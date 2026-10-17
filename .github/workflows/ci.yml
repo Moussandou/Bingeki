@@ -21,6 +21,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix functions
       - run: npm run lint
       - run: npm run validate:i18n
       - run: npm run test:coverage
@@ -79,6 +80,7 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: npm ci
+      - run: npm ci --prefix functions
       - run: npx playwright install --with-deps chromium
       - run: bash scripts/start-emulators.sh "npm run test:run && npm run test:rules && npm run test:e2e"
       - uses: actions/upload-artifact@v6

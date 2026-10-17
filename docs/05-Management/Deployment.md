@@ -7,6 +7,10 @@ renderer smoke, emulator rules, Playwright and verified-secret scanning must
 succeed first. Pull requests run validation without deployment. Daily emulator
 validation and weekly security scans also run independently.
 
+Production jobs are serialized without interrupting an active Firebase deploy.
+Immediately before deployment, the job refuses any SHA superseded on `main`,
+so a slower validation of an older commit cannot publish over a newer release.
+
 Use Node 22.19+ locally; CI resolves the maintained Node 22 release. Functions
 targets Node 22. Never replace the isolated CI configuration with production
 credentials to make tests pass.
