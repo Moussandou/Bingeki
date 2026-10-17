@@ -17,7 +17,7 @@ suite('Storage authorization regressions (#112)', () => {
         const [host, port] = process.env.FIREBASE_STORAGE_EMULATOR_HOST!.split(':');
         const [firestoreHost, firestorePort] = process.env.FIRESTORE_EMULATOR_HOST!.split(':');
         env = await initializeTestEnvironment({
-            projectId: 'demo-bingeki-security',
+            projectId: process.env.GCLOUD_PROJECT || 'demo-bingeki-security',
             firestore: { host: firestoreHost, port: Number(firestorePort), rules: readFileSync('firestore.rules', 'utf8') },
             storage: { host, port: Number(port), rules: readFileSync('storage.rules', 'utf8') },
         });
