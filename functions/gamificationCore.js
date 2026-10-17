@@ -267,7 +267,7 @@ function streakBonusXp(streak) {
  * Server-side guard: a client may advance its streak by at most one day per
  * calendar day, and only if its lastActivityDate actually moved forward.
  */
-function clampClaimedStreak(claimedStreak, storedStreak, claimedLastActivity, storedLastActivity) {
+function clampClaimedStreak(claimedStreak, storedStreak, claimedLastActivity, storedLastActivity, now = new Date()) {
     const claimed = toSafeInt(claimedStreak);
     const stored = toSafeInt(storedStreak);
 
@@ -276,7 +276,7 @@ function clampClaimedStreak(claimedStreak, storedStreak, claimedLastActivity, st
     if (!claimedLastActivity) return stored;
 
     const claimedDate = new Date(claimedLastActivity);
-    if (Number.isNaN(claimedDate.getTime())) return stored;
+    if (Number.isNaN(claimedDate.getTime()) || claimedDate.getTime() > now.getTime()) return stored;
 
     // First verification for this account: adopt the existing streak once.
     if (!storedLastActivity) return Math.min(claimed, MAX_BOOTSTRAP_STREAK);
