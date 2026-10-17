@@ -96,7 +96,6 @@ function decodeHtmlEntities(text) {
 function stripControlChars(text) {
     if (typeof text !== 'string') return '';
     // C0 controls (tab/newline/CR kept), DEL and C1 controls.
-    // eslint-disable-next-line no-control-regex
     return text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, '');
 }
 

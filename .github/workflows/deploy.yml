@@ -7,7 +7,17 @@ on:
       - main
 
 jobs:
+  validation:
+    uses: ./.github/workflows/ci.yml
+
+  security:
+    uses: ./.github/workflows/security.yml
+
   build_and_deploy:
+    needs: [validation, security]
+    concurrency:
+      group: firebase-production
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -36,35 +46,25 @@ jobs:
       - name: Install Functions Dependencies
         run: cd functions && npm ci
 
-      - name: Deploy Firebase Rules, Indexes & Functions
-        uses: w9jds/firebase-action@master
-        with:
-          args: deploy --only firestore:rules,firestore:indexes,storage,functions
+      - name: Reject stale production revisions
         env:
-          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BINGEKI }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [ "$current_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::Refusing to deploy a revision superseded on main."
+            exit 1
+          fi
 
-      - name: Deploy to Firebase Hosting
+      - name: Deploy Firebase Rules, Indexes, Functions & Hosting
         env:
           FIREBASE_SERVICE_ACCOUNT_BINGEKI: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BINGEKI }}
         run: |
-          # Auth via service account
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_BINGEKI" > "$RUNNER_TEMP/sa.json"
-          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
-
-          # Deploy, capturing output so we can detect the flaky retry false-negative
-          set +e
-          out=$(npx -y firebase-tools@latest deploy --only hosting --project bingeki --non-interactive 2>&1)
-          code=$?
-          set -e
-          echo "$out"
-
-          if [ "$code" -ne 0 ]; then
-            # Network "premature close" makes the CLI retry; the first attempt already
-            # published, so the retry returns 400 "current active version". Not a real failure.
-            if echo "$out" | grep -q "is the current active version"; then
-              echo "::warning::Hosting already at the deployed version (retry false-negative) — treating as success."
-              exit 0
-            fi
-            echo "::error::Firebase Hosting deploy failed."
-            exit "$code"
-          fi
+          umask 077
+          credentials=$(mktemp "$RUNNER_TEMP/firebase-sa.XXXXXX")
+          trap 'rm -f "$credentials"' EXIT
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_BINGEKI" > "$credentials"
+          export GOOGLE_APPLICATION_CREDENTIALS="$credentials"
+          npx --yes --package=firebase-tools@15.34.0 -- firebase deploy \
+            --only firestore:rules,firestore:indexes,storage,functions,hosting \
+            --project bingeki --non-interactive

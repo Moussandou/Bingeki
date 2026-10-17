@@ -5,6 +5,8 @@ import { useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMounted } from './useMounted';
+import { resolveSeoFromPath } from '@/seo/resolveSeo';
+import { logger } from '@/utils/logger';
 export function useLanguageDetection() {
   const { lang } = useParams();
   const { i18n } = useTranslation();
@@ -12,12 +14,17 @@ export function useLanguageDetection() {
   const isMounted = useMounted();
 
   useEffect(() => {
+    let active = true;
     if (lang && (lang === 'fr' || lang === 'en')) {
-      if (i18n.language !== lang) {
-        i18n.changeLanguage(lang);
-      }
+      document.documentElement.lang = lang;
+      document.title = resolveSeoFromPath(location.pathname, lang).title;
+      delete document.documentElement.dataset.languageReady;
+      void i18n.changeLanguage(lang).then(() => {
+        if (active) document.documentElement.dataset.languageReady = lang;
+      }).catch(error => logger.error('Cannot load page language', error));
     }
-  }, [lang, i18n]);
+    return () => { active = false; };
+  }, [lang, i18n, location.pathname]);
 
   const handleRootRedirect = () => {
     if (!isMounted) return null;

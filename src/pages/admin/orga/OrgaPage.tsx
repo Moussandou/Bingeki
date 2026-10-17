@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Plus, Zap, Users, FileText, Calendar } from 'lucide-react';
 import { useOrga } from '@/hooks/useOrga';
-import type { OrgaTask, TaskStatus } from '@/types/orga';
+import type { OrgaTask, OrgaSprint, TaskStatus } from '@/types/orga';
+import { logger } from '@/utils/logger';
 import { TASK_STATUSES } from '@/types/orga';
 import { SprintHeader } from './SprintHeader';
 import { KanbanBoard } from './KanbanBoard';
@@ -31,11 +32,11 @@ export default function OrgaPage() {
     const [editSprint, setEditSprint] = useState(false);
 
     const [activeTab, setActiveTab] = useState<'board' | 'history' | 'repo' | 'calendar'>('board');
-    const [sprintsList, setSprintsList] = useState<any[]>([]);
+    const [sprintsList, setSprintsList] = useState<OrgaSprint[]>([]);
     const [sprintsLoading, setSprintsLoading] = useState(false);
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [reportMarkdown, setReportMarkdown] = useState('');
-    const [selectedSprint, setSelectedSprint] = useState<any | null>(null);
+    const [selectedSprint, setSelectedSprint] = useState<OrgaSprint | null>(null);
     const [selectedSprintTasks, setSelectedSprintTasks] = useState<OrgaTask[]>([]);
 
     const loadHistory = useCallback(async () => {
@@ -55,7 +56,7 @@ export default function OrgaPage() {
         }
     }, [loadHistory]);
 
-    const handleGenerateReport = useCallback(async (sprint: any) => {
+    const handleGenerateReport = useCallback(async (sprint: OrgaSprint) => {
         try {
             const tasks = await orga.getTasksForSprint(sprint.id);
             const startStr = new Date(sprint.startDate.seconds * 1000).toLocaleDateString('fr-FR', {
@@ -120,7 +121,7 @@ export default function OrgaPage() {
             setSelectedSprintTasks(tasks);
             setReportModalOpen(true);
         } catch (err) {
-            console.error('Error generating report:', err);
+            logger.error('Error generating report:', err);
         }
     }, [orga, memberNames]);
 

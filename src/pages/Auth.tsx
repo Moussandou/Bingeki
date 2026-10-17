@@ -131,7 +131,7 @@ export default function Auth() {
     // handleAppleLogin removed
 
     return (
-        <div style={{
+        <main style={{
             minHeight: '100vh',
             display: 'flex',
             alignItems: 'center',
@@ -365,7 +365,6 @@ export default function Auth() {
                     </div>
                 </motion.div>
             </div>
-        </div>
+        </main>
     );
 }
-

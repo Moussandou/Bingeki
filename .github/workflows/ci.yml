@@ -1,23 +1,14 @@
 name: CI Validation
 
-
 on:
   push:
-    branches-ignore:
-      - main
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
+    branches: [main]
   pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
+    branches: [main]
+  workflow_call:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 jobs:
   quality:
@@ -28,114 +19,74 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: npm
       - run: npm ci
-      
-      - name: Lint
-        run: npm run lint
-        
-      - name: Check Translation Sync
-        run: npm run validate:i18n
-        
-      - name: Unit Tests & Coverage
-        run: npm run test:coverage
-        
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v6
+      - run: npm ci --prefix functions
+      - run: npm run lint
+      - run: npm run validate:i18n
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: code-coverage-report
-          path: coverage/  # Path configured in vitest.config.ts
+          name: code-coverage-${{ github.run_id }}
+          path: coverage/
 
   security:
-    name: Security Scan
+    name: Dependency audits
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: npm
       - run: npm ci
-
-      - name: Audit Dependencies (root)
-        run: npm audit --audit-level=high
-
-      - name: Audit Dependencies (functions)
-        run: npm audit --audit-level=high
-        working-directory: functions
-
-      - name: Secrets & Dangerous Patterns
-        run: |
-          echo "🔍 Scanning for secrets and dangerous patterns..."
-          # Fail the build if a hardcoded Discord/Slack webhook or private key leaks in.
-          if grep -rEn "discord(app)?\.com/api/webhooks/[0-9]+/|-----BEGIN [A-Z ]*PRIVATE KEY-----" src functions --include="*.ts" --include="*.tsx" --include="*.js" 2>/dev/null; then
-            echo "❌ Hardcoded webhook or private key detected"
-            exit 1
-          fi
-          echo "✅ No hardcoded secrets found"
+      - run: npm ci --prefix functions
+      - run: npm audit --audit-level=high
+      - run: npm audit --prefix functions --audit-level=high
 
   build:
-    name: Build & Bundle Analysis
+    name: Isolated build and renderer
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: npm
       - run: npm ci
-      
-      - name: Type Check & Build
-        run: npm run build
-        
-      - name: Bundle Size
-        run: |
-          DIST_SIZE=$(du -sm dist 2>/dev/null | cut -f1 || echo "0")
-          echo "Bundle size: ${DIST_SIZE}MB"
-          if [ "$DIST_SIZE" -gt 10 ]; then echo "⚠️ Warning: Large bundle"; fi
+      - run: npm ci --prefix functions
+      - run: npm run build:isolated
+      - run: node scripts/smoke-renderer.cjs
+      - run: npx lhci autorun
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: lighthouse-${{ github.run_id }}
+          path: .lighthouseci/reports/
 
-  e2e:
-    name: E2E Tests (Playwright)
+  browser:
+    name: Isolated rules and E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: 'npm'
-      - run: npm ci
-      
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-        
-      - name: Run E2E Tests
-        run: |
-          # Note: Should ideally use a local server or staging env
-          npm run test:e2e
-        continue-on-error: true # Keep PR green if E2E is flaky for now
-
-  lighthouse:
-    name: Lighthouse Audit
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    needs: [build]
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+          cache: npm
+      - uses: actions/setup-java@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          distribution: temurin
+          java-version: '21'
       - run: npm ci
-      - run: npm run build
-      - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v12
+      - run: npm ci --prefix functions
+      - run: npx playwright install --with-deps chromium
+      - run: bash scripts/start-emulators.sh "npm run test:run && npm run test:rules && npm run test:e2e"
+      - uses: actions/upload-artifact@v6
+        if: always()
         with:
-          uploadArtifacts: true
-          configPath: ./lighthouserc.json
-        env:
-          LHCI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: browser-results-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/

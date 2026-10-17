@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test.describe('Library Management', () => {
     // Setup: We need a fresh user or a way to ensure we have a work to manage.

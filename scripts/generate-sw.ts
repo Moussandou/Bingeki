@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { loadEnv as loadViteEnv } from 'vite';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,31 +10,13 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const templatePath = path.join(rootDir, 'public', 'firebase-messaging-sw.template.js');
 const outputPath = path.join(rootDir, 'public', 'firebase-messaging-sw.js');
-const envPath = path.join(rootDir, '.env');
 
 console.log('🔄 Generating public/firebase-messaging-sw.js from template...');
 
-// Helper to read .env file manualy
-function loadEnv(filePath: string): Record<string, string> {
-    if (!fs.existsSync(filePath)) {
-        console.warn(`⚠️  Warning: .env file not found at ${filePath}. Using process.env only.`);
-        return {};
-    }
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const env: Record<string, string> = {};
-    content.split('\n').forEach(line => {
-        const match = line.match(/^([^=]+)=(.*)$/);
-        if (match) {
-            const key = match[1].trim();
-            const value = match[2].trim().replace(/^["']|["']$/g, ''); // Remove quotes if present
-            env[key] = value;
-        }
-    });
-    return env;
-}
-
-// 1. Load env vars (process.env takes precedence, but we load .env for local dev)
-const dotEnvVars = loadEnv(envPath);
+const modeIndex = process.argv.indexOf('--mode');
+const mode = modeIndex >= 0 ? process.argv[modeIndex + 1] : 'production';
+if (!mode) throw new Error('--mode requires a value');
+const dotEnvVars = loadViteEnv(mode, rootDir, 'VITE_');
 const allEnv = { ...dotEnvVars, ...process.env }; // Merge
 
 // 2. Read template
@@ -58,7 +41,7 @@ const missingKeys: string[] = [];
 
 keysToReplace.forEach(key => {
     const value = allEnv[key];
-    if (!value) {
+    if (!value && key !== 'VITE_FIREBASE_MEASUREMENT_ID') {
         missingKeys.push(key);
     }
     // Replace {{KEY}} with value
@@ -67,7 +50,7 @@ keysToReplace.forEach(key => {
 });
 
 if (missingKeys.length > 0) {
-    console.warn(`⚠️  Warning: Missing environment variables for: ${missingKeys.join(', ')}`);
+    throw new Error(`Missing Firebase configuration: ${missingKeys.join(', ')}`);
 }
 
 // 4. Write output

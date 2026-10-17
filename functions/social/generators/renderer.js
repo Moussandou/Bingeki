@@ -29,13 +29,13 @@ let cachedBrowser = null;
 
 async function getBrowser() {
     if (cachedBrowser && cachedBrowser.isConnected()) return cachedBrowser;
-    const chromium = require('@sparticuz/chromium');
-    const puppeteer = require('puppeteer-core');
+    const { default: chromium } = await import('@sparticuz/chromium');
+    const puppeteer = await import('puppeteer-core');
     cachedBrowser = await puppeteer.launch({
-        args: chromium.args,
+        args: process.env.PUPPETEER_EXECUTABLE_PATH ? ['--no-sandbox'] : chromium.args,
         defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || await chromium.executablePath(),
+        headless: true,
     });
     return cachedBrowser;
 }
@@ -108,4 +108,9 @@ async function renderSlides(type, data, formats = ['feed'], opts = {}) {
     return slides;
 }
 
-module.exports = { renderSlides, renderHtmlToJpeg };
+async function closeBrowser() {
+    await cachedBrowser?.close();
+    cachedBrowser = null;
+}
+
+module.exports = { renderSlides, renderHtmlToJpeg, closeBrowser };

@@ -11,6 +11,7 @@ import './styles/global.css'
 import './i18n'
 import App from './App.tsx'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
+import { PrivacyConsent } from '@/components/PrivacyConsent'
 
 // Force reload on chunk mismatch after deploy
 window.addEventListener('vite:preloadError', (event) => {
@@ -27,6 +28,7 @@ const rootElement = (
         <BrowserRouter>
           <App />
         </BrowserRouter>
+        <PrivacyConsent />
       </ErrorBoundary>
     </HelmetProvider>
   </StrictMode>

@@ -1,7 +1,9 @@
 {
     "ci": {
         "collect": {
-            "staticDistDir": "./dist"
+            "staticDistDir": "./dist",
+            "url": ["http://localhost/fr/privacy", "http://localhost/en/privacy"],
+            "numberOfRuns": 1
         },
         "assert": {
             "assertions": {
@@ -32,7 +34,8 @@
             }
         },
         "upload": {
-            "target": "temporary-public-storage"
+            "target": "filesystem",
+            "outputDir": "./.lighthouseci/reports"
         }
     }
 }
