@@ -5,6 +5,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 
 const require = createRequire(import.meta.url);
+const hosting = require('../../firebase.json').hosting;
 function harness(profile) {
     const handlers = {};
     const app = { get: (route, handler) => { handlers[route] = handler; } };
@@ -41,6 +42,18 @@ const og = profile => harness(profile)('/api/og-image/:type?/:id?', {
 });
 
 describe('SVG and profile SEO security', () => {
+    it.each([
+        { params: {}, query: { force_svg: 'true' } },
+        { params: { type: 'generic' }, query: { force_svg: 'true', title: 'Audit & <validation>' } },
+        { params: { type: 'profile', id: 'alice' }, query: {} },
+    ])('keeps the Hosting OG policy identical to the SVG response for %j', async req => {
+        const response = await harness({ displayName: 'Alice' })('/api/og-image/:type?/:id?', req);
+        const policy = hosting.headers.find(rule => rule.source === '/[aA][pP][iI]/[oO][gG]-[iI][mM][aA][gG][eE]{,/**}')
+            ?.headers.find(header => header.key === 'Content-Security-Policy')?.value;
+        expect(response.headers['Content-Type']).toBe('image/svg+xml');
+        expect(policy).toBe(response.headers['Content-Security-Policy']);
+    });
+
     it('keeps hostile profile attributes/text inert and emits valid XML', async () => {
         const value = '"><script>invalidMarkup</script><image onload="invalidHandler';
         const response = await og({

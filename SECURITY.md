@@ -68,6 +68,15 @@ statistics, escape text/attributes and send an independent sandboxed, script-fre
 CSP. Private/friends-only profiles are never rendered by the unauthenticated SEO
 routes. Profile HTML/SVG responses are not cached.
 
+Firebase Hosting applies the same SVG CSP to `/api/og-image` and every descendant,
+including mixed-case spellings accepted by Express. Its glob uses explicit
+`[aA]`-style character classes and `{,/**}` for bare and nested paths.
+Keep this header rule **after** the global `**` rule:
+the last matching value wins, including on responses rewritten to the Function.
+The global HTML CSP remains unchanged and must not sandbox application pages.
+The Function/Hosting SVG policy equality and actual Hosting header precedence
+are covered separately; the latter uses local static fixtures, not live Functions.
+
 ### Local regression checks
 
 Use synthetic data and a `demo-` project only; never point rules tests at a real
@@ -76,6 +85,8 @@ Firebase project:
 ```sh
 firebase emulators:exec --project demo-bingeki-security --only firestore,storage 'npm run test:rules'
 npm run test:run -- functions/__tests__ src/shared/__tests__
+npm run test:run -- scripts/prerender-validation.test.ts
+node scripts/test-hosting-csp.mjs
 ```
 
 Deploy the callables and their visitor-loader/invitation integration together with the rules.
