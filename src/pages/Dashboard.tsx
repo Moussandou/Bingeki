@@ -111,7 +111,6 @@ export default function Dashboard() {
 
     const formatTimeAgo = (timestamp: number) => {
         if (!isMounted) return '...';
-        /* eslint-disable-next-line */
         const diff = Date.now() - timestamp;
         const hours = Math.floor(diff / (1000 * 60 * 60));
         if (hours < 1) return t('dashboard.just_now');
