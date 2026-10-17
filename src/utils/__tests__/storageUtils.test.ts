@@ -4,6 +4,7 @@ import { useLibraryStore, type Work } from '@/store/libraryStore';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { mergeLibraryData } from '@/utils/dataProtection';
+import { mergeLibrarySnapshot } from '@/utils/librarySync';
 
 const work: Work = { id: 7, type: 'manga', title: 'Synthetic', image: '', status: 'reading', currentChapter: 3 };
 beforeEach(() => {
@@ -29,6 +30,24 @@ describe('image cache clearing', () => {
 });
 
 describe('validated backup restoration', () => {
+    it('restores metadata beyond its imported timestamp despite a backwards clock and subsequent cloud merge', () => {
+        vi.spyOn(Date, 'now').mockReturnValue(100);
+        useLibraryStore.setState({ metadataUpdatedAt: 200 });
+        const folder = {
+            id: 'f', name: 'Restored', color: '#fff', emoji: '*', createdAt: 1,
+            sharing: { enabled: true, access: 'friends' as const, sharedAt: 300 },
+        };
+        restoreBackup({ library: {
+            works: [], folders: [folder], viewMode: 'list', sortBy: 'title', metadataUpdatedAt: 300,
+        } });
+        const state = useLibraryStore.getState();
+        expect(state.metadataUpdatedAt).toBe(301);
+        const merged = mergeLibrarySnapshot({ ...state, lastUpdated: 301 }, {
+            works: [], deletedWorks: [], folders: [{ ...folder, name: 'Cloud' }],
+            viewMode: 'grid', sortBy: 'updated', metadataUpdatedAt: 300, lastUpdated: 300,
+        });
+        expect(merged).toMatchObject({ folders: [folder], viewMode: 'list', sortBy: 'title', metadataUpdatedAt: 301 });
+    });
     it('restores empty libraries and records removals instead of retaining old works', () => {
         useLibraryStore.setState({ works: [work] });
         restoreBackup({ library: { works: [] } });

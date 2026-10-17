@@ -54,6 +54,8 @@ favorites, tombstones, view mode and sort order. Preferences and supplied
 gamification fields are restored too. Imported works/metadata are dated as
 a monotonic edit newer than previous/imported works and relevant typed/legacy
 tombstones, even if the local clock moves backwards.
+Restored metadata is newer than both the active and imported
+`metadataUpdatedAt`, so folders and display preferences survive the next cloud merge.
 Missing current works get newer typed tombstones so cloud merging
 does not immediately resurrect them. Malformed JSON, invalid schema,
 file-read errors and quota failures reject the import instead of returning
