@@ -26,8 +26,11 @@ The deploy service account secret is **`FIREBASE_SERVICE_ACCOUNT_BINGEKI`**
 the service account must never appear in Vite variables or committed files.
 
 Production builds fail on missing configuration, browser exceptions or empty
-prerender content. Production deployment installs Functions dependencies,
-deploys Firestore rules/indexes, Storage rules and Functions, then Hosting.
+prerender content. Production deployment installs Functions dependencies and
+uses Firebase CLI **15.34.0** for Firestore rules/indexes, Storage rules,
+Functions and Hosting. A nonzero CLI exit fails the job, including partial
+deployments; it is never converted into success by matching a log message.
+The service-account file is private and removed on exit.
 Predeploy copies HTML shells, shared route metadata and `shared/seo/csp.cjs`
 into Functions. Hosting and HTML Functions use the same CSP, enforced by a
 regression test; SVG responses have a separate restrictive policy.
@@ -48,7 +51,7 @@ npm audit --prefix functions --audit-level=high
 bash scripts/start-emulators.sh "npm run test:emulator && npm run test:e2e"
 npm run build
 # Explicitly review the project and deployment scope before executing:
-firebase deploy --project bingeki --only firestore:rules,firestore:indexes,storage,functions,hosting
+npx --yes --package=firebase-tools@15.34.0 -- firebase deploy --project bingeki --only firestore:rules,firestore:indexes,storage,functions,hosting
 ```
 
 CI uses a dedicated demo configuration for testing and real configuration only
