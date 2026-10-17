@@ -13,6 +13,13 @@ const server = require_(
 ) as typeof core;
 
 describe('clampClaimedStreak', () => {
+    it.each([core, server])('rejects future dates before bootstrap or an advance', implementation => {
+        const now = new Date('2024-03-05T12:00:00Z');
+        expect(implementation.clampClaimedStreak(365, 0, '2024-03-06T12:00:00Z', null, now)).toBe(0);
+        expect(implementation.clampClaimedStreak(365, 3, '2030-03-06T12:00:00Z', '2024-03-04T12:00:00Z', now)).toBe(3);
+        expect(implementation.clampClaimedStreak(4, 3, now.toISOString(), '2024-03-04T12:00:00Z', now)).toBe(4);
+    });
+
     it('accepts a one-day advance', () => {
         expect(server.clampClaimedStreak(4, 3, '2024-03-05T10:00:00', '2024-03-04T10:00:00')).toBe(4);
     });

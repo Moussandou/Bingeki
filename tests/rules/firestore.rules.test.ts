@@ -33,7 +33,7 @@ runIfEmulator('Firestore security rules', () => {
     beforeAll(async () => {
         const [host, port] = (process.env.FIRESTORE_EMULATOR_HOST || 'localhost:8080').split(':');
         testEnv = await initializeTestEnvironment({
-            projectId: 'bingeki-rules-test',
+            projectId: 'demo-bingeki-security',
             firestore: {
                 rules: readFileSync(resolve(__dirname, '../../firestore.rules'), 'utf8'),
                 host,
@@ -461,7 +461,10 @@ runIfEmulator('Firestore security rules', () => {
             });
             const db = testEnv.authenticatedContext(BOB).firestore();
             await assertSucceeds(updateDoc(doc(db, 'challenges', 'ch4'), {
-                participants: [{ id: BOB, name: 'Bob', progress: 12, joinedAt: 1, status: 'accepted' }],
+                participants: [
+                    { id: ALICE, name: ALICE, progress: 0, joinedAt: 1, status: 'pending' },
+                    { id: BOB, name: BOB, progress: 12, joinedAt: 1, status: 'accepted' },
+                ],
             }));
         });
 

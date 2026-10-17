@@ -4,9 +4,11 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const { Timestamp } = require("firebase-admin/firestore");
-const { escapeHtml } = require("./utils");
+const { escapeHtml, safeImageUrl, safeColor, safeStat } = require("./utils");
 const { getPathContext, resolveStaticSeo } = require("./seoResolver");
 const { CALLABLE_REGIONS } = require("./regions");
+const HTML_CSP = require(fs.existsSync(path.join(__dirname, 'seo/csp.cjs'))
+    ? './seo/csp.cjs' : '../shared/seo/csp.cjs');
 
 // ==================== SVG GENERATORS ====================
 
@@ -188,19 +190,20 @@ function generateGenericBrutalistSVG(lang, type) {
 
 function generateProfileSVG(userData, lang) {
     const displayName = escapeHtml(userData.displayName || 'Chasseur');
-    const level = userData.level || 1;
-    const xp = userData.xp || 0;
-    const xpToNextLevel = userData.xpToNextLevel || (level * 100);
-    const streak = userData.streak || 0;
-    const badgeCount = (userData.badges || []).length;
-    const photoURL = userData.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userData.displayName || 'Bingeki')}`;
-    const banner = userData.banner || '';
-    const bio = escapeHtml(userData.bio || '');
-    const uid = userData.uid ? userData.uid.slice(0, 8).toUpperCase() : 'BINGEKI';
+    const level = safeStat(userData.level, 1);
+    const xp = safeStat(userData.xp);
+    const xpToNextLevel = Math.max(1, safeStat(userData.xpToNextLevel, level * 100));
+    const streak = safeStat(userData.streak);
+    const badgeCount = Array.isArray(userData.badges) ? userData.badges.length : 0;
+    const photoURL = safeImageUrl(userData.photoURL) || safeImageUrl(`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userData.displayName || 'Bingeki')}`);
+    const banner = safeImageUrl(userData.banner);
+    const bioText = String(userData.bio || '');
+    const bio = escapeHtml(bioText.length > 50 ? bioText.substring(0, 47) + '...' : bioText);
+    const uid = typeof userData.uid === 'string' ? escapeHtml(userData.uid.slice(0, 8).toUpperCase()) : 'BINGEKI';
     
-    const primaryColor = userData.themeColor || '#FF2E63';
-    const borderColor = userData.borderColor || '#000000';
-    const bgColor = userData.cardBgColor || '#1e1e1e';
+    const primaryColor = safeColor(userData.themeColor, '#FF2E63');
+    const borderColor = safeColor(userData.borderColor, '#000000');
+    const bgColor = safeColor(userData.cardBgColor, '#1e1e1e');
     const textColor = (bgColor === '#000000' || bgColor === '#000' || bgColor === '#121212') ? '#ffffff' : '#e0e0e0';
 
     const labels = {
@@ -221,9 +224,9 @@ function generateProfileSVG(userData, lang) {
         { val: Math.min(level * 2, 100), label: lang === 'en' ? 'Level' : 'Niveau' },
         { val: Math.min(xp / 100, 100), label: lang === 'en' ? 'Passion' : 'Passion' },
         { val: Math.min(streak, 100), label: lang === 'en' ? 'Diligence' : 'Assiduité' },
-        { val: Math.min((userData.totalWorksAdded || 0) / 2, 100), label: lang === 'en' ? 'Collection' : 'Collection' },
-        { val: Math.min((userData.totalChaptersRead || 0) / 10, 100), label: lang === 'en' ? 'Reading' : 'Lecture' },
-        { val: Math.min((userData.totalWorksCompleted || 0) * 5, 100), label: lang === 'en' ? 'Completion' : 'Succès' }
+        { val: Math.min(safeStat(userData.totalWorksAdded) / 2, 100), label: lang === 'en' ? 'Collection' : 'Collection' },
+        { val: Math.min(safeStat(userData.totalChaptersRead) / 10, 100), label: lang === 'en' ? 'Reading' : 'Lecture' },
+        { val: Math.min(safeStat(userData.totalWorksCompleted) * 5, 100), label: lang === 'en' ? 'Completion' : 'Succès' }
     ];
 
     const getPoint = (index, value) => {
@@ -275,7 +278,7 @@ function generateProfileSVG(userData, lang) {
         ${bio ? `
         <line x1="360" y1="360" x2="360" y2="440" stroke="${primaryColor}" stroke-width="3" />
         <text x="375" y="380" class="body" font-size="20" font-style="italic" fill="${textColor}" opacity="0.9">
-            ${bio.length > 50 ? bio.substring(0, 47) + '...' : bio}
+            ${bio}
         </text>
         ` : ''}
         <polygon points="${gridPoints100}" fill="none" stroke="${textColor}" stroke-width="1" opacity="0.1" />
@@ -304,7 +307,7 @@ function generateNewsSVG(newsData, lang) {
     const title = escapeHtml((lang === 'en' ? newsData.title_en : newsData.title_fr) || newsData.title || 'Bingeki News');
     const source = escapeHtml(newsData.sourceName || 'Actualité Manga');
     const date = newsData.publishedAt ? new Date(newsData.publishedAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
-    const image = newsData.image || '';
+    const image = safeImageUrl(newsData.image);
 
     return `
     <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -438,7 +441,8 @@ app.get('/api/og-image/:type?/:id?', async (req, res) => {
         let svg = '';
         if (type === 'profile' && id) {
             const userDoc = await admin.firestore().collection('users').doc(id).get();
-            if (userDoc.exists) {
+            if (userDoc.exists && [undefined, null, 'public'].includes(userDoc.data().profileVisibility)
+                && !userDoc.data().deleting) {
                 svg = generateProfileSVG(userDoc.data(), lang);
             }
         } else if (type === 'news' && id) {
@@ -467,7 +471,9 @@ app.get('/api/og-image/:type?/:id?', async (req, res) => {
         }
 
         res.set('Content-Type', 'image/svg+xml');
-        res.set('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+        res.set('Content-Security-Policy', "sandbox; default-src 'none'; script-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
+        res.set('X-Content-Type-Options', 'nosniff');
+        res.set('Cache-Control', type === 'profile' ? 'no-store' : 'public, max-age=3600, s-maxage=3600');
         return res.send(svg);
     } catch (e) {
         console.error('[OG-IMAGE] Error generating SVG:', e);
@@ -500,7 +506,8 @@ app.get('/*', async (req, res) => {
     if (profileUid) {
         try {
             const userDoc = await admin.firestore().collection('users').doc(profileUid).get();
-            if (userDoc.exists) {
+            if (userDoc.exists && [undefined, null, 'public'].includes(userDoc.data().profileVisibility)
+                && !userDoc.data().deleting) {
                 const userData = userDoc.data();
                 title = lang === 'en' ? `${userData.displayName || 'User'}'s Profile | Bingeki` : `Profil de ${userData.displayName || 'Utilisateur'} | Bingeki`;
                 description = userData.bio || (lang === 'en' ? `Check out ${userData.displayName || 'User'}'s progress on Bingeki!` : `Découvrez la progression de ${userData.displayName || 'Utilisateur'} sur Bingeki !`);
@@ -545,7 +552,7 @@ app.get('/*', async (req, res) => {
 
     const finalTitle = escapeHtml(title);
     const finalDesc = escapeHtml(description);
-    const finalImage = image;
+    const finalImage = escapeHtml(image);
     const finalUrl = escapeHtml(`https://bingeki.web.app${url}`);
     const finalLocale = resolved.locale;
     const finalAlternateLocale = resolved.alternateLocale;
@@ -567,7 +574,7 @@ app.get('/*', async (req, res) => {
         .replace(/<meta\s+name="twitter:image"\s+content="[^]*?"\s*\/?>/g, `<meta name="twitter:image" content="${finalImage}" />`)
         .replace(/<meta\s+name="twitter:card"\s+content="[^]*?"\s*\/?>/g, `<meta name="twitter:card" content="summary_large_image" />`);
 
-    res.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.gstatic.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.jikan.moe https://api.tenrai.org https://api.trace.moe https://graphql.anilist.co https://*.googleapis.com https://firebase.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.cloudfunctions.net https://www.google-analytics.com https://accounts.google.com https://discord.com; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://discord.com; object-src 'none';");
+    res.set('Content-Security-Policy', HTML_CSP);
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('X-Frame-Options', 'DENY');
     res.set('X-XSS-Protection', '1; mode=block');
@@ -576,7 +583,7 @@ app.get('/*', async (req, res) => {
     res.set('X-SEO-Handler', 'true');
     // s-maxage : le CDN Firebase Hosting cache le HTML par URL (purgé à chaque déploiement),
     // sinon chaque chargement dur paie un aller-retour Cloud Function
-    res.set('Cache-Control', 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
+    res.set('Cache-Control', profileUid ? 'no-store' : 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
     res.send(html);
 });
 

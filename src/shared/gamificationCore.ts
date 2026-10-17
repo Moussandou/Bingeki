@@ -328,7 +328,8 @@ export function clampClaimedStreak(
     claimedStreak: unknown,
     storedStreak: unknown,
     claimedLastActivity: string | null | undefined,
-    storedLastActivity: string | null | undefined
+    storedLastActivity: string | null | undefined,
+    now: Date = new Date()
 ): number {
     const claimed = toSafeInt(claimedStreak);
     const stored = toSafeInt(storedStreak);
@@ -338,7 +339,7 @@ export function clampClaimedStreak(
     if (!claimedLastActivity) return stored;
 
     const claimedDate = new Date(claimedLastActivity);
-    if (Number.isNaN(claimedDate.getTime())) return stored;
+    if (Number.isNaN(claimedDate.getTime()) || claimedDate.getTime() > now.getTime()) return stored;
 
     // First verification for this account: adopt the existing streak once.
     if (!storedLastActivity) return Math.min(claimed, MAX_BOOTSTRAP_STREAK);

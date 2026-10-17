@@ -1,8 +1,8 @@
 /**
  * admin/callables.js — HTTPS callables triggered from /admin/social.
  *
- * Auth: check both custom claims and Firestore isAdmin as a belt-and-
- * suspenders. Callables are called with the current user's ID token,
+ * Auth: require the live Firestore admin role and account status.
+ * Callables are called with the current user's ID token,
  * and the client-side RequireAdmin is NOT enough — always re-check.
  */
 
@@ -33,13 +33,15 @@ async function assertAdminOrThrow(request) {
     const uid = request?.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', 'Sign-in required');
 
-    // Prefer custom claim (fast path)
-    if (request.auth.token?.admin === true || request.auth.token?.isAdmin === true) return;
-
-    // Fallback: check Firestore isAdmin flag
+    // Tokens can outlive a revocation, ban, or account deletion.
     const db = admin.firestore();
-    const snap = await db.doc(`users/${uid}`).get();
-    if (!snap.exists || snap.data()?.isAdmin !== true) {
+    const [snap, deleted] = await Promise.all([
+        db.doc(`users/${uid}`).get(),
+        db.doc(`accountDeletions/${uid}`).get(),
+    ]);
+    const profile = snap.data();
+    if (!snap.exists || deleted.exists || profile?.isAdmin !== true
+        || profile.isBanned === true || profile.deleting === true) {
         throw new HttpsError('permission-denied', 'Admin only');
     }
 }

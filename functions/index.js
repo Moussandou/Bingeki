@@ -32,6 +32,7 @@ const social = require("./social");
 exports.sendFriendRequestFn = social.sendFriendRequestFn;
 exports.acceptFriendRequestFn = social.acceptFriendRequestFn;
 exports.rejectFriendRequestFn = social.rejectFriendRequestFn;
+exports.getSharedLibraryFn = require('./sharedLibrary').getSharedLibraryFn;
 
 const account = require("./account");
 exports.deleteOwnAccount = account.deleteOwnAccount;
