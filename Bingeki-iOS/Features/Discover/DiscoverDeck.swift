@@ -59,7 +59,7 @@ final class DiscoverDeck {
     private(set) var isRefilling = false
     var hasRefillError: Bool { !failedSources.isEmpty }
     private(set) var enrichmentFailures: Set<String> = []
-    private var enriching: Set<String> = []
+    private var enriching: [String: Task<Void, Never>] = [:]
     private var generation = UUID()
     private var configuration: String?
     private var failedSources: Set<Source> = []
@@ -203,7 +203,8 @@ final class DiscoverDeck {
         configuration = Self.configurationKey(library: library, sfw: sfw)
         isRefilling = false
         enriched = []
-        enriching = []
+        for request in enriching.values { request.cancel() }
+        enriching = [:]
         enrichmentFailures = []
         failedSources = []
         phase = .loading
@@ -230,30 +231,35 @@ final class DiscoverDeck {
         for offset in 0...1 {
             let i = index + offset
             guard generation == token, !Task.isCancelled else { return }
-            guard pool.indices.contains(i), !enriched.contains(pool[i].id), !enriching.contains(pool[i].id) else { continue }
+            guard pool.indices.contains(i), !enriched.contains(pool[i].id) else { continue }
             let card = pool[i]
             let needsTrailer = card.type == .anime && card.trailerYouTubeId == nil
             guard card.genres.isEmpty || card.synopsis == nil || needsTrailer else {
                 enriched.insert(card.id)
                 continue
             }
-            enriching.insert(card.id)
-            do {
-                let full = try await requests.details(card)
-                guard generation == token else { return }
-                enriching.remove(card.id)
-                guard !Task.isCancelled else { return }
-                let detailed = full.data.asWork(mediaType: card.type.tenrai)
-                guard let j = pool.firstIndex(where: { $0.id == card.id && $0.type == card.type }) else { continue }
-                pool[j] = detailed
-                enriched.insert(card.id)
-                enrichmentFailures.remove(card.id)
-            } catch {
-                guard generation == token else { return }
-                enriching.remove(card.id)
-                guard !Task.isCancelled else { return }
-                enrichmentFailures.insert(card.id)
+            if let pending = enriching[card.id] {
+                await pending.value
+                continue
             }
+            // A swipe cancels the view's waiter, not the shared card request.
+            let pending = Task {
+                defer { if generation == token { enriching.removeValue(forKey: card.id) } }
+                do {
+                    let full = try await requests.details(card)
+                    guard generation == token else { return }
+                    let detailed = full.data.asWork(mediaType: card.type.tenrai)
+                    guard let j = pool.firstIndex(where: { $0.id == card.id && $0.type == card.type }) else { return }
+                    pool[j] = detailed
+                    enriched.insert(card.id)
+                    enrichmentFailures.remove(card.id)
+                } catch {
+                    guard generation == token else { return }
+                    enrichmentFailures.insert(card.id)
+                }
+            }
+            enriching[card.id] = pending
+            await pending.value
         }
     }
 }

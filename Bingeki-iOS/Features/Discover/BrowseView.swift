@@ -254,7 +254,8 @@ struct BrowseGridView: View {
 
             if !pager.failures.isEmpty {
                 VStack(spacing: BKSpace.md) {
-                    Text("Le catalogue ne répond pas.").foregroundStyle(BKColor.textSecondary)
+                    Text("Source indisponible : \(pager.failures.map(\.title).sorted().joined(separator: ", ")).")
+                        .foregroundStyle(BKColor.textSecondary)
                     BKOutlineButton(title: "Réessayer", systemImage: "arrow.clockwise") { loadMore(retry: true) }
                         .frame(width: 220)
                         .disabled(pager.isLoading)

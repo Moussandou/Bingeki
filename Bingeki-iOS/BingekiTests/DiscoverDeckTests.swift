@@ -132,6 +132,40 @@ struct DiscoverDeckTests {
         #expect(deck.pool.isEmpty && deck.enrichmentFailures.isEmpty)
     }
 
+    @Test func swipingToPreloadedCardJoinsRequestDespiteCancelledWaiter() async throws {
+        let fixture = DeckFixture()
+        for id in 1...3 { fixture.set("/v1/anime/\(id)/full", statuses: [200], ids: [id]) }
+        var continuation: CheckedContinuation<Void, Never>?
+        let defaults = try #require(UserDefaults(suiteName: "deck-\(UUID().uuidString)"))
+        let pool = (1...20).map { Work(id: "\($0)", title: "Original \($0)", type: .anime, status: .planToRead) }
+        let deck = DiscoverDeck(defaults: defaults, pool: pool, requests: .init(
+            season: { _, _ in TenraiListResponse(data: [], pagination: nil) },
+            top: { _, _, _ in TenraiListResponse(data: [], pagination: nil) },
+            recommendations: { _ in TenraiListResponse(data: [], pagination: nil) },
+            details: { card in
+                if card.id == "2" { await withCheckedContinuation { continuation = $0 } }
+                return try fixture.response("/v1/anime/\(card.id)/full")
+            }
+        ))
+        let originalWaiter = Task { await deck.enrichVisibleCards() }
+        while continuation == nil { await Task.yield() }
+        originalWaiter.cancel()
+        deck.setIndex(1)
+        var joined = false
+        let visibleWaiter = Task {
+            joined = true
+            await deck.enrichVisibleCards()
+        }
+        while !joined { await Task.yield() }
+        continuation?.resume()
+        await originalWaiter.value
+        await visibleWaiter.value
+        #expect(deck.currentCard?.title == "Title 2")
+        #expect(deck.nextCard?.title == "Title 3")
+        #expect(deck.enrichmentFailures.isEmpty)
+        #expect(fixture.pages("/v1/anime/2/full").count == 1)
+    }
+
     private func makeDeck(_ fixture: DeckFixture, pool: [Work] = []) throws -> DiscoverDeck {
         let defaults = try #require(UserDefaults(suiteName: "deck-\(UUID().uuidString)"))
         return DiscoverDeck(defaults: defaults, pool: pool, requests: .init(
@@ -159,7 +193,7 @@ private final class DeckFixture {
         let status = statuses[path]?.isEmpty == false ? statuses[path]!.removeFirst() : 200
         if status != 200 { throw TenraiClient.ClientError.badStatus(status) }
         let entries = (ids[path] ?? []).map { id in
-            let media = "{\"mal_id\":\(id),\"title\":\"Title \(id)\"}"
+            let media = "{\"mal_id\":\(id),\"title\":\"Title \(id)\",\"images\":{\"jpg\":{}}}"
             return path.hasSuffix("recommendations") ? "{\"entry\":\(media)}" : media
         }
         let payload = path.hasSuffix("/full")

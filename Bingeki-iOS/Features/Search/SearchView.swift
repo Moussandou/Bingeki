@@ -22,9 +22,12 @@ struct SearchView: View {
     private var results: [Work] {
         let anime = pager.works.filter { $0.type == .anime }
         let manga = pager.works.filter { $0.type == .manga }
-        return (0..<max(anime.count, manga.count)).flatMap { index in
-            (index < anime.count ? [anime[index]] : []) + (index < manga.count ? [manga[index]] : [])
+        var merged: [Work] = []
+        for index in 0..<max(anime.count, manga.count) {
+            if index < anime.count { merged.append(anime[index]) }
+            if index < manga.count { merged.append(manga[index]) }
         }
+        return merged
     }
 
     private var recentSearches: [String] {
@@ -260,7 +263,10 @@ struct SearchView: View {
     /// États #5 — no result, fix in one tap.
     private var noResults: some View {
         VStack(alignment: .leading, spacing: BKSpace.lg) {
-            Text("Rien pour « \(query) »").font(BKFont.title3)
+            Text(pager.hasMore ? "Aucun résultat sur ces pages" : "Rien pour « \(query) »").font(BKFont.title3)
+            if pager.canLoadMore {
+                Button("Charger la suite") { loadMore() }
+            }
             if let suggestion {
                 VStack(alignment: .leading, spacing: BKSpace.sm) {
                     Text("Tu voulais dire :").font(.subheadline).foregroundStyle(BKColor.textSecondary)
