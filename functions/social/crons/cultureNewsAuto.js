@@ -48,6 +48,9 @@ const MIN_HYPE = 6;
 // en un seul appel.
 const MAX_CLASSIFIED_PER_RUN = 25;
 const ONE_DAY = 86_400_000;
+// Une actu n'en est plus une après 2 jours : les flux gardent des news
+// d'une semaine ou plus.
+const MAX_AGE_MS = 2 * ONE_DAY;
 // Au plus un post d'actu par jour, et pas deux fois la même œuvre en 7 jours.
 const MIN_GAP_MS = 20 * 3600_000;
 const SAME_WORK_GAP_MS = 7 * ONE_DAY;
@@ -171,6 +174,8 @@ async function runCultureNewsAuto() {
         const fresh = [];
         for (const it of allItems) {
             if (!it.url || !isRelevantTitle(it.title)) continue;
+            const published = Date.parse(it.pubDate);
+            if (published && now - published > MAX_AGE_MS) continue;
             if (await isSeen(db, it.url)) continue;
             fresh.push(it);
         }
