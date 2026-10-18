@@ -49,17 +49,17 @@ export function CommunitySettings() {
     return <section className={styles.settings}>
         <h2>{t('preferences')}</h2>
         {error && <p role="alert" className={styles.error}>{t('actionError')}</p>}
-        {error && !dashboard && <Button onClick={() => { setError(false); setRevision(value => value + 1); }}>{t('retry')}</Button>}
+        {error && !dashboard && <Button variant="manga" onClick={() => { setError(false); setRevision(value => value + 1); }}>{t('retry')}</Button>}
         {!error && !dashboard && <div role="status" aria-label={t('loading')} className={styles.skeleton} />}
         {saved && <p role="status">{t('saved')}</p>}
         {dashboard && <>
             <label className={styles.check}><input type="checkbox" checked={dashboard.preferences.replies} onChange={e => setDashboard({ ...dashboard, preferences: { ...dashboard.preferences, replies: e.target.checked } })} />{t('notifyReplies')}</label>
             <label className={styles.check}><input type="checkbox" checked={dashboard.preferences.digest} onChange={e => setDashboard({ ...dashboard, preferences: { ...dashboard.preferences, digest: e.target.checked } })} />{t('notifyDigest')}</label>
             <p className={styles.meta}>{t('notificationPrivacy')}</p>
-            <Button disabled={busy} onClick={() => void act({ action: 'preferences', ...dashboard.preferences })}>{t('save')}</Button>
+            <Button variant="manga" className={styles.primaryAction} disabled={busy} onClick={() => void act({ action: 'preferences', ...dashboard.preferences })}>{t('save')}</Button>
             <h3>{t('blockedReaders')}</h3>
             {!dashboard.blocked.length && <p>{t('noneBlocked')}</p>}
-            {dashboard.blocked.map(uid => <div className={styles.blocked} key={uid}><span>{uid}</span><Button variant="outline" size="sm" disabled={busy} onClick={() => void act({ action: 'block', userId: uid, enabled: false })}>{t('unblock')}</Button></div>)}
+            {dashboard.blocked.map(uid => <div className={styles.blocked} key={uid}><span>{uid}</span><Button variant="manga" size="sm" disabled={busy} onClick={() => void act({ action: 'block', userId: uid, enabled: false })}>{t('unblock')}</Button></div>)}
         </>}
         {userProfile?.isAdmin && <>
             {insights && <section className={styles.insights}><h2>{t('insightsTitle')}</h2>
@@ -71,10 +71,10 @@ export function CommunitySettings() {
             {reports.map(report => <article className={styles.reply} key={report.id}>
                 <strong>{report.workTitle}</strong><p>{t(`reasons.${report.reason}`)}</p>
                 <p className={styles.reviewText}>{report.text || t('unavailable')}</p>
-                <div className={styles.formRow}><Button size="sm" disabled={busy} onClick={() => void act({ action: 'moderate', id: report.postId, reportId: report.id, resolution: 'hide' })}>{t('hideContent')}</Button>
-                    <Button variant="outline" size="sm" disabled={busy} onClick={() => void act({ action: 'moderate', id: report.postId, reportId: report.id, resolution: 'dismiss' })}>{t('dismissReport')}</Button></div>
+                <div className={styles.formRow}><Button size="sm" variant="manga" className={styles.primaryAction} disabled={busy} onClick={() => void act({ action: 'moderate', id: report.postId, reportId: report.id, resolution: 'hide' })}>{t('hideContent')}</Button>
+                    <Button variant="manga" size="sm" disabled={busy} onClick={() => void act({ action: 'moderate', id: report.postId, reportId: report.id, resolution: 'dismiss' })}>{t('dismissReport')}</Button></div>
             </article>)}
-            {cursor && <Button disabled={busy} onClick={() => void moreReports()}>{t('loadMore')}</Button>}
+            {cursor && <Button variant="manga" disabled={busy} onClick={() => void moreReports()}>{t('loadMore')}</Button>}
         </>}
     </section>;
 }
