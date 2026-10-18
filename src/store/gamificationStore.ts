@@ -31,6 +31,7 @@ export interface GamificationState {
     totalXp: number;
     xpToNextLevel: number;
     bonusXp: number;
+    communityXp: number;
     streak: number;
     lastActivityDate: string | null;
     badges: Badge[];
@@ -61,6 +62,7 @@ const INITIAL_STATE = {
     totalXp: 0,
     xpToNextLevel: LEVEL_BASE,
     bonusXp: 0,
+    communityXp: 0,
     streak: 0,
     lastActivityDate: null,
     badges: [] as Badge[],
@@ -127,7 +129,7 @@ export const useGamificationStore = create<GamificationState>()(
                 }
 
                 const state = get();
-                const stats = calculateUserStats(works, state.bonusXp);
+                const stats = calculateUserStats(works, state.bonusXp, state.communityXp);
                 const delta = stats.totalXp - state.totalXp;
 
                 set({
@@ -149,6 +151,7 @@ export const useGamificationStore = create<GamificationState>()(
                 // bonusXp / streak / lastActivityDate are client-owned: keep the local
                 // value unless another device is further ahead.
                 const remoteBonus = clampBonusXp(profile.bonusXp);
+                const communityXp = clampBonusXp(profile.communityXp);
                 const bonusXp = Math.max(state.bonusXp, remoteBonus);
 
                 const remoteLastActivity = (profile.lastActivityDate as string) || null;
@@ -176,6 +179,7 @@ export const useGamificationStore = create<GamificationState>()(
                     streak,
                     lastActivityDate,
                     bonusXp,
+                    communityXp,
                     badges: (profile.badges as Badge[]) || state.badges,
                     totalChaptersRead: (profile.totalChaptersRead as number) ?? state.totalChaptersRead,
                     totalAnimeEpisodesWatched: (profile.totalAnimeEpisodesWatched as number) ?? state.totalAnimeEpisodesWatched,
@@ -190,6 +194,7 @@ export const useGamificationStore = create<GamificationState>()(
                     state.totalXp === next.totalXp &&
                     state.streak === next.streak &&
                     state.bonusXp === next.bonusXp &&
+                    state.communityXp === next.communityXp &&
                     state.lastActivityDate === next.lastActivityDate &&
                     state.totalChaptersRead === next.totalChaptersRead &&
                     state.totalAnimeEpisodesWatched === next.totalAnimeEpisodesWatched &&

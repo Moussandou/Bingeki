@@ -34,6 +34,7 @@ import { CastingSection } from '@/components/work-details/CastingSection';
 import { UniverseSection } from '@/components/work-details/UniverseSection';
 import { FriendsActivitySection } from '@/components/work-details/FriendsActivitySection';
 import { CommentsSection } from '@/components/work-details/CommentsSection';
+import { WorkCommunity } from '@/components/social/WorkCommunity';
 import { StatsSection } from '@/components/work-details/StatsSection';
 import { LibraryProgressSection } from '@/components/work-details/LibraryProgressSection';
 import { RatingAndNotesSection } from '@/components/work-details/RatingAndNotesSection';
@@ -617,6 +618,7 @@ export default function WorkDetails() {
                                 <FriendsActivitySection friendsReading={friendsReading} />
 
                                 {/* Comments Section */}
+                                <WorkCommunity key={`community:${workKey(work)}`} work={work as Work} />
                                 <CommentsSection key={workKey(work)} workId={Number(work.id)} workType={work.type} />
 
                                 {/* Danger Zone */}
@@ -670,7 +672,10 @@ export default function WorkDetails() {
                         )}
 
                         {activeTab === 'reviews' && (
-                            <ReviewsSection reviews={reviews} hideScores={hideScores} />
+                            <>
+                                <WorkCommunity key={`reviews:${workKey(work)}`} work={work as Work} />
+                                <ReviewsSection reviews={reviews} hideScores={hideScores} />
+                            </>
                         )}
 
                         {activeTab === 'gallery' && (
