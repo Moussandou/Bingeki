@@ -18,6 +18,18 @@ import { LegacySocialPanel } from '@/components/social/LegacySocialPanel';
 import type { CommunityFilter } from '@/types/community';
 import styles from '@/components/social/Community.module.css';
 
+function LegacyDisclosure({ label, activeTab, initiallyOpen = false }: {
+    label: string;
+    activeTab: 'ranking' | 'challenges' | 'activity';
+    initiallyOpen?: boolean;
+}) {
+    const [open, setOpen] = useState(initiallyOpen);
+    return <details className={styles.legacySection} open={open} onToggle={event => setOpen(event.currentTarget.open)}>
+        <summary>{label}</summary>
+        {open && <LegacySocialPanel activeTab={activeTab} />}
+    </details>;
+}
+
 export default function Social() {
     const { t } = useTranslation('community');
     const { user } = useAuthStore();
@@ -50,11 +62,15 @@ export default function Social() {
 
     return <Layout>
         <SEO title={t('pageTitle')} description={t('pageDescription')} />
-        <div className={styles.page}>
+        <section className={styles.page} aria-labelledby="community-title">
             <header className={styles.hero}>
-                <div><div className={styles.eyebrow}>{t('eyebrow')}</div><h1>{t('headline')}<span>{t('headlineAccent')}</span></h1><p>{t('intro')}</p></div>
+                <div className={styles.heroInfo}>
+                    <div className={styles.heroIcon} aria-hidden="true"><MessageCircle size={32} /></div>
+                    <div><div className={styles.eyebrow}>{t('eyebrow')}</div><h1 id="community-title">{t('pageTitle')}</h1></div>
+                    <p>{t('intro')}</p>
+                </div>
                 <div className={styles.heroActions}>
-                    {user ? <Button icon={<PenLine size={18} />} onClick={() => { backToFeed(); setComposing(true); }}>{t('writeReview')}</Button> : <Link to="/auth" className={styles.textButton}>{t('signIn')} <ArrowUpRight size={16} /></Link>}
+                    {user ? <Button variant="manga" className={styles.primaryAction} icon={<PenLine size={18} />} onClick={() => { backToFeed(); setComposing(true); }}>{t('writeReview')}</Button> : <Link to="/auth" className={styles.textButton}>{t('signIn')} <ArrowUpRight size={16} /></Link>}
                     <button className={styles.textButton} onClick={() => setTab('friends')}><Users size={16} />{t('manageFriends')}</button>
                 </div>
             </header>
@@ -102,14 +118,14 @@ export default function Social() {
                 </div>}
                 {tab === 'distinctions' && <div className={styles.fullPanel}>
                     <CommunityDistinctions />
-                    <details open={rawTab === 'ranking'} className={styles.legacySection}><summary>{t('historicalRanking')}</summary><LegacySocialPanel activeTab="ranking" /></details>
-                    <details open={rawTab === 'challenges'} className={styles.legacySection}><summary>{t('friendChallenges')}</summary><LegacySocialPanel activeTab="challenges" /></details>
+                    <LegacyDisclosure key={`ranking:${rawTab}`} label={t('historicalRanking')} activeTab="ranking" initiallyOpen={rawTab === 'ranking'} />
+                    <LegacyDisclosure key={`challenges:${rawTab}`} label={t('friendChallenges')} activeTab="challenges" initiallyOpen={rawTab === 'challenges'} />
                 </div>}
-                {tab === 'friends' && <div className={styles.fullPanel}><h2>{t('manageFriends')}</h2><LegacySocialPanel activeTab="friends" /><details className={styles.legacySection}><summary>{t('friendActivity')}</summary><LegacySocialPanel activeTab="activity" /></details></div>}
+                {tab === 'friends' && <div className={styles.fullPanel}><section className={styles.legacyPanel}><h2>{t('manageFriends')}</h2><LegacySocialPanel activeTab="friends" /></section><LegacyDisclosure label={t('friendActivity')} activeTab="activity" /></div>}
                 {tab === 'parties' && <LegacySocialPanel activeTab="parties" />}
                 {tab === 'official' && <LegacySocialPanel activeTab="feed" />}
                 {tab === 'settings' && <CommunitySettings key={user.uid} />}
             </>}
-        </div>
+        </section>
     </Layout>;
 }

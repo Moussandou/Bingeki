@@ -80,7 +80,7 @@ export function CommunityThread({ id, reveal = false, onBack }: { id: string; re
                     <label htmlFor="community-reply">{t('yourReply')}</label>
                     <textarea id="community-reply" rows={3} maxLength={2000} value={text} onChange={e => setText(e.target.value)} required />
                     <p className={styles.meta}>{t('replySpoilerHint')}</p>
-                    <Button type="submit" disabled={busy || !text.trim()}>{t('sendReply')}</Button>
+                    <Button type="submit" variant="manga" className={styles.primaryAction} disabled={busy || !text.trim()}>{t('sendReply')}</Button>
                 </form>
                 {thread.replies.length === 0 && <p className={styles.empty}>{t('noReplies')}</p>}
                 {thread.replies.map(reply => <article key={reply.id} className={styles.reply}>
@@ -88,7 +88,7 @@ export function CommunityThread({ id, reveal = false, onBack }: { id: string; re
                     <p className={styles.reviewText}>{reply.text}</p>
                     <button className={styles.textButton} disabled={busy} onClick={() => void (reply.userId === user?.uid ? removeReply(reply.id) : reportReply(reply.id))}>{t(reply.userId === user?.uid ? 'delete' : 'report')}</button>
                 </article>)}
-                {thread.cursor && <Button variant="outline" disabled={busy} onClick={() => void more()}>{t('moreReplies')}</Button>}
+                {thread.cursor && <Button variant="manga" disabled={busy} onClick={() => void more()}>{t('moreReplies')}</Button>}
             </>}
         </>}
     </section>;

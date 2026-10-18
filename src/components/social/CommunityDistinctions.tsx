@@ -54,7 +54,7 @@ export function CommunityDistinctions({ compact = false }: { compact?: boolean }
                     <Award size={20} /><strong>{t(`titles.${distinction.id}`)}</strong>
                     <span>{t(distinction.permanent ? 'permanentBadge' : expired ? 'expiredTitle' : 'temporaryTitle')}</span>
                     {!distinction.permanent && distinction.expiresAt && <small>{new Date(distinction.expiresAt).toLocaleDateString(i18n.language)}</small>}
-                    <Button size="sm" variant={equipped ? 'primary' : 'outline'} disabled={busy || expired} onClick={() => void equip(equipped ? null : distinction.id)}>{t(equipped ? 'unequip' : 'equip')}</Button>
+                    <Button size="sm" variant="manga" className={equipped ? styles.primaryAction : undefined} disabled={busy || expired} onClick={() => void equip(equipped ? null : distinction.id)}>{t(equipped ? 'unequip' : 'equip')}</Button>
                 </div>;
             })}</div>
             <h3>{t('weeklyBoards')}</h3>
