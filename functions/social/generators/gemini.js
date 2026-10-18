@@ -152,7 +152,7 @@ Réponds STRICTEMENT en JSON, rien d'autre :
 
     hype_news_infer: `Tu es l'éditeur du bot social Bingeki (tracker anime & manga francophone, public jeune Instagram/TikTok). Bingeki ne relaie QUE les annonces anime/manga qui font réagir les fans (« waouh, ça revient ! »), jamais l'actu générale.
 
-À partir d'une news, réponds :
+Pour CHAQUE news de la liste, réponds :
 
 - event : le type d'annonce, STRICTEMENT parmi :
   · "sequel"     = nouvelle saison, suite ou nouvel anime d'une licence existante annoncé (ex : « New Dr. Stone Anime Announced »)
@@ -175,11 +175,11 @@ Réponds STRICTEMENT en JSON, rien d'autre :
 
 - source : le nom de la source officielle (studio, éditeur, plateforme : Toei Animation, Shueisha, Crunchyroll, Netflix…). "" si inconnue.
 
-Infos disponibles :
+Les news, numérotées :
 {{DATA}}
 
-Réponds STRICTEMENT en JSON, rien d'autre :
-{"event": "sequel", "work": "Dr. Stone", "hype": 8, "headline": "Dr. Stone : un nouvel anime annoncé !", "description": "La licence de Riichiro Inagaki revient avec un nouveau projet anime.", "source": "TMS Entertainment"}`,
+Réponds STRICTEMENT en JSON, rien d'autre : un tableau avec un objet par news, dans le même ordre, avec son numéro :
+[{"n": 1, "event": "sequel", "work": "Dr. Stone", "hype": 8, "headline": "Dr. Stone : un nouvel anime annoncé !", "description": "La licence de Riichiro Inagaki revient avec un nouveau projet anime.", "source": "TMS Entertainment"}]`,
 
     culture_news: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post "actu culture anime" — une news qui touche à l'univers anime/manga mais qui n'est PAS une sortie d'épisode (ex: jeu vidéo, film live-action, goodies, actu industrie, événement, box-office…).
 
@@ -448,7 +448,7 @@ ${JSON.stringify(inputs)}`;
     try {
         obj = JSON.parse(text);
     } catch {
-        const m = text.match(/\{[\s\S]*\}/);
+        const m = text.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
         if (!m) {
             console.warn('[social/gemini] translate pair non-JSON response:', text.slice(0, 200));
             return { sequel: null, prequel: null };
@@ -542,28 +542,37 @@ async function inferCultureNewsFields({ title, description, host, siteName }, co
 const HYPE_EVENTS = new Set(['sequel', 'adaptation', 'movie', 'trailer', 'comeback', 'ending', 'record']);
 
 /**
- * Classe une news pour le cron cultureNewsAuto : type d'annonce (seules
- * celles de HYPE_EVENTS sont publiables), œuvre à vérifier sur AniList,
- * hype, titre et description en français.
+ * Classe un lot de news pour le cron cultureNewsAuto en UN seul appel
+ * Gemini (le quota gratuit est partagé avec les légendes des posts) :
+ * type d'annonce (seules celles de HYPE_EVENTS sont publiables), œuvre à
+ * vérifier sur AniList, hype, titre et description en français.
+ * Retourne un tableau aligné sur `items` (null si Gemini a sauté une news).
  */
-async function inferHypeNews({ title, description, siteName }, config = {}) {
-    const payload = [
-        `Titre : ${title || '(vide)'}`,
-        description ? `Résumé : ${String(description).slice(0, 500)}` : null,
-        `Site : ${siteName || '?'}`,
-    ].filter(Boolean).join('\n');
+async function inferHypeNews(items, config = {}) {
+    const payload = items.map((it, i) => [
+        `${i + 1}. Titre : ${it.title || '(vide)'}`,
+        it.description ? `   Résumé : ${String(it.description).slice(0, 300)}` : null,
+        `   Site : ${it.siteName || '?'}`,
+    ].filter(Boolean).join('\n')).join('\n');
     // Large marge : les modèles « thinking » comptent leur réflexion dans
     // maxOutputTokens, et une réponse coupée n'est plus du JSON.
-    const obj = await geminiJson(PROMPTS.hype_news_infer.replace('{{DATA}}', payload), config, 4096);
+    const raw = await geminiJson(PROMPTS.hype_news_infer.replace('{{DATA}}', payload), config, 16384);
+    const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.news) ? raw.news : []);
     const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
-    return {
-        event: HYPE_EVENTS.has(obj.event) ? obj.event : 'none',
-        work: str(obj.work, 120),
-        hype: typeof obj.hype === 'number' ? Math.max(1, Math.min(10, Math.round(obj.hype))) : null,
-        headline: str(obj.headline, 90),
-        description: str(obj.description, 260),
-        source: str(obj.source, 60),
-    };
+    const out = items.map(() => null);
+    list.forEach((obj, i) => {
+        const idx = Number.isInteger(obj?.n) ? obj.n - 1 : i;
+        if (idx < 0 || idx >= items.length) return;
+        out[idx] = {
+            event: HYPE_EVENTS.has(obj.event) ? obj.event : 'none',
+            work: str(obj.work, 120),
+            hype: typeof obj.hype === 'number' ? Math.max(1, Math.min(10, Math.round(obj.hype))) : null,
+            headline: str(obj.headline, 90),
+            description: str(obj.description, 260),
+            source: str(obj.source, 60),
+        };
+    });
+    return out;
 }
 
 module.exports = {

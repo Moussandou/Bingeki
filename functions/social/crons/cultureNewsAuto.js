@@ -44,10 +44,9 @@ const FEEDS = [
 // isekai inconnus restent dehors.
 const MIN_POPULARITY = 30_000;
 const MIN_HYPE = 6;
-// Gemini lit au plus ce nombre de news par passage (les plus récentes).
-const MAX_CLASSIFIED_PER_RUN = 20;
-// Quota gratuit de Gemini (~10 requêtes/min) : on espace les appels.
-const GEMINI_SPACING_MS = 7000;
+// Gemini lit au plus ce nombre de news par passage (les plus récentes),
+// en un seul appel.
+const MAX_CLASSIFIED_PER_RUN = 25;
 const ONE_DAY = 86_400_000;
 // Au plus un post d'actu par jour, et pas deux fois la même œuvre en 7 jours.
 const MIN_GAP_MS = 20 * 3600_000;
@@ -98,16 +97,11 @@ function isRelevantTitle(title) {
 }
 
 /**
- * Filtres 2 et 3 : classe la news avec Gemini puis vérifie la popularité
+ * Filtre 3 sur une news déjà classée par Gemini : vérifie la popularité
  * de l'œuvre. Retourne le candidat avec son score, ou { reject } avec la
  * raison (gardée dans les news vues pour comprendre les choix du bot).
  */
-async function evaluateItem(item, config) {
-    const news = await inferHypeNews({
-        title: item.title,
-        description: item.description,
-        siteName: item.feedName,
-    }, config);
+async function evaluateItem(item, news) {
     if (news.event === 'none') return { reject: 'pas une annonce' };
     if (typeof news.hype === 'number' && news.hype < MIN_HYPE) return { reject: `hype ${news.hype}` };
     if (!news.work) return { reject: 'œuvre inconnue' };
@@ -187,20 +181,21 @@ async function runCultureNewsAuto() {
         // 2) + 3) Classement Gemini et popularité AniList
         const candidates = [];
         const rejected = [];
+        let classified;
+        try {
+            classified = await inferHypeNews(
+                batch.map((it) => ({ title: it.title, description: it.description, siteName: it.feedName })),
+                config,
+            );
+        } catch (err) {
+            // Gemini indisponible (quota…) : rien n'est marqué vu, le passage suivant reprendra.
+            console.warn('[cultureNewsAuto] Gemini classification failed:', err.message);
+            return { note: `tri Gemini impossible, réessai au prochain passage · ${err.message.slice(0, 80)}` };
+        }
         let failed = 0;
         for (const [i, item] of batch.entries()) {
-            if (i > 0) await new Promise((r) => setTimeout(r, GEMINI_SPACING_MS));
-            let res;
-            try {
-                res = await evaluateItem(item, config);
-            } catch (err) {
-                // Gemini en panne : on ne marque pas vu, on retentera.
-                console.warn(`[cultureNewsAuto] evaluate failed for ${item.url}:`, err.message);
-                failed += 1;
-                // Quota Gemini épuisé : inutile d'insister, le passage suivant reprendra.
-                if (/\b429\b/.test(err.message)) break;
-                continue;
-            }
+            if (!classified[i]) { failed += 1; continue; }
+            const res = await evaluateItem(item, classified[i]);
             if (res.reject) {
                 rejected.push(item);
                 await markSeen(db, item.url, item.title, { verdict: res.reject, anilistId: res.media?.id || null });
