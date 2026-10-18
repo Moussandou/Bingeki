@@ -11,12 +11,18 @@ protocol LibraryStoring: AnyObject {
     /// Local edits not yet acknowledged by the server (offline banner).
     var pendingChanges: Int { get }
     func upsert(_ work: Work)
-    func remove(id: String)
-    func work(id: String) -> Work?
+    func remove(identity: WorkIdentity)
+    func work(identity: WorkIdentity) -> Work?
 }
 
 extension LibraryStoring {
     var pendingChanges: Int { 0 }
+
+    /// Compatibility for persisted references only; never use a raw ID for a mutation.
+    func work(id: String) -> Work? {
+        guard let identity = WorkIdentity.resolve(id, in: works) else { return nil }
+        return work(identity: identity)
+    }
 
     /// Works with a given status, most recently updated first — the
     /// "Reprendre"/library-tab sort everywhere in the app.
@@ -40,19 +46,19 @@ final class InMemoryLibraryStore: LibraryStoring {
     }
 
     func upsert(_ work: Work) {
-        if let index = works.firstIndex(where: { $0.id == work.id }) {
+        if let index = works.firstIndex(where: { $0.identity == work.identity }) {
             works[index] = work
         } else {
             works.append(work)
         }
     }
 
-    func remove(id: String) {
-        works.removeAll { $0.id == id }
+    func remove(identity: WorkIdentity) {
+        works.removeAll { $0.identity == identity }
     }
 
-    func work(id: String) -> Work? {
-        works.first { $0.id == id }
+    func work(identity: WorkIdentity) -> Work? {
+        works.first { $0.identity == identity }
     }
 }
 

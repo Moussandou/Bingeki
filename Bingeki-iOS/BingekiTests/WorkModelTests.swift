@@ -1,8 +1,36 @@
 import Foundation
+import FirebaseFirestore
 import Testing
 @testable import Bingeki
 
 struct WorkModelTests {
+    @Test func cloudOverlayPreservesUnknownWebFieldsWithoutCrossingTypes() throws {
+        let raw: [String: Any] = [
+            "id": 1, "type": "manga", "title": "Manga", "status": "reading",
+            "notes": "Keep my notes", "rank": 42,
+            "custom": ["flags": [true, false]], "rating": 9,
+            "genres": [["name": "Action", "mal_id": 1]]
+        ]
+        var manga = try Firestore.Decoder().decode(Work.self, from: raw)
+        manga.currentChapter = 12
+        manga.rating = nil
+        let entry = LibraryWire.overlay(manga, encoded: try Firestore.Encoder().encode(manga), base: raw)
+        #expect(entry["id"] as? Int == 1)
+        #expect(entry["notes"] as? String == "Keep my notes")
+        #expect(entry["rank"] as? Int == 42)
+        #expect((entry["custom"] as? [String: Any])?["flags"] as? [Bool] == [true, false])
+        #expect((entry["genres"] as? [[String: Any]])?.first?["mal_id"] as? Int == 1)
+        #expect(entry["rating"] == nil)
+        let reloaded = try Firestore.Decoder().decode(Work.self, from: entry)
+        #expect(reloaded.identity == manga.identity)
+        #expect(reloaded.currentChapter == 12)
+
+        let anime = Work(id: "1", title: "Anime", type: .anime, status: .reading)
+        let wrongBase = LibraryWire.overlay(anime, encoded: try Firestore.Encoder().encode(anime), base: raw)
+        #expect(wrongBase["notes"] == nil)
+        #expect(wrongBase["type"] as? String == "anime")
+    }
+
     @Test func decodesFirestoreWebFormatWithNumericIdAndGenreObjects() throws {
         let json = """
         {

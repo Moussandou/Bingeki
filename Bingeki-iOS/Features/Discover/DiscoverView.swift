@@ -125,7 +125,7 @@ struct DiscoverFeedView: View {
 
     /// `offset`: 0 for the page on screen, 1 for the next one, etc.
     private func page(_ work: Work, offset: Int) -> some View {
-        let existing = library.work(id: work.id)
+        let existing = library.work(identity: work.identity)
         return ZStack(alignment: .bottom) {
             FeedBackdrop(work: work, mode: trailerMode(work, offset: offset), muted: trailerMuted)
             LinearGradient(
@@ -183,7 +183,7 @@ struct DiscoverFeedView: View {
 
     private func info(_ work: Work) -> some View {
         VStack(alignment: .leading, spacing: BKSpace.sm) {
-            if let reason = deck.reasons[work.id] {
+            if let reason = deck.reasons[work.identity.key] {
                 Text(reason)
                     .font(BKFont.display(12, weight: .heavy))
                     .tracking(0.7)
@@ -302,19 +302,19 @@ struct DiscoverFeedView: View {
             try? await Task.sleep(for: .milliseconds(700))
             withAnimation(.easeOut(duration: 0.2)) { if stampedId == work.id { stampedId = nil } }
         }
-        if library.work(id: work.id)?.status != .planToRead { toggle(.planToRead, work) }
+        if library.work(identity: work.identity)?.status != .planToRead { toggle(.planToRead, work) }
     }
 
     /// Rail buttons toggle: tapping an active one takes the title back out,
     /// so there's no need for an undo toast.
     private func toggle(_ status: WorkStatus, _ work: Work) {
         coachSeen = true
-        if let existing = library.work(id: work.id), existing.status == status {
-            library.remove(id: work.id)
+        if let existing = library.work(identity: work.identity), existing.status == status {
+            library.remove(identity: work.identity)
             HapticEngine.progressTick()
             return
         }
-        var added = library.work(id: work.id) ?? work
+        var added = library.work(identity: work.identity) ?? work
         added.status = status
         if status == .completed {
             added.currentEpisode = added.totalEpisodes ?? 0
@@ -322,7 +322,7 @@ struct DiscoverFeedView: View {
         }
         if added.dateAdded == nil { added.dateAdded = .now }
         added.lastUpdated = .now
-        let isNew = library.work(id: work.id) == nil
+        let isNew = library.work(identity: work.identity) == nil
         library.upsert(added)
         if isNew { userStore.addXP(GamificationCore.XPReward.addWork) }
         if status == .completed { HapticEngine.success() } else { HapticEngine.added() }

@@ -51,7 +51,7 @@ struct OnboardingView: View {
                                 Rectangle().fill(BKColor.surfaceTint).frame(height: 150)
                             }
                         }
-                        ForEach(candidates) { work in tile(work) }
+                        ForEach(candidates, id: \.identity) { work in tile(work) }
                     }
                     .padding(4)
                 }
@@ -86,10 +86,10 @@ struct OnboardingView: View {
     }
 
     private func tile(_ work: Work) -> some View {
-        let isOn = selected.contains { $0.id == work.id }
+        let isOn = selected.contains { $0.identity == work.identity }
         return Button {
             if isOn {
-                selected.removeAll { $0.id == work.id }
+                selected.removeAll { $0.identity == work.identity }
             } else if selected.count < Self.target {
                 selected.append(work)
                 HapticEngine.added()

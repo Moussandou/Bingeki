@@ -68,8 +68,8 @@ struct ProfileView: View {
         BKHeaderIcon(systemName: systemName)
     }
 
-    private var topWorks: [Work] {
-        userStore.profile.top3Favorites.compactMap { library.work(id: $0) }
+    private var topWorks: [Work?] {
+        userStore.profile.top3Favorites.map { library.work(id: $0) }
     }
 
     private var editButton: some View {
@@ -142,7 +142,7 @@ struct ProfileView: View {
 /// Colours come from the profile so the editor can preview live.
 struct HunterLicenseCard: View {
     let profile: UserProfile
-    var topWorks: [Work] = []
+    var topWorks: [Work?] = []
 
     private var accent: Color { Color(hex: profile.themeColor) ?? BKColor.brandPink }
     private var cardBg: Color { Color(hex: profile.cardBgColor) ?? Color(red: 0.06, green: 0.08, blue: 0.14) }
@@ -154,7 +154,7 @@ struct HunterLicenseCard: View {
     private var onBorder: Color { Color.luminance(hex: profile.borderColor) > 0.4 ? .black : .white }
 
     private var bannerURL: URL? {
-        profile.banner.flatMap(URL.init(string:)) ?? topWorks.first?.image
+        profile.banner.flatMap(URL.init(string:)) ?? topWorks.compactMap { $0 }.first?.image
     }
 
     private var idLine: String {
@@ -232,22 +232,24 @@ struct HunterLicenseCard: View {
 
                 if let featured { featuredRow(featured) }
 
-                if !topWorks.isEmpty {
+                if topWorks.contains(where: { $0 != nil }) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("MON TOP 3").font(BKFont.display(11, weight: .heavy)).tracking(0.9).foregroundStyle(dim)
                         HStack(spacing: 10) {
                             ForEach(Array(topWorks.prefix(3).enumerated()), id: \.offset) { index, work in
-                                BKCover(url: work.image, showsBorder: false)
-                                    .frame(width: 96, height: 136)
-                                    .overlay(Rectangle().stroke(border, lineWidth: 2))
-                                    .overlay(alignment: .topLeading) {
-                                        Text("#\(index + 1)")
-                                            .font(BKFont.display(13))
-                                            .padding(.horizontal, 7).padding(.vertical, 1)
-                                            .foregroundStyle(onAccent)
-                                            .background(accent)
-                                    }
-                                    .accessibilityLabel("Top \(index + 1) : \(work.title)")
+                                if let work {
+                                    BKCover(url: work.image, showsBorder: false)
+                                        .frame(width: 96, height: 136)
+                                        .overlay(Rectangle().stroke(border, lineWidth: 2))
+                                        .overlay(alignment: .topLeading) {
+                                            Text("#\(index + 1)")
+                                                .font(BKFont.display(13))
+                                                .padding(.horizontal, 7).padding(.vertical, 1)
+                                                .foregroundStyle(onAccent)
+                                                .background(accent)
+                                        }
+                                        .accessibilityLabel("Top \(index + 1) : \(work.title)")
+                                }
                             }
                         }
                     }
