@@ -61,22 +61,136 @@ Every user profile has a unique SEO-optimized URL: `bingeki.app/profile/{usernam
   are updated together in a Firestore transaction. Public visitors query
   only `isPublic: true`; the owner may query their private lists too.
 
-Before deploying indexed popularity sorting for historical lists, run the
-reviewed `scripts/repair-tierlist-counts.cjs` migration against a demo emulator:
+### Historical popularity migration (operator runbook)
+
+`scripts/repair-tierlist-counts.cjs` defaults to **read-only planning**. It
+deduplicates non-empty string UIDs in `likes` (missing/null means empty) and
+derives `likesCount`. It never migrates emails or profile preferences. New
+documents arriving after the scan require a fresh plan. The scan is ordered by
+document ID, paged at 200 and bounded at 10,000 documents by default (explicit
+maximum 100,000); exceeding the bound or the 16 MiB plan limit fails without
+writes. Any malformed likes array or unsupported counter object fails the
+entire planning pass. Numeric/string/boolean/null, missing, NaN and infinite
+counters are preserved in the backup before normalization.
+
+First rehearse on an isolated **demo** emulator. Choose an unused local port;
+these example commands use the already-started emulator at port 8184:
 
 ```sh
-GCLOUD_PROJECT=demo-bingeki-flows FIRESTORE_EMULATOR_HOST=127.0.0.1:8184 \
-  node scripts/repair-tierlist-counts.cjs
+export GCLOUD_PROJECT=demo-bingeki-migration
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:8184
+# Existing private directory outside all checkouts; never commit/copy its contents to a PR.
+export PLAN="$HOME/private-backups/bingeki-tierlists-2026-10-18.json"
+node scripts/repair-tierlist-counts.cjs --plan="$PLAN" --max-documents=500
+# Review the private plan and aggregate CLI counts before authorizing writes.
+node scripts/repair-tierlist-counts.cjs --apply --plan="$PLAN"
+node scripts/repair-tierlist-counts.cjs --verify --plan="$PLAN"
+# If needed, before any intervening edits:
+node scripts/repair-tierlist-counts.cjs --rollback --plan="$PLAN"
 ```
 
-It normalizes counts from the current unique likes inside transactions,
-pages through the collection, and can be rerun. Without an emulator it
-refuses access unless the operator explicitly supplies a matching
-`--approve-production=<projectId>`; no production migration is run by tests.
+The dry-run creates a new, exclusive, fsynced **0600** plan outside the repository.
+It is also the mandatory targeted pre-write backup: only document IDs,
+update-time preconditions and the changed `likes`/`likesCount` fields are saved,
+including absent-field markers. Likes contain user IDs: the plan is sensitive,
+not anonymous, and must remain private. No titles, profile fields, emails,
+tokens or arbitrary URLs are copied. Existing plan files are never overwritten;
+symlinks, hard links, permissive modes and mismatching targets are rejected on
+load. This local backup requires no managed Firestore export permission.
+
+Apply validates the entire plan and current versions **before** the first
+write, then rechecks the list, owner and deletion tombstone in every transaction.
+Lists with unknown/missing owners, banned/deleting/deleted owners or permanent
+`accountDeletions/{uid}` tombstones are excluded and counted, not silently fixed.
+An unrelated edit also invalidates the update-time precondition. No document
+is recreated. A conflict arriving after preflight may leave an explicitly
+partial run; keep the plan, investigate privately and resume the same command.
+Do not blindly replace the plan to bypass conflicts.
+
+Each commit atomically writes a minimal `{state: applied}` receipt at
+`migrationReceipts/{planSha256}/entries/{index}`. Existing deny-by-default rules
+make these server-only. The operator needs read/create/update access there as
+well as read/update on the affected lists and read on owners/tombstones.
+Receipts have the same commit timestamp as their list, so a lost response is
+safe to resume without a second repair. They contain no backup values and
+should be retained with the private plan for recovery.
+
+Verification checks every planned output and receipt timestamp. It is scoped
+to that plan, not a fresh collection-wide audit; run a new dry-run to check for
+new legacy documents. Rollback restores only the two backed-up fields, including
+deleting originally absent fields, and writes `{state: restored}` atomically.
+It refuses **any** document changed since apply, even an unrelated edit with the
+same counter values, and never recreates a deleted list or bypasses inactive
+owner checks. Rollback is repeatable; applying an already rolled-back plan is
+refused. Concurrent conflicts require manual review rather than forced restore.
+
+Without an emulator the CLI refuses **reads and writes** unless the operator
+supplies `--approve-production=<GCLOUD_PROJECT>` on each command. This is an
+access acknowledgment, not authorization to apply: explicitly review/approve
+the plan separately. Use the intended database/project with least-privilege
+credentials; no credential files or tokens belong in the plan or logs. The
+exported API accepts an already-authenticated Firestore instance (including
+an in-memory `authClient`); it does not initialize auth or enforce the CLI's
+production acknowledgment:
+
+```js
+const {
+  planTierListCounts, savePlan, applyTierListCounts, verifyTierListCounts,
+} = require('./scripts/repair-tierlist-counts.cjs');
+const plan = await planTierListCounts(db, { maxDocuments: 500 });
+savePlan(privatePlanPath, plan);
+// Only after independent approval:
+await applyTierListCounts(db, { planFile: privatePlanPath });
+await verifyTierListCounts(db, { planFile: privatePlanPath });
+// Conditional restore:
+await applyTierListCounts(db, { planFile: privatePlanPath, rollback: true });
+```
+
+`repairTierListCounts(db, {planFile})` is the read-only compatibility entry point;
+explicit `{apply: true, planFile}` delegates to apply. Omitting `planFile` from
+read-only API planning returns a plan in memory; apply always reloads a private
+backup from disk. CLI output contains aggregate counts and the plan hash only;
+SDK diagnostics must be inspected privately through the API. No production
+migration is run by tests.
+
+Run the regression suite with the installed Firestore emulator jar. It chooses
+a free local port, waits for readiness and stops its own emulator on completion:
+
+```sh
+RUN_MIGRATION_EMULATOR_TESTS=1 \
+FIRESTORE_EMULATOR_JAR="$HOME/.cache/firebase/emulators/cloud-firestore-emulator-v1.20.4.jar" \
+  npm exec -- vitest run functions/__tests__/tierListMigration.test.mjs
+```
+
+When `FIRESTORE_EMULATOR_HOST` already points to a local emulator (including the
+existing CI browser job), the suite runs automatically without a jar or opt-in
+flag and leaves that emulator running. It uses the separate
+`demo-bingeki-migration` project and cleans only its four fixture collections:
+`users`, `tierLists`, `accountDeletions` and `migrationReceipts`.
+
 Deploy the matching composite indexes and security rules before rollout.
-Legacy profiles without `profileVisibility` need an operator-reviewed
-visibility migration before participating in public discovery queries;
-new profiles initialize the field to `public`.
+
+### Legacy profile visibility: no automatic public backfill
+
+Legacy profiles without `profileVisibility` remain excluded from indexed public
+discovery. `src/firebase/users.ts` initializes **new** profiles to `public`;
+`firestore.rules`, `functions/sharedLibraryCore.js` and `functions/seo.js`
+historically interpret a missing value as public for targeted reads. Neither
+contract proves a legacy user's intended privacy. `src/store/settingsStore.ts`
+also retains local `bingeki-settings` preferences when the cloud field is
+absent; those device-local values cannot be inferred by an Admin scan.
+Missing, null or unrecognized visibility is therefore never converted to public
+by this migration. Existing private/friends/public values and activity preferences
+remain untouched. Restoring discovery for an unknown legacy profile requires
+the user's explicit setting or independently established consent, not a default
+inferred from older read behavior.
+
+`scripts/migrate-email-to-private.ts` is a **separate**, pre-existing tool that
+moves a root profile email to `users/{uid}/private/contact` and deletes the root
+field. It is not needed for popularity counters and was not run or modified
+here. Unlike this counter migration it writes by default, logs personal data
+in dry-run, scans all users and lacks an atomic compare-and-restore workflow;
+do not reuse it as this runbook's backup/migration mechanism.
 
 Account deletion, local backups and keyboard-dialog behavior are documented
 in [Account and local data](./Account-and-Local-Data.md).
