@@ -510,7 +510,7 @@ async function geminiJson(prompt, config = {}, maxOutputTokens = 400) {
     try { obj = JSON.parse(text); }
     catch {
         const m = text.match(/\{[\s\S]*\}/);
-        if (!m) throw new Error('Gemini infer non-JSON response');
+        if (!m) throw new Error(`Gemini infer non-JSON response (${body?.candidates?.[0]?.finishReason || '?'}): ${text.slice(0, 80)}`);
         obj = JSON.parse(m[0]);
     }
     return obj;
@@ -552,7 +552,9 @@ async function inferHypeNews({ title, description, siteName }, config = {}) {
         description ? `Résumé : ${String(description).slice(0, 500)}` : null,
         `Site : ${siteName || '?'}`,
     ].filter(Boolean).join('\n');
-    const obj = await geminiJson(PROMPTS.hype_news_infer.replace('{{DATA}}', payload), config, 500);
+    // Large marge : les modèles « thinking » comptent leur réflexion dans
+    // maxOutputTokens, et une réponse coupée n'est plus du JSON.
+    const obj = await geminiJson(PROMPTS.hype_news_infer.replace('{{DATA}}', payload), config, 4096);
     const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
     return {
         event: HYPE_EVENTS.has(obj.event) ? obj.event : 'none',
