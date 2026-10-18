@@ -71,7 +71,9 @@ async function recordBufferCall({ rateLimited = false, headers = null } = {}) {
     try {
         const now = Date.now();
         const update = {
-            [`days.${dayKey(now)}`]: FieldValue.increment(1),
+            // Map imbriquée : avec set({ merge }), une clé « days.x » serait
+            // un champ littéral et non un chemin.
+            days: { [dayKey(now)]: FieldValue.increment(1) },
             lastCallAt: now,
         };
         if (rateLimited) update.lastRateLimitAt = now;
