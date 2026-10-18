@@ -106,7 +106,7 @@ service cloud.firestore {
       // Clients must never write them directly, or they could inflate their rank.
       allow update: if (isOwner(userId) &&
                         !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-                          'uid', 'isAdmin', 'isSuperAdmin', 'isBanned', 'createdAt', 'deleting',
+                          'uid', 'isAdmin', 'isSuperAdmin', 'isBanned', 'createdAt', 'deleting', 'communityXp', 'communityTitle',
                           'level', 'xp', 'totalXp', 'xpToNextLevel', 'streak', 'badges',
                           'totalChaptersRead', 'totalAnimeEpisodesWatched', 'totalMoviesWatched',
                           'totalWorksAdded', 'totalWorksCompleted', 'bonusXp',
@@ -114,7 +114,7 @@ service cloud.firestore {
                         ]))
                     || (isAdmin()
                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-                          'uid', 'isSuperAdmin', 'deleting',
+                          'uid', 'isSuperAdmin', 'deleting', 'communityXp', 'communityTitle',
                           'level', 'xp', 'totalXp', 'xpToNextLevel', 'streak', 'badges',
                           'totalChaptersRead', 'totalAnimeEpisodesWatched', 'totalMoviesWatched',
                           'totalWorksAdded', 'totalWorksCompleted', 'bonusXp',
@@ -129,7 +129,7 @@ service cloud.firestore {
       allow create: if isOwner(userId)
                     && request.resource.data.get('uid', userId) == userId &&
                     !request.resource.data.keys().hasAny([
-                      'isAdmin', 'isSuperAdmin', 'isBanned', 'deleting',
+                      'isAdmin', 'isSuperAdmin', 'isBanned', 'deleting', 'communityXp', 'communityTitle',
                       'level', 'xp', 'totalXp', 'xpToNextLevel', 'streak', 'badges',
                       'totalChaptersRead', 'totalAnimeEpisodesWatched', 'totalMoviesWatched',
                       'totalWorksAdded', 'totalWorksCompleted', 'bonusXp',
@@ -154,7 +154,7 @@ service cloud.firestore {
                             'level', 'xp', 'totalXp', 'xpToNextLevel', 'badges',
                             'totalChaptersRead', 'totalAnimeEpisodesWatched', 'totalMoviesWatched',
                             'totalWorksAdded', 'totalWorksCompleted',
-                            'verifiedStreak', 'verifiedStreakAt'
+                            'verifiedStreak', 'verifiedStreakAt', 'communityXp'
                           ]) &&
                           validGamification() &&
                           // Monotonic, except an exact reset to 0 (the "erase my data"
@@ -181,7 +181,7 @@ service cloud.firestore {
                             'level', 'xp', 'totalXp', 'xpToNextLevel', 'badges',
                             'totalChaptersRead', 'totalAnimeEpisodesWatched', 'totalMoviesWatched',
                             'totalWorksAdded', 'totalWorksCompleted',
-                            'verifiedStreak', 'verifiedStreakAt'
+                            'verifiedStreak', 'verifiedStreakAt', 'communityXp'
                           ]))
                         || (isAdmin() && validBonusXp()
                             && request.resource.data.keys().hasOnly(['bonusXp', 'lastUpdated']));
@@ -221,6 +221,24 @@ service cloud.firestore {
     }
 
     // ==================== FEATURES ====================
+
+    // Read/write through authenticated callables: they enforce live profile
+    // visibility, bilateral blocks and spoiler-safe serialization.
+    match /communityPosts/{path=**} {
+      allow read, write: if false;
+    }
+    match /communityState/{id} {
+      allow read, write: if false;
+    }
+    match /communityWeeks/{id} {
+      allow read, write: if false;
+    }
+    match /communityReports/{id} {
+      allow read, write: if false;
+    }
+    match /communityVisits/{id} {
+      allow read, write: if false;
+    }
 
     // FEEDBACK
     match /feedback/{feedbackId} {

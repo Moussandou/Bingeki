@@ -173,7 +173,8 @@ export function clampBonusXp(bonusXp: unknown): number {
 /** Derives every stat from the library. Deterministic: same works in, same stats out. */
 export function calculateUserStats(
     libraryWorks: ScorableWork[],
-    bonusXp: number = 0
+    bonusXp: number = 0,
+    communityXp: number = 0
 ): UserStats {
     const works = Array.isArray(libraryWorks) ? libraryWorks : [];
 
@@ -212,7 +213,7 @@ export function calculateUserStats(
         }
     }
 
-    const totalXp = totalXpFromLibrary + clampBonusXp(bonusXp);
+    const totalXp = totalXpFromLibrary + clampBonusXp(bonusXp) + clampBonusXp(communityXp);
     const { level, xp, xpToNextLevel } = levelFromTotalXp(totalXp);
 
     return {

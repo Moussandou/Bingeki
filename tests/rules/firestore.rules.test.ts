@@ -338,6 +338,38 @@ runIfEmulator('Firestore security rules', () => {
         });
     });
 
+    describe('server-owned community data', () => {
+        it('denies direct access to content, replies, counters, rewards, relationships and moderation data', async () => {
+            const paths = [
+                'communityPosts/post', 'communityPosts/post/replies/reply',
+                'communityPosts/post/reactions/alice', 'communityState/alice',
+                'communityWeeks/week_alice', 'communityReports/report', 'communityVisits/visit',
+                'users/alice/communityClaims/claim', 'users/alice/communityBlocks/bob',
+                'users/alice/communityFollows/bob',
+            ];
+            await testEnv.withSecurityRulesDisabled(async ctx => {
+                for (const path of paths) await setDoc(doc(ctx.firestore(), path), { userId: ALICE });
+            });
+            for (const context of [testEnv.authenticatedContext(ALICE), testEnv.authenticatedContext(BOB), testEnv.unauthenticatedContext()]) {
+                for (const path of paths) {
+                    await assertFails(getDoc(doc(context.firestore(), path)));
+                    await assertFails(setDoc(doc(context.firestore(), path), { userId: ALICE, text: 'forged' }));
+                }
+            }
+        });
+        it('prevents self-awarded XP and equipped titles while retaining ordinary profile editing', async () => {
+            const db = testEnv.authenticatedContext(ALICE).firestore();
+            await assertFails(updateDoc(doc(db, 'users', ALICE), { communityXp: 50000 }));
+            await assertFails(updateDoc(doc(db, 'users', ALICE), { communityTitle: { id: 'sharp_eye' } }));
+            await assertSucceeds(updateDoc(doc(db, 'users', ALICE), { bio: 'Reading together' }));
+            await testEnv.withSecurityRulesDisabled(async ctx => {
+                await setDoc(doc(ctx.firestore(), 'users', ALICE, 'data', 'gamification'), { bonusXp: 0, streak: 0, communityXp: 10 });
+            });
+            await assertFails(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), { communityXp: 50000 }));
+            await assertSucceeds(updateDoc(doc(db, 'users', ALICE, 'data', 'gamification'), { bonusXp: 25 }));
+        });
+    });
+
     describe('feedback submission', () => {
         const guestTicket = {
             message: 'The share link opens a blank page',

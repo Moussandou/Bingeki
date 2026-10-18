@@ -26,6 +26,11 @@ exports.onLibraryUpdate = gamification.onLibraryUpdate;
 exports.onGamificationUpdate = gamification.onGamificationUpdate;
 exports.recalculateAllUserStats = gamification.recalculateAllUserStats;
 exports.getLeaderboard = gamification.getLeaderboard;
+const community = require('./community');
+exports.communityRead = community.communityRead;
+exports.communityWrite = community.communityWrite;
+exports.onCommunityLibraryUpdate = community.onCommunityLibraryUpdate;
+exports.communityWeeklyDigest = community.communityWeeklyDigest;
 
 // 3. Social & Friends
 const social = require("./social");

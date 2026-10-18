@@ -4,7 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import HttpBackend from 'i18next-http-backend';
 
 // List of namespaces
-export const namespaces = ['translation', 'landing', 'admin', 'changelog', 'legal'];
+export const namespaces = ['translation', 'landing', 'admin', 'changelog', 'legal', 'community'];
 
 export const languageReady = i18n
     .use(HttpBackend)

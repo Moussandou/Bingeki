@@ -15,6 +15,8 @@ export interface UserProfile {
     level?: number;
     totalXp?: number;
     bonusXp?: number;
+    communityXp?: number;
+    communityTitle?: { id: string; expiresAt: number | null } | null;
     streak?: number;
     badges?: { id: string; name: string; description: string; icon: string; rarity: string; unlockedAt?: number }[];
     totalChaptersRead?: number;

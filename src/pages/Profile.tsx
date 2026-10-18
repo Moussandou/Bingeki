@@ -58,6 +58,7 @@ import { useToast } from '@/context/ToastContext';
 import { AddFavoriteCharacterModal } from '@/components/profile/AddFavoriteCharacterModal';
 import { useShare } from '@/hooks/useShare';
 import { compressImage } from '@/utils/imageOptimization';
+import { ProfileJournal } from '@/components/social/ProfileJournal';
 
 function findFavoriteWork(works: Work[], id: string): Work | undefined {
     const matches = works.filter(work => `${work.type}:${work.id}` === id || String(work.id) === id || work.title === id);
@@ -68,6 +69,7 @@ export default function Profile() {
     const { user, setUser, loading, userProfile } = useAuthStore();
     const navigate = useNavigate();
     const { uid } = useParams<{ uid: string }>();
+    const communityUid = uid || user?.uid;
     const { i18n, t } = useTranslation();
     const { addToast } = useToast();
     const { share } = useShare();
@@ -963,6 +965,8 @@ export default function Profile() {
                             </div>
                         </motion.div>
                     </div>
+
+                    {communityUid && <ProfileJournal key={communityUid} uid={communityUid} title={extendedProfile.communityTitle} />}
 
                     {/* Edit Profile Modal */}
                     <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={t('profile.edit_modal.title')} maxWidth="1000px" variant="manga">

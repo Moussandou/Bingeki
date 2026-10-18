@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { logger } from '@/utils/logger';
+import { useTranslation } from 'react-i18next';
 
 async function notificationBackend() {
     const [firestore, { db }] = await Promise.all([import('firebase/firestore'), import('@/firebase/config')]);
@@ -12,7 +13,7 @@ async function notificationBackend() {
 
 export interface AppNotification {
     id: string;
-    type: 'episode_release' | 'friend_request' | 'system' | 'like';
+    type: 'episode_release' | 'friend_request' | 'system' | 'like' | 'community_reply' | 'community_digest';
     title: string;
     body: string;
     link?: string;
@@ -21,6 +22,7 @@ export interface AppNotification {
 }
 
 export function useNotifications(limitCount = 20) {
+    const { t } = useTranslation('community');
     const { user } = useAuthStore();
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [loading, setLoading] = useState(true);
@@ -102,5 +104,9 @@ export function useNotifications(limitCount = 20) {
         await deleteDoc(doc(db, 'users', user.uid, 'notifications', id));
     };
 
-    return { notifications, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification };
+    const localized = notifications.map(notification => {
+        const kind = notification.type === 'community_reply' ? 'reply' : notification.type === 'community_digest' ? 'digest' : null;
+        return kind ? { ...notification, title: t(`${kind}NotificationTitle`), body: t(`${kind}NotificationBody`) } : notification;
+    });
+    return { notifications: localized, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification };
 }

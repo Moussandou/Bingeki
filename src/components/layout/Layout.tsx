@@ -6,6 +6,7 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import { GuestBanner } from './GuestBanner';
 import { motion } from 'framer-motion';
+import { ProgressReviewPrompt } from '@/components/social/ProgressReviewPrompt';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -30,6 +31,7 @@ export function Layout({ children }: LayoutProps) {
                 style={{ minHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}
             >
                 {children}
+                <ProgressReviewPrompt />
                 <Footer />
             </motion.main>
         </>
