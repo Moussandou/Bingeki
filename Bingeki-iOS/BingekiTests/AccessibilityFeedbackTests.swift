@@ -58,33 +58,42 @@ struct AccessibilityFeedbackTests {
     @Test func voiceOverPreventsAutomaticDismissalButAllowsExplicitDismissal() {
         var state = BKLevelUpOverlay.DismissalState()
 
-        #expect(!state.request(automatically: true, voiceOverEnabled: true))
+        let automatic = state.request(automatically: true, voiceOverEnabled: true)
+        #expect(!automatic)
         #expect(!state.isDismissed)
-        #expect(state.request(automatically: false, voiceOverEnabled: true))
+        let explicit = state.request(automatically: false, voiceOverEnabled: true)
+        #expect(explicit)
         #expect(state.isDismissed)
     }
 
     @Test func normalAutomaticDismissalIsPreserved() {
         var state = BKLevelUpOverlay.DismissalState()
 
-        #expect(state.request(automatically: true, voiceOverEnabled: false))
+        let automatic = state.request(automatically: true, voiceOverEnabled: false)
+        #expect(automatic)
         #expect(state.isDismissed)
     }
 
     @Test func cancelledTimerCannotDismissAfterDisappearanceOrVoiceOverChange() {
         var state = BKLevelUpOverlay.DismissalState()
 
-        #expect(!state.request(automatically: true, voiceOverEnabled: false, isCancelled: true))
+        let cancelled = state.request(automatically: true, voiceOverEnabled: false, isCancelled: true)
+        #expect(!cancelled)
         #expect(!state.isDismissed)
-        #expect(!state.request(automatically: true, voiceOverEnabled: true))
-        #expect(state.request(automatically: false, voiceOverEnabled: true))
+        let automatic = state.request(automatically: true, voiceOverEnabled: true)
+        #expect(!automatic)
+        let explicit = state.request(automatically: false, voiceOverEnabled: true)
+        #expect(explicit)
     }
 
     @Test func dismissalRunsOnlyOnce() {
         var state = BKLevelUpOverlay.DismissalState()
 
-        #expect(state.request(automatically: false, voiceOverEnabled: false))
-        #expect(!state.request(automatically: true, voiceOverEnabled: false))
-        #expect(!state.request(automatically: false, voiceOverEnabled: true))
+        let first = state.request(automatically: false, voiceOverEnabled: false)
+        let automatic = state.request(automatically: true, voiceOverEnabled: false)
+        let explicit = state.request(automatically: false, voiceOverEnabled: true)
+        #expect(first)
+        #expect(!automatic)
+        #expect(!explicit)
     }
 }
