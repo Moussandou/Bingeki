@@ -23,6 +23,9 @@ const TIKTOK_CLIENT_SECRET = defineSecret('TIKTOK_CLIENT_SECRET');
 
 const STUCK_AFTER_MS = 3600_000;
 const WATCHDOG_DOC = '_watchdog';
+// Les stats Buffer ne sont pas urgentes : pas de relance qui doublerait
+// leur consommation de quota, le relevé du lendemain suffit.
+const NO_AUTO_RETRY = new Set(['pollReach']);
 
 async function runCronWatchdog() {
     const db = admin.firestore();
@@ -48,7 +51,7 @@ async function runCronWatchdog() {
 
         if (h.lastStatus !== 'error') continue;
         const runner = CRON_RUNNERS[doc.id];
-        if (!runner || h.autoRetriedFor === h.lastRunAt) continue;
+        if (!runner || NO_AUTO_RETRY.has(doc.id) || h.autoRetriedFor === h.lastRunAt) continue;
 
         // Noté avant la relance : si elle échoue à son tour, lastRunAt
         // change et on ne relancera pas une deuxième fois.

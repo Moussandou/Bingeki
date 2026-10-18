@@ -94,6 +94,23 @@ export const likesOf = (reach: PlatformReach | undefined): number =>
 export const isManualPost = (p: PublishedPost): boolean =>
     p.results?.insta?.provider === 'manual' || p.results?.tiktok?.provider === 'manual';
 
+/** Paliers de relecture des stats Buffer, comme functions/social/crons/pollReach.js. */
+const REACH_MILESTONES = [1, 3, 7];
+
+/** Requêtes Buffer que coûterait un relevé des stats maintenant. */
+export function pendingReachCalls(posts: PublishedPost[], now = Date.now()): number {
+    let calls = 0;
+    for (const p of posts) {
+        const platforms = (['insta', 'tiktok'] as const)
+            .filter((k) => p.results?.[k]?.id && p.results[k]?.provider !== 'manual').length;
+        if (platforms === 0) continue;
+        const age = (now - p.publishedAt) / 86_400_000;
+        const done = p.reachMilestones ?? [];
+        if (REACH_MILESTONES.some((m) => age >= m && !done.includes(m))) calls += platforms;
+    }
+    return calls;
+}
+
 export interface WeekStats {
     published: number;
     byHand: number;

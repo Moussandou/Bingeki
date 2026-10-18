@@ -106,6 +106,8 @@ export interface PublishedPost extends PendingPost {
         insta?: PlatformReach;
         tiktok?: PlatformReach;
     };
+    /** Paliers de stats Buffer déjà relevés (jours après publication). */
+    reachMilestones?: number[];
 }
 
 /** Metrics captured from Buffer's postMetrics query. Buffer returns a
@@ -274,7 +276,7 @@ export const CRON_META: Record<CronId, { label: string; schedule: string; descri
     cultureNewsAuto:   { label: 'Actu culture anime',   schedule: 'Toutes les 6h',              description: 'Surveille des flux RSS et crée des posts d\'actu.' },
     autoPublish:       { label: 'Publication auto',     schedule: 'Toutes les 15 min',          description: 'Publie via Buffer les posts des types en mode Auto.' },
     tiktokStats:       { label: 'Stats TikTok',         schedule: 'Tous les jours · 6h30 et 18h30', description: 'Lit le compte TikTok pour les chiffres des posts publiés à la main.' },
-    pollReach:         { label: 'Statistiques',         schedule: 'Tous les jours · 5h',        description: 'Récupère vues et likes des posts publiés via Buffer.' },
+    pollReach:         { label: 'Statistiques',         schedule: 'Tous les jours · 5h',        description: 'Vues et likes des posts Buffer, relus à J+1, J+3 et J+7.' },
     cleanupPending:    { label: 'Nettoyage',            schedule: 'Tous les jours · 4h',        description: 'Archive les posts en attente depuis plus de 3 jours.' },
 };
 

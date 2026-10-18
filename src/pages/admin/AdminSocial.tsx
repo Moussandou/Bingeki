@@ -171,7 +171,7 @@ export default function AdminSocial() {
                 )}
                 {tab === 'publies' && <PublishedView published={published} onOpen={setOpenPublished} />}
                 {tab === 'autos' && (
-                    <AutomationsView config={config} health={health} watchdog={watchdog} isSuperAdmin={isSuperAdmin} />
+                    <AutomationsView config={config} health={health} watchdog={watchdog} published={published} isSuperAdmin={isSuperAdmin} />
                 )}
             </main>
 

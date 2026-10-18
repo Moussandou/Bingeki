@@ -13,7 +13,8 @@ const { FieldValue } = require('firebase-admin/firestore');
 
 const LIMIT_30D = 3000;
 const LIMIT_24H = 250;
-const PAUSE_RATIO = 0.8;
+// Les stats s'arrêtent à mi-quota : l'autre moitié reste à la publication.
+const PAUSE_RATIO = 0.5;
 const KEEP_DAYS = 35;
 
 const usageRef = () => admin.firestore().collection('social_bot_config').doc('buffer_usage');

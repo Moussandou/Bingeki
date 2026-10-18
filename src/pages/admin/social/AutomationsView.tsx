@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { Loader2, Play, Power } from 'lucide-react';
 import { logger } from '@/utils/logger';
-import type { BotConfig, CronHealth, CronId, ModeKey, PublishMode, WatchdogStatus } from '@/shared/socialBot';
+import type { BotConfig, CronHealth, CronId, ModeKey, PublishedPost, PublishMode, WatchdogStatus } from '@/shared/socialBot';
 import { CRON_META, getMode } from '@/shared/socialBot';
 import {
     setTypeMode, setFallbackToManual, setPlatformMode, setBotEnabled, triggerCron,
@@ -14,7 +14,7 @@ import {
 import { CultureNewsGenerator, SeasonPreviewGenerator } from './ManualTools';
 import { TiktokAccountCard } from './TiktokAccountCard';
 import { BufferQuotaCard } from './BufferQuotaCard';
-import { HEALTH_ORDER, formatAgo, healthSummary } from './helpers';
+import { HEALTH_ORDER, formatAgo, healthSummary, pendingReachCalls } from './helpers';
 import s from './SocialBot.module.css';
 
 const TYPES: { key: ModeKey; label: string; desc: string; when: string }[] = [
@@ -37,10 +37,11 @@ interface Props {
     config: BotConfig;
     health: Record<string, CronHealth>;
     watchdog: WatchdogStatus | null;
+    published: PublishedPost[];
     isSuperAdmin: boolean;
 }
 
-export function AutomationsView({ config, health, watchdog, isSuperAdmin }: Props) {
+export function AutomationsView({ config, health, watchdog, published, isSuperAdmin }: Props) {
     const [running, setRunning] = useState<CronId | null>(null);
     const { failing, ok } = healthSummary(health);
 
@@ -52,7 +53,16 @@ export function AutomationsView({ config, health, watchdog, isSuperAdmin }: Prop
     };
 
     const runNow = async (cronId: CronId) => {
-        if (!confirm(`Lancer « ${CRON_META[cronId].label} » maintenant ?`)) return;
+        let question = `Lancer « ${CRON_META[cronId].label} » maintenant ?`;
+        if (cronId === 'pollReach') {
+            const calls = pendingReachCalls(published);
+            if (calls === 0) {
+                alert('Aucun palier de stats en attente (J+1, J+3, J+7) : rien à relire, aucune requête Buffer utilisée.');
+                return;
+            }
+            question = `Relire les stats en attente ? Coût : ${calls} requête${calls > 1 ? 's' : ''} Buffer.`;
+        }
+        if (!confirm(question)) return;
         setRunning(cronId);
         try {
             const res = await triggerCron(cronId);

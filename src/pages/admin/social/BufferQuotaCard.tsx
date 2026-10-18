@@ -82,7 +82,7 @@ export function BufferQuotaCard() {
                     : firstDay
                         ? `Appels comptés depuis le ${new Date(firstDay).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} (les vrais chiffres de Buffer s'afficheront à son prochain appel).`
                         : 'Les vrais chiffres de Buffer s\'afficheront à son prochain appel.'}
-                {' '}Au-delà de 80 %, les stats se mettent en pause pour garder la publication.
+                {' '}Au-delà de 50 %, les stats se mettent en pause : l'autre moitié reste à la publication. Stats relues à J+1, J+3 et J+7 seulement.
             </p>
         </section>
     );
