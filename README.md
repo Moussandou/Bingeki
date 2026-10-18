@@ -1,65 +1,82 @@
-# 🏯 Bingeki
+# Bingeki
 
-![Build & Deploy](https://github.com/Moussandou/Bingeki-V2/actions/workflows/deploy.yml/badge.svg)
-![CI Status](https://github.com/Moussandou/Bingeki-V2/actions/workflows/ci.yml/badge.svg)
+![Build & Deploy](https://github.com/Moussandou/Bingeki/actions/workflows/deploy.yml/badge.svg)
+![CI Status](https://github.com/Moussandou/Bingeki/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-orange)
-![Version](https://img.shields.io/badge/version-3.3-blue)
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/H2H41S9PFY)
 
-**Bingeki** is a **Progressive Web App (PWA)** that transforms your manga and anime tracking into an RPG adventure.
+**Bingeki** is a French- and English-language progressive web app for tracking
+anime and manga. Its library, discovery, seasonal releases, and community
+features turn progress into an RPG-inspired experience with levels, XP,
+streaks, and badges.
 
-> **Note:** This project has moved its documentation to the `docs/` folder. Please refer to the **[Wiki Home](docs/Home.md)** for detailed guides.
+## Features
 
----
+- Track anime and manga, organize a personal library, and sync across devices.
+- Discover works, browse seasons and release schedules, and view detailed work
+  and character pages.
+- Earn XP, levels, streaks, and badges as you read and watch.
+- Connect with friends, share activity, join watch parties, and create tier
+  lists.
+- Install the app as a PWA and use its mobile-friendly experience.
+- Browse localized news and share profiles and works with search-friendly
+  metadata.
 
-## 🚀 Quick Links
+## Quick start
 
-### 📚 Documentation
-- **[Getting Started](docs/01-Getting-Started/Getting-Started.md)** - Setup & Local Emulation.
-- **[Architecture](docs/02-Architecture/Architecture.md)** - Tech stack & folder structure.
-- **[Design System](docs/04-Design/Design-System.md)** - Style guide, tokens & motion.
-
-### 🏗️ Infrastructure
-- **[Firebase & Backend](docs/02-Architecture/Firebase-Backend.md)** - Firestore, Functions & Storage.
-- **[Testing Strategy](docs/01-Getting-Started/Testing.md)** - Vitest, Playwright & Lighthouse.
-- **[Internationalization](docs/01-Getting-Started/Internationalization.md)** - Multi-language support.
-- **[Admin Backoffice](docs/05-Management/Admin-Backoffice.md)** - CMS & Health Dashboard.
-- **[Maintenance](docs/05-Management/Maintenance.md)** - Build scripts & SW.
-
-### ✨ Features
-- **[Gamification](docs/03-Features/Gamification.md)** - XP, Badges, Nen Chart.
-- **[Social](docs/03-Features/Social.md)** - Friends, Watch Parties.
-- **[Library & API](docs/03-Features/Library-API.md)** - Jikan integration.
-- **[PWA & Mobile](docs/03-Features/PWA-Mobile.md)** - Mobile UX & Push.
-
----
-
-## 🛠️ Quick Start
+**Requirements:** Node.js 22.19 or newer and npm.
 
 ```bash
-# 1. Clone
 git clone https://github.com/Moussandou/Bingeki.git
 cd Bingeki
-
-# 2. Install
-npm install
-
-# 3. Configure .env
+npm ci
 cp .env.example .env
-# (Add your Firebase keys)
+```
 
-# 4. Run
+Add the Firebase web-app settings listed in `.env.example` to `.env`, then run:
+
+```bash
 npm run dev
 ```
 
----
+The development server prints its local URL (usually `http://localhost:5173`).
+Firebase emulators and Functions dependencies are only needed for the workflows
+that use them; see the [development setup](docs/01-Getting-Started/Getting-Started.md).
 
-## 🤝 Contribution
+For a demo-only build that uses Firebase emulators and does not require
+production credentials, use `npm run build:isolated`. **Do not deploy its
+output.**
 
-Contributions are welcome! Please read our **[Contributing Guide](docs/01-Getting-Started/Contributing.md)**.
+## Common commands
 
-## 📄 License
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start Vite with hot reload. |
+| `npm run lint` | Run ESLint. |
+| `npm run validate:i18n` | Check French/English translation parity. |
+| `npm run test:run` | Run unit and component tests once. |
+| `npm run test:e2e` | Run Playwright browser tests. |
+| `npm run build` | Type-check and build the production site; requires Firebase environment settings. |
+| `npm run build:isolated` | Build and validate the offline demo configuration. |
 
-Distributed under the **GNU Affero General Public License v3.0**. See `LICENSE` for more information.
+See [Testing](docs/01-Getting-Started/Testing.md) for emulator, browser, and
+validation details. Production deployment is documented in
+[Deployment](docs/05-Management/Deployment.md).
 
----
+## Documentation
+
+- [Documentation index](docs/README.md)
+- [Getting started](docs/01-Getting-Started/Getting-Started.md)
+- [Architecture](docs/02-Architecture/Architecture.md)
+- [Feature guides](docs/03-Features/)
+- [Contributing](docs/01-Getting-Started/Contributing.md)
+
+## Contributing
+
+Contributions are welcome. Please read the
+[contributing guide](docs/01-Getting-Started/Contributing.md) before opening a
+pull request.
+
+## License
+
+Bingeki is distributed under the GNU Affero General Public License v3.0. See
+[LICENSE](LICENSE) for details.

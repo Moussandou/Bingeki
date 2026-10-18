@@ -3,7 +3,7 @@
 Thank you for interest in contributing to Bingeki!
 
 ## Code Standards
-We use **ESLint** and **Prettier** to enforce code style.
+We use **ESLint** to enforce code quality and style.
 - **Run Check**: `npm run lint`
 - **Auto Fix**: `npm run lint -- --fix`
 
@@ -14,12 +14,16 @@ We use **ESLint** and **Prettier** to enforce code style.
 
 ## Translation (i18n)
 All user-facing text **MUST** be internationalized.
-1.  **Key**: Add your key to `src/i18n.ts` in both `fr` and `en` objects.
+1.  **Key**: Add matching keys to the appropriate namespace JSON files under
+    `public/locales/fr/` and `public/locales/en/`.
 2.  **Usage**:
     ```tsx
     const { t } = useTranslation();
     <span>{t('section.my_key')}</span>
     ```
+3.  **Check**: Run `npm run validate:i18n` to check locale parity and statically
+    used translation keys. See the
+    [internationalization guide](./Internationalization.md) for namespaces.
 
 ## Git Flow
 1.  **Branch**: Create a branch for your feature (`feat/my-feature`) or fix (`fix/bug-name`).
@@ -27,7 +31,13 @@ All user-facing text **MUST** be internationalized.
 3.  **PR**: Open a Pull Request against `main`. Describe your changes and attach screenshots if UI related.
 
 ## Testing
-Always verify that the build passes before pushing:
+Run the checks relevant to your change before pushing:
 ```bash
-npm run build
+npm run lint
+npm run validate:i18n
+npm run test:run
 ```
+
+The production build requires Firebase environment variables; use
+`npm run build:isolated` for offline build validation. Browser and emulator
+tests are described in the [testing guide](./Testing.md).

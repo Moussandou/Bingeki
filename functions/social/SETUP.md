@@ -1,101 +1,73 @@
-# Social Bot — Setup end-to-end
+# Configuration du bot social
 
-Étapes ordonnées pour démarrer le bot en production. Chaque commande
-peut se copier-coller telle quelle.
+Ce guide couvre l'initialisation et les tests du bot. Pour ses tâches, ses
+modes et son comportement de publication, voir
+[la documentation fonctionnelle](../../docs/03-Features/Social-Bot.md).
+Pour les contrôles et étapes du déploiement de production, voir
+[Deployment](../../docs/05-Management/Deployment.md).
 
-## Pré-requis (une fois)
+## Prérequis et secrets
 
-- [ ] Firebase CLI logged in : `firebase login` (déjà fait si tu as pu
-      `firebase functions:secrets:set`)
-- [ ] Un service account JSON pour lancer les scripts d'init :
-  1. https://console.firebase.google.com/ → projet `bingeki` → ⚙️ **Paramètres** → **Comptes de service**
-  2. **Générer une nouvelle clé privée** → télécharge le JSON
-  3. Range-le hors du repo, ex. `~/.firebase/bingeki-service-account.json`
-  4. **Ne le commit jamais** (ajouté au .gitignore parent, mais reste vigilant)
-
-## 1. Secrets Firebase
+- Accès autorisé au projet Firebase et à Firebase CLI (`firebase login`).
+- Un compte/canal Buffer pour chaque réseau à publier.
+- Des credentials Firebase Admin pour les scripts de configuration ; conservez
+  le fichier de compte de service hors du dépôt.
+- Les clés API nécessaires stockées dans Firebase Secret Manager :
 
 ```bash
-# Clé Google AI Studio (https://aistudio.google.com/apikey)
 firebase functions:secrets:set GEMINI_API_KEY
-
-# Clé Buffer (déjà fait normalement)
 firebase functions:secrets:set BUFFER_API_KEY
 ```
 
-## 2. Doc Firestore `social_bot_config/singleton`
+Pour connecter le compte TikTok et relever ses statistiques, configurez aussi
+`TIKTOK_CLIENT_KEY` et `TIKTOK_CLIENT_SECRET` dans Secret Manager. Ne placez
+aucun secret dans Firestore, un fichier commité ou une variable `VITE_*`.
+
+## Initialiser la configuration
+
+Installez les dépendances de Functions si elles ne sont pas déjà installées,
+puis initialisez le document de configuration :
 
 ```bash
-FIREBASE_APPLICATION_CREDENTIALS=~/.firebase/bingeki-service-account.json \
+npm ci --prefix functions
+FIREBASE_APPLICATION_CREDENTIALS="$HOME/.firebase/bingeki-service-account.json" \
   npm run social:init
 ```
 
-Le kill-switch global reste `enabled=false` par défaut — le bot est
-configuré mais ne publiera rien tant que tu ne le passes pas à `true`
-(dans la console Firestore, ou en relançant le script avec
-`ENABLE_BOT=true`).
+`social:init` fusionne les valeurs par défaut dans
+`social_bot_config/singleton`, préserve les champs personnalisés et laisse le
+kill-switch désactivé. Configurez les canaux Buffer avec
+`INSTA_BUFFER_CHANNEL_ID` et, si nécessaire, `TIKTOK_BUFFER_CHANNEL_ID`.
+N'activez pas `ENABLE_BOT=true` avant d'avoir vérifié les paramètres et les
+comptes dans l'environnement cible.
 
-Pour ajouter TikTok plus tard :
+Les modes de contenu et l'état des comptes sont visibles dans
+`/admin/social`. Vérifiez que chaque canal est correct, que le mode est celui
+souhaité (`manual`, `auto` ou `off`) et que le kill-switch est désactivé tant
+que la configuration n'est pas validée.
 
-```bash
-FIREBASE_APPLICATION_CREDENTIALS=~/.firebase/bingeki-service-account.json \
-  TIKTOK_BUFFER_CHANNEL_ID=<id-du-channel-tiktok> \
-  npm run social:init
-```
+## Déployer
 
-Le script est **idempotent** (merge), il ne casse rien si tu le rejoues.
+Ne déployez pas depuis un environnement de test et ne contournez pas les
+contrôles du pipeline. Suivez le guide [Deployment](../../docs/05-Management/Deployment.md)
+pour le déploiement autorisé. Le workflow de production déploie également les
+règles, indexes, Storage et Hosting requis ; un simple déploiement de Hosting
+ne met pas à jour les Functions.
 
-## 3. Deploy des Cloud Functions
+## Vérifier une publication
 
-```bash
-firebase deploy --only \
-  functions:socialDailyReleases,\
-functions:socialWeeklyRecap,\
-functions:socialCommunityFavorite,\
-functions:socialNewSeasonDetector,\
-functions:socialPublishNow,\
-functions:socialRejectPost,\
-functions:socialRegeneratePost
-```
+Le script `npm run social:seed-test-post` insère un post dans Firestore. Si
+vous le publiez, il peut réellement être envoyé au canal Buffer configuré :
+utilisez uniquement un projet de test avec un compte/canal de test et vérifiez
+les cibles avant d'appeler `socialPublishNow`.
 
-## 4. Premier test end-to-end (sans attendre le cron)
-
-```bash
-FIREBASE_APPLICATION_CREDENTIALS=~/.firebase/bingeki-service-account.json \
-  npm run social:seed-test-post
-```
-
-Ça insère un post "TEST · Sorties du jour" dans `social_pending_posts`.
-Puis :
-
-1. Ouvre https://bingeki.web.app/fr/admin/social (connecté en admin)
-2. Le post devrait apparaître en tête de "En attente"
-3. Clique **Publier maintenant**
-4. Va vérifier dans Buffer (queue) puis sur ton Instagram @bingeki.fr
-
-Si ça casse quelque part, les logs sont dans :
+Les tests automatisés utilisent des publishers simulés et n'envoient aucun
+contenu aux réseaux sociaux :
 
 ```bash
-firebase functions:log --only socialPublishNow
+npx vitest run functions/__tests__/functionalFlows.test.mjs
 ```
 
-## 5. Bascule prod
-
-Quand le test manuel passe, active le bot pour laisser tourner les crons :
-
-```bash
-# via la console Firestore : social_bot_config/singleton.enabled = true
-# OU
-ENABLE_BOT=true FIREBASE_APPLICATION_CREDENTIALS=... npm run social:init
-```
-
-À partir de là :
-
-- **Sorties du jour** tous les soirs à 19h (Europe/Paris)
-- **Récap hebdo** tous les dimanches à 19h
-- **Coup de cœur** tous les mercredis à 12h
-- **Nouvelle saison** détecté automatiquement par le cron
-  `socialNewSeasonDetector`
-
-Chaque post créé par un cron atterrit en `pending` — il doit être validé
-depuis `/admin/social` avant d'être poussé chez Buffer.
+En cas d'envoi incertain, vérifiez d'abord l'état du post dans Buffer. Ne
+relancez pas une tentative `unknown` ; réconciliez-la depuis l'interface admin
+avec `socialMarkPublished` uniquement après confirmation sur la plateforme.

@@ -1,6 +1,6 @@
 # ⚡ Guide Essentiel (Cheat Sheet)
 
-Ce guide résume les commandes et procédures les plus fréquentes pour développer et maintenir Bingeki-V2.
+Ce guide résume les commandes fréquentes pour développer et maintenir Bingeki.
 
 ---
 
@@ -11,37 +11,35 @@ Ce guide résume les commandes et procédures les plus fréquentes pour dévelop
 | `npm run dev` | Lance le serveur de dev local avec HMR. |
 | `npm run build` | Génère le bundle de production + prerendering + PWA code. |
 | `npm run lint` | Vérifie la qualité du code et du style. |
-| `npm test` | Lance les tests unitaires (Vitest). |
+| `npm run test:run` | Lance les tests unitaires (Vitest) une fois. |
 | `npm run test:e2e` | Lance les tests de bout en bout (Playwright). |
+| `npm run build:isolated` | Valide un build hors ligne avec la configuration de démonstration. |
 
 ---
 
 ## 🚀 Déploiement
 
 ### Déploiement Automatique (Recommandé)
-Toute fusion (merge) sur la branche **`main`** déclenche automatiquement le pipeline GitHub Actions :
-1.  Vérification du code (Lint/Tests).
-2.  Build de production.
-3.  Déploiement sur Firebase Hosting.
+Les pushes sur **`main`** déclenchent le pipeline de déploiement GitHub Actions.
+Le déploiement de production attend les vérifications CI et sécurité. Il met à
+jour plusieurs ressources Firebase ; consulter le guide
+[Deployment](./05-Management/Deployment.md) avant toute opération manuelle.
 
 ### Déploiement Manuel
-Si besoin de déployer manuellement depuis ta machine :
-```bash
-# 1. Préparer le build
-npm run build
-
-# 2. Envoyer sur Firebase (nécessite d'être loggé)
-firebase deploy --only hosting
-```
+Le déploiement de Hosting seul ne met pas à jour les Functions, règles ou
+indexes. Suivre le guide [Deployment](./05-Management/Deployment.md) pour les
+pré-requis, tests et le périmètre correct.
 
 ---
 
 ## 📝 Traduction (i18n)
 
 Pour ajouter une traduction :
-1.  Modifie `src/i18n.ts`.
+1.  Modifie les fichiers JSON correspondants dans `public/locales/fr/` et
+    `public/locales/en/`.
 2.  Lance `npm run validate:i18n` pour vérifier s'il manque des clés entre FR et EN.
-3.  Utilise `scripts/auto-translate.ts` (si configuré) pour générer les traductions manquantes via IA.
+3.  Consulte le guide [Internationalization](./01-Getting-Started/Internationalization.md)
+    pour les namespaces et les validations prises en charge.
 
 ---
 

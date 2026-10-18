@@ -35,7 +35,7 @@ Compete with friends or the entire world.
 Every user profile has a unique SEO-optimized URL: `bingeki.app/profile/{username}`.
 
 - **Dynamic OG Images**: When shared on Discord or Twitter, a custom "Hunter License" card is generated on-the-fly via Cloud Functions.
-- **Social Generator**: The admin panel includes a tool (`src/pages/admin/SocialGenerator.tsx`) to create high-quality promotional previews.
+- **Social publishing**: Admins manage scheduled posts, review generated slides, and configure the social bot from `/admin/social`. See [Social Bot](./Social-Bot.md).
 - **Privacy Controls**: Users can set their library to `Public`, `Friends Only`, or `Private`.
 - **Technical Details**: See [SEO & Social Sharing](./SEO-Social-Sharing.md) for details on dynamic OG image generation.
 
@@ -45,7 +45,7 @@ Every user profile has a unique SEO-optimized URL: `bingeki.app/profile/{usernam
 ## 5. Advanced Sync Features
 
 - **Watch Parties**: Real-time synchronized viewing sessions. State is held in `/watchparties/{partyId}` where participants subscribe for instant UI updates.
-- **Challenges (WIP)**: Competitive goals (e.g., "Read 50 chapters this week").
+- **Challenges (placeholder)**: The `/challenges` route currently displays a title and description only; challenge gameplay is not implemented yet.
 
 ### Canonical persistence contracts
 

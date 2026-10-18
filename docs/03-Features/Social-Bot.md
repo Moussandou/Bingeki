@@ -1,153 +1,122 @@
-# Social Bot — Feature technique
+# Bot social — guide technique
 
-Bot d'automatisation social media pour Bingeki. Génère 4 types de posts anime/manga, les fait valider par l'équipe dans `/admin/social`, puis les publie automatiquement sur Instagram et TikTok.
+Le bot de `functions/social/` prépare des contenus anime/manga, les met en
+file dans Firestore et les publie sur Instagram et TikTok via Buffer. Les
+administrateurs pilotent les contenus, les modes de publication, les comptes
+et l'état des tâches depuis `/admin/social`.
 
-## État d'avancement
+## Fonctionnalités actuelles
 
-| Phase | Statut | PR |
-|---|---|---|
-| Design & maquettes | Livré | #86 |
-| **Phase 1** — Foundations (types, page admin, routes, Firestore rules, functions skeleton) | Livré | #87 |
-| **Phase 2** — Live Firestore + generators (Jikan, stats, Gemini) | Livré | #87 |
-| **Phase 3** — Crons scheduled + admin callables (reject, regenerate) | Livré | #87 |
-| **Phase 4** — Publishers (Meta Graph, TikTok) + renderer Puppeteer | Livré | #87 |
-| Templates HTML riches (port des mockups React) | Simplifié, à améliorer | — |
-| OAuth flows configuration (tokens Secret Manager) | À faire à main | — |
-| Analytics reach j+1 / j+7 | Non commencé | — |
+- Génération de légendes et de visuels à partir des données Jikan/Tenrai,
+  AniList, RSS et Firestore, avec Gemini et un rendu Puppeteer.
+- File d'attente Firestore avec prévisualisation, régénération de légende,
+  rejet, validation manuelle et historique des publications.
+- Publication Buffer en carrousel photo ou vidéo selon la configuration du
+  compte. La voie de publication directe Meta/TikTok est conservée dans le
+  dépôt, mais Buffer est le publisher utilisé.
+- Modes par type de contenu : `manual` (validation et publication manuelles),
+  `auto` (publication par Buffer après l'heure prévue) ou `off`.
+- Relevé des statistiques de portée, synchronisation des statistiques TikTok,
+  notification Discord optionnelle, nettoyage des posts expirés et watchdog
+  des tâches planifiées.
 
-## Architecture
+Le mode par défaut est **Manuel** pour les publications planifiées, tandis que
+`cultureNewsAuto` est désactivé par défaut. Le kill-switch global
+`social_bot_config/singleton.enabled` doit aussi être activé avant qu'un cron
+ou une publication Buffer puisse fonctionner.
 
-Le bot vit intégralement dans les **Cloud Functions Firebase** existantes du projet. Aucun serveur séparé.
+## Flux et sûreté de publication
 
-- **Front** — `/admin/social` (React + Firestore `onSnapshot` sur les collections).
-- **Backend** — `functions/social/` avec:
-  - `crons/` : 4 scheduled functions (Firebase Scheduler).
-  - `generators/` : Jikan, stats, Gemini, renderer Puppeteer, templates HTML.
-  - `publishers/` : Meta Graph API (Instagram) + TikTok Content Posting.
-  - `admin/` : callables `socialPublishNow`, `socialRejectPost`, `socialRegeneratePost`.
-  - `shared/` : `loadBotConfig` (cache 1 min) + CRUD Firestore.
-
-## Flow complet
-
-```
-[Cron] → [fetchData] → [generateCaption Gemini] → [renderSlides Puppeteer]
-       → [uploadPng Storage] → [createPendingPost Firestore]
-              ↓
-        Admin /admin/social (live via onSnapshot)
-              ↓
-       ┌─── ADMIN valide ───┐
-       ↓                    ↓
-[socialPublishNow]     [reject/regenerate]
-[publishToInstagram]
-[publishToTikTok]
-[movePendingToPublished]
+```text
+Cron / action admin
+    → collecte des données → génération Gemini → rendu des slides
+    → social_pending_posts
+    → validation admin (mode manual) ou heure prévue (mode auto)
+    → Buffer → social_published_posts
 ```
 
-## 4 types de posts
+Les callables vérifient le rôle et l'état courant du compte administrateur côté
+serveur ; la garde de route de l'interface seule ne suffit pas. Les mutations
+de publication utilisent un bail Firestore et un journal par plateforme.
+Chaque tentative est persistée avant l'envoi et son reçu est sauvegardé dès le
+succès.
 
-| Type | Fréquence | Cron | Slides | Data |
-|---|---|---|---|---|
-| **Sorties du jour** | Quotidien 19h | `socialDailyReleases` | 1 intro + top 5 animes | Jikan `/schedules/{day}` |
-| **Récap hebdo** | Dimanche 19h | `socialWeeklyRecap` | 1 intro + top 3 | `aggregateWeeklyRatings` (users libraries) |
-| **Coup de cœur** | Mercredi 12h | `socialCommunityFavorite` | 1 intro + 1-3 (ex æquo) | `computeCommunityFavorites` |
-| **Nouvelle saison** | Event-driven, poll 8h | `socialNewSeasonDetector` | 1 announcement | Jikan `/seasons/now` + regex sequels |
+Buffer ne garantit pas de clé d'idempotence pour ce flux. Un timeout, un crash
+après envoi ou une réponse ambiguë est donc enregistré comme résultat
+`unknown` : le bail expiré ne prouve pas que l'envoi a échoué et ne permet pas
+de renvoyer automatiquement le post. Vérifier Buffer puis utiliser
+`socialMarkPublished` pour réconcilier le réseau concerné. Seuls les échecs
+explicitement définitifs sont relançables ; les reçus déjà obtenus sont
+conservés lors d'une reprise partielle.
 
-## Schéma Firestore
+## Tâches planifiées
 
-Collections définies dans `src/shared/socialBot.ts` (FIRESTORE_COLLECTIONS):
+Toutes les heures ci-dessous sont en `Europe/Paris`.
 
-- **`social_pending_posts/{id}`** — server create only, admin read/update/delete
-- **`social_published_posts/{id}`** — server write only, admin read
-- **`social_bot_config/singleton`** — superAdmin write, admin read
-  - `enabled` : kill-switch global
-  - `schedules.{daily,weekly,favorite}` : hour + dayOfWeek + enabled
-  - `platforms.{insta,tiktok}` : accountId + tokenRef
-  - `gemini.model` : `gemini-flash-latest`
-  - `discordWebhook` : optionnel, notif équipe
+| Fonction | Horaire | Contenu / rôle |
+| --- | --- | --- |
+| `socialDailyReleases` | Tous les jours à 10 h | Sorties du jour, jusqu'à 16 titres. |
+| `socialWeeklyRecap` | Dimanche à 19 h | Top 3 de la communauté, avec classement saisonnier MAL en secours. |
+| `socialCommunityFavorite` | Dimanche à 21 h | Épisodes les mieux notés sur MAL. |
+| `socialNewSeasonDetector` | Tous les jours à 8 h | Détecte les saisons qui commencent. |
+| `socialAnnouncement` | Lundi, mercredi et vendredi à 15 h | Digest d'annonces de suites à venir. |
+| `socialCultureNewsAuto` | Toutes les 6 h, à :15 | Filtre des flux RSS et crée au plus une actualité pertinente par jour. |
+| `socialSeasonPreviewAuto` | Le 21 mars, juin, septembre et décembre à 18 h | Prépare la preview de la saison suivante. |
+| `socialAutoPublish` | Toutes les 15 min | Publie les posts échus dont le type est en mode `auto` (jusqu'à 3 par passage). |
+| `socialPollReach` | Tous les jours à 5 h | Actualise les statistiques Buffer. |
+| `socialTiktokStats` | Tous les jours à 6 h 30 et 18 h 30 | Actualise les statistiques du compte TikTok. |
+| `socialCleanupPending` | Tous les jours à 4 h | Archive les posts restés en attente plus de 3 jours. |
+| `socialCronWatchdog` | Toutes les 30 min | Détecte les tâches bloquées et relance une seule fois les échecs autorisés. |
 
-Types partagés front + functions : voir `src/shared/socialBot.ts`.
+La création manuelle d'une actualité culturelle est disponible depuis le
+panneau admin ; elle n'est pas un cron séparé.
 
-## Déploiement — checklist
+## Données Firestore principales
 
-Une seule fois pour tout activer :
+Les types partagés entre l'application et les Functions sont dans
+`src/shared/socialBot.ts`.
 
-### 1. Créer les secrets
+- `social_pending_posts/{id}` : file de modération et journal de publication.
+- `social_published_posts/{id}` : publications terminées ou partielles.
+- `social_archived_posts/{id}` : posts expirés ou archivés.
+- `social_bot_config/singleton` : kill-switch, modes, horaires, comptes Buffer
+  et paramètres Gemini.
+- `social_bot_config/tiktok` et `social_bot_config/buffer_usage` : état TikTok
+  et quotas/usage Buffer.
+- `social_cron_health/{cronId}` : état et dernière exécution des tâches.
+- `social_culture_news_seen/{urlKey}` : liens RSS déjà évalués, avec leur
+  verdict et l'identifiant AniList lorsqu'il existe.
+
+Les collections de modération sont écrites par le serveur. Les règles
+Firestore et les vérifications dans les callables définissent les accès admin.
+
+## Configuration et déploiement
+
+Pour les secrets, les comptes Buffer/TikTok, l'initialisation de
+`social_bot_config/singleton` et les commandes de déploiement, suivre le
+[guide de configuration du bot](../../functions/social/SETUP.md). Les secrets
+API doivent rester dans Firebase Secret Manager, jamais dans le dépôt ou dans
+la configuration Firestore. Le bot est initialisé kill-switch désactivé.
+
+Pour publier en mode manuel, valider le post dans `/admin/social`, puis le
+publier via Buffer ou manuellement sur le téléphone et confirmer la plateforme
+dans l'interface. Pour activer le mode automatique, vérifier d'abord les
+comptes, les canaux Buffer, les modes et les secrets ; tester la publication
+dans un environnement isolé avant toute activation en production.
+
+Le déploiement de production suit le guide général
+[Deployment](../05-Management/Deployment.md), qui inclut les contrôles requis
+et les ressources Firebase concernées.
+
+## Tests
+
+Les tests de publication et les scénarios d'interruption sont simulés ; ils ne
+lancent aucun cron et ne publient pas réellement :
 
 ```bash
-firebase functions:secrets:set GEMINI_API_KEY
-firebase functions:secrets:set INSTA_PAGE_TOKEN
-firebase functions:secrets:set TIKTOK_ACCESS_TOKEN
+npx vitest run functions/__tests__/functionalFlows.test.mjs
+npx vitest run functions/__tests__/publicDownload.test.js
 ```
 
-- **`GEMINI_API_KEY`** : générer sur https://aistudio.google.com/apikey (gratuit)
-- **`INSTA_PAGE_TOKEN`** : long-lived Page Access Token depuis Meta Graph API Explorer, scopes `instagram_content_publish`, `pages_read_engagement`, `instagram_basic`
-- **`TIKTOK_ACCESS_TOKEN`** : OAuth 2.0 sur developers.tiktok.com avec scope `content.posting.write`
-
-### 2. Initialiser `social_bot_config/singleton`
-
-Dans la console Firestore, créer le doc `singleton` dans `social_bot_config` avec:
-
-```json
-{
-  "enabled": false,
-  "platforms": {
-    "insta": { "accountId": "<ig_user_id>", "tokenRef": "INSTA_PAGE_TOKEN", "enabled": true },
-    "tiktok": { "accountId": "<tiktok_user_id>", "tokenRef": "TIKTOK_ACCESS_TOKEN", "enabled": true }
-  }
-}
-```
-
-Le `enabled: false` empêche toute publication tant qu'on n'a pas vérifié end-to-end. Un superAdmin l'active via le bouton dans `/admin/social`.
-
-### 3. Déployer
-
-```bash
-npm run deploy:functions
-```
-
-Les crons Firebase Scheduler seront créés automatiquement.
-
-### 4. Vérifier
-
-- Ouvrir `/admin/social` — la page charge sans erreur, "Aucun post en attente".
-- Attendre le prochain cron OU déclencher manuellement via l'onglet Functions du console Firebase.
-- Un post apparaît dans la sidebar.
-- Cliquer sur le post → preview + caption + hashtags visibles.
-- Cliquer **Régénérer** → nouvelle caption après quelques secondes.
-- Activer le bot (bouton en haut à droite) puis **Publier maintenant** → check le compte Insta/TikTok.
-
-## Coûts
-
-- **Gemini API** : Free tier (15 rpm, 1500 rpd) — largement suffisant à ~10 posts/jour.
-- **Meta Graph API** : Gratuit (compte Business/Creator requis).
-- **TikTok Content Posting** : Gratuit (validation audit à demander pour prod).
-- **X / Twitter API** : Payant $100/mois → **skip**, publication X manuelle.
-- **Firebase Functions v2** : Free tier 2M invocations/mois — on est loin.
-- **Firestore** : Free tier — on est loin.
-- **Firebase Storage** : Free tier 5 GB — ~2 MB/post × 400 posts/an = 800 MB.
-- **@sparticuz/chromium** : ~50 MB par cold start, compute lourd. Free tier ok.
-
-**Coût total mensuel : 0€** à l'échelle actuelle.
-
-## Sécurité
-
-- Tokens jamais dans le code ni dans Firestore en clair — `defineSecret()` de Firebase Functions v2 (Secret Manager).
-- Callables `admin/*` vérifient `assertAdminOrThrow` (custom claim OU Firestore fallback) — le `RequireAdmin` du front n'est pas suffisant.
-- Firestore rules interdisent la création directe de `pending_posts` (server-only).
-- Kill-switch global : chaque cron lit `bot_config.enabled` en tête et return immédiatement si `false`. Le callable `socialPublishNow` re-check aussi.
-
-## Limitations connues
-
-- **Templates HTML** actuels sont simplifiés (`functions/social/generators/templates.js`). Le look final devra reprendre plus fidèlement les composants React de `src/components/mockups/SocialPostMockup.tsx`.
-- **`aggregateWeeklyRatings`** scanne les libraries user (limit 500). Au-delà de ~2000 users actifs, migrer vers une collection d'agrégation maintenue par un trigger `onWrite`.
-- **TikTok pull-from-URL** requiert un domaine vérifié dans le portail Developer TikTok, ou l'app en mode dev où le créateur confirme manuellement.
-- **Rate limits Instagram** : max 25 API-published media par 24h par compte IG (limite plateforme). On est très en dessous.
-- **Analytics reach (j+1, j+7)** pas encore implémentées — nécessitent un cron supplémentaire qui poll `/{media-id}/insights`.
-
-## Roadmap post-Phase 4
-
-1. Port fidèle des templates React `SocialPostMockup` en HTML standalone pour le renderer.
-2. Analytics reach (impressions, likes, commentaires) via crons j+1 et j+7.
-3. Panel de config du kill-switch et des schedules dans `/admin/social` (aujourd'hui l'admin doit éditer Firestore à la main pour les schedules).
-4. Preview live du HTML dans `/admin/social` (aujourd'hui juste la première slide via `<img>`).
-5. Notification Discord webhook au moment où un post entre en pending.
+Les flux end-to-end avec Firebase et le navigateur sont documentés dans
+[Testing](../01-Getting-Started/Testing.md).
