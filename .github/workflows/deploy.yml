@@ -65,6 +65,10 @@ jobs:
           trap 'rm -f "$credentials"' EXIT
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_BINGEKI" > "$credentials"
           export GOOGLE_APPLICATION_CREDENTIALS="$credentials"
+          # Confirm retries only for this idempotent trigger, not deletions in the full deployment.
+          npx --yes --package=firebase-tools@15.34.0 -- firebase deploy \
+            --only functions:onCommunityLibraryUpdate --force \
+            --project bingeki --non-interactive
           npx --yes --package=firebase-tools@15.34.0 -- firebase deploy \
             --only firestore:rules,firestore:indexes,storage,functions,hosting \
             --project bingeki --non-interactive
