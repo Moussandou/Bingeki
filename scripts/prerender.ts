@@ -83,6 +83,11 @@ async function prerenderRoute(browser: Browser, route: string): Promise<{ discov
   const discoveredRoutes: string[] = [];
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(String(error)));
+  page.on('console', message => {
+    if (message.type() === 'error' && /\[ErrorBoundary\]|Application startup failed/.test(message.text())) {
+      errors.push(message.text());
+    }
+  });
   
   try {
     await page.setViewport({ width: 1280, height: 800 });
@@ -117,17 +122,50 @@ async function prerenderRoute(browser: Browser, route: string): Promise<{ discov
       { timeout: 12000, polling: 100 }, langCode
     );
 
-    // Inject prerender markers
-    await page.evaluate((lang: string) => {
+    const stylesheets = await page.$$eval('link[rel="stylesheet"]', links =>
+      links.map(link => (link as HTMLLinkElement).href).filter(href => new URL(href).origin === location.origin)
+    );
+    const styles = Object.fromEntries(stylesheets.map(href => {
+      const filename = path.join(distPath, new URL(href).pathname);
+      return [href, fs.readFileSync(filename, 'utf8')];
+    }));
+
+    // Inline only this route's CSS so its snapshot paints without competing
+    // with the JavaScript module preload graph on a slow connection.
+    await page.evaluate((lang: string, css: Record<string, string>, originalShell: string) => {
       document.body.classList.add('is-prerendered');
       document.documentElement.setAttribute('data-lang', lang);
-    }, langCode);
+      const original = new DOMParser().parseFromString(originalShell, 'text/html');
+      const entryPreloads = new Set(Array.from(original.querySelectorAll<HTMLLinkElement>('link[rel="modulepreload"]'),
+        link => new URL(link.getAttribute('href')!, location.origin).href));
+      // Vite adds preloads when lazy imports run. Saving those would turn
+      // account services and on-demand features back into eager downloads.
+      for (const link of document.querySelectorAll<HTMLLinkElement>('link[rel="modulepreload"]')) {
+        if (!entryPreloads.has(link.href)) link.remove();
+      }
+      for (const link of document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')) {
+        if (css[link.href] === undefined) continue;
+        const style = document.createElement('style');
+        style.dataset.prerenderStyle = new URL(link.href).pathname;
+        style.textContent = css[link.href];
+        link.replaceWith(style);
+      }
+      // Vite inserts absolute URLs for lazy-loaded styles. Snapshots must work
+      // on Hosting, not depend on the temporary prerender server's origin.
+      for (const link of document.querySelectorAll<HTMLLinkElement>('link[href]')) {
+        const url = new URL(link.href);
+        if (url.origin === location.origin) {
+          link.setAttribute('href', `${url.pathname}${url.search}${url.hash}`);
+        }
+      }
+    }, langCode, styles, shell);
 
     const snapshot: RenderedPage = await page.evaluate(() => {
       const root = document.getElementById('root');
       const main = root?.querySelector('main')?.cloneNode(true) as HTMLElement | undefined;
       main?.querySelectorAll('footer, nav, [role="status"]').forEach(el => el.remove());
       return {
+        visible: !!root?.querySelector('main') && getComputedStyle(root.querySelector('main')!).opacity !== '0',
         text: main?.textContent?.trim() || '',
         heading: !!main?.querySelector('h1, h2'),
         lang: document.documentElement.lang,

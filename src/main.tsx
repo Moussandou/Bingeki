@@ -8,8 +8,9 @@ import { createRoot } from 'react-dom/client'
 import { HelmetProvider } from 'react-helmet-async'
 import { BrowserRouter } from 'react-router-dom'
 import './styles/global.css'
-import './i18n'
+import { languageReady } from './i18n'
 import App from './App.tsx'
+import { prepareInitialPage } from './initialPages'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { PrivacyConsent } from '@/components/PrivacyConsent'
 
@@ -46,4 +47,16 @@ const rootElement = (
 //
 // createRoot fait ce même rendu client directement, sans la passe d'hydratation perdue.
 // Le HTML prérendu garde son rôle : référencement et premier affichage immédiat.
-createRoot(container).render(rootElement);
+// Keep the snapshot visible until the first client render has its real page and
+// translations. Mounting earlier clears it for a Suspense fallback.
+void Promise.all([languageReady, prepareInitialPage(window.location.pathname)]).then(() => {
+  createRoot(container).render(rootElement);
+}).catch(error => {
+  logger.error('Application startup failed', error);
+  const alert = document.createElement('p');
+  alert.setAttribute('role', 'alert');
+  alert.textContent = document.documentElement.lang === 'en'
+    ? 'The application could not be loaded. Please reload the page.'
+    : "Impossible de charger l'application. Veuillez recharger la page.";
+  container.replaceChildren(alert);
+});

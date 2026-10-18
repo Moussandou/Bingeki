@@ -100,17 +100,23 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
+      preserveEntrySignatures: 'allow-extension',
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules/firebase')) return 'vendor-firebase';
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router-dom/')) return 'vendor-react';
-          if (id.includes('node_modules/framer-motion/') || id.includes('node_modules/lucide-react/')) return 'vendor-ui';
-          if (id.includes('node_modules/recharts/')) return 'vendor-charts';
-          if (id.includes('node_modules/i18next/') || id.includes('node_modules/react-i18next/')) return 'vendor-i18n';
-          if (id.includes('node_modules/zustand/')) return 'vendor-state';
-        }
-      }
-    }
+        strictExecutionOrder: true,
+        codeSplitting: {
+          groups: [
+            { name: 'vendor-react', test: /node_modules\/(?:react|react-dom|scheduler)\//, priority: 100 },
+            { name: 'vendor-ui', test: /node_modules\/(?:framer-motion|lucide-react)\//, priority: 80 },
+            { name: 'vendor-firebase', test: /node_modules\/(?:@firebase|firebase)\//, priority: 60 },
+            { name: 'vendor-i18n', test: /node_modules\/(?:i18next|react-i18next)\//, priority: 40 },
+            { name: 'vendor-state', test: /node_modules\/zustand\//, priority: 30 },
+            // Chart helpers must not capture shared utilities used by public UI.
+            { name: 'vendor-charts', test: /node_modules\/recharts\//, priority: 10, includeDependenciesRecursively: false },
+            { name: 'app-shell', test: /\/src\//, tags: ['$initial'], priority: 0 },
+          ],
+        },
+      },
+    },
   },
 })
