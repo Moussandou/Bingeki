@@ -73,7 +73,7 @@ struct WorkDetailStateTests {
         #expect(work.rating == 8)
         #expect(work.synopsis == "Local synopsis")
         #expect(localLibrary.count == (owned ? 1 : 0))
-        let recovered: TenraiDetailResponse = try decode(#"{"data":{"mal_id":1,"title":"Recovered","images":{}}}"#)
+        let recovered: TenraiDetailResponse = try decode(#"{"data":{"mal_id":1,"title":"Recovered","images":{"jpg":{}}}}"#)
         await state.details.load(force: true) { recovered }
         #expect(state.details.phase == .content)
     }
@@ -103,11 +103,11 @@ struct WorkDetailStateTests {
 
     @Test func musicAndStatisticsWithoutDataAreTerminal() async throws {
         let state = WorkDetailState()
-        let noTheme: TenraiDetailResponse = try decode(#"{"data":{"mal_id":1,"title":"Title","images":{}}}"#)
+        let noTheme: TenraiDetailResponse = try decode(#"{"data":{"mal_id":1,"title":"Title","images":{"jpg":{}}}}"#)
         await state.details.load { noTheme }
         #expect(!state.hasMusic)
         #expect(state.musicPhase == .empty)
-        let emptyThemes: TenraiDetailResponse = try decode(#"{"data":{"mal_id":1,"title":"Title","images":{},"theme":{"openings":[],"endings":[]}}}"#)
+        let emptyThemes: TenraiDetailResponse = try decode(#"{"data":{"mal_id":1,"title":"Title","images":{"jpg":{}},"theme":{"openings":[],"endings":[]}}}"#)
         await state.details.load(force: true) { emptyThemes }
         #expect(state.musicPhase == .empty)
         let emptyStats: TenraiStatistics = try decode("{}")
@@ -122,7 +122,7 @@ struct WorkDetailStateTests {
         await state.stats.load(force: true) { throw URLError(.timedOut) }
         #expect(state.stats.phase == .error)
         #expect(!state.stats.hasContent)
-        let music: TenraiDetailResponse = try decode(#"{"data":{"mal_id":1,"title":"Title","images":{},"theme":{"openings":["Song"],"endings":[]}}}"#)
+        let music: TenraiDetailResponse = try decode(#"{"data":{"mal_id":1,"title":"Title","images":{"jpg":{}},"theme":{"openings":["Song"],"endings":[]}}}"#)
         await state.details.load(force: true) { music }
         #expect(state.musicPhase == .content)
         #expect(state.hasMusic)
@@ -195,6 +195,59 @@ struct WorkDetailStateTests {
         #expect(resource.value == nil)
         await resource.load { [2] }
         #expect(resource.value == [2])
+    }
+
+    @Test func reopeningBeforeCancelledResourceFinishesQueuesTheNewLoad() async {
+        let resource = WorkDetailResource<[Int]>()
+        let oldGate = DetailGate<[Int]>()
+        let old = Task { await resource.load { try await oldGate.wait() } }
+        await oldGate.started()
+        old.cancel()
+        let entered = DetailGate<Void>()
+        var newOperationCalled = false
+        var newFinished = false
+        let new = Task {
+            entered.markStarted()
+            await resource.load {
+                newOperationCalled = true
+                return [2]
+            }
+            newFinished = true
+        }
+        await entered.started()
+        #expect(!newOperationCalled)
+        #expect(!newFinished)
+        oldGate.succeed([1])
+        await old.value
+        await new.value
+        #expect(newOperationCalled)
+        #expect(newFinished)
+        #expect(resource.value == [2])
+        #expect(resource.phase == .content)
+    }
+
+    @Test func changingIdentityReleasesQueuedRetryWithoutStartingOldWork() async {
+        let resource = WorkDetailResource<[Int]>()
+        resource.activate("anime/1")
+        let oldGate = DetailGate<[Int]>()
+        let old = Task { await resource.load { try await oldGate.wait() } }
+        await oldGate.started()
+        old.cancel()
+        let entered = DetailGate<Void>()
+        var staleOperationCalled = false
+        let queued = Task {
+            entered.markStarted()
+            await resource.load { staleOperationCalled = true; return [99] }
+        }
+        await entered.started()
+        resource.activate("anime/2")
+        await queued.value
+        #expect(!staleOperationCalled)
+        await resource.load { [2] }
+        oldGate.succeed([1])
+        await old.value
+        #expect(resource.value == [2])
+        #expect(resource.phase == .content)
     }
 
     @Test func episodesAreSingleFlightCommitAfterSuccessAndDeduplicate() async {
@@ -278,6 +331,43 @@ struct WorkDetailStateTests {
         #expect(episodes.snapshot.episodes.map(\.id) == [1, 2])
     }
 
+    @Test(arguments: [false, true])
+    func reopeningBeforeCancelledEpisodePageFinishesQueuesSamePage(hasPreviousPage: Bool) async {
+        let episodes = WorkEpisodePages()
+        if hasPreviousPage {
+            await episodes.loadNext { number in page([1], number: number, more: true) }
+        }
+        let expectedPage = hasPreviousPage ? 2 : 1
+        let oldGate = DetailGate<TenraiListResponse<TenraiEpisode>>()
+        let old = Task { await episodes.loadNext { _ in try await oldGate.wait() } }
+        await oldGate.started()
+        old.cancel()
+        let entered = DetailGate<Void>()
+        var newOperationCalled = false
+        var newFinished = false
+        let new = Task {
+            entered.markStarted()
+            await episodes.loadNext { number in
+                #expect(number == expectedPage)
+                newOperationCalled = true
+                return page([9], number: number, more: false)
+            }
+            newFinished = true
+        }
+        await entered.started()
+        #expect(!newOperationCalled)
+        #expect(!newFinished)
+        #expect(episodes.snapshot.page == expectedPage - 1)
+        oldGate.succeed(page([99], number: expectedPage, more: false))
+        await old.value
+        await new.value
+        #expect(newOperationCalled)
+        #expect(newFinished)
+        #expect(episodes.snapshot.page == expectedPage)
+        #expect(episodes.snapshot.episodes.map(\.id) == (hasPreviousPage ? [1, 9] : [9]))
+        #expect(episodes.phase == .content)
+    }
+
     @Test func oldEpisodePageCannotPolluteNewWorkOrItsFlight() async {
         let episodes = WorkEpisodePages()
         episodes.activate("anime/1")
@@ -308,10 +398,14 @@ private final class DetailGate<Value: Sendable> {
     func wait() async throws -> Value {
         try await withCheckedThrowingContinuation {
             continuation = $0
-            didStart = true
-            startContinuation?.resume()
-            startContinuation = nil
+            markStarted()
         }
+    }
+
+    func markStarted() {
+        didStart = true
+        startContinuation?.resume()
+        startContinuation = nil
     }
 
     func started() async {
