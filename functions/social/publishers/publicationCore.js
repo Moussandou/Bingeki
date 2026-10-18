@@ -29,6 +29,8 @@ async function publishPost(db, collections, publishers, postId, { config, apiKey
             throw new Error('Legacy processing post requires manual reconciliation before publishing');
         }
         const attempts = { ...(post.publishAttempts || {}) };
+        // A prior worker may have sent the request before crashing; an expired
+        // lease cannot prove failure, so never turn an unreceipted send into a retry.
         for (const platform of PLATFORMS) {
             if (attempts[platform]?.state === 'started') {
                 attempts[platform] = { ...attempts[platform], state: 'unknown' };

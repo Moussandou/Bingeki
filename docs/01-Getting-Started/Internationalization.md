@@ -4,20 +4,24 @@ Bingeki is designed to be a global platform, currently supporting **French (FR)*
 
 ## 1. Technical Stack
 *   **Engine**: [i18next](https://www.i18next.com/) & [react-i18next](https://react.i18next.com/).
-*   **Configuration**: Centralized in `src/i18n.ts`.
+*   **Configuration**: `src/i18n.ts` configures the HTTP backend; translations
+    are stored as namespace JSON files under `public/locales/{fr,en}/`.
 *   **Detection**: Automatically detects user language via `i18next-browser-languagedetector`.
 
 ## 2. Translation Workflow
 
 ### Adding New Keys
-1.  Open `src/i18n.ts`.
-2.  Add the key in the `fr.translation` object.
-3.  Add the equivalent key in the `en.translation` object.
-4.  Use the `t()` hook in your component:
+1.  Choose the namespace used by the component (for example `translation`,
+    `landing`, `admin`, `changelog`, or `legal`).
+2.  Add the key to the matching namespace JSON files in both
+    `public/locales/fr/` and `public/locales/en/`.
+3.  Use the `t()` hook in your component:
     ```tsx
     const { t } = useTranslation();
     return <h1>{t('header.dashboard')}</h1>;
     ```
+    For a non-default namespace, select it with `useTranslation('admin')` or
+    use an explicit namespace prefix such as `admin:header.title`.
 
 ### Validation Script
 We use a custom script to ensure consistency between locales and avoid "missing key" errors in production.
@@ -28,8 +32,10 @@ npm run validate:i18n
 ```
 This script (`scripts/check-translations.ts`) will:
 1.  Verify that every key in `fr` has an equivalent in `en` (and vice-versa).
-2.  Scan the `src/` directory for `t('...')` calls to ensure every key used in the code is actually defined.
-3.  Report unused keys that could be pruned.
+2.  Scan the `src/` directory for literal `t('...')` calls to ensure each
+    statically detectable key is defined in the locale files.
+
+The check does not detect dynamic keys or report unused keys.
 
 ## 3. SEO & Build-time Localization
 

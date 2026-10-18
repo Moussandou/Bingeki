@@ -28,7 +28,7 @@ Welcome to the central knowledge hub for Bingeki V2. This documentation is organ
 *   **[SEO & OG Sharing](./03-Features/SEO-Social-Sharing.md)**: Dynamic metadata and Hunter License generation.
 
 ### 4. [Design & UI](./04-Design/Design-System.md)
-*   **[Design System](./04-Design/Design-System.md)**: Tokens, Components (Carousel, MangaPanel), and Animations.
+*   **[Design System](./04-Design/Design-System.md)**: Tokens, reusable components, and animations.
 
 ### 5. [Ops & Management](./05-Management/Deployment.md)
 *   **[Deployment Pipeline](./05-Management/Deployment.md)**: GitHub Actions and Firebase Hosting.
