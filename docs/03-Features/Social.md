@@ -287,6 +287,12 @@ for indexes to finish building. Existing comments and external reviews are
 not migrated into chapter reviews; their missing context must not be inferred.
 No historical activity backfill or production data migration is required.
 
+Firebase requires explicit confirmation when enabling the reading trigger's
+failure/retry policy. The deployment workflow confirms only
+`functions:onCommunityLibraryUpdate` with `--force`, then runs the full
+deployment without `--force`. Do not force the full deployment: it would also
+approve unrelated function/index deletions.
+
 Useful local checks:
 
 ```sh
