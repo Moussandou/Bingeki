@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Blocks of the work page, laid out like the web fiche (`WorkDetails.tsx`):
 /// cover + tabs, then Général / épisodes / musiques / avis / actus / galerie /
-/// statistiques, and "Vous aimerez aussi". Each block hides itself when its
-/// data is missing.
+/// statistiques, and "Vous aimerez aussi". Remote states are rendered by
+/// WorkDetailSection so an error never masquerades as an empty section.
 
 enum WorkFormat {
     /// 3412345 → "3,4 M", 12500 → "12,5 k".
@@ -137,6 +137,46 @@ enum WorkFormat {
 }
 
 // MARK: - Shared bits
+
+struct WorkDetailSection<Content: View>: View {
+    let title: String
+    let phase: WorkDetailPhase
+    let hasContent: Bool
+    var emptyMessage = "Aucun contenu disponible."
+    let retry: () -> Void
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: BKSpace.md) {
+            if hasContent { content() }
+            switch phase {
+            case .idle, .loading:
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Chargement : \(title)").font(.subheadline)
+                    RoundedRectangle(cornerRadius: 2).fill(BKColor.surfaceTint).frame(height: 18)
+                    RoundedRectangle(cornerRadius: 2).fill(BKColor.surfaceTint).frame(height: 18)
+                        .padding(.trailing, 64)
+                }
+                .accessibilityElement(children: .combine)
+            case .error, .notFound:
+                Text(phase == .notFound ? "\(title) indisponible à la source." : "Impossible de charger : \(title).")
+                    .font(.subheadline)
+                if hasContent {
+                    Text("Dernier contenu chargé conservé en mémoire.").font(.footnote)
+                }
+                Button("Réessayer", action: retry)
+                    .frame(minHeight: BKSize.minTapTarget)
+                    .foregroundStyle(BKColor.accentText)
+            case .empty:
+                Text("\(title) : \(emptyMessage)").font(.subheadline)
+            case .content:
+                EmptyView()
+            }
+        }
+        .foregroundStyle(BKColor.textSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
 
 /// Big Outfit heading, like the web's `SYNOPSIS` / `CASTING`.
 struct WorkHeading: View {
@@ -635,7 +675,7 @@ struct WorkAddBox: View {
     var body: some View {
         VStack(spacing: BKSpace.md) {
             Text("AJOUTER À MA LISTE").font(BKFont.display(22))
-            Text("Suis ta progression et reçois des notifications !")
+            Text("Suis ta progression et retrouve tes œuvres dans ta collection.")
                 .font(.subheadline).multilineTextAlignment(.center)
             BKPrimaryButton(title: "Ajouter à ma collection", systemImage: "book", action: onAdd)
         }
@@ -654,6 +694,7 @@ struct WorkEpisodeList: View {
     let episodes: [TenraiEpisode]
     let totalChapters: Int?
     let hasMore: Bool
+    var isLoading = false
     let progress: Int
     let canTrack: Bool
     let onLoadMore: () -> Void
@@ -723,9 +764,10 @@ struct WorkEpisodeList: View {
                 .accessibilityLabel("\(row.title)\(seen ? ", vu" : "")")
             }
             if canShowMore {
-                WorkDashedButton(title: "Afficher plus") {
+                WorkDashedButton(title: isLoading ? "Chargement…" : "Afficher plus") {
                     if type == .anime { onLoadMore() } else { shownChapters += 50 }
                 }
+                .disabled(isLoading)
                 .padding(.top, 4)
             }
         }
