@@ -89,7 +89,7 @@ export function ReviewComposer({ works, initialWorkKey, initialUnit, editing, on
                 </label>
             </div>
             {error && <p className={styles.error} role="alert">{error}</p>}
-            <Button type="submit" icon={<Send size={16} />} disabled={saving || !work || !text.trim()}>{t(saving ? 'publishing' : editing ? 'save' : 'publish')}</Button>
+            <Button type="submit" variant="manga" className={styles.primaryAction} icon={<Send size={16} />} disabled={saving || !work || !text.trim()}>{t(saving ? 'publishing' : editing ? 'save' : 'publish')}</Button>
         </form>
     );
 }
