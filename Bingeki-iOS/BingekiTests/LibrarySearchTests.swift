@@ -52,6 +52,20 @@ struct LibrarySearchTests {
         #expect(LibrarySearch.filter(fixtures, query: "", type: .manga).map(\.id) == ["2", "4"])
     }
 
+    @Test func preservesSameIDAcrossTypesWithoutDeduplication() {
+        let anime = Work(id: "42", title: "Étoile", type: .anime, status: .reading)
+        let manga = Work(id: "42", title: "Étoile", type: .manga, status: .reading)
+        let works = [anime, manga]
+        let matches = LibrarySearch.filter(works, query: "etoile")
+        #expect(matches == works)
+        #expect(matches.count == 2)
+        #expect(matches.map(\.id) == ["42", "42"])
+        #expect(matches.map(\.type) == [.anime, .manga])
+        #expect(LibrarySearch.filter(works, query: "etoile", type: .anime) == [anime])
+        #expect(LibrarySearch.filter(works, query: "etoile", type: .manga) == [manga])
+        #expect(LibrarySearch.filter(works, query: "") == works)
+    }
+
     @Test func keepsSortOrderAndStableTies() {
         let matches = LibrarySearch.filter(fixtures.filter { $0.status == .reading }, query: "etoile")
         for sort in [LibrarySort.recent, .rating, .progress] {
