@@ -1,7 +1,4 @@
 import AuthenticationServices
-import CryptoKit
-import FirebaseCore
-import GoogleSignIn
 import SwiftUI
 
 /// Provider-agnostic result of a successful sign-in — decouples
@@ -85,8 +82,7 @@ final class InMemoryAuthStore: AuthProviding {
 
 /// One CTA, one alternative — no form. Sign in with Apple is primary per
 /// App Store guideline 4.8 (any third-party sign-in requires it as an
-/// equally prominent option); the Google button is disabled until the
-/// GoogleSignIn SDK is added (see `AuthError.providerNotYetSupported`).
+/// equally prominent option).
 struct AuthView: View {
     @Environment(\.authStore) private var auth
     @State private var errorMessage: String?
@@ -95,6 +91,7 @@ struct AuthView: View {
     /// for the Firebase credential exchange — standard replay-protection
     /// pattern for Sign in with Apple + Firebase.
     @State private var currentNonce: String?
+    @State private var oauth = OAuthCredentialProvider()
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -108,10 +105,12 @@ struct AuthView: View {
 
             VStack(spacing: BKSpace.md) {
                 SignInWithAppleButton(.signIn) { request in
-                    let nonce = Self.randomNonceString()
+                    isSigningIn = true
+                    errorMessage = nil
+                    let nonce = OAuthCredentialProvider.randomNonceString()
                     currentNonce = nonce
                     request.requestedScopes = [.fullName]
-                    request.nonce = Self.sha256(nonce)
+                    request.nonce = OAuthCredentialProvider.sha256(nonce)
                 } onCompletion: { result in
                     handleApple(result)
                 }
@@ -236,24 +235,19 @@ struct AuthView: View {
     private static let boltRed = Color(red: 0.898, green: 0.118, blue: 0.165)
 
     private func handleApple(_ result: Result<ASAuthorization, Error>) {
+        defer { currentNonce = nil }
         switch result {
         case .success(let authorization):
-            guard let appleCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                  let tokenData = appleCredential.identityToken,
-                  let tokenString = String(data: tokenData, encoding: .utf8) else { return }
-            let name = [appleCredential.fullName?.givenName, appleCredential.fullName?.familyName]
-                .compactMap { $0 }
-                .joined(separator: " ")
-            Task {
-                await attempt(AuthCredential(
-                    provider: .apple,
-                    userIdentifier: appleCredential.user,
-                    displayName: name.isEmpty ? nil : name,
-                    identityToken: tokenString,
-                    rawNonce: currentNonce
-                ))
+            do {
+                let credential = try OAuthCredentialProvider.appleCredential(authorization, nonce: currentNonce)
+                Task { await attempt(credential) }
+            } catch {
+                isSigningIn = false
+                errorMessage = error.localizedDescription
+                HapticEngine.failure()
             }
         case .failure(let error):
+            isSigningIn = false
             // `.canceled` fires every time the user backs out of the Apple
             // sheet — not a real error, so it shouldn't paint the UI red.
             let nsError = error as NSError
@@ -268,37 +262,16 @@ struct AuthView: View {
 
     /// Google's own sheet, then the tokens go to `auth.signIn` like Apple's.
     private func signInWithGoogle() async {
-        guard let clientID = FirebaseApp.app()?.options.clientID,
-              let presenter = UIApplication.shared.connectedScenes
-                .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
-                .first else { return }
-        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+        guard !isSigningIn else { return }
+        isSigningIn = true
+        errorMessage = nil
+        defer { isSigningIn = false }
         do {
-            let credential = try await withCheckedThrowingContinuation {
-                (continuation: CheckedContinuation<AuthCredential?, Error>) in
-                GIDSignIn.sharedInstance.signIn(withPresenting: presenter.topMost) { result, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                        return
-                    }
-                    guard let result, let idToken = result.user.idToken?.tokenString else {
-                        continuation.resume(returning: nil)
-                        return
-                    }
-                    continuation.resume(returning: AuthCredential(
-                        provider: .google,
-                        userIdentifier: result.user.userID ?? UUID().uuidString,
-                        displayName: result.user.profile?.name,
-                        identityToken: idToken,
-                        accessToken: result.user.accessToken.tokenString
-                    ))
-                }
-            }
-            guard let credential else { return }
+            let credential = try await oauth.credential(for: .google)
             await attempt(credential)
+        } catch AccountDeletionError.cancelled {
+            return
         } catch {
-            // Closing Google's sheet isn't an error worth showing.
-            if (error as NSError).code == GIDSignInError.canceled.rawValue { return }
             errorMessage = error.localizedDescription
             HapticEngine.failure()
         }
@@ -317,20 +290,6 @@ struct AuthView: View {
         isSigningIn = false
     }
 
-    // MARK: - Nonce (Apple + Firebase replay protection)
-
-    private static func randomNonceString(length: Int = 32) -> String {
-        precondition(length > 0)
-        var randomBytes = [UInt8](repeating: 0, count: length)
-        let status = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
-        precondition(status == errSecSuccess, "SecRandomCopyBytes failed with OSStatus \(status)")
-        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        return String(randomBytes.map { charset[Int($0) % charset.count] })
-    }
-
-    private static func sha256(_ input: String) -> String {
-        SHA256.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
-    }
 }
 
 /// Pink halftone backdrop, densest at the top like the web landing.
@@ -363,11 +322,6 @@ private struct AuthHalftone: View {
         }
         .accessibilityHidden(true)
     }
-}
-
-private extension UIViewController {
-    /// Google's sheet must be presented from whatever is on top (e.g. a sheet).
-    var topMost: UIViewController { presentedViewController?.topMost ?? self }
 }
 
 #Preview {

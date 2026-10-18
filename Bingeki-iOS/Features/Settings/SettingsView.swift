@@ -73,6 +73,7 @@ struct SettingsView: View {
                         SettingRow(title: "Ouvrir Bingeki sur le web", trailingIcon: "arrow.up.right")
                     }
                     Button { signOut() } label: { SettingRow(title: "Se déconnecter") }
+                    .disabled(isDeleting)
                     Button { confirmingDeletion = true } label: {
                         SettingRow(title: "Supprimer mon compte", tint: BKColor.accentText, divider: false)
                     }
@@ -81,7 +82,7 @@ struct SettingsView: View {
                     .confirmationDialog("Supprimer ton compte ?", isPresented: $confirmingDeletion, titleVisibility: .visible) {
                         Button("Supprimer définitivement", role: .destructive) { deleteAccount() }
                     } message: {
-                        Text("Cette action est irréversible.")
+                        Text("Cette action est irréversible. Si nécessaire, Apple ou Google te demandera de vérifier le même compte avant de continuer.")
                     }
                 }
                 .buttonStyle(.plain)
@@ -109,7 +110,12 @@ struct SettingsView: View {
             Text(accountError ?? "")
         }
         .overlay {
-            if isDeleting { ProgressView().controlSize(.large) }
+            if isDeleting {
+                ProgressView("Suppression en cours… Vérifie ton compte si demandé.")
+                    .padding()
+                    .background(BKColor.surface)
+                    .accessibilityIdentifier("account_deletion_progress")
+            }
         }
     }
 
@@ -149,12 +155,18 @@ struct SettingsView: View {
     }
 
     private func deleteAccount() {
+        guard !isDeleting else { return }
         isDeleting = true
+        accountError = nil
         Task {
             do {
                 try await auth.deleteAccount()
             } catch {
-                accountError = error.localizedDescription
+                if let deletionError = error as? AccountDeletionError {
+                    accountError = deletionError.localizedDescription
+                } else {
+                    accountError = "La suppression n'a pas été confirmée. Vérifie ta connexion et réessaie. \(error.localizedDescription)"
+                }
             }
             isDeleting = false
         }
