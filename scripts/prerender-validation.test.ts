@@ -10,6 +10,7 @@ const page: RenderedPage = {
     heading: true,
     lang: 'en',
     title: 'Privacy | Bingeki',
+    visible: true,
 };
 
 describe('prerender validation', () => {
@@ -20,6 +21,7 @@ describe('prerender validation', () => {
         { text: '' },
         { text: 'Loading' },
         { heading: false },
+        { visible: false },
         { lang: 'fr' },
         { title: '' },
         { title: 'Confidentialité | Bingeki' },
