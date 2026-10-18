@@ -10,23 +10,27 @@ final class TrailerFlowUITests: XCTestCase {
     override func setUpWithError() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["BK_TRAILER"] == "1", "Trailer recording only")
         continueAfterFailure = true
-        app = XCUIApplication()
-        app.launchArguments = ["-bk.mockAuth", "YES", "-bk.demoLibrary", "YES", "-bk.skipOnboarding", "YES",
-                               "-bk.onboardingDone", "YES", "-bk.coach.feed", "YES", "-AppleLanguages", "(fr)", "-AppleLocale", "fr_FR"]
     }
 
     private func mark(_ name: String) { print("BKT \(name) \(Date().timeIntervalSince1970)") }
     private func wait(_ s: TimeInterval) { Thread.sleep(forTimeInterval: s) }
+    @MainActor
     private func point(_ x: CGFloat, _ y: CGFloat) -> XCUICoordinate {
         app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: x, dy: y))
     }
+    @MainActor
     private func tap(_ name: String, _ x: CGFloat, _ y: CGFloat) { mark("tap:\(name):\(Int(x)):\(Int(y))"); point(x, y).tap() }
+    @MainActor
     private func swipe(_ name: String, from a: CGPoint, to b: CGPoint, velocity: XCUIGestureVelocity = .fast) {
         mark("swipe:\(name):\(Int(a.x)):\(Int(a.y)):\(Int(b.x)):\(Int(b.y))")
         point(a.x, a.y).press(forDuration: 0.02, thenDragTo: point(b.x, b.y), withVelocity: velocity, thenHoldForDuration: 0)
     }
 
+    @MainActor
     func testTrailerFlow() {
+        app = XCUIApplication()
+        app.launchArguments = ["-bk.mockAuth", "YES", "-bk.demoLibrary", "YES", "-bk.skipOnboarding", "YES",
+                               "-bk.onboardingDone", "YES", "-bk.coach.feed", "YES", "-AppleLanguages", "(fr)", "-AppleLocale", "fr_FR"]
         app.launch()
         app.waitForIntroToFinish()
         mark("launched")
@@ -114,6 +118,7 @@ final class TrailerFlowUITests: XCTestCase {
         mark("end")
     }
 
+    @MainActor
     private func coord(_ el: XCUIElement) -> String {
         let f = el.frame
         return "\(Int(f.midX)):\(Int(f.midY))"

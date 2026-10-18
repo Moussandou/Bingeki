@@ -5,6 +5,7 @@ final class AuthFlowUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    @MainActor
     func testAuthScreenPresentsBrandingAndButtons() {
         let app = XCUIApplication()
         // Force signed-out state so AuthView is reliably tested

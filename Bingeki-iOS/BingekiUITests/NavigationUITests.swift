@@ -5,6 +5,7 @@ final class NavigationUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    @MainActor
     func testMainTabBarNavigationAndSearchModal() {
         let app = XCUIApplication()
         app.launchArguments = [

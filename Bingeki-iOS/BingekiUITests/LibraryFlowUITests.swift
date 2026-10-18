@@ -5,6 +5,7 @@ final class LibraryFlowUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    @MainActor
     func testLibraryTabsAndProgressSheetOpen() {
         let app = XCUIApplication()
         app.launchArguments = [
