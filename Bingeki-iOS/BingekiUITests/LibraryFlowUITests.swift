@@ -6,6 +6,48 @@ final class LibraryFlowUITests: XCTestCase {
     }
 
     @MainActor
+    func testLocalSearchFiltersResetsSelectionAndKeepsCatalogAccess() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-bk.mockAuth", "YES",
+            "-bk.useInMemoryStore", "YES",
+            "-bk.onboardingDone", "YES",
+            "-bk.initialTab", "library",
+            "-AppleLanguages", "(fr)",
+            "-AppleLocale", "fr_FR"
+        ]
+        app.launch()
+        app.waitForIntroToFinish()
+
+        let search = app.textFields["library_local_search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["library_catalog_search"].exists)
+        search.tap()
+        search.typeText("FRIEREN\n")
+        XCTAssertTrue(app.staticTexts["Frieren — Saison 2"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["One Piece"].exists)
+
+        app.buttons["MANGA"].tap()
+        XCTAssertTrue(app.staticTexts["library_search_empty"].waitForExistence(timeout: 3))
+        app.buttons["library_clear_search"].tap()
+        XCTAssertTrue(app.staticTexts["One Piece"].waitForExistence(timeout: 3))
+
+        app.buttons["TOUT"].tap()
+        app.buttons["library_select_button"].tap()
+        app.buttons.containing(.staticText, identifier: "One Piece").firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["1 sélectionné"].exists)
+        search.tap()
+        search.typeText("introuvable\n")
+        XCTAssertTrue(app.staticTexts["library_search_empty"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["0 sélectionné"].exists)
+        app.buttons["library_clear_search"].tap()
+        XCTAssertTrue(app.staticTexts["One Piece"].waitForExistence(timeout: 3))
+        app.buttons["library_select_done"].tap()
+        app.buttons["library_catalog_search"].tap()
+        XCTAssertTrue(app.textFields["search_text_field"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testLibraryTabsAndProgressSheetOpen() {
         let app = XCUIApplication()
         app.launchArguments = [
