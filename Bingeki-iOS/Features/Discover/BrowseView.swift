@@ -8,6 +8,9 @@ struct BrowseView: View {
     @State private var seasonal: [Work] = []
     @State private var top: [Work] = []
     @State private var failed = false
+    @State private var isLoading = false
+    @State private var loaded = false
+    @State private var generation = UUID()
 
     private var short: [Work] { (seasonal + top).filter { ($0.totalEpisodes ?? 99) <= 13 }.uniqued() }
 
@@ -60,7 +63,7 @@ struct BrowseView: View {
                 section("Top communauté") {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
-                            if top.isEmpty {
+                            if top.isEmpty && isLoading {
                                 ForEach(0..<4, id: \.self) { _ in
                                     Rectangle().fill(BKColor.surfaceTint).frame(width: 96, height: 138)
                                 }
@@ -78,19 +81,30 @@ struct BrowseView: View {
                         .padding(.horizontal, BKSpace.screenMargin)
                     }
                 }
+                if loaded && top.isEmpty && !failed {
+                    Text("Aucun titre disponible.").foregroundStyle(BKColor.textSecondary)
+                        .padding(.horizontal, BKSpace.screenMargin)
+                }
 
                 if failed {
-                    Text("Le catalogue ne répond pas. Tire pour réessayer.")
+                    Button("Une source ne répond pas. Réessayer") { Task { await load() } }
                         .font(.footnote)
                         .foregroundStyle(BKColor.textSecondary)
                         .padding(.horizontal, BKSpace.screenMargin)
+                        .disabled(isLoading)
                 }
             }
             .padding(.top, BKSpace.md)
             .padding(.bottom, BKSpace.xl)
         }
         .refreshable { await load() }
-        .task { if seasonal.isEmpty { await load() } }
+        .task(id: userStore.profile.nsfwMode) {
+            generation = UUID()
+            seasonal = []
+            top = []
+            isLoading = false
+            await load()
+        }
         .navigationDestination(for: BrowseFeed.self) { BrowseGridView(feed: $0) }
     }
 
@@ -102,12 +116,29 @@ struct BrowseView: View {
     }
 
     private func load() async {
+        guard !isLoading else { return }
+        isLoading = true
+        failed = false
+        let token = generation
+        defer { if generation == token { isLoading = false } }
         let sfw = !userStore.profile.nsfwMode
-        async let s = try? BrowseFeed.season.load(sfw: sfw)
-        async let t = try? BrowseFeed.top.load(sfw: sfw)
-        seasonal = await s ?? seasonal
-        top = Array((await t ?? top).prefix(10))
-        failed = seasonal.isEmpty && top.isEmpty
+        do {
+            let items = try await BrowseFeed.season.load(sfw: sfw)
+            guard generation == token, !Task.isCancelled else { return }
+            seasonal = items
+        } catch {
+            guard generation == token, !Task.isCancelled else { return }
+            failed = true
+        }
+        do {
+            let items = try await BrowseFeed.top.load(sfw: sfw)
+            guard generation == token, !Task.isCancelled else { return }
+            top = Array(items.prefix(10))
+        } catch {
+            guard generation == token, !Task.isCancelled else { return }
+            failed = true
+        }
+        loaded = true
     }
 }
 
@@ -181,24 +212,29 @@ enum BrowseFeed: Hashable {
 struct BrowseGridView: View {
     let feed: BrowseFeed
     @Environment(\.userStore) private var userStore
-    @State private var works: [Work] = []
-    @State private var state: Phase = .loading
-    @State private var page = 1
-    @State private var hasMore = false
-    @State private var isLoadingMore = false
+    @State private var pager: CatalogPager<BrowseFeed>
 
-    private enum Phase { case loading, loaded, failed }
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
+
+    init(feed: BrowseFeed) {
+        self.feed = feed
+        let sources: [BrowseFeed] = feed == .short ? [.season, .top] : [feed]
+        _pager = State(initialValue: CatalogPager(sources: sources) { source, page, sfw in
+            let response = try await source.load(page: page, sfw: sfw)
+            let works = feed == .short ? response.works.filter { ($0.totalEpisodes ?? 99) <= 13 } : response.works
+            return CatalogPage(works: works, hasMore: response.hasMore)
+        })
+    }
 
     var body: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 8) {
-                if state == .loading {
+                if pager.isLoading && pager.works.isEmpty {
                     ForEach(0..<12, id: \.self) { _ in
                         Rectangle().fill(BKColor.surfaceTint).aspectRatio(0.7, contentMode: .fit)
                     }
                 }
-                ForEach(works, id: \.identity) { work in
+                ForEach(pager.works, id: \.identity) { work in
                     ZStack(alignment: .topTrailing) {
                         NavigationLink(value: work) {
                             BKCover(url: work.imageSmall ?? work.image).aspectRatio(0.7, contentMode: .fit)
@@ -206,53 +242,45 @@ struct BrowseGridView: View {
                         .accessibilityLabel(work.title)
                         BKAddCornerButton(work: work, size: 28)
                     }
-                    .onAppear { if work.identity == works.last?.identity { loadMore() } }
+                    .onAppear { if work.identity == pager.works.last?.identity { loadMore() } }
                 }
             }
             .padding(.horizontal, BKSpace.screenMargin)
             .padding(.vertical, BKSpace.md)
 
-            if isLoadingMore {
+            if pager.isLoading {
                 ProgressView().frame(maxWidth: .infinity, minHeight: 56)
             }
 
-            if state == .failed {
+            if !pager.failures.isEmpty {
                 VStack(spacing: BKSpace.md) {
-                    Text("Le catalogue ne répond pas.").foregroundStyle(BKColor.textSecondary)
-                    BKOutlineButton(title: "Réessayer", systemImage: "arrow.clockwise") { Task { await load() } }
+                    Text("Source indisponible : \(pager.failures.map(\.title).sorted().joined(separator: ", ")).")
+                        .foregroundStyle(BKColor.textSecondary)
+                    BKOutlineButton(title: "Réessayer", systemImage: "arrow.clockwise") { loadMore(retry: true) }
                         .frame(width: 220)
+                        .disabled(pager.isLoading)
                 }
+            }
+            if pager.hasLoaded && pager.works.isEmpty && !pager.isLoading {
+                Text(pager.hasMore ? "Aucun titre éligible sur ces pages." : "Aucun titre dans cette collection.")
+                    .foregroundStyle(BKColor.textSecondary).padding()
+            }
+            if pager.canLoadMore && !pager.isLoading {
+                Button("Charger la suite") { loadMore() }.padding()
             }
         }
         .background(BKColor.background.ignoresSafeArea())
         .bkNavigationHeader(feed.title)
-        .task { if works.isEmpty { await load() } }
-    }
-
-    private func load() async {
-        state = .loading
-        do {
-            let first = try await feed.load(page: 1, sfw: !userStore.profile.nsfwMode)
-            works = first.works
-            hasMore = first.hasMore
-            page = 1
-            state = .loaded
-        } catch {
-            state = .failed
+        .task(id: userStore.profile.nsfwMode) {
+            pager.reset()
+            await pager.load(sfw: !userStore.profile.nsfwMode, emptyPageLimit: 3)
         }
     }
 
     /// Next page when the last cover scrolls into view.
-    private func loadMore() {
-        guard state == .loaded, hasMore, !isLoadingMore else { return }
-        isLoadingMore = true
+    private func loadMore(retry: Bool = false) {
         Task {
-            defer { isLoadingMore = false }
-            guard let next = try? await feed.load(page: page + 1, sfw: !userStore.profile.nsfwMode) else { return }
-            let seen = Set(works.map(\.id))
-            works += next.works.filter { !seen.contains($0.id) }
-            page += 1
-            hasMore = next.hasMore
+            await pager.load(sfw: !userStore.profile.nsfwMode, retry: retry, emptyPageLimit: 3)
         }
     }
 }
@@ -316,9 +344,9 @@ private struct GenreTile: View {
 }
 
 extension Array where Element == Work {
-    /// Drops repeated ids, keeping the first occurrence.
+    /// Drops repeated identities, keeping the first occurrence.
     func uniqued() -> [Work] {
-        var seen = Set<String>()
-        return filter { seen.insert($0.id).inserted }
+        var seen = Set<WorkIdentity>()
+        return filter { seen.insert($0.identity).inserted }
     }
 }

@@ -79,18 +79,23 @@ struct DiscoverFeedView: View {
             case .idle, .loading:
                 DeckSkeleton()
             case .failed:
-                DeckErrorState(onRetry: reload, onBrowse: onBrowse)
-                    .padding(.vertical, BKSpace.md)
-                    .padding(.bottom, BKSize.tabBarHeight + BKSpace.md)
+                if deck.isRefilling {
+                    DeckSkeleton()
+                } else {
+                    DeckErrorState(onRetry: retry, onBrowse: onBrowse)
+                        .padding(.vertical, BKSpace.md)
+                        .padding(.bottom, BKSize.tabBarHeight + BKSpace.md)
+                }
             case .loaded:
                 feed
             }
         }
-        .task(id: library.hasLoaded) {
+        .task(id: "\(library.hasLoaded)|\(DiscoverDeck.configurationKey(library: library.works, sfw: !userStore.profile.nsfwMode))") {
             guard library.hasLoaded else { return }
             await deck.loadIfNeeded(library: library.works, sfw: !userStore.profile.nsfwMode)
+            position = deck.index
         }
-        .task(id: deck.currentCard?.id) { await deck.enrichVisibleCards() }
+        .task(id: deck.currentCard?.identity) { await deck.enrichVisibleCards() }
     }
 
     private var feed: some View {
@@ -100,7 +105,7 @@ struct DiscoverFeedView: View {
                     page(deck.pool[i], offset: i - deck.index)
                         .containerRelativeFrame(.vertical)
                 }
-                DeckEmptyState(onRestart: reload, onBrowse: onBrowse)
+                tail
                     .padding(.vertical, BKSpace.md)
                     .padding(.bottom, BKSize.tabBarHeight + BKSpace.md)
                     .containerRelativeFrame(.vertical)
@@ -119,6 +124,30 @@ struct DiscoverFeedView: View {
         .onAppear { feedVisible = true }
         .onDisappear { feedVisible = false }
         .overlay { if !coachSeen { FeedCoachMark { coachSeen = true } } }
+        .overlay(alignment: .top) {
+            if deck.hasRefillError && deck.currentCard != nil {
+                Button("Suite indisponible · Réessayer", action: retry)
+                    .font(.footnote.weight(.bold)).padding(10)
+                    .background(BKColor.surface).bkInkBorder()
+                    .disabled(deck.isRefilling)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var tail: some View {
+        if deck.isRefilling {
+            DeckSkeleton()
+        } else if deck.hasRefillError {
+            DeckErrorState(onRetry: retry, onBrowse: onBrowse)
+        } else if deck.hasMore {
+            VStack(spacing: BKSpace.md) {
+                Text("Continuons la sélection").font(BKFont.title3)
+                BKOutlineButton(title: "Charger la suite", systemImage: "arrow.down", action: retry)
+            }
+        } else {
+            DeckEmptyState(onRestart: reload, onBrowse: onBrowse)
+        }
     }
 
     // MARK: - Page
@@ -189,6 +218,13 @@ struct DiscoverFeedView: View {
                     .tracking(0.7)
                     .lineLimit(1)
                     .foregroundStyle(BKColor.brandCyan)
+            }
+            if deck.enrichmentFailures.contains(work.identity.key) {
+                Button("Détails indisponibles · Réessayer") {
+                    Task { await deck.enrichVisibleCards() }
+                }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white)
             }
             NavigationLink(value: work) {
                 Text(work.title)
@@ -290,6 +326,10 @@ struct DiscoverFeedView: View {
     private func reload() {
         position = 0
         Task { await deck.load(library: library.works, sfw: !userStore.profile.nsfwMode) }
+    }
+
+    private func retry() {
+        Task { await deck.refill() }
     }
 
     /// Like TikTok's heart: double tap only ever adds, never removes.

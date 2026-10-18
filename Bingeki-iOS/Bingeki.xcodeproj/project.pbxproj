@@ -24,9 +24,11 @@
 		2737DD5E08D389479DDBC3F3 /* FirebaseGamificationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CDB763F8CA71A2B026CD022 /* FirebaseGamificationStore.swift */; };
 		2998444F7383AF9CCD591025 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275DFD59A29607C534D0A3BA /* RootView.swift */; };
 		2B739B4AC1EBF0380934E8EE /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9599F92555AA815FCC86CCEB /* GoogleService-Info.plist */; };
+		2BDCEBDDDBDC25BB115E981C /* AccessibilityFeedbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC3326988EEE6F91C113DFB2 /* AccessibilityFeedbackTests.swift */; };
 		2DD7F159EE7E5BBBF53FE1A7 /* DiscoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC2AC0F5876ADA35BA3EA514 /* DiscoverView.swift */; };
 		31CF5655FFE6E08BD3A61359 /* EnvironmentKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CF3DEC5D26AE0E4F112862A /* EnvironmentKeys.swift */; };
 		34F1608F0C5EF14558E94844 /* DiscoverDeck.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB90118FC155B9708B16FE7C /* DiscoverDeck.swift */; };
+		3D3B914F53376611CD19ADEB /* CatalogPagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC41AB4EC6B03C5BC71C4464 /* CatalogPagerTests.swift */; };
 		3DD35E0DD21C098F8A95079C /* Outfit-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C20C2CDB21AED59C3617F762 /* Outfit-Bold.ttf */; };
 		3DEB952FC836636D6F1B5000 /* BKAnimatedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C3A9C53E1919974A1C3775E /* BKAnimatedImage.swift */; };
 		3ECB5A4FCC4DC6097F12E7D5 /* ResponseCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F99FE0008DBB478AB4D501 /* ResponseCacheTests.swift */; };
@@ -85,6 +87,7 @@
 		DC940C9D903A185472BB909D /* BKButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460C7C62494A090944AE38EE /* BKButton.swift */; };
 		DD2D891398C60486CD44F852 /* AuthFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4398365AA94BD20047CD92 /* AuthFlowUITests.swift */; };
 		E1C8169FD44B37486E9D0D58 /* FirebaseLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C98C2019941E0A56E6544BBB /* FirebaseLibraryStore.swift */; };
+		E3FE76FB7A9AAA2329CFD40C /* CatalogPager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC1F1182C6F789FC7693E36D /* CatalogPager.swift */; };
 		E4171124B6E85B956D46C0D3 /* ProgressSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8712A278CBF747AA96DD10 /* ProgressSheetView.swift */; };
 		E42C654ED01CAF673AB39C0F /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 2596CE8F96C7052D55A1C4F8 /* GoogleSignIn */; };
 		E479F6C1EF060BE5662AB0E4 /* GamificationCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */; };
@@ -163,6 +166,7 @@
 		A9F77F5E00A267E048B66228 /* Outfit-Black.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Outfit-Black.ttf"; sourceTree = "<group>"; };
 		B1FD174211CAC519B618253D /* TrailerFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrailerFlowUITests.swift; sourceTree = "<group>"; };
 		B6CCD3D276F692C123615B34 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		BC3326988EEE6F91C113DFB2 /* AccessibilityFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityFeedbackTests.swift; sourceTree = "<group>"; };
 		BC677F926A7597677F20A55F /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
 		BD8712A278CBF747AA96DD10 /* ProgressSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressSheetView.swift; sourceTree = "<group>"; };
 		BE2F0B34BEA263AD108417F6 /* BKFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKFont.swift; sourceTree = "<group>"; };
@@ -196,12 +200,14 @@
 		E693F3A4DE288E1B90AC69B6 /* UserProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileTests.swift; sourceTree = "<group>"; };
 		E9B8FE386FD00DF09E484C51 /* BingekiUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BingekiUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EAEC3D048ED8557924D45917 /* WorkDetailSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkDetailSections.swift; sourceTree = "<group>"; };
+		EC1F1182C6F789FC7693E36D /* CatalogPager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogPager.swift; sourceTree = "<group>"; };
 		EC2AC0F5876ADA35BA3EA514 /* DiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverView.swift; sourceTree = "<group>"; };
 		F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationCoreTests.swift; sourceTree = "<group>"; };
 		F7D3648604BD3F65C6FAEE3E /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
 		F848CAE82936E0EB2AA91D3D /* AppDestinationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDestinationTests.swift; sourceTree = "<group>"; };
 		F968372235D70402DAF00C0C /* Inter-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-SemiBold.ttf"; sourceTree = "<group>"; };
 		F9D068412DF07DBD9E96861C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		FC41AB4EC6B03C5BC71C4464 /* CatalogPagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogPagerTests.swift; sourceTree = "<group>"; };
 		FC581B4300B12286F61966FB /* CatalogueCacheSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogueCacheSettingsTests.swift; sourceTree = "<group>"; };
 		FDBAF641D0652E141CCDC52F /* TenraiModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TenraiModels.swift; sourceTree = "<group>"; };
 		FF947D1A39A04E30C9613EC0 /* BKToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKToast.swift; sourceTree = "<group>"; };
@@ -362,8 +368,10 @@
 		8AAF2279EDF598D6CCFBC82E /* BingekiTests */ = {
 			isa = PBXGroup;
 			children = (
+				BC3326988EEE6F91C113DFB2 /* AccessibilityFeedbackTests.swift */,
 				F848CAE82936E0EB2AA91D3D /* AppDestinationTests.swift */,
 				2AB573EEB14BE2137BB567E9 /* BadgeDecodingTests.swift */,
+				FC41AB4EC6B03C5BC71C4464 /* CatalogPagerTests.swift */,
 				FC581B4300B12286F61966FB /* CatalogueCacheSettingsTests.swift */,
 				3595C25038E7E2AEF473D2E6 /* DiscoverDeckTests.swift */,
 				F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */,
@@ -394,6 +402,7 @@
 		A03096587061ADD52011427B /* Search */ = {
 			isa = PBXGroup;
 			children = (
+				EC1F1182C6F789FC7693E36D /* CatalogPager.swift */,
 				C8239D0FC38D55CFE6C39EB2 /* SearchView.swift */,
 			);
 			path = Search;
@@ -652,8 +661,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2BDCEBDDDBDC25BB115E981C /* AccessibilityFeedbackTests.swift in Sources */,
 				FC75679A9294C624D200981F /* AppDestinationTests.swift in Sources */,
 				D0E1F1F4EF2B89EB688EE3B4 /* BadgeDecodingTests.swift in Sources */,
+				3D3B914F53376611CD19ADEB /* CatalogPagerTests.swift in Sources */,
 				05B97410F94192C061DD3F27 /* CatalogueCacheSettingsTests.swift in Sources */,
 				6452CB586E69A0BEDE32FDC5 /* DiscoverDeckTests.swift in Sources */,
 				E479F6C1EF060BE5662AB0E4 /* GamificationCoreTests.swift in Sources */,
@@ -691,6 +702,7 @@
 				84EE4A22BA6463460A3159A7 /* Badge.swift in Sources */,
 				96E615488A80B9E465B53AC6 /* BingekiApp.swift in Sources */,
 				E74CF9C1CF6651298349FC10 /* BrowseView.swift in Sources */,
+				E3FE76FB7A9AAA2329CFD40C /* CatalogPager.swift in Sources */,
 				B5724FE5AE19631E35268E2A /* CatalogueCacheSection.swift in Sources */,
 				798A7B5EFB37DA7FE9E58253 /* DemoData.swift in Sources */,
 				34F1608F0C5EF14558E94844 /* DiscoverDeck.swift in Sources */,
