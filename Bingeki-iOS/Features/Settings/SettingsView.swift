@@ -63,6 +63,10 @@ struct SettingsView: View {
                                divider: false)
                 }
 
+                group("Cache catalogue") {
+                    CatalogueCacheSection()
+                }
+
                 group("Compte") {
                     SettingRow(title: "Compte & synchro", value: auth.accountLabel)
                     Link(destination: URL(string: "https://bingeki.web.app")!) {

@@ -14,7 +14,7 @@ struct LibraryListView: View {
     @AppStorage("bk.librarySort") private var sort: LibrarySort = .recent
     @State private var sheetWork: Work?
     /// Non-nil while in multi-select mode.
-    @State private var selection: Set<String>?
+    @State private var selection: Set<WorkIdentity>?
     @State private var confirmingRemoval = false
 
     private var rows: [Work] {
@@ -149,10 +149,10 @@ struct LibraryListView: View {
         isSearchFocused = false
     }
 
-    private func selectionBar(_ selected: Set<String>) -> some View {
+    private func selectionBar(_ selected: Set<WorkIdentity>) -> some View {
         HStack(spacing: BKSpace.md) {
             Button(selected.count == rows.count ? "Aucun" : "Tout") {
-                selection = selected.count == rows.count ? [] : Set(rows.map(\.id))
+                selection = selected.count == rows.count ? [] : Set(rows.map(\.identity))
             }
             .font(.subheadline.weight(.semibold))
             .frame(minHeight: 44)
@@ -191,9 +191,9 @@ struct LibraryListView: View {
         .padding(.bottom, BKSize.tabBarHeight + BKSpace.sm)
     }
 
-    private func move(_ ids: Set<String>, to status: WorkStatus) {
+    private func move(_ ids: Set<WorkIdentity>, to status: WorkStatus) {
         for id in ids {
-            guard var work = library.work(id: id) else { continue }
+            guard var work = library.work(identity: id) else { continue }
             work.status = status
             work.lastUpdated = .now
             library.upsert(work)
@@ -202,8 +202,8 @@ struct LibraryListView: View {
         selection = nil
     }
 
-    private func remove(_ ids: Set<String>) {
-        ids.forEach { library.remove(id: $0) }
+    private func remove(_ ids: Set<WorkIdentity>) {
+        ids.forEach { library.remove(identity: $0) }
         HapticEngine.success()
         selection = nil
     }
@@ -284,10 +284,10 @@ struct LibraryListView: View {
         } else {
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(rows) { work in
+                    ForEach(rows, id: \.identity) { work in
                         if let selected = selection {
-                            SelectableRow(work: work, isSelected: selected.contains(work.id)) {
-                                selection?.formSymmetricDifference([work.id])
+                            SelectableRow(work: work, isSelected: selected.contains(work.identity)) {
+                                selection?.formSymmetricDifference([work.identity])
                             }
                         } else {
                             LibraryRow(work: work, onOpen: { sheetWork = work }) {

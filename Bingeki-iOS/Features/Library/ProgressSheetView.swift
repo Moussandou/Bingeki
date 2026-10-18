@@ -14,7 +14,7 @@ struct ProgressSheetView: View {
     @State private var sessionStart: Int?
     @State private var sessionXP = 0
 
-    private var current: Work { library.work(id: work.id) ?? work }
+    private var current: Work { library.work(identity: work.identity) ?? work }
     private var unit: String { current.type == .anime ? "ép." : "ch." }
 
     var body: some View {
@@ -29,7 +29,7 @@ struct ProgressSheetView: View {
                 BKScorePicker(work: current)
                 Spacer(minLength: 0)
                 Button("Retirer de la bibliothèque") {
-                    library.remove(id: work.id)
+                    library.remove(identity: work.identity)
                     dismiss()
                 }
                 .font(.subheadline.weight(.semibold))
@@ -255,7 +255,7 @@ struct BKScorePicker: View {
     let work: Work
     @Environment(\.libraryStore) private var library
 
-    private var score: Int? { library.work(id: work.id)?.rating ?? work.rating }
+    private var score: Int? { library.work(identity: work.identity)?.rating ?? work.rating }
 
     var body: some View {
         VStack(alignment: .leading, spacing: BKSpace.sm) {
@@ -286,7 +286,7 @@ struct BKScorePicker: View {
     }
 
     private func set(_ value: Int?) {
-        var updated = library.work(id: work.id) ?? work
+        var updated = library.work(identity: work.identity) ?? work
         updated.rating = value
         updated.lastUpdated = .now
         library.upsert(updated)
@@ -344,7 +344,7 @@ struct RatingSheetView: View {
 
     private func rate(_ n: Int) {
         picked = n
-        var updated = library.work(id: work.id) ?? work
+        var updated = library.work(identity: work.identity) ?? work
         updated.rating = n
         updated.lastUpdated = .now
         library.upsert(updated)

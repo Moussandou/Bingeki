@@ -65,7 +65,7 @@ struct BrowseView: View {
                                     Rectangle().fill(BKColor.surfaceTint).frame(width: 96, height: 138)
                                 }
                             }
-                            ForEach(top) { work in
+                            ForEach(top, id: \.identity) { work in
                                 ZStack(alignment: .topTrailing) {
                                     NavigationLink(value: work) {
                                         BKCover(url: work.imageSmall ?? work.image).frame(width: 96, height: 138)
@@ -198,7 +198,7 @@ struct BrowseGridView: View {
                         Rectangle().fill(BKColor.surfaceTint).aspectRatio(0.7, contentMode: .fit)
                     }
                 }
-                ForEach(works) { work in
+                ForEach(works, id: \.identity) { work in
                     ZStack(alignment: .topTrailing) {
                         NavigationLink(value: work) {
                             BKCover(url: work.imageSmall ?? work.image).aspectRatio(0.7, contentMode: .fit)
@@ -206,7 +206,7 @@ struct BrowseGridView: View {
                         .accessibilityLabel(work.title)
                         BKAddCornerButton(work: work, size: 28)
                     }
-                    .onAppear { if work.id == works.last?.id { loadMore() } }
+                    .onAppear { if work.identity == works.last?.identity { loadMore() } }
                 }
             }
             .padding(.horizontal, BKSpace.screenMargin)

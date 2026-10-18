@@ -61,6 +61,8 @@ struct LibrarySearchTests {
         #expect(matches.count == 2)
         #expect(matches.map(\.id) == ["42", "42"])
         #expect(matches.map(\.type) == [.anime, .manga])
+        #expect(matches.map(\.identity) == [anime.identity, manga.identity])
+        #expect(Set(matches.map(\.identity)).count == 2)
         #expect(LibrarySearch.filter(works, query: "etoile", type: .anime) == [anime])
         #expect(LibrarySearch.filter(works, query: "etoile", type: .manga) == [manga])
         #expect(LibrarySearch.filter(works, query: "") == works)
