@@ -115,7 +115,7 @@ struct LibraryMergeTests {
         let suite = "identity-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        let now = Date.now
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
         let old = try JSONSerialization.data(withJSONObject: [
             ["id": "1", "deletedAt": now.timeIntervalSinceReferenceDate]
         ])
