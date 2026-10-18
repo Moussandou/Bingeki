@@ -46,6 +46,8 @@ const MIN_POPULARITY = 30_000;
 const MIN_HYPE = 6;
 // Gemini lit au plus ce nombre de news par passage (les plus récentes).
 const MAX_CLASSIFIED_PER_RUN = 20;
+// Quota gratuit de Gemini (~10 requêtes/min) : on espace les appels.
+const GEMINI_SPACING_MS = 7000;
 const ONE_DAY = 86_400_000;
 // Au plus un post d'actu par jour, et pas deux fois la même œuvre en 7 jours.
 const MIN_GAP_MS = 20 * 3600_000;
@@ -185,13 +187,18 @@ async function runCultureNewsAuto() {
         // 2) + 3) Classement Gemini et popularité AniList
         const candidates = [];
         const rejected = [];
-        for (const item of batch) {
+        let failed = 0;
+        for (const [i, item] of batch.entries()) {
+            if (i > 0) await new Promise((r) => setTimeout(r, GEMINI_SPACING_MS));
             let res;
             try {
                 res = await evaluateItem(item, config);
             } catch (err) {
                 // Gemini en panne : on ne marque pas vu, on retentera.
                 console.warn(`[cultureNewsAuto] evaluate failed for ${item.url}:`, err.message);
+                failed += 1;
+                // Quota Gemini épuisé : inutile d'insister, le passage suivant reprendra.
+                if (/\b429\b/.test(err.message)) break;
                 continue;
             }
             if (res.reject) {
@@ -237,7 +244,7 @@ async function runCultureNewsAuto() {
             postId: created,
             note: created
                 ? `retenue : ${best.news.headline} (${best.media.popularity} suiveurs) · ${candidates.length - 1} autre(s) candidate(s) · ${rejected.length} rejetée(s)`
-                : `aucun post · ${candidates.length} candidate(s)${waitDay ? ' (déjà une actu aujourd\'hui)' : ''} · ${rejected.length} rejetée(s) sur ${batch.length}`,
+                : `aucun post · ${candidates.length} candidate(s)${waitDay ? ' (déjà une actu aujourd\'hui)' : ''} · ${rejected.length} rejetée(s) sur ${batch.length}${failed ? ` · ${failed} non lue(s) (Gemini)` : ''}`,
         };
     });
 }
