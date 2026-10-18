@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		011404A777547754C6ABF6E5 /* FirebaseUserStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07E4FC06F6240CF50FCC3200 /* FirebaseUserStore.swift */; };
+		0253072F608FB0C493FAA740 /* AppDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = C29EACC9834410F57AC5A2E4 /* AppDestination.swift */; };
 		038A492742E070AF169E6731 /* BKAddCornerButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CB0F40A1E9D07E32D64CC1 /* BKAddCornerButton.swift */; };
 		03F78553DC48B4BEBC34B177 /* LibraryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D844CDCEC9739476A1EF4122 /* LibraryListView.swift */; };
 		0B6936E7DD57C29EC1CD7432 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CDD58C4F8F4ABFE30A8E791 /* UserProfile.swift */; };
@@ -88,6 +89,7 @@
 		EDD252C03FB9E0F5DAC929EA /* GamificationCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEEA43D79B564AA6FE9A2CF /* GamificationCore.swift */; };
 		F26A83DEF71D511982C8333D /* XCUIApplication+Intro.swift in Sources */ = {isa = PBXBuildFile; fileRef = C87779B546BAB3270F5AA4BB /* XCUIApplication+Intro.swift */; };
 		F9FD72D03AAD592A2E7147D9 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 36CB093A10CAFC0C9733AAAA /* LaunchScreen.storyboard */; };
+		FC75679A9294C624D200981F /* AppDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F848CAE82936E0EB2AA91D3D /* AppDestinationTests.swift */; };
 		FE3AAFD1AF187BAE460EE492 /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7D3648604BD3F65C6FAEE3E /* LibraryStore.swift */; };
 /* End PBXBuildFile section */
 
@@ -159,6 +161,7 @@
 		BF6F12D59B6E880244C07396 /* FirebaseAuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseAuthStore.swift; sourceTree = "<group>"; };
 		BFA125CA09008DC97580F50C /* UserStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserStore.swift; sourceTree = "<group>"; };
 		C20C2CDB21AED59C3617F762 /* Outfit-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Outfit-Bold.ttf"; sourceTree = "<group>"; };
+		C29EACC9834410F57AC5A2E4 /* AppDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDestination.swift; sourceTree = "<group>"; };
 		C58E52F0FA5AA386AE584223 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		C8239D0FC38D55CFE6C39EB2 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		C87779B546BAB3270F5AA4BB /* XCUIApplication+Intro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCUIApplication+Intro.swift"; sourceTree = "<group>"; };
@@ -187,6 +190,7 @@
 		EC2AC0F5876ADA35BA3EA514 /* DiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverView.swift; sourceTree = "<group>"; };
 		F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamificationCoreTests.swift; sourceTree = "<group>"; };
 		F7D3648604BD3F65C6FAEE3E /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
+		F848CAE82936E0EB2AA91D3D /* AppDestinationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDestinationTests.swift; sourceTree = "<group>"; };
 		F968372235D70402DAF00C0C /* Inter-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-SemiBold.ttf"; sourceTree = "<group>"; };
 		F9D068412DF07DBD9E96861C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FDBAF641D0652E141CCDC52F /* TenraiModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TenraiModels.swift; sourceTree = "<group>"; };
@@ -348,6 +352,7 @@
 		8AAF2279EDF598D6CCFBC82E /* BingekiTests */ = {
 			isa = PBXGroup;
 			children = (
+				F848CAE82936E0EB2AA91D3D /* AppDestinationTests.swift */,
 				2AB573EEB14BE2137BB567E9 /* BadgeDecodingTests.swift */,
 				3595C25038E7E2AEF473D2E6 /* DiscoverDeckTests.swift */,
 				F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */,
@@ -405,6 +410,7 @@
 				CFC49AA20F8241CDD06F923E /* Components */,
 				B12D0FBF537E336966CD07E4 /* DesignSystem */,
 				2579BAF2B613AC7F5E0CFD79 /* Haptics */,
+				C9C509F6AB52F3E4D3B7B099 /* Navigation */,
 				11E1C7A376921240CB75A45B /* Networking */,
 				4F16A0EC82A60076468E23E7 /* Persistence */,
 			);
@@ -429,6 +435,14 @@
 				F9D068412DF07DBD9E96861C /* SettingsView.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		C9C509F6AB52F3E4D3B7B099 /* Navigation */ = {
+			isa = PBXGroup;
+			children = (
+				C29EACC9834410F57AC5A2E4 /* AppDestination.swift */,
+			);
+			path = Navigation;
 			sourceTree = "<group>";
 		};
 		CFC49AA20F8241CDD06F923E /* Components */ = {
@@ -622,6 +636,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FC75679A9294C624D200981F /* AppDestinationTests.swift in Sources */,
 				D0E1F1F4EF2B89EB688EE3B4 /* BadgeDecodingTests.swift in Sources */,
 				6452CB586E69A0BEDE32FDC5 /* DiscoverDeckTests.swift in Sources */,
 				E479F6C1EF060BE5662AB0E4 /* GamificationCoreTests.swift in Sources */,
@@ -639,6 +654,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0253072F608FB0C493FAA740 /* AppDestination.swift in Sources */,
 				4697D989B05E33EBB483B295 /* AuthView.swift in Sources */,
 				038A492742E070AF169E6731 /* BKAddCornerButton.swift in Sources */,
 				3DEB952FC836636D6F1B5000 /* BKAnimatedImage.swift in Sources */,
