@@ -4,9 +4,8 @@
  */
 import { logger } from '@/utils/logger';
 import { create } from 'zustand';
-import { type User } from 'firebase/auth';
-import { auth } from '@/firebase/config';
-import { type UserProfile, getUserProfile, subscribeToUserProfile } from '@/firebase/firestore';
+import type { User } from 'firebase/auth';
+import type { UserProfile } from '@/firebase/firestore';
 
 /**
  * Email lives in users/{uid}/private/contact, not on the public profile doc.
@@ -15,7 +14,7 @@ import { type UserProfile, getUserProfile, subscribeToUserProfile } from '@/fire
  */
 function withOwnEmail(profile: UserProfile | null): UserProfile | null {
     if (!profile) return null;
-    const authedUser = auth.currentUser;
+    const authedUser = useAuthStore.getState().user;
     if (authedUser && authedUser.uid === profile.uid && authedUser.email) {
         return { ...profile, email: authedUser.email };
     }
@@ -44,6 +43,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     logout: () => set({ user: null, userProfile: null }),
     syncUserProfile: async (uid: string) => {
         try {
+            const { getUserProfile } = await import('@/firebase/firestore');
             const profile = await getUserProfile(uid);
             if (profile && get().user?.uid === uid) {
                 set({ userProfile: withOwnEmail(profile) });
@@ -54,10 +54,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     },
     subscribeToProfile: (uid: string) => {
 
-        return subscribeToUserProfile(uid, (profile) => {
-            if (get().user?.uid !== uid) return;
-            logger.log('[AuthStore] Real-time profile update received:', profile?.isAdmin ? 'Admin' : 'User');
-            set({ userProfile: withOwnEmail(profile) });
-        });
+        let disposed = false;
+        let unsubscribe: (() => void) | undefined;
+        void import('@/firebase/firestore').then(({ subscribeToUserProfile }) => {
+            if (disposed || get().user?.uid !== uid) return;
+            unsubscribe = subscribeToUserProfile(uid, profile => {
+                if (disposed || get().user?.uid !== uid) return;
+                logger.log('[AuthStore] Real-time profile update received:', profile?.isAdmin ? 'Admin' : 'User');
+                set({ userProfile: withOwnEmail(profile) });
+            });
+        }).catch(error => logger.error('Error subscribing to user profile:', error));
+        return () => {
+            disposed = true;
+            unsubscribe?.();
+        };
     }
 }));
