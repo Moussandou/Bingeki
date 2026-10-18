@@ -24,10 +24,12 @@
 		25B6AFB3E8CC4654BDB98B08 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 25321E8A72F39535785D1D4A /* FirebaseFirestore */; };
 		2737DD5E08D389479DDBC3F3 /* FirebaseGamificationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CDB763F8CA71A2B026CD022 /* FirebaseGamificationStore.swift */; };
 		2998444F7383AF9CCD591025 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275DFD59A29607C534D0A3BA /* RootView.swift */; };
+		2AA3057BDAE5B5234156144C /* AccountDeletionFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E28ABBB12B398CB22C7F9FF /* AccountDeletionFlow.swift */; };
 		2B739B4AC1EBF0380934E8EE /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9599F92555AA815FCC86CCEB /* GoogleService-Info.plist */; };
 		2BDCEBDDDBDC25BB115E981C /* AccessibilityFeedbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC3326988EEE6F91C113DFB2 /* AccessibilityFeedbackTests.swift */; };
 		2DD7F159EE7E5BBBF53FE1A7 /* DiscoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC2AC0F5876ADA35BA3EA514 /* DiscoverView.swift */; };
 		31CF5655FFE6E08BD3A61359 /* EnvironmentKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CF3DEC5D26AE0E4F112862A /* EnvironmentKeys.swift */; };
+		337AE14C12F2E906ABC32FF8 /* AccountDeletionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E126C017995756740DD73A4 /* AccountDeletionTests.swift */; };
 		34F1608F0C5EF14558E94844 /* DiscoverDeck.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB90118FC155B9708B16FE7C /* DiscoverDeck.swift */; };
 		3D3B914F53376611CD19ADEB /* CatalogPagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC41AB4EC6B03C5BC71C4464 /* CatalogPagerTests.swift */; };
 		3DD35E0DD21C098F8A95079C /* Outfit-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C20C2CDB21AED59C3617F762 /* Outfit-Bold.ttf */; };
@@ -88,6 +90,7 @@
 		DAEBCFA7BA8CB6AEC37FFA93 /* StreakTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00B045072A171569E43BF7B /* StreakTests.swift */; };
 		DC940C9D903A185472BB909D /* BKButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460C7C62494A090944AE38EE /* BKButton.swift */; };
 		DD2D891398C60486CD44F852 /* AuthFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4398365AA94BD20047CD92 /* AuthFlowUITests.swift */; };
+		DDD60C00A5C95B7EB7B31462 /* OAuthCredentialProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B1C5EB85D382BDF9671EBD1 /* OAuthCredentialProvider.swift */; };
 		E1C8169FD44B37486E9D0D58 /* FirebaseLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C98C2019941E0A56E6544BBB /* FirebaseLibraryStore.swift */; };
 		E3FE76FB7A9AAA2329CFD40C /* CatalogPager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC1F1182C6F789FC7693E36D /* CatalogPager.swift */; };
 		E4171124B6E85B956D46C0D3 /* ProgressSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8712A278CBF747AA96DD10 /* ProgressSheetView.swift */; };
@@ -124,6 +127,7 @@
 		07E4FC06F6240CF50FCC3200 /* FirebaseUserStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseUserStore.swift; sourceTree = "<group>"; };
 		09B1D9F9851904DF240C9127 /* BKSplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKSplashView.swift; sourceTree = "<group>"; };
 		0C3A9C53E1919974A1C3775E /* BKAnimatedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKAnimatedImage.swift; sourceTree = "<group>"; };
+		0E126C017995756740DD73A4 /* AccountDeletionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDeletionTests.swift; sourceTree = "<group>"; };
 		0E5E3D43DD1821F8F1762FB2 /* BingekiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BingekiApp.swift; sourceTree = "<group>"; };
 		11C2FC41410478F7CA6E4FB6 /* DemoData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoData.swift; sourceTree = "<group>"; };
 		188322B986406AF20FC05D29 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
@@ -139,6 +143,7 @@
 		35C3039286003A2306E575F4 /* BKNavHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKNavHeader.swift; sourceTree = "<group>"; };
 		36CB093A10CAFC0C9733AAAA /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3A3241D15FA784F7B2FF7CEC /* SynopsisTranslation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SynopsisTranslation.swift; sourceTree = "<group>"; };
+		3E28ABBB12B398CB22C7F9FF /* AccountDeletionFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDeletionFlow.swift; sourceTree = "<group>"; };
 		4058CC921BB6C9FCB4120C00 /* Work.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Work.swift; sourceTree = "<group>"; };
 		42C9A5E5CE6E3CF766C03F4F /* WorkDetailState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkDetailState.swift; sourceTree = "<group>"; };
 		45BF3B49B9F409F61247A973 /* TenraiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TenraiClient.swift; sourceTree = "<group>"; };
@@ -158,6 +163,7 @@
 		829FD818DD3FE073423A5F63 /* CatalogueCacheSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogueCacheSection.swift; sourceTree = "<group>"; };
 		85427ABA93BF886224BF8EE6 /* BKLogoShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKLogoShapes.swift; sourceTree = "<group>"; };
 		8A07C49E7D1CD8A0624E5E95 /* Badge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Badge.swift; sourceTree = "<group>"; };
+		8B1C5EB85D382BDF9671EBD1 /* OAuthCredentialProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthCredentialProvider.swift; sourceTree = "<group>"; };
 		8C4398365AA94BD20047CD92 /* AuthFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthFlowUITests.swift; sourceTree = "<group>"; };
 		8CDB763F8CA71A2B026CD022 /* FirebaseGamificationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseGamificationStore.swift; sourceTree = "<group>"; };
 		8D5B25368EF9118D76A67602 /* LibrarySearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySearch.swift; sourceTree = "<group>"; };
@@ -256,6 +262,7 @@
 		11E1C7A376921240CB75A45B /* Networking */ = {
 			isa = PBXGroup;
 			children = (
+				3E28ABBB12B398CB22C7F9FF /* AccountDeletionFlow.swift */,
 				BF6F12D59B6E880244C07396 /* FirebaseAuthStore.swift */,
 				8CDB763F8CA71A2B026CD022 /* FirebaseGamificationStore.swift */,
 				C98C2019941E0A56E6544BBB /* FirebaseLibraryStore.swift */,
@@ -272,6 +279,7 @@
 			isa = PBXGroup;
 			children = (
 				E63E1AEA54A14396C58777D1 /* AuthView.swift */,
+				8B1C5EB85D382BDF9671EBD1 /* OAuthCredentialProvider.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -373,6 +381,7 @@
 			isa = PBXGroup;
 			children = (
 				BC3326988EEE6F91C113DFB2 /* AccessibilityFeedbackTests.swift */,
+				0E126C017995756740DD73A4 /* AccountDeletionTests.swift */,
 				F848CAE82936E0EB2AA91D3D /* AppDestinationTests.swift */,
 				2AB573EEB14BE2137BB567E9 /* BadgeDecodingTests.swift */,
 				FC41AB4EC6B03C5BC71C4464 /* CatalogPagerTests.swift */,
@@ -668,6 +677,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2BDCEBDDDBDC25BB115E981C /* AccessibilityFeedbackTests.swift in Sources */,
+				337AE14C12F2E906ABC32FF8 /* AccountDeletionTests.swift in Sources */,
 				FC75679A9294C624D200981F /* AppDestinationTests.swift in Sources */,
 				D0E1F1F4EF2B89EB688EE3B4 /* BadgeDecodingTests.swift in Sources */,
 				3D3B914F53376611CD19ADEB /* CatalogPagerTests.swift in Sources */,
@@ -690,6 +700,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2AA3057BDAE5B5234156144C /* AccountDeletionFlow.swift in Sources */,
 				0253072F608FB0C493FAA740 /* AppDestination.swift in Sources */,
 				4697D989B05E33EBB483B295 /* AuthView.swift in Sources */,
 				038A492742E070AF169E6731 /* BKAddCornerButton.swift in Sources */,
@@ -727,6 +738,7 @@
 				5D4A9C96A1C4AC1AF3E7495A /* LibrarySearch.swift in Sources */,
 				FE3AAFD1AF187BAE460EE492 /* LibraryStore.swift in Sources */,
 				D29D3D7AA54D142FCC060DE0 /* NetworkMonitor.swift in Sources */,
+				DDD60C00A5C95B7EB7B31462 /* OAuthCredentialProvider.swift in Sources */,
 				0DFE0381EE2BA11EE71827FC /* OnboardingView.swift in Sources */,
 				1EBF2EC86DAE386DBDF3055D /* ProfileEditView.swift in Sources */,
 				95AF2372EB1E242258CA6BB1 /* ProfileView.swift in Sources */,
