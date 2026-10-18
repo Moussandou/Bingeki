@@ -224,6 +224,8 @@ Le document `/users/{uid}` n'est pour l'instant créé qu'implicitement par `Fir
 
 Écoute temps réel via `addSnapshotListener` sur `/users/{uid}` et `/data/library` pour la synchro multi-appareils (web ↔ iOS). `FirebaseLibraryStore` fusionne les œuvres par identité composite et dernier horodatage, avec priorité locale à égalité et prise en compte de `deletedWorks` (voir §7.1). Cette fusion utilise le dernier snapshot reçu ; la gestion transactionnelle des écritures concurrentes et la persistance des mutations en attente restent du ressort du lot synchronisation.
 
+`LocalMutationJournal` fournit une primitive locale isolée par UID et répertoire : écriture atomique avant publication, révisions persistantes et acquittement limité à la révision courante. Les erreurs disque et les documents invalides remontent sans réinitialisation silencieuse. Cette primitive est couverte par `LocalMutationJournalTests`, mais n'est pas encore raccordée aux stores ; elle ne rend donc pas leurs mutations durables à elle seule. L'intégration et la qualification de synchronisation restent suivies dans #139.
+
 ### 8.3 Cloud Functions réutilisables (`functions/index.js`)
 
 Aucune fonction spécifique écrite côté iOS pour l'instant : la recherche et le feed Découvrir utilisent `TenraiClient` (appel direct à Tenrai). Le repli automatique sur les Cloud Functions `jikanProxy.*` en cas d'échec réseau — documenté comme stratégie prévue — **n'est pas encore implémenté**.
