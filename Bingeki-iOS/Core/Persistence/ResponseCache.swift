@@ -1,6 +1,11 @@
 import Foundation
 import SwiftData
 
+protocol CatalogueCacheManaging: Sendable {
+    func statistics() async throws -> ResponseCache.Statistics
+    func purge() async throws
+}
+
 /// Last good Tenrai payload for a request, kept on disk so catalogue screens
 /// (fiche, Découvrir, Parcourir, recherche) still render offline.
 ///
@@ -21,7 +26,12 @@ final class CachedResponse {
 }
 
 @ModelActor
-actor ResponseCache {
+actor ResponseCache: CatalogueCacheManaging {
+    struct Statistics: Equatable, Sendable {
+        let payloadCount: Int
+        let payloadBytes: Int
+    }
+
     static let shared: ResponseCache? = {
         guard let container = try? ModelContainer(for: CachedResponse.self) else { return nil }
         return ResponseCache(modelContainer: container)
@@ -37,6 +47,24 @@ actor ResponseCache {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         return ResponseCache(modelContainer: container)
+    }
+
+    func statistics() throws -> Statistics {
+        let entries = try modelContext.fetch(FetchDescriptor<CachedResponse>())
+        return Statistics(
+            payloadCount: entries.count,
+            payloadBytes: entries.reduce(0) { $0 + $1.data.count }
+        )
+    }
+
+    func purge() throws {
+        do {
+            try modelContext.delete(model: CachedResponse.self)
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
     }
 
     func data(for key: String) -> Data? {

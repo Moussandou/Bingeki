@@ -35,6 +35,14 @@ async function cleanupAccount(db, bucket, auth, uid) {
         if (profile.exists) transaction.update(userRef, { deleting: true });
     });
 
+    await visitDocuments(db.collection("pushTokenBindings").where("uid", "==", uid), document =>
+        db.runTransaction(async transaction => {
+            const current = await transaction.get(document.ref);
+            if (current.exists && current.data().uid === uid) transaction.delete(document.ref);
+        }), deletionRef, "push-token-bindings"
+    );
+    await db.collection("pushDeviceState").doc(uid).delete();
+
     const owned = [
         ["activities", "userId"], ["tierLists", "userId"], ["comments", "userId"],
         ["watchparties", "hostId"], ["watchparties", "creatorId"],

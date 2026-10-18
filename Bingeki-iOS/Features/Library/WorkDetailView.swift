@@ -4,6 +4,15 @@ import SwiftUI
 /// web fiche: cover and tabs, title and score, then the selected tab.
 struct WorkDetailView: View {
     let work: Work
+
+    var body: some View {
+        WorkDetailContentView(work: work)
+            .id(WorkDetailState.key(work))
+    }
+}
+
+private struct WorkDetailContentView: View {
+    let work: Work
     @Environment(\.libraryStore) private var library
     @Environment(\.userStore) private var userStore
     @Environment(ToastCenter.self) private var toasts
@@ -11,21 +20,12 @@ struct WorkDetailView: View {
 
     @State private var showProgressSheet = false
     @State private var showRating = false
-    @State private var details: Work?
-    @State private var extras: TenraiFullExtras?
-    @State private var unavailable = false
+    @State private var remote = WorkDetailState()
     @State private var frenchSynopsis: String?
     @State private var tab: WorkTab = .general
-    @State private var cast: [TenraiCharacterRole] = []
-    @State private var episodes: [TenraiEpisode] = []
-    @State private var episodesPage = 1
-    @State private var episodesHasMore = false
-    @State private var similar: [(work: Work, votes: Int?)] = []
-    @State private var stats: TenraiStatistics?
-    @State private var staff: [TenraiStaff] = []
-    @State private var reviews: [TenraiReview]?
-    @State private var news: [TenraiNews]?
-    @State private var pictures: [TenraiPicture]?
+
+    private var details: Work? { remote.details.value?.data.asWork(mediaType: work.type.tenrai) }
+    private var extras: TenraiFullExtras? { remote.details.value?.extras }
 
     private var owned: Work? { library.work(id: work.id) }
     /// Library copy wins (progress), enriched with fetched metadata when missing.
@@ -73,16 +73,23 @@ struct WorkDetailView: View {
                 .padding(.horizontal, BKSpace.screenMargin)
 
                 Group {
-                    if unavailable, owned != nil { unavailablePanel }
+                    if remote.details.phase == .notFound { unavailablePanel }
+                    section("Fiche", remote.details, retry: { await loadDetails(force: true) }) {
+                        EmptyView()
+                    }
                     tabContent
                 }
                 .padding(.horizontal, BKSpace.screenMargin)
                 .padding(.top, BKSpace.sm)
                 .zIndex(1) // status menu floats over the recommendations
 
-                WorkRecommendationsGrid(items: similar)
-                    .padding(.horizontal, BKSpace.screenMargin)
-                    .padding(.top, BKSpace.xl)
+                section("Recommandations", remote.recommendations, retry: { await loadRecommendations(force: true) }) {
+                    WorkRecommendationsGrid(items: (remote.recommendations.value ?? []).map {
+                        ($0.entry.asWork(mediaType: work.type.tenrai), $0.votes)
+                    })
+                }
+                .padding(.horizontal, BKSpace.screenMargin)
+                .padding(.top, BKSpace.xl)
             }
             .padding(.bottom, BKSpace.xxxl)
         }
@@ -93,8 +100,22 @@ struct WorkDetailView: View {
                     .accessibilityLabel("Partager")
             }
         }
-        .task(id: work.id) { await load() }
-        .task(id: tab) { await loadTab(tab) }
+        .task(id: WorkDetailState.key(work)) {
+            remote.activate(work)
+            if !WorkTab.available(for: work.type).contains(tab) { tab = .general }
+            await load()
+        }
+        .task(id: "\(WorkDetailState.key(work))/\(tab.rawValue)") {
+            remote.activate(work)
+            await loadTab(tab)
+        }
+        .task(id: "\(WorkDetailState.key(work))/\(details?.synopsis ?? work.synopsis ?? "")") {
+            if let synopsis = details?.synopsis ?? work.synopsis {
+                let translated = await SynopsisTranslation.french(for: synopsis, workId: work.id)
+                guard !Task.isCancelled else { return }
+                frenchSynopsis = translated
+            }
+        }
         .sheet(isPresented: $showProgressSheet) {
             ProgressSheetView(work: current, showsDetailLink: false)
                 .presentationDetents([.height(640), .large])
@@ -112,18 +133,45 @@ struct WorkDetailView: View {
         switch tab {
         case .general: general
         case .episodes:
-            WorkEpisodeList(type: current.type, episodes: episodes, totalChapters: current.totalChapters,
-                            hasMore: episodesHasMore, progress: current.progress, canTrack: owned != nil,
-                            onLoadMore: { Task { await loadMoreEpisodes() } }, onSelect: jump(to:))
+            if current.type == .anime {
+                WorkDetailSection(title: "Épisodes", phase: remote.episodes.phase,
+                                  hasContent: !remote.episodes.snapshot.episodes.isEmpty
+                                    || (remote.episodes.snapshot.page > 0 && remote.episodes.snapshot.hasMore),
+                                  emptyMessage: "Aucun épisode disponible.",
+                                  retry: { Task { await loadMoreEpisodes() } }) {
+                    episodeList
+                }
+            } else {
+                episodeList
+            }
         case .music:
-            if let theme = extras?.theme { WorkMusicSection(theme: theme) } else { placeholder }
-        case .reviews: WorkReviewsList(reviews: reviews)
-        case .news: WorkNewsList(news: news)
-        case .gallery: WorkGalleryGrid(pictures: pictures)
+            WorkDetailSection(title: "Musiques", phase: remote.musicPhase, hasContent: remote.hasMusic,
+                              emptyMessage: "Aucune musique disponible.",
+                              retry: { Task { await loadDetails(force: true) } }) {
+                if let theme = extras?.theme { WorkMusicSection(theme: theme) }
+            }
+        case .reviews:
+            section("Avis", remote.reviews, retry: { await loadTab(.reviews, force: true) }) {
+                WorkReviewsList(reviews: remote.reviews.value)
+            }
+        case .news:
+            section("Actus", remote.news, retry: { await loadTab(.news, force: true) }) {
+                WorkNewsList(news: remote.news.value)
+            }
+        case .gallery:
+            section("Galerie", remote.pictures, retry: { await loadTab(.gallery, force: true) }) {
+                WorkGalleryGrid(pictures: remote.pictures.value)
+            }
         case .stats:
             VStack(spacing: BKSpace.xl) {
-                WorkStaffSection(staff: staff)
-                if let stats { WorkStatsSection(stats: stats, type: current.type) } else { placeholder }
+                if current.type == .anime {
+                    section("Staff", remote.staff, retry: { await loadStaff(force: true) }) {
+                        WorkStaffSection(staff: remote.staff.value ?? [])
+                    }
+                }
+                section("Statistiques", remote.stats, retry: { await loadStats(force: true) }) {
+                    if let stats = remote.stats.value { WorkStatsSection(stats: stats, type: current.type) }
+                }
             }
         }
     }
@@ -133,7 +181,9 @@ struct WorkDetailView: View {
             if let text = frenchSynopsis ?? current.synopsis, !text.isEmpty { WorkSynopsisSection(text: text) }
             if let extras { WorkInfoPanel(work: current, extras: extras) }
             if let trailer = details?.trailerYouTubeId ?? current.trailerYouTubeId { WorkTrailerSection(youtubeId: trailer) }
-            WorkCastSection(cast: cast)
+            section("Casting", remote.cast, retry: { await loadCast(force: true) }) {
+                WorkCastSection(cast: remote.cast.value ?? [])
+            }
             if let relations = extras?.relations { WorkFranchiseSection(relations: relations) }
             if let owned {
                 VStack(alignment: .leading, spacing: BKSpace.md) {
@@ -148,8 +198,21 @@ struct WorkDetailView: View {
         }
     }
 
-    private var placeholder: some View {
-        ProgressView().frame(maxWidth: .infinity, minHeight: 120)
+    private func section<Value, Content: View>(
+        _ title: String, _ resource: WorkDetailResource<Value>,
+        retry: @escaping () async -> Void, @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        WorkDetailSection(title: title, phase: resource.phase,
+                          hasContent: resource.hasContent,
+                          retry: { Task { await retry() } }, content: content)
+    }
+
+    private var episodeList: some View {
+        WorkEpisodeList(type: current.type, episodes: remote.episodes.snapshot.episodes,
+                        totalChapters: current.totalChapters,
+                        hasMore: remote.episodes.snapshot.hasMore, isLoading: remote.episodes.isLoading,
+                        progress: current.progress, canTrack: owned != nil,
+                        onLoadMore: { Task { await loadMoreEpisodes() } }, onSelect: jump(to:))
     }
 
     private func statusMenu(_ owned: Work) -> some View {
@@ -234,10 +297,12 @@ struct WorkDetailView: View {
     private var unavailablePanel: some View {
         VStack(alignment: .leading, spacing: BKSpace.sm) {
             Text("Cette fiche n'existe plus à la source").font(.subheadline.weight(.bold))
-            Text("Ta progression et ta note sont conservées. Elles restent dans tes stats.")
+            Text(owned != nil
+                 ? "Ta progression et ta note sont conservées. Elles restent dans tes stats."
+                 : "Cette œuvre n'est plus disponible. Les informations déjà affichées sont conservées.")
                 .font(.footnote)
                 .foregroundStyle(BKColor.textSecondary)
-            HStack(spacing: BKSpace.md) {
+            if owned != nil {
                 Button("Retirer de ma biblio") {
                     library.remove(id: work.id)
                     dismiss()
@@ -298,59 +363,78 @@ struct WorkDetailView: View {
     }
 
     private func loadMoreEpisodes() async {
-        guard episodesHasMore, let page = try? await TenraiClient.shared.episodes(animeId: work.id, page: episodesPage + 1) else { return }
-        episodes += page.data
-        episodesPage += 1
-        episodesHasMore = page.pagination?.hasNextPage ?? false
+        await remote.episodes.loadNext { page in
+            try await TenraiClient.shared.episodes(animeId: work.id, page: page)
+        }
     }
 
     private func load() async {
-        let type = work.type.tenrai
-        do {
-            let response = try await TenraiClient.shared.details(id: work.id, type: type)
-            details = response.data.asWork(mediaType: type)
-            extras = response.extras
-        } catch TenraiClient.ClientError.badStatus(404) {
-            unavailable = true
-        } catch {}
-        if let synopsis = details?.synopsis ?? work.synopsis {
-            Task { frenchSynopsis = await SynopsisTranslation.french(for: synopsis, workId: work.id) }
+        async let details: () = loadDetails()
+        async let cast: () = loadCast()
+        async let recommendations: () = loadRecommendations()
+        _ = await (details, cast, recommendations)
+    }
+
+    private func loadDetails(force: Bool = false) async {
+        await remote.details.load(force: force) {
+            try await TenraiClient.shared.details(id: work.id, type: work.type.tenrai)
         }
-        // Spaced out a little: Tenrai allows ~3 requests per second.
-        async let castCall = try? TenraiClient.shared.characters(id: work.id, type: type)
-        async let recsCall = try? TenraiClient.shared.recommendations(id: work.id, type: type)
-        let castResult = await castCall
-        cast = (castResult?.data ?? []).sorted { ($0.role == "Main" ? 0 : 1) < ($1.role == "Main" ? 0 : 1) }
-        similar = (await recsCall?.data ?? []).map { ($0.entry.asWork(mediaType: type), $0.votes) }
-        if work.type == .anime, let page = try? await TenraiClient.shared.episodes(animeId: work.id) {
-            episodes = page.data
-            episodesPage = 1
-            episodesHasMore = page.pagination?.hasNextPage ?? false
+    }
+
+    private func loadCast(force: Bool = false) async {
+        await remote.cast.load(force: force, isEmpty: \.isEmpty) {
+            let fetched = try await TenraiClient.shared.characters(id: work.id, type: work.type.tenrai)
+            return fetched.data.sorted { ($0.role == "Main" ? 0 : 1) < ($1.role == "Main" ? 0 : 1) }
+        }
+    }
+
+    private func loadRecommendations(force: Bool = false) async {
+        await remote.recommendations.load(force: force, isEmpty: \.isEmpty) {
+            try await TenraiClient.shared.recommendations(id: work.id, type: work.type.tenrai).data
+        }
+    }
+
+    private func loadStats(force: Bool = false) async {
+        await remote.stats.load(force: force, isEmpty: WorkDetailState.statisticsAreEmpty) {
+            try await TenraiClient.shared.statistics(id: work.id, type: work.type.tenrai).data
+        }
+    }
+
+    private func loadStaff(force: Bool = false) async {
+        await remote.staff.load(force: force, isEmpty: \.isEmpty) {
+            let order = ["Director", "Series Composition", "Original Creator", "Music", "Character Design", "Sound Director", "Animation Director", "Script", "Producer"]
+            func rank(_ member: TenraiStaff) -> Int {
+                member.positions.compactMap { position in order.firstIndex { position.hasPrefix($0) } }.min() ?? order.count
+            }
+            let fetched = try await TenraiClient.shared.staff(animeId: work.id).data
+            return fetched.enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }.map(\.element)
         }
     }
 
     /// Tab data is fetched the first time its tab opens, like the web.
-    private func loadTab(_ tab: WorkTab) async {
+    private func loadTab(_ tab: WorkTab, force: Bool = false) async {
         let type = work.type.tenrai
         switch tab {
-        case .reviews where reviews == nil:
-            reviews = (try? await TenraiClient.shared.reviews(id: work.id, type: type))?.data ?? []
-        case .news where news == nil:
-            news = (try? await TenraiClient.shared.news(id: work.id, type: type))?.data ?? []
-        case .gallery where pictures == nil:
-            pictures = (try? await TenraiClient.shared.pictures(id: work.id, type: type))?.data ?? []
-        case .stats where stats == nil:
-            async let statsCall = try? TenraiClient.shared.statistics(id: work.id, type: type)
-            if work.type == .anime {
-                // Key roles first (director, writer, music…), producers last, like the web's "Staff (principal)".
-                let order = ["Director", "Series Composition", "Original Creator", "Music", "Character Design", "Sound Director", "Animation Director", "Script", "Producer"]
-                func rank(_ member: TenraiStaff) -> Int {
-                    member.positions.compactMap { position in order.firstIndex { position.hasPrefix($0) } }.min() ?? order.count
-                }
-                let fetched = (try? await TenraiClient.shared.staff(animeId: work.id))?.data ?? []
-                staff = fetched.enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }.map(\.element)
+        case .episodes where work.type == .anime:
+            if remote.episodes.snapshot.page == 0 { await loadMoreEpisodes() }
+        case .reviews:
+            await remote.reviews.load(force: force, isEmpty: \.isEmpty) {
+                try await TenraiClient.shared.reviews(id: work.id, type: type).data
             }
-            stats = await statsCall?.data
+        case .news:
+            await remote.news.load(force: force, isEmpty: \.isEmpty) {
+                try await TenraiClient.shared.news(id: work.id, type: type).data
+            }
+        case .gallery:
+            await remote.pictures.load(force: force, isEmpty: \.isEmpty) {
+                try await TenraiClient.shared.pictures(id: work.id, type: type).data
+            }
+        case .stats:
+            async let stats: () = loadStats(force: force)
+            if work.type == .anime {
+                await loadStaff(force: force)
+            }
+            await stats
         default:
             break
         }

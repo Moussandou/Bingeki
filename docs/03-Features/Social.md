@@ -9,6 +9,14 @@ navigation is Feed, Discussions, and Challenges & awards. Friends, the historica
 activity journal, watch parties, and official Instagram news remain accessible
 without competing with the main conversation.
 
+The community uses the QG's opaque manga panels, heavy borders, hard shadows
+and existing Outfit/Inter typography. Reading surfaces, navigation, menus and
+sidebar sections never place text directly over the decorative page pattern.
+Secondary copy uses theme text tokens instead of reduced opacity; local accent
+colors preserve readable links and button labels in light, dark and AMOLED.
+The browser flow checks rendered text contrast (WCAG AA), opaque backgrounds,
+hovered publish buttons, and navigation at 320, 390 and 1280 pixels.
+
 - **Feed filters:** My readings, Friends, Following, and Discover. My readings
   matches exact `workType:workId` identities against the viewer's library.
 - **Reviews:** whole work or numbered chapter/episode; optional 1–10 rating,

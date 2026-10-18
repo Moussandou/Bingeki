@@ -76,12 +76,12 @@ function CommunityFeedContent({ filter = 'discover', workKey, unit, authorId, re
         {error && <div className={styles.error} role="alert">{t('error')} <button onClick={() => void load()}>{t('retry')}</button></div>}
         {!error && !loading && page.items.length === 0 && <div className={styles.empty}>
             <BookOpen size={28} /><h3>{t('emptyTitle')}</h3><p>{t(filter === 'readings' ? 'emptyReadings' : filter === 'following' ? 'emptyFollowing' : 'emptyHint')}</p>
-            {onDiscover && filter !== 'discover' && <Button variant="outline" onClick={onDiscover}>{t('discover')}</Button>}
+            {onDiscover && filter !== 'discover' && <Button variant="manga" onClick={onDiscover}>{t('discover')}</Button>}
             <Link to="/discover" className={styles.textButton}>{t('findWork')}</Link>
         </div>}
         {!loading && page.items.length > 0 && <button className={styles.refresh} onClick={() => void load()}><RefreshCw size={14} />{t('refresh')}</button>}
         {page.items.map(post => <CommunityPostCard key={post.id} post={post} onOpen={onOpen} onChanged={() => void load()} />)}
         {loading && <div role="status" aria-label={t('loading')} className={styles.skeleton} />}
-        {page.cursor && !error && <Button variant="outline" disabled={loading} onClick={() => void more()}>{t('loadMore')}</Button>}
+        {page.cursor && !error && <Button variant="manga" disabled={loading} onClick={() => void more()}>{t('loadMore')}</Button>}
     </div>;
 }
