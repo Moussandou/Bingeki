@@ -39,6 +39,8 @@ async function cleanupAccount(db, bucket, auth, uid) {
         ["activities", "userId"], ["tierLists", "userId"], ["comments", "userId"],
         ["watchparties", "hostId"], ["watchparties", "creatorId"],
         ["challenges", "createdBy"], ["feedback", "userId"], ["survey_responses", "userId"],
+        ["communityPosts", "userId"], ["communityReports", "userId"],
+        ["communityWeeks", "userId"], ["communityVisits", "userId"],
     ];
     for (const [collection, field] of owned) {
         await visitDocuments(db.collection(collection).where(field, "==", uid), async document => {
@@ -48,6 +50,29 @@ async function cleanupAccount(db, bucket, auth, uid) {
             await db.recursiveDelete(document.ref);
         }, deletionRef, `owned-${collection}-${field}`);
     }
+
+    await visitDocuments(db.collection("communityPosts"), async document => {
+        await visitDocuments(document.ref.collection("replies").where("userId", "==", uid), async reply => {
+            await db.runTransaction(async transaction => {
+                const [post, current] = await Promise.all([transaction.get(document.ref), transaction.get(reply.ref)]);
+                if (!current.exists) return;
+                transaction.delete(reply.ref);
+                if (post.exists && current.data().status === "published") {
+                    transaction.update(document.ref, { replyCount: Math.max(0, (post.data().replyCount || 0) - 1),
+                        otherReplyCount: Math.max(0, (post.data().otherReplyCount || 0) - (post.data().userId === uid ? 0 : 1)) });
+                }
+            });
+        });
+        const reactionRef = document.ref.collection("reactions").doc(uid);
+        await db.runTransaction(async transaction => {
+            const [post, reaction] = await Promise.all([transaction.get(document.ref), transaction.get(reactionRef)]);
+            if (!reaction.exists) return;
+            transaction.delete(reactionRef);
+            if (post.exists) transaction.update(document.ref, { usefulCount: Math.max(0, (post.data().usefulCount || 0) - 1) });
+        });
+        await document.ref.collection("reactionClaims").doc(uid).delete();
+    }, deletionRef, "community-references");
+    await db.recursiveDelete(db.collection("communityState").doc(uid));
 
     for (const collection of ["comments", "tierLists"]) {
         await visitDocuments(db.collection(collection).where("likes", "array-contains", uid), document =>
@@ -99,6 +124,8 @@ async function cleanupAccount(db, bucket, auth, uid) {
     // friendships must not retain names/photos on another user's account.
     await visitDocuments(db.collection("users"), async document => {
         await document.ref.collection("friends").doc(uid).delete();
+        await document.ref.collection("communityFollows").doc(uid).delete();
+        await document.ref.collection("communityBlocks").doc(uid).delete();
         for (const field of ["userId", "fromUserId", "senderId", "actorId"]) {
             await visitDocuments(document.ref.collection("notifications").where(field, "==", uid),
                 notification => notification.ref.delete());

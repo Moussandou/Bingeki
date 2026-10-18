@@ -83,6 +83,13 @@ describe('gamificationCore parity (client TS vs server CJS)', () => {
         }
     });
 
+    it('preserves server-owned community XP separately from client-owned bonuses', () => {
+        for (const communityXp of BONUS_FIXTURES) {
+            expect(server.calculateUserStats([], 50000, communityXp)).toEqual(client.calculateUserStats([], 50000, communityXp));
+        }
+        expect(client.calculateUserStats([], 25, 30).totalXp).toBe(55);
+    });
+
     it('computes identical badges across the fixture matrix', () => {
         for (const works of WORK_FIXTURES) {
             for (const streak of [0, 1, 3, 7, 30, 365]) {

@@ -77,6 +77,15 @@ describe.skipIf(!enabled)('functional flows on isolated demo emulators', () => {
             },
             'challenges/empty': { createdBy: 'remaining', participantIds: ['departing'] },
             'feedback/f': { userId: 'departing' },
+            'communityState/departing': { highWater: { 'manga:1': 50 } },
+            'communityWeeks/week_departing': { userId: 'departing' },
+            'communityVisits/week_departing': { userId: 'departing' },
+            'communityPosts/owned': { userId: 'departing' },
+            'communityPosts/remaining': { userId: 'remaining', replyCount: 1, otherReplyCount: 1, usefulCount: 1 },
+            'communityPosts/remaining/replies/reply': { userId: 'departing', status: 'published', text: 'Remove this' },
+            'communityPosts/remaining/reactions/departing': { userId: 'departing' },
+            'users/remaining/communityFollows/departing': { userId: 'departing' },
+            'users/remaining/communityBlocks/departing': { userId: 'departing' },
         };
         await Promise.all(Object.entries(fixtures).map(([path, data]) => db.doc(path).set(data)));
         await Promise.all(['users/departing/banner.png', 'avatars/departing', 'avatars/departing/a.png', 'avatars/departing-other', 'banners/departing_legacy.png', 'feedback-attachments/f/a.png', 'users/remaining/keep.png']
@@ -99,6 +108,12 @@ describe.skipIf(!enabled)('functional flows on isolated demo emulators', () => {
         expect((await db.doc('comments/liked').get()).data().likes).toEqual([]);
         expect((await bucket.getFiles())[0].map(file => file.name).sort()).toEqual(['avatars/departing-other', 'users/remaining/keep.png']);
         expect((await db.doc('accountDeletions/departing').get()).exists).toBe(true);
+        for (const path of ['communityState/departing', 'communityPosts/owned', 'communityPosts/remaining/replies/reply',
+            'communityPosts/remaining/reactions/departing', 'users/remaining/communityFollows/departing',
+            'users/remaining/communityBlocks/departing', 'communityWeeks/week_departing', 'communityVisits/week_departing']) {
+            expect((await db.doc(path).get()).exists).toBe(false);
+        }
+        expect((await db.doc('communityPosts/remaining').get()).data()).toMatchObject({ replyCount: 0, otherReplyCount: 0, usefulCount: 0 });
         auth.deleteUser.mockRejectedValue(Object.assign(new Error('already removed'), { code: 'auth/user-not-found' }));
         await expect(cleanupAccount(db, bucket, auth, 'departing')).resolves.toBeUndefined();
     }, 30_000);

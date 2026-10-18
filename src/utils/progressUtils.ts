@@ -4,6 +4,7 @@
  */
 import { useLibraryStore } from '@/store/libraryStore';
 import { useGamificationStore } from '@/store/gamificationStore';
+import { workKey } from '@/utils/workIdentity';
 
 
 export const handleProgressUpdateWithXP = (
@@ -45,5 +46,10 @@ export const handleProgressUpdateWithXP = (
     const updatedWorks = useLibraryStore.getState().works;
     recalculateStats(updatedWorks);
 
+    if (newProgress > oldProgress && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('bingeki:reading-progress', {
+            detail: { workKey: workKey(work), unit: newProgress },
+        }));
+    }
     return true;
 };

@@ -131,7 +131,7 @@ function clampBonusXp(bonusXp) {
 }
 
 // Derives every stat from the library. Deterministic: same works in, same stats out.
-function calculateUserStats(libraryWorks, bonusXp = 0) {
+function calculateUserStats(libraryWorks, bonusXp = 0, communityXp = 0) {
     const works = Array.isArray(libraryWorks) ? libraryWorks : [];
 
     let totalChaptersRead = 0;
@@ -169,7 +169,7 @@ function calculateUserStats(libraryWorks, bonusXp = 0) {
         }
     }
 
-    const totalXp = totalXpFromLibrary + clampBonusXp(bonusXp);
+    const totalXp = totalXpFromLibrary + clampBonusXp(bonusXp) + clampBonusXp(communityXp);
     const { level, xp, xpToNextLevel } = levelFromTotalXp(totalXp);
 
     return {

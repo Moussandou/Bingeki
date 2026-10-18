@@ -15,7 +15,7 @@ export function ReviewsSection({ reviews, hideScores }: ReviewsSectionProps) {
     return (
         <div className="animate-fade-in">
             <h2 className={styles.sectionTitle} style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Star size={24} fill="currentColor" /> {t('work_details.reviews.title')}
+                <Star size={24} fill="currentColor" /> {t('community:externalReviews')}
             </h2>
 
             {reviews.length > 0 ? (

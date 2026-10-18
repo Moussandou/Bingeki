@@ -22,6 +22,7 @@ export interface GamificationData {
     streak: number;
     lastActivityDate: string | null;
     bonusXp: number;
+    communityXp?: number;
     badges: Badge[];
     totalChaptersRead: number;
     totalAnimeEpisodesWatched: number;
@@ -96,6 +97,7 @@ export function mergeGamificationData(
         totalXp,
         level: derived.level,
         bonusXp,
+        communityXp: clampBonusXp(authoritative.communityXp),
     });
 
     return {
