@@ -78,7 +78,7 @@ final class FirebaseAuthStore: AuthProviding, AccountDeletionClient {
         guard deletionAccount == account, let user = Auth.auth().currentUser else {
             throw AccountDeletionError.wrongAccount
         }
-        _ = try await user.getIDTokenForcingRefresh(true)
+        _ = try await user.getIDToken(forcingRefresh: true)
     }
 
     func finishDeletion(for account: DeletionAccount) throws {
