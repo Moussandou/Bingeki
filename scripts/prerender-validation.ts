@@ -3,10 +3,12 @@ export interface RenderedPage {
     heading: boolean;
     lang: string;
     title: string;
+    visible: boolean;
 }
 
 export function assertRenderedPage(page: RenderedPage, lang: string, wrongLanguageTitle: string | undefined, errors: string[]) {
     if (errors.length) throw new Error(`Browser errors: ${errors.join('; ')}`);
+    if (!page.visible) throw new Error('Invisible prerendered main content');
     if (!page.heading || page.text.length < 40 || /^(chargement|loading)[.!\s]*$/i.test(page.text)) {
         throw new Error('Empty or loading-only React content');
     }

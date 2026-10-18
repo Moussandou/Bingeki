@@ -8,6 +8,7 @@ on:
       - 'takax170-ios-*'
     paths:
       - 'Bingeki-iOS/**'
+      - 'scripts/ios/**'
       - '.github/workflows/ios-ci.yml'
   pull_request:
     branches:
@@ -16,6 +17,7 @@ on:
       - 'takax170-ios-*'
     paths:
       - 'Bingeki-iOS/**'
+      - 'scripts/ios/**'
       - '.github/workflows/ios-ci.yml'
 
 concurrency:
@@ -39,6 +41,9 @@ jobs:
           xcodebuild -version
           swift --version
 
+      - name: Test XcodeGen setup harness
+        run: bash "$GITHUB_WORKSPACE/scripts/ios/ensure-xcodegen.test.sh"
+
       - name: Cache Homebrew Formulas
         uses: actions/cache@v4
         with:
@@ -51,10 +56,7 @@ jobs:
 
       - name: Install XcodeGen
         run: |
-          if ! command -v xcodegen &>/dev/null; then
-            brew install xcodegen
-          fi
-          xcodegen --version
+          "$GITHUB_WORKSPACE/scripts/ios/ensure-xcodegen.sh"
 
       - name: Generate Xcode Project
         run: xcodegen generate
@@ -115,9 +117,7 @@ jobs:
 
       - name: Install XcodeGen
         run: |
-          if ! command -v xcodegen &>/dev/null; then
-            brew install xcodegen
-          fi
+          "$GITHUB_WORKSPACE/scripts/ios/ensure-xcodegen.sh"
 
       - name: Generate Xcode Project
         run: xcodegen generate
