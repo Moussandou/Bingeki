@@ -3,20 +3,17 @@
  * Routes, global modals, auth sync, and maintenance gate
  */
 import { logger } from '@/utils/logger';
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { MaintenanceScreen } from '@/components/ui/MaintenanceScreen';
 import { useAuthStore } from '@/store/authStore';
 import { usePWAStore } from '@/store/pwaStore';
-import {
-  subscribeToGlobalConfig
-} from '@/firebase/firestore';
 import { ToastProvider } from '@/context/ToastContext';
 import { isBot } from '@/utils/isBot';
+import { Opening, Privacy, isPublicInformationPage } from '@/initialPages';
 
 // Pages (lazy loaded)
-const Opening = lazy(() => import('@/pages/Opening'));
 const Auth = lazy(() => import('@/pages/Auth'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Library = lazy(() => import('@/pages/Library'));
@@ -46,7 +43,6 @@ const ViewTierList = lazy(() => import('@/pages/tierlist/ViewTierList'));
 const FormSurvey = lazy(() => import('@/pages/FormSurvey'));
 const FormSurveyThankYou = lazy(() => import('@/pages/FormSurveyThankYou'));
 
-const Privacy = lazy(() => import('@/pages/Privacy'));
 const Terms = lazy(() => import('@/pages/Terms'));
 const Contact = lazy(() => import('@/pages/Contact'));
 const About = lazy(() => import('@/pages/About'));
@@ -57,11 +53,11 @@ const NewsIndex = lazy(() => import('@/pages/NewsIndex'));
 const NewsArticle = lazy(() => import('@/pages/NewsArticle'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
-import { AdminLayout } from '@/components/admin/AdminLayout';
+const AdminLayout = lazy(() => import('@/components/admin/AdminLayout').then(module => ({ default: module.AdminLayout })));
+const ApplicationSync = lazy(() => import('@/components/ApplicationSync'));
 import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { InstallInstructionsModal } from '@/components/pwa/InstallInstructionsModal';
 import { MobileMenuFAB } from '@/components/layout/MobileMenuFAB';
-import { UsernameSelectionModal } from '@/components/auth/UsernameSelectionModal';
 import { XPGainToast } from '@/components/gamification/XPGainToast';
 import { LevelUpModal } from '@/components/gamification/LevelUpModal';
 import { AvatarSelectionModal } from '@/components/auth/AvatarSelectionModal';
@@ -69,12 +65,10 @@ import { ReloadPrompt } from '@/components/pwa/ReloadPrompt';
 import { ScrollToTop } from '@/components/layout/ScrollToTop';
 
 
-import { useAuthSync } from '@/hooks/useAuthSync';
 import { useLibraryStore } from '@/store/libraryStore';
 import { usePWAHandler } from '@/hooks/usePWAHandler';
 import { useThemeManager } from '@/hooks/useThemeManager';
 import { useMounted } from '@/hooks/useMounted';
-import { useFirestoreSync } from '@/hooks/useFirestoreSync';
 import { useLanguageDetection } from '@/hooks/useLanguageDetection';
 
 // Skip loading spinners for bots / prerendered pages
@@ -169,18 +163,12 @@ function App() {
   const setShowInstallModal = usePWAStore((s) => s.setShowInstallModal);
 
 
-  useAuthSync();
   usePWAHandler();
   useThemeManager();
-  useFirestoreSync();
 
-  // Maintenance mode toggle
-  useEffect(() => {
-    const unsubscribe = subscribeToGlobalConfig((config) => {
-      if (config) setIsMaintenance(config.maintenance);
-      setConfigLoaded(true);
-    });
-    return () => unsubscribe();
+  const onConfig = useCallback((maintenance: boolean) => {
+    setIsMaintenance(maintenance);
+    setConfigLoaded(true);
   }, []);
 
   // Force render after 5s timeout to avoid infinite loading
@@ -197,12 +185,14 @@ function App() {
 
   const isPrerendered = typeof document !== 'undefined' && document.body.classList.contains('is-prerendered');
 
+  const renderContent = () => {
   // Never expose the previous account's persisted state, even after the loading timeout.
   if (libraryOwner !== currentUid) {
     return syncError ? <div role="alert">{syncError}</div> : <LoadingScreen />;
   }
 
-  if ((loading || !configLoaded) && !isBot() && !isPrerendered) {
+  if ((loading || !configLoaded) && !isBot() && !isPrerendered
+    && !isPublicInformationPage(window.location.pathname)) {
     return <LoadingScreen />;
   }
 
@@ -214,7 +204,6 @@ function App() {
   return (
     <ToastProvider>
         <ScrollToTop />
-        <UsernameSelectionModal />
         <AvatarSelectionModal />
         <XPGainToast />
         <LevelUpModal />
@@ -307,6 +296,14 @@ function App() {
       <ReloadPrompt />
     </ToastProvider >
   )
+  };
+
+  return (
+    <>
+      <Suspense fallback={null}><ApplicationSync onConfig={onConfig} /></Suspense>
+      {renderContent()}
+    </>
+  );
 }
 
 export default App
