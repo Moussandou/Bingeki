@@ -44,22 +44,22 @@ export function useNotifications(limitCount = 20) {
             const notifsRef = collection(db, 'users', user.uid, 'notifications');
             const q = query(notifsRef, orderBy('createdAt', 'desc'), limit(limitCount));
             unsubscribe = onSnapshot(q, (snapshot) => {
-            if (disposed) return;
-            const notifs: AppNotification[] = [];
-            let unread = 0;
-            snapshot.forEach((doc) => {
-                const data = doc.data() as Omit<AppNotification, 'id'>;
-                notifs.push({ id: doc.id, ...data });
-                if (!data.read) unread++;
+                if (disposed) return;
+                const notifs: AppNotification[] = [];
+                let unread = 0;
+                snapshot.forEach((doc) => {
+                    const data = doc.data() as Omit<AppNotification, 'id'>;
+                    notifs.push({ id: doc.id, ...data });
+                    if (!data.read) unread++;
+                });
+                setNotifications(notifs);
+                setUnreadCount(unread);
+                setLoading(false);
+            }, (error) => {
+                if (disposed) return;
+                logger.error('[Firestore] Error fetching notifications:', error);
+                setLoading(false);
             });
-            setNotifications(notifs);
-            setUnreadCount(unread);
-            setLoading(false);
-        }, (error) => {
-            if (disposed) return;
-            logger.error('[Firestore] Error fetching notifications:', error);
-            setLoading(false);
-        });
         }).catch(error => {
             if (disposed) return;
             logger.error('[Firestore] Error initializing notifications:', error);

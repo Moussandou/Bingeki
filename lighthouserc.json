@@ -2,17 +2,25 @@
     "ci": {
         "collect": {
             "staticDistDir": "./dist",
-            "url": ["http://localhost/fr/privacy", "http://localhost/en/privacy"],
-            "numberOfRuns": 1
+            "url": ["http://localhost/fr/privacy", "http://localhost/en/privacy", "http://localhost/fr"],
+            "numberOfRuns": 3,
+            "settings": {
+                "formFactor": "mobile",
+                "throttlingMethod": "simulate",
+                "chromeFlags": "--headless --no-sandbox"
+            }
         },
         "assert": {
             "assertions": {
                 "categories:performance": [
-                    "warn",
+                    "error",
                     {
-                        "minScore": 0.7
+                        "minScore": 0.7,
+                        "aggregationMethod": "median"
                     }
                 ],
+                "first-contentful-paint": ["error", { "maxNumericValue": 3500, "aggregationMethod": "median" }],
+                "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1, "aggregationMethod": "median" }],
                 "categories:accessibility": [
                     "warn",
                     {

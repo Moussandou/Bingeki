@@ -11,7 +11,7 @@ import { useAuthStore } from '@/store/authStore';
 import { usePWAStore } from '@/store/pwaStore';
 import { ToastProvider } from '@/context/ToastContext';
 import { isBot } from '@/utils/isBot';
-import { Opening, Privacy } from '@/initialPages';
+import { Opening, Privacy, isPublicInformationPage } from '@/initialPages';
 
 // Pages (lazy loaded)
 const Auth = lazy(() => import('@/pages/Auth'));
@@ -191,7 +191,8 @@ function App() {
     return syncError ? <div role="alert">{syncError}</div> : <LoadingScreen />;
   }
 
-  if ((loading || !configLoaded) && !isBot() && !isPrerendered) {
+  if ((loading || !configLoaded) && !isBot() && !isPrerendered
+    && !isPublicInformationPage(window.location.pathname)) {
     return <LoadingScreen />;
   }
 

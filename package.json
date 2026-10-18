@@ -19,6 +19,7 @@
     "test:emulator": "vitest run --reporter=verbose && npm run test:rules",
     "test:rules": "vitest run --config vitest.rules.config.ts",
     "test:seo": "node scripts/test-seo.mjs",
+    "test:prerender": "tsx scripts/test-prerender.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "validate:i18n": "npx tsx scripts/check-translations.ts",
