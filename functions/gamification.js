@@ -72,11 +72,13 @@ async function syncUserGamification(userId) {
             gamData.verifiedStreakAt
         );
 
-        const stats = calculateUserStats(works, bonusXp);
+        const communityXp = Math.min(50000, Math.max(0, Math.floor(gamData.communityXp || 0)));
+        const stats = calculateUserStats(works, bonusXp, communityXp);
         const badges = calculateBadges(stats, verifiedStreak, gamData.badges || []);
 
         const payload = {
             ...stats,
+            communityXp,
             badges,
             streak: verifiedStreak,
         };
@@ -199,7 +201,8 @@ exports.onGamificationUpdate = onDocumentWritten('users/{userId}/data/gamificati
     const clientOwnedChanged =
         (before.bonusXp || 0) !== (after.bonusXp || 0) ||
         (before.streak || 0) !== (after.streak || 0) ||
-        (before.lastActivityDate || null) !== (after.lastActivityDate || null);
+        (before.lastActivityDate || null) !== (after.lastActivityDate || null) ||
+        (before.communityXp || 0) !== (after.communityXp || 0);
 
     if (!clientOwnedChanged) return null;
 
