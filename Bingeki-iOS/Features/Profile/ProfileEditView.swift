@@ -70,8 +70,8 @@ struct ProfileEditView: View {
         }
     }
 
-    private var topWorks: [Work] {
-        userStore.profile.top3Favorites.compactMap { library.work(id: $0) }
+    private var topWorks: [Work?] {
+        userStore.profile.top3Favorites.map { library.work(id: $0) }
     }
 
     private var colorsTab: some View {
@@ -112,7 +112,7 @@ struct ProfileEditView: View {
                         .overlay(Rectangle().stroke(userStore.profile.banner == nil ? BKColor.brandPink : BKColor.border, lineWidth: userStore.profile.banner == nil ? 3 : 2))
                 }
                 .accessibilityLabel("Bannière automatique, ton top 1")
-                ForEach(library.works.filter { $0.image != nil }) { work in
+                ForEach(library.works.filter { $0.image != nil }, id: \.identity) { work in
                     let selected = userStore.profile.banner == work.image?.absoluteString
                     Button {
                         userStore.update { $0.banner = work.image?.absoluteString }
@@ -171,17 +171,13 @@ struct ProfileEditView: View {
         VStack(alignment: .leading, spacing: BKSpace.sm) {
             Text("Tape pour placer · tes terminés").font(.caption).foregroundStyle(BKColor.textSecondary)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
-                ForEach(library.works(status: .completed) + library.works.filter { $0.status != .completed }) { work in
-                    let selected = userStore.profile.top3Favorites.contains(work.id)
+                ForEach(library.works(status: .completed) + library.works.filter { $0.status != .completed }, id: \.identity) { work in
+                    let selected = WorkIdentity.migrate(userStore.profile.top3Favorites, in: library.works).contains(work.identity.key)
                     Button {
                         userStore.update { profile in
-                            if let index = profile.top3Favorites.firstIndex(of: work.id) {
-                                profile.top3Favorites.remove(at: index)
-                            } else if profile.top3Favorites.count < 3 {
-                                profile.top3Favorites.append(work.id)
-                            } else {
-                                profile.top3Favorites[2] = work.id
-                            }
+                            profile.top3Favorites = WorkIdentity.toggling(
+                                work.identity, in: profile.top3Favorites, works: library.works
+                            )
                         }
                     } label: {
                         BKCover(url: work.image)

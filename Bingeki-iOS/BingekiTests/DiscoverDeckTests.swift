@@ -15,12 +15,12 @@ struct DiscoverDeckTests {
         let deck = deck(defaults)
 
         deck.setIndex(3)
-        #expect(defaults.stringArray(forKey: "bk.discover.seen") == ["1", "2", "3"])
+        #expect(defaults.stringArray(forKey: "bk.discover.seen") == ["anime:1", "anime:2", "anime:3"])
 
         // Scrolling back up to re-watch doesn't unsee anything or duplicate.
         deck.setIndex(1)
         deck.setIndex(3)
-        #expect(defaults.stringArray(forKey: "bk.discover.seen") == ["1", "2", "3"])
+        #expect(defaults.stringArray(forKey: "bk.discover.seen") == ["anime:1", "anime:2", "anime:3"])
     }
 
     @Test func refillFailureRetriesSamePageWithoutLosingCards() async throws {
@@ -57,12 +57,49 @@ struct DiscoverDeckTests {
         let deck = try makeDeck(fixture, pool: [Work(id: "1", title: "Original", type: .anime, status: .planToRead)])
         await deck.enrichVisibleCards()
         #expect(deck.currentCard?.title == "Original")
-        #expect(deck.enrichmentFailures == ["1"])
+        #expect(deck.enrichmentFailures == ["anime:1"])
         await deck.enrichVisibleCards()
         #expect(deck.currentCard?.title == "Title 1")
         #expect(deck.enrichmentFailures.isEmpty)
         await deck.enrichVisibleCards()
         #expect(fixture.pages("/v1/anime/1/full").count == 2)
+    }
+
+    @Test func sameProviderIDKeepsEnrichmentAndRetryIndependentByType() async throws {
+        let fixture = DeckFixture()
+        fixture.set("/v1/anime/1/full", statuses: [429, 200], ids: [1])
+        fixture.set("/v1/manga/1/full", statuses: [200], ids: [1])
+        let anime = Work(id: "1", title: "Anime", type: .anime, status: .planToRead)
+        let manga = Work(id: "1", title: "Manga", type: .manga, status: .planToRead)
+        let deck = try makeDeck(fixture, pool: [anime, manga])
+
+        await deck.enrichVisibleCards()
+        #expect(deck.currentCard?.title == "Anime")
+        #expect(deck.nextCard?.title == "Title 1")
+        #expect(deck.nextCard?.type == .manga)
+        #expect(deck.enrichmentFailures == [anime.identity.key])
+
+        await deck.enrichVisibleCards()
+        #expect(deck.currentCard?.title == "Title 1")
+        #expect(deck.currentCard?.type == .anime)
+        #expect(deck.enrichmentFailures.isEmpty)
+        #expect(fixture.pages("/v1/anime/1/full").count == 2)
+        #expect(fixture.pages("/v1/manga/1/full").count == 1)
+        #expect([anime, manga, anime].uniqued().map(\.identity) == [anime.identity, manga.identity])
+    }
+
+    @Test func ownedAnimeDoesNotFilterMangaWithSameProviderID() async throws {
+        let fixture = DeckFixture()
+        fixture.set("/v1/seasons/now", statuses: [200], ids: [1])
+        fixture.set("/v1/top/anime", statuses: [200], ids: [1])
+        fixture.set("/v1/top/manga", statuses: [200], ids: [1])
+        let deck = try makeDeck(fixture)
+        await deck.load(library: [Work(id: "1", title: "Owned", type: .anime, status: .completed)])
+
+        #expect(deck.pool.map(\.identity) == [WorkIdentity(type: .manga, id: "1")])
+        #expect(deck.reasons["manga:1"] == "MANGA POPULAIRE")
+        #expect(deck.reasons["anime:1"] == nil)
+        #expect(!deck.hasRefillError)
     }
 
     @Test func successfulEmptyIsExhaustedNotFailedAndConfigurationInvalidates() async throws {

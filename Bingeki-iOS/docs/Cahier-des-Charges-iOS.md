@@ -187,7 +187,17 @@ Les types réels vivent dans `Models/Work.swift` et `Models/UserProfile.swift` �
 
 `GamificationCore.swift` porte les formules XP/niveau (`LEVEL_BASE = 100`, `LEVEL_MULTIPLIER = 1.05`, `MAX_LEVEL = 100`) à l'identique depuis `src/shared/gamificationCore.ts` — **ne pas réinventer le calcul côté client** : le serveur (Cloud Function `onLibraryUpdate`) reste la source de vérité, le client ne fait que de l'affichage optimiste (voir §9).
 
-`Folder`/`Tombstone` et le merge par œuvre avec tombstones ne sont pas encore portés — voir §0 et la note dans `FirebaseLibraryStore`.
+`Folder` reste un champ web non modélisé. Le merge par œuvre et les tombstones sont portés dans `LibraryMerge`.
+
+#### 7.1 Contrat d'identité partagé web / iOS
+
+- `Work.id` reste l'identifiant MAL brut, décodé depuis un nombre ou une chaîne. Il ne constitue jamais une identité unique : un anime et un manga peuvent partager cet identifiant.
+- `Work.identity` est un `WorkIdentity(type: WorkType, id: String)` hashable. Sa propriété `key` utilise exactement le format web `anime:id` / `manga:id`. Les stores exposent `work(identity:)` et `remove(identity:)` ; les sélections, clés SwiftUI, caches de découverte et upserts utilisent cette identité composite.
+- `work(id:)` est une compatibilité en lecture pour les références persistées : une clé composite est résolue directement, un ancien identifiant brut uniquement si une seule identité correspond. Les références ambiguës sont journalisées et ne sont jamais attribuées au premier résultat.
+- `top3Favorites` reste un tableau ordonné de chaînes. Les nouvelles sélections écrivent des clés composites. La migration des références legacy uniques est idempotente ; les références ambiguës ou absentes restent inchangées. L'affichage conserve le rang d'origine même lorsqu'une référence n'est pas résolue.
+- Les tombstones partagés dans `deletedWorks` utilisent `{ id, type, deletedAt }`, avec `id` brut et `deletedAt` en millisecondes epoch. Ils sont conservés sans TTL, fusionnés par identité et appliqués aux copies locales comme distantes. Un ajout explicite postérieur à une suppression survit ; les horodatages natifs sont strictement postérieurs à l'édition / suppression précédente.
+- Les anciennes suppressions locales (tableau JSON, dates en secondes depuis 2001) sont lues puis sauvegardées dans une enveloppe locale version 2, avec dates epoch-ms. Une suppression legacy n'est typée que lorsqu'elle est non ambiguë ; sinon elle reste conservée sans supprimer les deux types. iOS ne publie pas de nouveau wildcard legacy au web. Les références legacy déjà présentes dans le cloud sont préservées tant qu'elles ne peuvent pas être migrées.
+- Les champs web inconnus de chaque œuvre (`notes`, `rank`, métadonnées imbriquées, etc.) sont superposés depuis l'entrée distante de **la même identité**. Les entrées indécodables sont préservées intactes. Les champs du document non gérés par iOS restent intacts grâce à l'écriture partielle.
 
 ## 8. Intégration backend
 
@@ -207,7 +217,7 @@ Le document `/users/{uid}` n'est pour l'instant créé qu'implicitement par `Fir
 | `/users/{uid}/data/library` | Document unique contenant le tableau `works` — écrit après chaque mutation, debounce 800 ms | `FirebaseLibraryStore` |
 | `/users/{uid}/data/gamification` | Streak, `bonusXp`, historique — le client n'écrit que ces 3 champs | **pas encore implémenté** |
 
-Écoute temps réel via `addSnapshotListener` sur `/users/{uid}` et `/data/library` pour la synchro multi-appareils (web ↔ iOS). **Simplification documentée** : `FirebaseLibraryStore` résout les conflits en dernier-écrit-gagne au niveau du document entier, pas le merge par œuvre + tombstones que `mergeLibraryData` fait sur le web (`src/utils/dataProtection.ts`) — suffisant pour un usage mono-appareil en développement, à revoir avant une vraie bêta multi-appareils.
+Écoute temps réel via `addSnapshotListener` sur `/users/{uid}` et `/data/library` pour la synchro multi-appareils (web ↔ iOS). `FirebaseLibraryStore` fusionne les œuvres par identité composite et dernier horodatage, avec priorité locale à égalité et prise en compte de `deletedWorks` (voir §7.1). Cette fusion utilise le dernier snapshot reçu ; la gestion transactionnelle des écritures concurrentes et la persistance des mutations en attente restent du ressort du lot synchronisation.
 
 ### 8.3 Cloud Functions réutilisables (`functions/index.js`)
 
@@ -259,7 +269,7 @@ FR uniquement pour l'instant (pas de `String Catalog`, les chaînes sont en dur 
 | Phase | Contenu | Sortie | Durée estimée | Avancement |
 |---|---|---|---|---|
 | **0 — Socle** | Xcode project, SPM (Firebase), design tokens, composants de base, Auth Apple/Google | Écran de connexion fonctionnel | 1,5–2 semaines | **Fait** (Google non câblé) |
-| **1 — Bibliothèque** | `LibraryListView`, `WorkDetailView`, `ProgressSheetView`, sync Firestore `data/library` | Biblio synchronisée web ↔ iOS | 2–3 semaines | **Fait** (sans merge par œuvre, voir §8.2) |
+| **1 — Bibliothèque** | `LibraryListView`, `WorkDetailView`, `ProgressSheetView`, sync Firestore `data/library` | Biblio synchronisée web ↔ iOS | 2–3 semaines | **Fait** (identités composites et merge par œuvre, voir §7.1 / §8.2) |
 | **2 — Découverte & Recherche** | Feed swipe, Parcourir, `SearchView`, intégration Tenrai | Ajout de titres depuis le mobile | 2,5–3,5 semaines | **Fait** |
 | **3 — Profil & personnalisation** | `HunterLicenseCard`, `ProfileEditView`, Profil Nen, `SettingsView` | Profil complet, thème clair/sombre | 2–3 semaines | **Fait** |
 | **4 — États, polish, accessibilité & CI** | Tous les états du board *États*, micro-interactions, VoiceOver, tests unitaires, tests UI, CI/CD | Prêt pour TestFlight | 1,5–2,5 semaines | **Fait** — 12 états faits, tests unitaires + UI passés, scripts et CI en place |

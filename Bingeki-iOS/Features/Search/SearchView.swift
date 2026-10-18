@@ -297,7 +297,7 @@ struct SearchView: View {
         library.upsert(added)
         userStore.addXP(GamificationCore.XPReward.addWork)
         HapticEngine.added()
-        toasts.show("Ajouté · À voir") { [weak library] in library?.remove(id: work.id) }
+        toasts.show("Ajouté · À voir") { [weak library] in library?.remove(identity: work.identity) }
     }
 
     private func scheduleSearch(_ text: String) {
@@ -365,7 +365,7 @@ struct SearchView: View {
 private extension Work {
     /// MAL ids are per type, so an anime and a manga can share one —
     /// unique only together with the type.
-    var searchKey: String { "\(type.rawValue)-\(id)" }
+    var searchKey: String { identity.key }
 }
 
 private struct SearchRow: View {
@@ -374,7 +374,7 @@ private struct SearchRow: View {
     @Environment(\.libraryStore) private var library
 
     var body: some View {
-        let existing = library.work(id: work.id)
+        let existing = library.work(identity: work.identity)
         HStack(spacing: BKSpace.md) {
             NavigationLink(value: work) {
                 HStack(spacing: BKSpace.md) {

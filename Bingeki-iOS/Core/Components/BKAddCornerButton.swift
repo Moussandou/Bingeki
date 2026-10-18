@@ -11,7 +11,7 @@ struct BKAddCornerButton: View {
     @Environment(ToastCenter.self) private var toasts
 
     var body: some View {
-        if library.work(id: work.id) == nil {
+        if library.work(identity: work.identity) == nil {
             Button {
                 var added = work
                 added.status = .planToRead
@@ -20,7 +20,7 @@ struct BKAddCornerButton: View {
                 library.upsert(added)
                 userStore.addXP(GamificationCore.XPReward.addWork)
                 HapticEngine.added()
-                toasts.show("\(work.title) → À voir") { [weak library] in library?.remove(id: work.id) }
+                toasts.show("\(work.title) → À voir") { [weak library] in library?.remove(identity: work.identity) }
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: size * 0.5, weight: .black))

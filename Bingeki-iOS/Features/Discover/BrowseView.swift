@@ -68,7 +68,7 @@ struct BrowseView: View {
                                     Rectangle().fill(BKColor.surfaceTint).frame(width: 96, height: 138)
                                 }
                             }
-                            ForEach(top) { work in
+                            ForEach(top, id: \.identity) { work in
                                 ZStack(alignment: .topTrailing) {
                                     NavigationLink(value: work) {
                                         BKCover(url: work.imageSmall ?? work.image).frame(width: 96, height: 138)
@@ -234,7 +234,7 @@ struct BrowseGridView: View {
                         Rectangle().fill(BKColor.surfaceTint).aspectRatio(0.7, contentMode: .fit)
                     }
                 }
-                ForEach(pager.works) { work in
+                ForEach(pager.works, id: \.identity) { work in
                     ZStack(alignment: .topTrailing) {
                         NavigationLink(value: work) {
                             BKCover(url: work.imageSmall ?? work.image).aspectRatio(0.7, contentMode: .fit)
@@ -242,7 +242,7 @@ struct BrowseGridView: View {
                         .accessibilityLabel(work.title)
                         BKAddCornerButton(work: work, size: 28)
                     }
-                    .onAppear { if work.id == pager.works.last?.id { loadMore() } }
+                    .onAppear { if work.identity == pager.works.last?.identity { loadMore() } }
                 }
             }
             .padding(.horizontal, BKSpace.screenMargin)
@@ -344,9 +344,9 @@ private struct GenreTile: View {
 }
 
 extension Array where Element == Work {
-    /// Drops repeated ids, keeping the first occurrence.
+    /// Drops repeated identities, keeping the first occurrence.
     func uniqued() -> [Work] {
-        var seen = Set<String>()
-        return filter { seen.insert($0.id).inserted }
+        var seen = Set<WorkIdentity>()
+        return filter { seen.insert($0.identity).inserted }
     }
 }

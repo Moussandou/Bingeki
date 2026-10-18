@@ -27,7 +27,7 @@ private struct WorkDetailContentView: View {
     private var details: Work? { remote.details.value?.data.asWork(mediaType: work.type.tenrai) }
     private var extras: TenraiFullExtras? { remote.details.value?.extras }
 
-    private var owned: Work? { library.work(id: work.id) }
+    private var owned: Work? { library.work(identity: work.identity) }
     /// Library copy wins (progress), enriched with fetched metadata when missing.
     private var current: Work {
         var base = owned ?? work
@@ -304,7 +304,7 @@ private struct WorkDetailContentView: View {
                 .foregroundStyle(BKColor.textSecondary)
             if owned != nil {
                 Button("Retirer de ma biblio") {
-                    library.remove(id: work.id)
+                    library.remove(identity: work.identity)
                     dismiss()
                 }
                 .font(.footnote.weight(.semibold))
@@ -342,7 +342,7 @@ private struct WorkDetailContentView: View {
         library.upsert(added)
         userStore.addXP(GamificationCore.XPReward.addWork)
         HapticEngine.added()
-        toasts.show("\(current.title) → À voir") { [weak library] in library?.remove(id: work.id) }
+        toasts.show("\(current.title) → À voir") { [weak library] in library?.remove(identity: work.identity) }
     }
 
     /// Episode list tap: place the progress on that episode.

@@ -1,6 +1,7 @@
 import SwiftUI
+import UIKit
 
-/// Full-screen "moment de marque" — speedlines + stamp, 1.6s, closes itself.
+/// Full-screen "moment de marque" — speedlines + stamp, 1.6s outside VoiceOver.
 /// Mirrors state #12 on the mockup canvas. Never triggered mid-gesture:
 /// `InMemoryUserStore.addXP` only sets it between discrete actions (a tap,
 /// not a drag), so it can't interrupt a swipe.
@@ -9,7 +10,25 @@ struct BKLevelUpOverlay: View {
     let onDismiss: () -> Void
 
     @State private var appeared = false
+    @State private var voiceOverEnabled = UIAccessibility.isVoiceOverRunning
+    @State private var dismissal = DismissalState()
+    @AccessibilityFocusState(for: .voiceOver) private var headingFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    struct DismissalState {
+        private(set) var isDismissed = false
+
+        mutating func request(automatically: Bool, voiceOverEnabled: Bool, isCancelled: Bool = false) -> Bool {
+            guard !isDismissed, !isCancelled, !automatically || !voiceOverEnabled else { return false }
+            isDismissed = true
+            return true
+        }
+    }
+
+    private struct PresentationID: Hashable {
+        let level: Int
+        let voiceOverEnabled: Bool
+    }
 
     var body: some View {
         ZStack {
@@ -20,6 +39,7 @@ struct BKLevelUpOverlay: View {
                 SpeedlinesView()
                     .opacity(0.15)
                     .ignoresSafeArea()
+                    .accessibilityHidden(true)
             }
 
             VStack(spacing: BKSpace.lg) {
@@ -28,30 +48,63 @@ struct BKLevelUpOverlay: View {
                         .shadow(color: BKColor.brandPink.opacity(0.6), radius: 30)
                     Text("\(level)").font(BKFont.display(64)).foregroundStyle(.white)
                 }
-                Text("NIVEAU \(level)")
-                    .font(BKFont.display(36))
-                    .padding(.horizontal, BKSpace.lg).padding(.vertical, 4)
-                    .background(BKColor.textPrimary)
-                    .foregroundStyle(BKColor.background)
-                    .rotationEffect(.degrees(reduceMotion ? 0 : -2))
-                Text("Rang \(GamificationCore.rank(forLevel: level))")
-                    .font(.subheadline)
-                    .foregroundStyle(BKColor.textSecondary)
+                .accessibilityHidden(true)
+                VStack(spacing: BKSpace.lg) {
+                    Text("NIVEAU \(level)")
+                        .font(BKFont.display(36))
+                        .padding(.horizontal, BKSpace.lg).padding(.vertical, 4)
+                        .background(BKColor.textPrimary)
+                        .foregroundStyle(BKColor.background)
+                        .rotationEffect(.degrees(reduceMotion ? 0 : -2))
+                    Text("Rang \(GamificationCore.rank(forLevel: level))")
+                        .font(.subheadline)
+                        .foregroundStyle(BKColor.textSecondary)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Niveau supérieur, niveau \(level), rang \(GamificationCore.rank(forLevel: level))")
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityFocused($headingFocused)
+
+                if voiceOverEnabled {
+                    Button("Continuer") { dismiss(automatically: false) }
+                        .font(.body.weight(.semibold))
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityIdentifier("level_up_continue")
+                }
             }
             .scaleEffect(appeared || reduceMotion ? 1 : 0.6)
             .opacity(appeared ? 1 : 0)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Niveau supérieur, niveau \(level)")
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isModal)
+        .accessibilityAction(.escape) { dismiss(automatically: false) }
+        .onReceive(NotificationCenter.default.publisher(for: UIAccessibility.voiceOverStatusDidChangeNotification)) { _ in
+            voiceOverEnabled = UIAccessibility.isVoiceOverRunning
+        }
+        .onChange(of: level) {
+            dismissal = DismissalState()
+        }
+        .task(id: PresentationID(level: level, voiceOverEnabled: voiceOverEnabled)) {
+            headingFocused = voiceOverEnabled
+            guard !voiceOverEnabled else { return }
+            try? await Task.sleep(for: .seconds(1.6))
+            dismiss(automatically: true, isCancelled: Task.isCancelled)
+        }
         .onAppear {
             withAnimation(reduceMotion
                 ? .easeOut(duration: 0.15)
                 : .interpolatingSpring(stiffness: 220, damping: 14)) { appeared = true }
             HapticEngine.success()
-            Task {
-                try? await Task.sleep(for: .seconds(1.6))
-                onDismiss()
-            }
+        }
+    }
+
+    private func dismiss(automatically: Bool, isCancelled: Bool = false) {
+        if dismissal.request(
+            automatically: automatically,
+            voiceOverEnabled: UIAccessibility.isVoiceOverRunning,
+            isCancelled: isCancelled
+        ) {
+            onDismiss()
         }
     }
 }

@@ -27,7 +27,7 @@ struct HomeView: View {
                     } else {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: BKSpace.cardGap) {
-                                ForEach(reading) { work in
+                                ForEach(reading, id: \.identity) { work in
                                     ContinueCard(work: work) { delta in
                                         var updated = work
                                         updated.incrementProgress(by: delta)
@@ -52,7 +52,7 @@ struct HomeView: View {
                     } else {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: BKSpace.cardGap) {
-                                ForEach(planned) { work in
+                                ForEach(planned, id: \.identity) { work in
                                     VStack(spacing: BKSpace.sm) {
                                         NavigationLink(value: work) {
                                             BKCover(url: work.image).frame(width: 104, height: 150)
@@ -163,7 +163,7 @@ struct HomeView: View {
     /// Real upcoming covers, count and reason.
     private var deckTeaser: some View {
         let upcoming = Array(deck.pool.dropFirst(deck.index).prefix(3))
-        let reason = upcoming.first.flatMap { deck.reasons[$0.id] }
+        let reason = upcoming.first.flatMap { deck.reasons[$0.identity.key] }
         return Button {
             if deck.hasRefillError {
                 Task { await deck.refill() }
@@ -173,7 +173,7 @@ struct HomeView: View {
         } label: {
             HStack(spacing: 14) {
                 ZStack(alignment: .leading) {
-                    ForEach(Array(upcoming.enumerated()), id: \.element.id) { i, work in
+                    ForEach(Array(upcoming.enumerated()), id: \.element.identity) { i, work in
                         BKCover(url: work.imageSmall ?? work.image)
                             .frame(width: 64, height: 92)
                             .rotationEffect(.degrees([-8, 2, 10][i]))

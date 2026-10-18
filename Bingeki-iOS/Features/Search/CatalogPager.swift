@@ -53,8 +53,8 @@ final class CatalogPager<Source: Hashable> {
                 do {
                     let response = try await fetch(source, page, sfw)
                     guard generation == token, !Task.isCancelled else { return }
-                    var seen = Set(works.map { "\($0.type.rawValue):\($0.id)" })
-                    let fresh = response.works.filter { seen.insert("\($0.type.rawValue):\($0.id)").inserted }
+                    var seen = Set(works.map(\.identity))
+                    let fresh = response.works.filter { seen.insert($0.identity).inserted }
                     works += fresh
                     pages[source] = page
                     failures.remove(source)
