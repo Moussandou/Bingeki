@@ -1,6 +1,6 @@
 /**
  * Compte TikTok Bingeki : connexion (Login Kit) et état de la lecture des
- * stats des posts publiés à la main. Les tokens restent côté serveur.
+ * stats TikTok de tous les posts. Les tokens restent côté serveur.
  */
 import { useEffect, useState } from 'react';
 import { Loader2, Music2, RefreshCw } from 'lucide-react';
@@ -62,14 +62,14 @@ export function TiktokAccountCard() {
                         {typeof status?.videoCount === 'number' && <> · {status.videoCount} vidéos</>}
                     </p>
                     <p className={s.small}>
-                        Les vues, likes, commentaires et partages des posts publiés à la main sont lus tout seuls à 6h30 et 18h30.
+                        Les vues, likes, commentaires et partages de tous les posts TikTok sont lus tout seuls à 6h30 et 18h30, sans toucher au quota Buffer.
                         {' '}Dernière lecture : {status?.lastSyncAt ? formatAgo(status.lastSyncAt) : 'pas encore'}.
                     </p>
                     {status?.lastError && <p className={s.errText}>{status.lastError}</p>}
                 </>
             ) : (
                 <p className={s.muted}>
-                    Connecte le compte TikTok Bingeki pour récupérer automatiquement les chiffres des posts que tu publies à la main.
+                    Connecte le compte TikTok Bingeki pour récupérer automatiquement les chiffres de tous les posts TikTok.
                 </p>
             )}
 

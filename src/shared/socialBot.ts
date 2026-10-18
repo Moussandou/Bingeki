@@ -275,8 +275,8 @@ export const CRON_META: Record<CronId, { label: string; schedule: string; descri
     seasonPreviewAuto: { label: 'Preview de saison',    schedule: '21 mars, juin, sept., déc. · 18h', description: 'Preview de la saison suivante, une dizaine de jours avant.' },
     cultureNewsAuto:   { label: 'Actu culture anime',   schedule: 'Toutes les 6h',              description: 'Surveille des flux RSS et crée des posts d\'actu.' },
     autoPublish:       { label: 'Publication auto',     schedule: 'Toutes les 15 min',          description: 'Publie via Buffer les posts des types en mode Auto.' },
-    tiktokStats:       { label: 'Stats TikTok',         schedule: 'Tous les jours · 6h30 et 18h30', description: 'Lit le compte TikTok pour les chiffres des posts publiés à la main.' },
-    pollReach:         { label: 'Statistiques',         schedule: 'Tous les jours · 5h',        description: 'Vues et likes des posts Buffer, relus à J+1, J+3 et J+7.' },
+    tiktokStats:       { label: 'Stats TikTok',         schedule: 'Tous les jours · 6h30 et 18h30', description: 'Lit le compte TikTok pour les chiffres de tous les posts.' },
+    pollReach:         { label: 'Statistiques',         schedule: 'Tous les jours · 5h',        description: 'Vues et likes Instagram des posts Buffer, relus à J+1 et J+7.' },
     cleanupPending:    { label: 'Nettoyage',            schedule: 'Tous les jours · 4h',        description: 'Archive les posts en attente depuis plus de 3 jours.' },
 };
 

@@ -57,7 +57,7 @@ export function AutomationsView({ config, health, watchdog, published, isSuperAd
         if (cronId === 'pollReach') {
             const calls = pendingReachCalls(published);
             if (calls === 0) {
-                alert('Aucun palier de stats en attente (J+1, J+3, J+7) : rien à relire, aucune requête Buffer utilisée.');
+                alert('Aucun palier de stats Insta en attente (J+1, J+7) : rien à relire, aucune requête Buffer utilisée.');
                 return;
             }
             question = `Relire les stats en attente ? Coût : ${calls} requête${calls > 1 ? 's' : ''} Buffer.`;

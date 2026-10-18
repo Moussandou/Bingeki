@@ -95,14 +95,14 @@ export const isManualPost = (p: PublishedPost): boolean =>
     p.results?.insta?.provider === 'manual' || p.results?.tiktok?.provider === 'manual';
 
 /** Paliers de relecture des stats Buffer, comme functions/social/crons/pollReach.js. */
-const REACH_MILESTONES = [1, 3, 7];
+const REACH_MILESTONES = [1, 7];
 
-/** Requêtes Buffer que coûterait un relevé des stats maintenant. */
+/** Requêtes Buffer que coûterait un relevé des stats maintenant (Insta seulement,
+ *  TikTok est lu via le compte connecté). */
 export function pendingReachCalls(posts: PublishedPost[], now = Date.now()): number {
     let calls = 0;
     for (const p of posts) {
-        const platforms = (['insta', 'tiktok'] as const)
-            .filter((k) => p.results?.[k]?.id && p.results[k]?.provider !== 'manual').length;
+        const platforms = p.results?.insta?.id && p.results.insta.provider !== 'manual' ? 1 : 0;
         if (platforms === 0) continue;
         const age = (now - p.publishedAt) / 86_400_000;
         const done = p.reachMilestones ?? [];

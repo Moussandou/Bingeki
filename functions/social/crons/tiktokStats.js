@@ -1,10 +1,11 @@
 /**
- * cron tiktokStats — chiffres TikTok des posts publiés à la main.
+ * cron tiktokStats — chiffres TikTok de tous les posts publiés.
  *
- * Buffer ne connaît pas les posts publiés depuis le téléphone, donc on
- * lit directement le compte TikTok Bingeki (scope video.list) et on
- * rattache chaque vidéo au post publié dont l'heure « J'ai publié » est
- * la plus proche (la vidéo est mise en ligne juste avant).
+ * On lit directement le compte TikTok Bingeki (scope video.list), ce qui
+ * ne coûte rien sur le quota Buffer, et on rattache chaque vidéo à son
+ * post : pour un post publié à la main, l'heure « J'ai publié » (la vidéo
+ * est mise en ligne juste avant) ; pour un post Buffer, l'heure prévue
+ * (dueAt), la vidéo apparaissant juste après.
  *
  * Écrit reach.tiktok au même format que pollReach (raw[] avec un type
  * stable + clés à plat) pour que l'admin lise tout pareil, et met à jour
@@ -30,6 +31,9 @@ const MATCH_AFTER_MS = 30 * 60_000;
 // Repli quand « J'ai publié » a été cliqué bien après (ou daté à la main) :
 // toute vidéo créée entre la génération du post et 12 h après le clic.
 const FALLBACK_AFTER_MS = 12 * 3600_000;
+// Post Buffer : TikTok le met en ligne à l'heure prévue, avec un peu de retard.
+const BUFFER_BEFORE_MS = 30 * 60_000;
+const BUFFER_AFTER_MS = 6 * 3600_000;
 
 function reachFromVideo(video, now) {
     const metrics = [
@@ -58,7 +62,7 @@ async function runTiktokStats() {
             const used = new Set();
             let matched = 0;
             const posts = snap.docs
-                .filter((d) => d.data().results?.tiktok?.provider === 'manual')
+                .filter((d) => d.data().results?.tiktok)
                 .sort((a, b) => b.data().publishedAt - a.data().publishedAt);
 
             // Les vidéos déjà rattachées ne peuvent pas être reprises par un autre post.
@@ -82,12 +86,16 @@ async function runTiktokStats() {
 
             for (const doc of posts) {
                 const post = doc.data();
-                const at = post.results.tiktok.publishedAt || post.publishedAt;
-                const known = post.reach?.tiktok?.videoId;
+                const tk = post.results.tiktok;
+                const known = post.reach?.tiktok?.source === 'tiktok' ? post.reach.tiktok.videoId : null;
                 let best = known ? videos.find((v) => v.id === known) : null;
-                if (!best) {
+                if (!best && tk.provider === 'manual') {
+                    const at = tk.publishedAt || post.publishedAt;
                     best = closest(at, at - MATCH_BEFORE_MS, at + MATCH_AFTER_MS)
                         || closest(at, Math.min(post.createdAt || at, at - MATCH_BEFORE_MS), at + FALLBACK_AFTER_MS);
+                } else if (!best) {
+                    const at = Date.parse(tk.dueAt) || tk.publishedAt || post.publishedAt;
+                    best = closest(at, at - BUFFER_BEFORE_MS, at + BUFFER_AFTER_MS);
                 }
                 if (!best) continue;
                 used.add(best.id);
@@ -108,7 +116,7 @@ async function runTiktokStats() {
                 lastError: null,
             }, { merge: true });
 
-            return { note: `${matched}/${posts.length} post(s) à la main rattachés · ${videos.length} vidéos lues` };
+            return { note: `${matched}/${posts.length} post(s) rattachés · ${videos.length} vidéos lues` };
         } catch (err) {
             await statusRef().set({ lastError: (err.message || String(err)).slice(0, 300), lastErrorAt: now }, { merge: true });
             throw err;

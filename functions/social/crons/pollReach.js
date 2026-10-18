@@ -3,9 +3,12 @@
  *
  * Buffer's Publish API exposes per-post metrics through a single GraphQL
  * `post(input: {id})` query. The metrics are cumulative, so reading a
- * post a few times is enough: each post is read at J+1, J+3 and J+7
+ * post twice is enough: each post is read at J+1 and J+7
  * (`reachMilestones` keeps the ones already done). A daily walk of every
  * post of the week cost ~780 calls a month out of Buffer's 3000.
+ *
+ * Instagram only: TikTok figures come from the connected TikTok account
+ * (cron tiktokStats), which costs no Buffer quota.
  *
  * Buffer rate-limits the API key as a whole: this cron shares its quota
  * with publishing. It spaces its calls, stops at the first rate-limit
@@ -26,7 +29,7 @@ const { shouldPauseStats, pruneBufferUsage } = require('../shared/bufferUsage');
 const BUFFER_API_KEY = defineSecret('BUFFER_API_KEY');
 const ONE_DAY = 24 * 3600_000;
 // Paliers de relecture (jours après publication).
-const MILESTONES = [1, 3, 7];
+const MILESTONES = [1, 7];
 // Un peu plus que le dernier palier : un relevé raté se rattrape le lendemain.
 const LOOKBACK_MS = 9 * ONE_DAY;
 const CALL_SPACING_MS = 1500;
@@ -44,7 +47,8 @@ const POST_METRICS_QUERY = /* GraphQL */ `
     }
 `;
 
-const PLATFORMS = ['insta', 'tiktok'];
+// TikTok est lu par tiktokStats via le compte connecté.
+const PLATFORMS = ['insta'];
 
 function flattenMetrics(metricsArray) {
     if (!Array.isArray(metricsArray)) return {};
