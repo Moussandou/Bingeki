@@ -368,35 +368,8 @@ struct NenChartView: View {
                 let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2)
                 let radius = min(proxy.size.width, proxy.size.height) / 2 - 30
                 ZStack {
-                    Canvas { context, _ in
-                        func point(_ index: Int, _ fraction: Double) -> CGPoint {
-                            let angle = (Double(index) * 60 - 90) * .pi / 180
-                            return CGPoint(x: center.x + radius * fraction * cos(angle), y: center.y + radius * fraction * sin(angle))
-                        }
-                        for ring in [0.33, 0.66, 1.0] {
-                            var path = Path()
-                            for i in 0..<6 { i == 0 ? path.move(to: point(i, ring)) : path.addLine(to: point(i, ring)) }
-                            path.closeSubpath()
-                            context.stroke(path, with: .color(BKColor.border.opacity(ring == 1 ? 0.6 : 0.35)), lineWidth: ring == 1 ? 1.5 : 1)
-                        }
-                        var data = Path()
-                        for (i, axis) in axes.enumerated() {
-                            let p = point(i, max(0.04, axis.value / 100))
-                            i == 0 ? data.move(to: p) : data.addLine(to: p)
-                        }
-                        data.closeSubpath()
-                        context.fill(data, with: .color(BKColor.brandPink.opacity(0.35)))
-                        context.stroke(data, with: .color(BKColor.brandPink), style: StrokeStyle(lineWidth: 3, lineJoin: .miter))
-                    }
-                    ForEach(Array(axes.enumerated()), id: \.offset) { i, axis in
-                        let angle = (Double(i) * 60 - 90) * .pi / 180
-                        Text(axis.label.uppercased())
-                            .font(BKFont.display(11, weight: .heavy))
-                            .tracking(0.6)
-                            .fixedSize()
-                            .position(x: center.x + (radius + 18) * cos(angle) + (abs(cos(angle)) < 0.1 ? 0 : (cos(angle) > 0 ? 24 : -24)),
-                                      y: center.y + (radius + 14) * sin(angle))
-                    }
+                    NenRadarPlot(axes: axes, center: center, radius: radius)
+                    NenAxisLabels(axes: axes, center: center, radius: radius)
                 }
             }
             .frame(height: 230)
@@ -407,6 +380,82 @@ struct NenChartView: View {
         .background(BKColor.surface)
         .bkInkBorder()
         .bkPanelShadow()
+    }
+}
+
+private struct NenRadarPlot: View {
+    let axes: [(label: String, value: Double)]
+    let center: CGPoint
+    let radius: CGFloat
+
+    var body: some View {
+        Canvas { context, _ in
+            for ring in [0.33, 0.66, 1.0] {
+                var path = Path()
+                for index in 0..<6 {
+                    let position = point(index, ring)
+                    if index == 0 {
+                        path.move(to: position)
+                    } else {
+                        path.addLine(to: position)
+                    }
+                }
+                path.closeSubpath()
+                context.stroke(
+                    path,
+                    with: .color(BKColor.border.opacity(ring == 1 ? 0.6 : 0.35)),
+                    lineWidth: ring == 1 ? 1.5 : 1
+                )
+            }
+
+            var data = Path()
+            for (index, axis) in axes.enumerated() {
+                let position = point(index, max(0.04, axis.value / 100))
+                if index == 0 {
+                    data.move(to: position)
+                } else {
+                    data.addLine(to: position)
+                }
+            }
+            data.closeSubpath()
+            context.fill(data, with: .color(BKColor.brandPink.opacity(0.35)))
+            context.stroke(
+                data,
+                with: .color(BKColor.brandPink),
+                style: StrokeStyle(lineWidth: 3, lineJoin: .miter)
+            )
+        }
+    }
+
+    private func point(_ index: Int, _ fraction: Double) -> CGPoint {
+        let angle = (Double(index) * 60 - 90) * .pi / 180
+        return CGPoint(
+            x: center.x + radius * fraction * cos(angle),
+            y: center.y + radius * fraction * sin(angle)
+        )
+    }
+}
+
+private struct NenAxisLabels: View {
+    let axes: [(label: String, value: Double)]
+    let center: CGPoint
+    let radius: CGFloat
+
+    var body: some View {
+        ForEach(axes.indices, id: \.self) { index in
+            let axis = axes[index]
+            let angle = CGFloat(index) * .pi / 3 - .pi / 2
+            let cosine = cos(angle)
+            let sine = sin(angle)
+            let horizontalOffset: CGFloat = abs(cosine) < 0.1 ? 0 : (cosine > 0 ? 24 : -24)
+            let x = center.x + (radius + 18) * cosine + horizontalOffset
+            let y = center.y + (radius + 14) * sine
+            Text(axis.label.uppercased())
+                .font(BKFont.display(11, weight: .heavy))
+                .tracking(0.6)
+                .fixedSize()
+                .position(x: x, y: y)
+        }
     }
 }
 

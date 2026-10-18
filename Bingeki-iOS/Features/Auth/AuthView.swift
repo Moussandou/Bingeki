@@ -274,15 +274,28 @@ struct AuthView: View {
                 .first else { return }
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
         do {
-            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presenter.topMost)
-            guard let idToken = result.user.idToken?.tokenString else { return }
-            await attempt(AuthCredential(
-                provider: .google,
-                userIdentifier: result.user.userID ?? UUID().uuidString,
-                displayName: result.user.profile?.name,
-                identityToken: idToken,
-                accessToken: result.user.accessToken.tokenString
-            ))
+            let credential = try await withCheckedThrowingContinuation {
+                (continuation: CheckedContinuation<AuthCredential?, Error>) in
+                GIDSignIn.sharedInstance.signIn(withPresenting: presenter.topMost) { result, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+                    guard let result, let idToken = result.user.idToken?.tokenString else {
+                        continuation.resume(returning: nil)
+                        return
+                    }
+                    continuation.resume(returning: AuthCredential(
+                        provider: .google,
+                        userIdentifier: result.user.userID ?? UUID().uuidString,
+                        displayName: result.user.profile?.name,
+                        identityToken: idToken,
+                        accessToken: result.user.accessToken.tokenString
+                    ))
+                }
+            }
+            guard let credential else { return }
+            await attempt(credential)
         } catch {
             // Closing Google's sheet isn't an error worth showing.
             if (error as NSError).code == GIDSignInError.canceled.rawValue { return }

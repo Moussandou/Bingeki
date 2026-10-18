@@ -64,20 +64,40 @@ final class FirebaseAuthStore: AuthProviding {
                 rawNonce: rawNonce,
                 fullName: nil
             )
-            _ = try await Auth.auth().signIn(with: firebaseCredential)
+            try await completeSignIn(with: firebaseCredential)
         case .google:
             guard let idToken = credential.identityToken, let accessToken = credential.accessToken else {
                 throw AuthError.providerNotYetSupported("Google Sign-In")
             }
             let firebaseCredential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-            _ = try await Auth.auth().signIn(with: firebaseCredential)
+            try await completeSignIn(with: firebaseCredential)
         case .anonymous:
             // Real Firebase Anonymous Auth, not a local fake — a genuine
             // uid, usable with the same Firestore rules as any other
             // provider. Needs "Anonymous" enabled once in the Firebase
             // console (Authentication → Sign-in method); throws
             // `operation-not-allowed` until then, surfaced as-is below.
-            _ = try await Auth.auth().signInAnonymously()
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                Auth.auth().signInAnonymously { _, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+    }
+
+    private func completeSignIn(with credential: FirebaseAuth.AuthCredential) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            Auth.auth().signIn(with: credential) { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
         }
     }
 
