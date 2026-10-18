@@ -13,14 +13,26 @@ final class ToastCenter {
         var isError: Bool
 
         static func == (lhs: Toast, rhs: Toast) -> Bool { lhs.id == rhs.id }
+
+        var announcement: String {
+            let message = isError ? "Erreur : \(text)" : text
+            return undoAction == nil ? message : "\(message). Annuler disponible."
+        }
     }
 
     private(set) var current: Toast?
     private var dismissTask: Task<Void, Never>?
+    private let announce: (String) -> Void
+
+    init(announce: @escaping (String) -> Void = { AccessibilityNotification.Announcement($0).post() }) {
+        self.announce = announce
+    }
 
     func show(_ text: String, undo: (() -> Void)? = nil, isError: Bool = false) {
         dismissTask?.cancel()
-        current = Toast(text: text, undoAction: undo, isError: isError)
+        let toast = Toast(text: text, undoAction: undo, isError: isError)
+        current = toast
+        announce(toast.announcement)
         dismissTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(4))
             guard !Task.isCancelled else { return }
@@ -72,7 +84,7 @@ struct BKToastOverlay: View {
                 .padding(.horizontal, BKSpace.screenMargin)
                 .padding(.bottom, bottomInset)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-                .accessibilityElement(children: .combine)
+                .accessibilityElement(children: .contain)
             }
         }
         .animation(.easeOut(duration: 0.25), value: center.current)
