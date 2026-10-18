@@ -3,6 +3,9 @@ import { createRequire } from 'node:module';
 import { Firestore } from '@google-cloud/firestore';
 import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const require = createRequire(import.meta.url);
 const { cleanupAccount } = require('../accountCore.js');
@@ -220,13 +223,21 @@ describe.skipIf(!enabled)('functional flows on isolated demo emulators', () => {
     });
 
     it('backfills legacy popularity counts transactionally and is safe to rerun', async () => {
-        await db.doc('tierLists/legacy').set({ likes: ['a', 'b', 'a'], isPublic: true });
-        await db.doc('tierLists/empty').set({ likes: [], isPublic: true });
-        expect(await repairTierListCounts(db)).toBe(2);
-        expect((await db.doc('tierLists/legacy').get()).data()).toMatchObject({ likes: ['a', 'b'], likesCount: 2 });
-        expect(await repairTierListCounts(db)).toBe(0);
-        const sorted = await db.collection('tierLists').where('isPublic', '==', true).orderBy('likesCount', 'desc').get();
-        expect(sorted.docs.map(doc => doc.id)).toEqual(['legacy', 'empty']);
+        const directory = mkdtempSync(join(tmpdir(), 'bingeki-flow-migration-'));
+        try {
+            await db.doc('users/owner').set({});
+            await db.doc('tierLists/legacy').set({ userId: 'owner', likes: ['a', 'b', 'a'], isPublic: true });
+            await db.doc('tierLists/empty').set({ userId: 'owner', likes: [], isPublic: true });
+            const planFile = join(directory, 'plan.json');
+            expect((await repairTierListCounts(db, { planFile })).entries).toHaveLength(2);
+            expect((await repairTierListCounts(db, { apply: true, planFile })).changed).toBe(2);
+            expect((await db.doc('tierLists/legacy').get()).data()).toMatchObject({ likes: ['a', 'b'], likesCount: 2 });
+            expect((await repairTierListCounts(db)).entries).toHaveLength(0);
+            const sorted = await db.collection('tierLists').where('isPublic', '==', true).orderBy('likesCount', 'desc').get();
+            expect(sorted.docs.map(doc => doc.id)).toEqual(['legacy', 'empty']);
+        } finally {
+            rmSync(directory, { recursive: true });
+        }
     });
 
     const options = {
