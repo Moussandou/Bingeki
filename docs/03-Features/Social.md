@@ -162,6 +162,12 @@ FIRESTORE_EMULATOR_JAR="$HOME/.cache/firebase/emulators/cloud-firestore-emulator
   npm exec -- vitest run functions/__tests__/tierListMigration.test.mjs
 ```
 
+When `FIRESTORE_EMULATOR_HOST` already points to a local emulator (including the
+existing CI browser job), the suite runs automatically without a jar or opt-in
+flag and leaves that emulator running. It uses the separate
+`demo-bingeki-migration` project and cleans only its four fixture collections:
+`users`, `tierLists`, `accountDeletions` and `migrationReceipts`.
+
 Deploy the matching composite indexes and security rules before rollout.
 
 ### Legacy profile visibility: no automatic public backfill

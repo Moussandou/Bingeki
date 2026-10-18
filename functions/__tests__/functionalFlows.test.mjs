@@ -4,7 +4,7 @@ import { Firestore } from '@google-cloud/firestore';
 import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
 import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 const require = createRequire(import.meta.url);
@@ -223,7 +223,7 @@ describe.skipIf(!enabled)('functional flows on isolated demo emulators', () => {
     });
 
     it('backfills legacy popularity counts transactionally and is safe to rerun', async () => {
-        const directory = mkdtempSync(join(tmpdir(), 'bingeki-flow-migration-'));
+        const directory = mkdtempSync(join(homedir(), '.bingeki-flow-migration-'));
         try {
             await db.doc('users/owner').set({});
             await db.doc('tierLists/legacy').set({ userId: 'owner', likes: ['a', 'b', 'a'], isPublic: true });

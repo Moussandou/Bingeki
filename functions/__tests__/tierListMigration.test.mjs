@@ -1,7 +1,7 @@
 import { beforeAll, afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRequire } from 'node:module';
 import { mkdtempSync, rmSync, readFileSync, statSync, chmodSync, symlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:net';
 import { spawn, spawnSync } from 'node:child_process';
@@ -11,7 +11,7 @@ import { Firestore } from '@google-cloud/firestore';
 const require = createRequire(import.meta.url);
 const { repairTierListCounts, planTierListCounts, savePlan, loadPlan, applyTierListCounts, verifyTierListCounts } =
     require('../../scripts/repair-tierlist-counts.cjs');
-const enabled = process.env.RUN_MIGRATION_EMULATOR_TESTS === '1';
+const enabled = Boolean(process.env.FIRESTORE_EMULATOR_HOST) || process.env.RUN_MIGRATION_EMULATOR_TESTS === '1';
 
 describe('migration CLI access guard without a database connection', () => {
     it('refuses production reads without explicit matching approval and never prints identifiers or SDK errors', () => {
@@ -33,11 +33,20 @@ describe.skipIf(!enabled)('historical tier-list migration on a disposable demo e
     let planFile;
     let previousHost;
     let output = '';
+    const testCollections = ['users', 'tierLists', 'accountDeletions', 'migrationReceipts'];
+    const cleanup = async () => {
+        for (const name of testCollections) await db.recursiveDelete(db.collection(name));
+    };
 
     beforeAll(async () => {
+        previousHost = process.env.FIRESTORE_EMULATOR_HOST;
+        if (previousHost) {
+            if (!/^(127\.0\.0\.1|localhost):\d+$/.test(previousHost)) throw new Error('Local emulator host required.');
+            db = new Firestore({ projectId: 'demo-bingeki-migration' });
+            return;
+        }
         const jar = process.env.FIRESTORE_EMULATOR_JAR;
         if (!jar) throw new Error('Set FIRESTORE_EMULATOR_JAR to the installed Firestore emulator jar.');
-        previousHost = process.env.FIRESTORE_EMULATOR_HOST;
         const server = createServer();
         server.listen(0, '127.0.0.1');
         await once(server, 'listening');
@@ -67,21 +76,25 @@ describe.skipIf(!enabled)('historical tier-list migration on a disposable demo e
     }, 60000);
 
     beforeEach(async () => {
-        for (const collection of await db.listCollections()) await db.recursiveDelete(collection);
-        directory = mkdtempSync(join(tmpdir(), 'bingeki-migration-'));
+        await cleanup();
+        directory = mkdtempSync(join(homedir(), '.bingeki-migration-'));
         planFile = join(directory, 'plan.json');
         await db.doc('users/owner').set({ profileVisibility: 'private', email: 'synthetic-secret', displayName: 'not-in-backup' });
     });
 
     afterAll(async () => {
-        if (db) await db.terminate();
-        if (emulator && emulator.exitCode === null) {
-            const exit = once(emulator, 'exit');
-            emulator.kill('SIGTERM');
-            await exit;
+        try {
+            if (db) await cleanup();
+        } finally {
+            if (db) await db.terminate();
+            if (emulator && emulator.exitCode === null) {
+                const exit = once(emulator, 'exit');
+                emulator.kill('SIGTERM');
+                await exit;
+            }
+            if (previousHost === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
+            else process.env.FIRESTORE_EMULATOR_HOST = previousHost;
         }
-        if (previousHost === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
-        else process.env.FIRESTORE_EMULATOR_HOST = previousHost;
     });
 
     // Remove only directories created by this suite, including on assertion failures.
