@@ -24,7 +24,7 @@ const TYPES: { key: ModeKey; label: string; desc: string; when: string }[] = [
     { key: 'newseason', label: 'Nouvelle saison', desc: 'Quand une suite démarre', when: 'Tous les jours · 8h, si besoin' },
     { key: 'announcement', label: 'Prochainement', desc: 'Annonces de futures saisons', when: 'Lun / Mer / Ven · 15h' },
     { key: 'seasonPreview', label: 'Preview de saison', desc: 'Les animés de la saison suivante', when: '21 mars, juin, sept., déc. · 18h' },
-    { key: 'cultureNewsAuto', label: 'Actu culture anime', desc: 'Veille des sites d\'actu', when: 'Toutes les 6 h' },
+    { key: 'cultureNewsAuto', label: 'Actu anime / manga', desc: 'Suites, adaptations, films, trailers d\'œuvres connues', when: '1 par jour max' },
 ];
 
 const MODES: { mode: PublishMode; label: string }[] = [

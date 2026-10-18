@@ -800,7 +800,8 @@ export interface BuildSlidesOpts {
     date?: Date;
 }
 
-export type CultureNewsCategory = 'game' | 'movie' | 'goodies' | 'industry' | 'event' | 'other';
+export type CultureNewsCategory = 'game' | 'movie' | 'goodies' | 'industry' | 'event' | 'other'
+    | 'sequel' | 'adaptation' | 'trailer' | 'comeback' | 'ending' | 'record';
 export const CULTURE_CATEGORIES: Record<CultureNewsCategory, { label: string; accent: string; fg: string }> = {
     game:     { label: 'Jeu · Actu',   accent: '#FF2E63', fg: '#fff' },
     movie:    { label: 'Film · Actu',  accent: '#7C3AED', fg: '#fff' },
@@ -808,6 +809,13 @@ export const CULTURE_CATEGORIES: Record<CultureNewsCategory, { label: string; ac
     industry: { label: 'Industrie',    accent: '#FBBF24', fg: '#000' },
     event:    { label: 'Événement',    accent: '#FB923C', fg: '#000' },
     other:    { label: 'Actu Anime',   accent: '#FF2E63', fg: '#fff' },
+    // Annonces « waouh » choisies par le cron cultureNewsAuto.
+    sequel:     { label: 'Nouvelle saison', accent: '#FF2E63', fg: '#fff' },
+    adaptation: { label: 'Adapté en anime', accent: '#7C3AED', fg: '#fff' },
+    trailer:    { label: 'Trailer',         accent: '#08D9D6', fg: '#000' },
+    comeback:   { label: 'Le retour',       accent: '#FBBF24', fg: '#000' },
+    ending:     { label: 'C\'est la fin',    accent: '#FB923C', fg: '#000' },
+    record:     { label: 'Record',          accent: '#FBBF24', fg: '#000' },
 };
 
 export interface CultureNewsInput {

@@ -273,7 +273,7 @@ export const CRON_META: Record<CronId, { label: string; schedule: string; descri
     newSeasonDetector: { label: 'Nouvelle saison',      schedule: 'Tous les jours · 8h',        description: 'Détecte les nouvelles saisons qui démarrent aujourd\'hui.' },
     announcement:      { label: 'Prochainement',        schedule: 'Lun / Mer / Ven · 15h',      description: 'Digest des annonces d\'animes à venir.' },
     seasonPreviewAuto: { label: 'Preview de saison',    schedule: '21 mars, juin, sept., déc. · 18h', description: 'Preview de la saison suivante, une dizaine de jours avant.' },
-    cultureNewsAuto:   { label: 'Actu culture anime',   schedule: 'Toutes les 6h',              description: 'Surveille des flux RSS et crée des posts d\'actu.' },
+    cultureNewsAuto:   { label: 'Actu anime / manga',   schedule: 'Toutes les 6h',              description: 'Garde la meilleure annonce du jour (suite, adaptation, film…) d\'une œuvre connue.' },
     autoPublish:       { label: 'Publication auto',     schedule: 'Toutes les 15 min',          description: 'Publie via Buffer les posts des types en mode Auto.' },
     tiktokStats:       { label: 'Stats TikTok',         schedule: 'Tous les jours · 6h30 et 18h30', description: 'Lit le compte TikTok pour les chiffres de tous les posts.' },
     pollReach:         { label: 'Statistiques',         schedule: 'Tous les jours · 5h',        description: 'Vues et likes Instagram des posts Buffer, relus à J+1 et J+7.' },

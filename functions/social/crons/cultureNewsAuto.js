@@ -1,18 +1,18 @@
 /**
- * cron cultureNewsAuto — surveille automatiquement les flux RSS de
- * sources anime/manga fiables et crée des posts "culture_news" pending
- * pour l'admin.
+ * cron cultureNewsAuto — annonces anime/manga qui font réagir les fans.
  *
- * Sources : ANN (US), Journal du Japon (FR), Anime UK News (UK).
- * Manga News (FR) est bloqué WAF (403 systématique) → écarté.
+ * Trois filtres, du moins cher au plus cher :
+ *   1. Sources 100 % anime/manga (MyAnimeList News, Adala News, Anime
+ *      Corner) : plus de sites généralistes qui ramenaient GTA ou Netflix.
+ *   2. Gemini classe la news : seules les annonces « waouh » passent
+ *      (suite, adaptation, film, trailer/date, retour, fin, record).
+ *      Casting, doubleurs, jeux vidéo, goodies, événements : rejetés.
+ *   3. L'œuvre doit être connue : popularité AniList >= MIN_POPULARITY.
  *
- * Fréquence : toutes les 6h. Max 2 posts par run pour ne pas saturer
- * la queue admin. Dedup par URL via `social_culture_news_seen` en
- * Firestore.
- *
- * Filtre : skip les reviews d'épisodes / recaps / chapitres manga
- * (redondant avec le daily) — on garde les vraies news industrie,
- * jeux, films, goodies, licences.
+ * Les candidats retenus sont classés (hype × popularité) et seul le
+ * meilleur devient un post, au plus un par jour, et jamais deux fois la
+ * même œuvre en une semaine. Tout ce qui a été lu est marqué vu dans
+ * `social_culture_news_seen` pour ne pas le relire.
  */
 
 const admin = require('firebase-admin');
@@ -23,59 +23,47 @@ const { loadBotConfig, isKilled } = require('../shared/config');
 const { getModeForKey } = require('../shared/modes');
 const { fetchFeed } = require('../generators/rssParser');
 const { fetchOgMetadata, downloadAndReuploadImage } = require('../generators/ogScraper');
-const { inferCultureNewsFields } = require('../generators/gemini');
+const { inferHypeNews } = require('../generators/gemini');
+const { fetchWorkPopularity } = require('../generators/anilist');
 const { runCultureNews } = require('./cultureNews');
 const { withCronHealth } = require('../shared/cronHealth');
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
 const FEEDS = [
-    // === Sources FR (priorité pour la commu FR) ===
-    // Adala News : scoops anime FR ("adaptation annoncée", "S3 confirmée")
+    // Toutes les news anime/manga, très complet, titres explicites.
+    { name: 'MyAnimeList', url: 'https://myanimelist.net/rss/news.xml' },
+    // Annonces anime en français (adaptations, trailers, dates).
     { name: 'Adala News', url: 'https://adala-news.fr/feed/' },
-    // Mangamag : anime/manga FR (dates films, formes DBZ, etc.)
-    { name: 'Mangamag', url: 'https://mangamag.fr/feed/' },
-    // Numerama pop culture : news culturelles FR (Netflix, films, séries)
-    { name: 'Numerama pop', url: 'https://www.numerama.com/pop-culture/feed/' },
-    // Journal du Japon : culture japonaise FR, plus analyse mais légit
-    { name: 'Journal du Japon', url: 'https://www.journaldujapon.com/feed/' },
-    // === Sources EN (compléments) ===
-    // ANN parfois OK selon load Cloudflare
-    { name: 'ANN', url: 'https://www.animenewsnetwork.com/all/rss.xml' },
-    // Anime Corner : news anime EN (visuels, teasers)
+    // Visuels, teasers et annonces anime (EN).
     { name: 'Anime Corner', url: 'https://animecorner.me/feed/' },
-    // MangaMavericks : interviews mangaka + sorties
-    { name: 'MangaMavericks', url: 'https://mangamavericks.com/feed/' },
-    // Anime UK News : reviews + news (filtré côté SKIP_PATTERNS)
-    { name: 'Anime UK News', url: 'https://animeuknews.net/feed/' },
 ];
 
-// Max posts créés par run. 5 = suffisant pour rattraper les news
-// récentes sans trop saturer la queue (le cron tourne toutes les 6h).
-const MAX_PER_RUN = 5;
+// Œuvres suivies par au moins 30 000 membres AniList : Dr. Stone (~90k),
+// Les Carnets de l'Apothicaire (~47k), Naruto (~730k) passent ; les
+// isekai inconnus restent dehors.
+const MIN_POPULARITY = 30_000;
+const MIN_HYPE = 6;
+// Gemini lit au plus ce nombre de news par passage (les plus récentes).
+const MAX_CLASSIFIED_PER_RUN = 20;
+const ONE_DAY = 86_400_000;
+// Au plus un post d'actu par jour, et pas deux fois la même œuvre en 7 jours.
+const MIN_GAP_MS = 20 * 3600_000;
+const SAME_WORK_GAP_MS = 7 * ONE_DAY;
 
-// Items considérés comme non pertinents (review d'épisode, chapitre
-// manga, recap…) : redondants avec le cron daily ou trop niches. On
-// détecte via keywords dans le titre (case-insensitive).
+// Filet avant Gemini : ce qui n'est jamais une annonce « waouh ».
 const SKIP_TITLE_PATTERNS = [
     /\bepisode\s+\d+/i,
     /\bépisode\s+\d+/i,
     /\bchapter\s+\d+/i,
     /\bchapitre\s+\d+/i,
     /\brecap\b/i,
-    /\bthis week in anime\b/i,
+    /\breview\b/i,
+    /\bcritique\b/i,
     /\bpreview guide\b/i,
-    /manga review\b/i,
-    /\banime review\b/i,
-    // Reviews de volumes : "Volume 5 Review", "Volumes 4, 5 and 6 Review",
-    // "Volumes 6 and 7 Review".
-    /\bvol(?:ume)?s?\.?\s*\d+[\d,\s\-–]*\s*(?:and|et|&)?\s*\d*\s*review\b/i,
-    // Sujets non-anime : culture japonaise générale, cuisine, tourisme,
-    // opinion sociétale. Filet basique — Gemini "relevant: false" affine.
-    /\bcéramique\b/i,
-    /\btouristique\b/i,
-    /\bséjour\s+au\s+japon\b/i,
-    /\bappartient\s+la\s+voix\b/i,
+    /\b(additional|main)\s+cast\b/i,
+    /\bmarriage\b|\bmariage\b/i,
+    /\bfigure\b|\bfigurine\b/i,
 ];
 
 const COLLECTION_SEEN = 'social_culture_news_seen';
@@ -89,12 +77,13 @@ async function isSeen(db, url) {
     return doc.exists;
 }
 
-async function markSeen(db, url, title, postId) {
+async function markSeen(db, url, title, extra = {}) {
     await db.collection(COLLECTION_SEEN).doc(urlKey(url)).set({
         url,
         title: title.slice(0, 200),
         seenAt: Date.now(),
-        postId: postId || null,
+        postId: null,
+        ...extra,
     });
 }
 
@@ -107,170 +96,148 @@ function isRelevantTitle(title) {
 }
 
 /**
- * Traite un item RSS : og scrape → download image → Gemini infer →
- * runCultureNews. Retourne le postId créé ou null si l'item a été
- * skippé (source non identifiable, image manquante, etc.).
+ * Filtres 2 et 3 : classe la news avec Gemini puis vérifie la popularité
+ * de l'œuvre. Retourne le candidat avec son score, ou { reject } avec la
+ * raison (gardée dans les news vues pour comprendre les choix du bot).
  */
-async function processItem(item) {
-    console.log(`[cultureNewsAuto] processing: ${item.title.slice(0, 80)}`);
-
-    const meta = await fetchOgMetadata(item.url).catch((err) => {
-        console.warn(`[cultureNewsAuto] og fetch failed for ${item.url}:`, err.message);
-        return null;
-    });
-    if (!meta?.imageUrl) {
-        console.log(`[cultureNewsAuto] skip: no image on ${item.url}`);
-        return null;
-    }
-
-    const inferred = await inferCultureNewsFields({
-        title: meta.title || item.title,
+async function evaluateItem(item, config) {
+    const news = await inferHypeNews({
+        title: item.title,
         description: item.description,
-        host: meta.host,
-        siteName: meta.siteName,
-    }).catch((err) => {
-        console.warn(`[cultureNewsAuto] Gemini infer failed:`, err.message);
-        return { category: 'other', source: '', description: '', relevant: null, hype: null };
-    });
+        siteName: item.feedName,
+    }, config);
+    if (news.event === 'none') return { reject: 'pas une annonce' };
+    if (typeof news.hype === 'number' && news.hype < MIN_HYPE) return { reject: `hype ${news.hype}` };
+    if (!news.work) return { reject: 'œuvre inconnue' };
 
-    // Skip si Gemini a explicitement marqué non pertinent (only when Gemini
-    // succeeded — relevant=null means Gemini failed, we let it pass with
-    // the fallback below).
-    if (inferred.relevant === false) {
-        console.log(`[cultureNewsAuto] skip: Gemini marked as non-relevant → ${item.title.slice(0, 60)}`);
-        return null;
-    }
+    const media = await fetchWorkPopularity(news.work).catch(() => null);
+    if (!media) return { reject: `introuvable sur AniList (${news.work})` };
+    if (media.popularity < MIN_POPULARITY) return { reject: `peu connu (${media.popularity})`, media };
 
-    // Skip si le sujet n'a pas assez d'impact (hype < 6). Un fan qui
-    // scrolle Insta doit s'arrêter sur le post → on garde que ce qui
-    // vaut la peine. hype=null (Gemini raté) laisse passer pour
-    // dégrader gracieusement — les autres garde-fous continuent.
-    const MIN_HYPE = 6;
-    if (typeof inferred.hype === 'number' && inferred.hype < MIN_HYPE) {
-        console.log(`[cultureNewsAuto] skip: hype=${inferred.hype} < ${MIN_HYPE} → ${item.title.slice(0, 60)}`);
-        return null;
-    }
+    const score = (news.hype || MIN_HYPE) * Math.log10(media.popularity);
+    return { item, news, media, score };
+}
 
-    const finalSource = (meta.siteName || inferred.source || '').trim();
-    if (!finalSource) {
-        console.log(`[cultureNewsAuto] skip: no reliable source for ${item.url}`);
-        return null;
-    }
-
-    // Si Gemini a raté, on utilise la description RSS de l'item comme
-    // fallback : mieux que rien, souvent 1-2 phrases utiles écrites par
-    // la rédaction du site source. On nettoie les suffixes WordPress
-    // classiques ("L'article X est apparu en premier sur Y", "The post
-    // X appeared first on Y").
-    let finalDescription = inferred.description || '';
-    if (!finalDescription && item.description) {
-        finalDescription = item.description
-            .replace(/L[’']article\s+.+?est apparu en premier sur.*$/is, '')
-            .replace(/The post\s+.+?appeared first on.*$/is, '')
-            .replace(/Cet article\s+.+?est apparu en premier sur.*$/is, '')
-            .replace(/\s*\[[\s\S]*?\]\s*$/g, '')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .slice(0, 240);
-    }
-
-    const ext = (meta.imageUrl.match(/\.(jpe?g|png|webp|gif)(\?|$)/i)?.[1] || 'jpg').toLowerCase();
+/** Image du post : celle de l'article, sinon la bannière AniList de l'œuvre. */
+async function uploadImage(candidate) {
+    const meta = await fetchOgMetadata(candidate.item.url).catch(() => null);
+    const sources = [meta?.imageUrl, candidate.media.imageUrl].filter(Boolean);
     const today = new Date().toISOString().slice(0, 10);
-    const suffix = Math.random().toString(36).slice(2, 10);
-    const path = `social/${today}/culture_news/auto-${suffix}.${ext}`;
-    let uploaded;
-    try {
-        uploaded = await downloadAndReuploadImage(meta.imageUrl, path);
-    } catch (err) {
-        console.warn(`[cultureNewsAuto] image upload failed:`, err.message);
-        return null;
+    for (const src of sources) {
+        const ext = (src.match(/\.(jpe?g|png|webp|gif)(\?|$)/i)?.[1] || 'jpg').toLowerCase();
+        const path = `social/${today}/culture_news/auto-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+        try {
+            return { url: (await downloadAndReuploadImage(src, path)).url, siteName: meta?.siteName || '' };
+        } catch (err) {
+            console.warn(`[cultureNewsAuto] image ${src} failed:`, err.message);
+        }
     }
+    return null;
+}
 
-    const cleanTitle = (meta.title || item.title || '')
-        .replace(/#\S+/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, 140);
-
-    const result = await runCultureNews({
-        category: inferred.category,
-        title: cleanTitle,
-        description: finalDescription,
-        imageUrl: uploaded.url,
-        source: finalSource,
-    });
-    return result.postId || null;
+/** Œuvres déjà postées récemment et heure du dernier post d'actu. */
+async function recentPosts(db, now) {
+    const snap = await db.collection(COLLECTION_SEEN)
+        .where('seenAt', '>=', now - SAME_WORK_GAP_MS)
+        .get();
+    const works = new Set();
+    let lastPostAt = 0;
+    for (const doc of snap.docs) {
+        const d = doc.data();
+        if (!d.postId) continue;
+        if (d.anilistId) works.add(d.anilistId);
+        lastPostAt = Math.max(lastPostAt, d.seenAt || 0);
+    }
+    return { works, lastPostAt };
 }
 
 async function runCultureNewsAuto() {
     return withCronHealth('cultureNewsAuto', async () => {
         const config = await loadBotConfig();
-        if (isKilled(config)) {
-            console.log('[social/cultureNewsAuto] skipped — kill-switch');
-            return { note: 'skipped: kill-switch' };
-        }
-        if (getModeForKey(config, 'cultureNewsAuto') === 'off') {
-            console.log('[social/cultureNewsAuto] skipped — disabled in config');
-            return { note: 'skipped: disabled in config' };
-        }
+        if (isKilled(config)) return { note: 'skipped: kill-switch' };
+        if (getModeForKey(config, 'cultureNewsAuto') === 'off') return { note: 'skipped: disabled in config' };
 
         const db = admin.firestore();
+        const now = Date.now();
 
-        // 1) Collecte tous les items de tous les feeds
+        // 1) Sources anime/manga
         const allItems = [];
         for (const feed of FEEDS) {
             try {
                 const items = await fetchFeed(feed.url);
-                console.log(`[cultureNewsAuto] ${feed.name}: ${items.length} items`);
-                for (const it of items) {
-                    allItems.push({ ...it, feedName: feed.name });
-                }
+                for (const it of items) allItems.push({ ...it, feedName: feed.name });
             } catch (err) {
                 console.warn(`[cultureNewsAuto] ${feed.name} failed:`, err.message);
             }
         }
-        if (allItems.length === 0) {
-            return { note: 'no items from any feed' };
-        }
+        if (allItems.length === 0) return { note: 'aucune news lue' };
 
-        // 2) Filtre pertinence + dedup
-        const eligible = [];
+        const fresh = [];
         for (const it of allItems) {
-            if (!isRelevantTitle(it.title)) continue;
+            if (!it.url || !isRelevantTitle(it.title)) continue;
             if (await isSeen(db, it.url)) continue;
-            eligible.push(it);
+            fresh.push(it);
         }
-        console.log(`[cultureNewsAuto] eligible after filter+dedup: ${eligible.length}/${allItems.length}`);
+        fresh.sort((a, b) => (Date.parse(b.pubDate) || 0) - (Date.parse(a.pubDate) || 0));
+        const batch = fresh.slice(0, MAX_CLASSIFIED_PER_RUN);
+        if (batch.length === 0) return { note: `0 nouvelle news sur ${allItems.length}` };
 
-        if (eligible.length === 0) {
-            return { note: 'no eligible items' };
-        }
-
-        // 3) Prend les N plus récents (tri par pubDate desc si possible)
-        eligible.sort((a, b) => {
-            const ta = Date.parse(a.pubDate) || 0;
-            const tb = Date.parse(b.pubDate) || 0;
-            return tb - ta;
-        });
-        const picks = eligible.slice(0, MAX_PER_RUN);
-
-        // 4) Traite chaque pick (og + gemini + create), marque comme seen
-        //    quoi qu'il arrive pour éviter de retenter en boucle.
-        const created = [];
-        for (const item of picks) {
-            let postId = null;
+        // 2) + 3) Classement Gemini et popularité AniList
+        const candidates = [];
+        const rejected = [];
+        for (const item of batch) {
+            let res;
             try {
-                postId = await processItem(item);
+                res = await evaluateItem(item, config);
             } catch (err) {
-                console.warn(`[cultureNewsAuto] processItem failed for ${item.url}:`, err.message);
+                // Gemini en panne : on ne marque pas vu, on retentera.
+                console.warn(`[cultureNewsAuto] evaluate failed for ${item.url}:`, err.message);
+                continue;
             }
-            await markSeen(db, item.url, item.title, postId);
-            if (postId) created.push(postId);
+            if (res.reject) {
+                rejected.push(item);
+                await markSeen(db, item.url, item.title, { verdict: res.reject, anilistId: res.media?.id || null });
+            } else {
+                candidates.push(res);
+            }
         }
 
+        // 4) Le meilleur seulement, une fois par jour, jamais la même œuvre en 7 jours
+        const { works, lastPostAt } = await recentPosts(db, now);
+        candidates.sort((a, b) => b.score - a.score);
+        const waitDay = now - lastPostAt < MIN_GAP_MS;
+        let created = null;
+        for (const c of candidates) {
+            const verdict = { anilistId: c.media.id, popularity: c.media.popularity, event: c.news.event, hype: c.news.hype };
+            if (created || waitDay || works.has(c.media.id)) {
+                await markSeen(db, c.item.url, c.item.title, {
+                    ...verdict,
+                    verdict: works.has(c.media.id) ? 'œuvre déjà postée cette semaine' : 'une meilleure news passe avant',
+                });
+                continue;
+            }
+            const image = await uploadImage(c);
+            if (!image) {
+                await markSeen(db, c.item.url, c.item.title, { ...verdict, verdict: 'pas d\'image' });
+                continue;
+            }
+            const result = await runCultureNews({
+                category: c.news.event,
+                title: c.news.headline || c.item.title.slice(0, 140),
+                description: c.news.description,
+                imageUrl: image.url,
+                source: c.news.source || image.siteName || c.item.feedName,
+            });
+            created = result.postId || null;
+            await markSeen(db, c.item.url, c.item.title, { ...verdict, verdict: 'retenue', postId: created });
+        }
+
+        const best = candidates[0];
         return {
-            postId: created[0] || null,
-            note: `${created.length}/${picks.length} posts créés (${eligible.length - picks.length} en attente pour le prochain run)`,
+            postId: created,
+            note: created
+                ? `retenue : ${best.news.headline} (${best.media.popularity} suiveurs) · ${candidates.length - 1} autre(s) candidate(s) · ${rejected.length} rejetée(s)`
+                : `aucun post · ${candidates.length} candidate(s)${waitDay ? ' (déjà une actu aujourd\'hui)' : ''} · ${rejected.length} rejetée(s) sur ${batch.length}`,
         };
     });
 }

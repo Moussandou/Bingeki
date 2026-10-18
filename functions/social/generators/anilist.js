@@ -193,7 +193,42 @@ async function fetchAniListSeasonPreview({ season, year, limit = 24 }) {
         .slice(0, limit);
 }
 
+const WORK_SEARCH = `
+query ($search: String) {
+    Page(perPage: 6) {
+        media(search: $search, sort: SEARCH_MATCH) {
+            id
+            type
+            popularity
+            title { romaji english }
+            coverImage { extraLarge }
+            bannerImage
+        }
+    }
+}`;
+
+/**
+ * Fiche AniList la plus suivie qui correspond au nom (anime ou manga).
+ * On prend la plus populaire des premiers résultats : « Naruto » tombe
+ * sinon sur une entrée secondaire peu suivie. null si rien trouvé.
+ */
+async function fetchWorkPopularity(name) {
+    if (!name) return null;
+    const data = await anilistQuery(WORK_SEARCH, { search: name });
+    const list = data?.Page?.media || [];
+    if (list.length === 0) return null;
+    const best = list.reduce((a, b) => ((b.popularity || 0) > (a.popularity || 0) ? b : a));
+    return {
+        id: best.id,
+        type: best.type,
+        popularity: best.popularity || 0,
+        title: best.title?.english || best.title?.romaji || name,
+        imageUrl: best.bannerImage || best.coverImage?.extraLarge || null,
+    };
+}
+
 module.exports = {
+    fetchWorkPopularity,
     fetchAniListCurrentEpisode,
     fetchAniListSeasonPreview,
 };

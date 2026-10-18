@@ -150,6 +150,37 @@ Infos disponibles :
 Réponds STRICTEMENT en JSON, rien d'autre :
 {"relevant": true, "hype": 8, "category": "game", "source": "Bandai Namco", "description": "Le RPG mobile revient avec de nouveaux personnages et un mode multi coopératif."}`,
 
+    hype_news_infer: `Tu es l'éditeur du bot social Bingeki (tracker anime & manga francophone, public jeune Instagram/TikTok). Bingeki ne relaie QUE les annonces anime/manga qui font réagir les fans (« waouh, ça revient ! »), jamais l'actu générale.
+
+À partir d'une news, réponds :
+
+- event : le type d'annonce, STRICTEMENT parmi :
+  · "sequel"     = nouvelle saison, suite ou nouvel anime d'une licence existante annoncé (ex : « New Dr. Stone Anime Announced »)
+  · "adaptation" = un manga / light novel adapté en anime pour la première fois
+  · "movie"      = film d'animation annoncé, daté, ou qui sort au cinéma
+  · "trailer"    = trailer, teaser ou date de sortie d'un anime ou d'une saison attendue
+  · "comeback"   = un manga ou un anime qui reprend après une pause, un nouveau manga d'une grosse licence (ex : Dragon Ball qui reprend, nouveau manga Naruto)
+  · "ending"     = un manga ou un anime culte qui se termine
+  · "record"     = record de ventes, de box-office ou d'audience
+  · "none"       = tout le reste : casting / doubleurs, staff, chansons, mariages, idoles, jeux vidéo, goodies, figurines, événements, conventions, collaborations, critiques, analyses, culture japonaise générale
+  En cas de doute, "none".
+
+- work : le nom de l'œuvre concernée, tel qu'on le chercherait sur AniList (titre romaji ou anglais, sans « Season 2 », « Movie », etc.). "" si aucune.
+
+- hype : entier de 1 à 10, l'envie de partager pour un fan francophone de 15-25 ans. 10 = One Piece / Dragon Ball / Jujutsu Kaisen / Chainsaw Man qui fait une annonce majeure. 7-8 = suite d'un anime populaire, trailer d'un film attendu. 1-5 = titre peu connu ou annonce mineure. Sois exigeant.
+
+- headline : le titre du post en français, court et percutant (max 70 caractères), ex : « Dr. Stone : un nouvel anime annoncé ! ».
+
+- description : 1 à 2 phrases en français (100-200 caractères) qui donnent le contexte. Factuel : n'invente ni date ni chiffre.
+
+- source : le nom de la source officielle (studio, éditeur, plateforme : Toei Animation, Shueisha, Crunchyroll, Netflix…). "" si inconnue.
+
+Infos disponibles :
+{{DATA}}
+
+Réponds STRICTEMENT en JSON, rien d'autre :
+{"event": "sequel", "work": "Dr. Stone", "hype": 8, "headline": "Dr. Stone : un nouvel anime annoncé !", "description": "La licence de Riichiro Inagaki revient avec un nouveau projet anime.", "source": "TMS Entertainment"}`,
+
     culture_news: `Tu écris pour la page Instagram de Bingeki (${BINGEKI_URL}). Contexte: post "actu culture anime" — une news qui touche à l'univers anime/manga mais qui n'est PAS une sortie d'épisode (ex: jeu vidéo, film live-action, goodies, actu industrie, événement, box-office…).
 
 Actu :
@@ -440,17 +471,10 @@ ${JSON.stringify(inputs)}`;
  * Gemini échoue. Le caller peut fallback sur { category: 'other',
  * source: '', description: '' }.
  */
-async function inferCultureNewsFields({ title, description, host, siteName }, config = {}) {
+/** Appel Gemini qui attend une réponse JSON (avec relances sur 429/5xx). */
+async function geminiJson(prompt, config = {}, maxOutputTokens = 400) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY not set');
-
-    const payload = [
-        `Titre extrait : ${title || '(vide)'}`,
-        description ? `Description extraite : ${description}` : null,
-        `Provenance : ${siteName || host || '?'}`,
-    ].filter(Boolean).join('\n');
-
-    const prompt = PROMPTS.culture_news_infer.replace('{{DATA}}', payload);
     const model = config?.gemini?.model || 'gemini-flash-latest';
     const RETRYABLE = new Set([429, 500, 502, 503, 504]);
     const MAX_ATTEMPTS = 3;
@@ -465,7 +489,7 @@ async function inferCultureNewsFields({ title, description, host, siteName }, co
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
                 generationConfig: {
                     temperature: 0.3,
-                    maxOutputTokens: 400,
+                    maxOutputTokens,
                     responseMimeType: 'application/json',
                 },
             }),
@@ -489,6 +513,18 @@ async function inferCultureNewsFields({ title, description, host, siteName }, co
         if (!m) throw new Error('Gemini infer non-JSON response');
         obj = JSON.parse(m[0]);
     }
+    return obj;
+}
+
+async function inferCultureNewsFields({ title, description, host, siteName }, config = {}) {
+    const payload = [
+        `Titre extrait : ${title || '(vide)'}`,
+        description ? `Description extraite : ${description}` : null,
+        `Provenance : ${siteName || host || '?'}`,
+    ].filter(Boolean).join('\n');
+
+    const prompt = PROMPTS.culture_news_infer.replace('{{DATA}}', payload);
+    const obj = await geminiJson(prompt, config);
     const VALID_CATS = new Set(['game', 'movie', 'goodies', 'industry', 'event', 'other']);
     return {
         // relevant: null (Gemini a échoué / champ absent), true (pertinent),
@@ -503,8 +539,34 @@ async function inferCultureNewsFields({ title, description, host, siteName }, co
     };
 }
 
+const HYPE_EVENTS = new Set(['sequel', 'adaptation', 'movie', 'trailer', 'comeback', 'ending', 'record']);
+
+/**
+ * Classe une news pour le cron cultureNewsAuto : type d'annonce (seules
+ * celles de HYPE_EVENTS sont publiables), œuvre à vérifier sur AniList,
+ * hype, titre et description en français.
+ */
+async function inferHypeNews({ title, description, siteName }, config = {}) {
+    const payload = [
+        `Titre : ${title || '(vide)'}`,
+        description ? `Résumé : ${String(description).slice(0, 500)}` : null,
+        `Site : ${siteName || '?'}`,
+    ].filter(Boolean).join('\n');
+    const obj = await geminiJson(PROMPTS.hype_news_infer.replace('{{DATA}}', payload), config, 500);
+    const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+    return {
+        event: HYPE_EVENTS.has(obj.event) ? obj.event : 'none',
+        work: str(obj.work, 120),
+        hype: typeof obj.hype === 'number' ? Math.max(1, Math.min(10, Math.round(obj.hype))) : null,
+        headline: str(obj.headline, 90),
+        description: str(obj.description, 260),
+        source: str(obj.source, 60),
+    };
+}
+
 module.exports = {
     generateCaption,
+    inferHypeNews,
     generateCaptionFromGemini,
     translateSynopsisPair,
     inferCultureNewsFields,
