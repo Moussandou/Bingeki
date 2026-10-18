@@ -9,7 +9,7 @@ fi
 
 if brew list --versions xcodegen >/dev/null 2>&1; then
   # Cellar restored from cache but not linked into PATH.
-  brew link --overwrite xcodegen || brew reinstall xcodegen
+  brew link xcodegen
 else
   brew install xcodegen
 fi
