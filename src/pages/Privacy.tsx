@@ -7,6 +7,7 @@ import { Link } from '@/components/routing/LocalizedLink';
 import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SEO } from '@/components/layout/SEO';
+import { PrivacyConsent } from '@/components/PrivacyConsent';
 
 export default function Privacy() {
     const { t } = useTranslation();
@@ -51,6 +52,7 @@ export default function Privacy() {
                         <p>{t('privacy.data_desc')}</p>
                     </section>
 
+                    <PrivacyConsent inline />
                 </div>
             </div>
         </Layout>

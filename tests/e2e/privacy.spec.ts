@@ -12,11 +12,10 @@ test('privacy choices default off, persist, and can be withdrawn', async ({ page
     expect(optionalRequests).toEqual([]);
     await preferences.getByRole('button', { name: 'Refuse / withdraw' }).click();
     await page.reload();
-    await expect(preferences.getByRole('button', { name: 'Privacy preferences', exact: true })).toBeVisible();
-    await preferences.getByRole('button', { name: 'Privacy preferences', exact: true }).click();
+    await expect(preferences).toHaveCount(1);
+    await expect(preferences).not.toHaveCSS('position', 'fixed');
     await preferences.getByRole('button', { name: 'Accept', exact: true }).click();
     await expect.poll(() => page.evaluate(() => localStorage.getItem('bingeki:optional-consent:v1'))).toBe('accepted');
-    await preferences.getByRole('button', { name: 'Privacy preferences', exact: true }).click();
     await preferences.getByRole('button', { name: 'Refuse / withdraw' }).click();
     await expect.poll(() => page.evaluate(() => localStorage.getItem('bingeki:optional-consent:v1'))).toBe('rejected');
     expect(optionalRequests).toEqual([]); // Isolated builds never initialize optional SDKs.
