@@ -1005,7 +1005,7 @@ struct WorkRecommendationsGrid: View {
             VStack(spacing: BKSpace.lg) {
                 Text("VOUS AIMEREZ AUSSI").font(BKFont.display(26)).frame(maxWidth: .infinity)
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 16, alignment: .top), GridItem(.flexible(), spacing: 16, alignment: .top)], spacing: 22) {
-                    ForEach(items.prefix(shown), id: \.work.id) { item in
+                    ForEach(items.prefix(shown), id: \.work.identity) { item in
                         NavigationLink(value: item.work) {
                             VStack(alignment: .leading, spacing: 8) {
                                 VStack(spacing: 0) {

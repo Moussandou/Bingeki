@@ -24,7 +24,7 @@ extension UserProfile {
         var p = UserProfile.sample
         p.streak = 17
         p.banner = "https://cdn.myanimelist.net/images/anime/1015/138006l.jpg"
-        p.top3Favorites = ["52991", "116778", "2"]
+        p.top3Favorites = ["anime:52991", "manga:116778", "manga:2"]
         return p
     }()
 }

@@ -63,7 +63,7 @@ final class DiscoverDeck {
     func setIndex(_ newIndex: Int) {
         let target = max(0, newIndex)
         if target > index, index < pool.count {
-            markSeen(pool[index..<min(target, pool.count)].map(\.id))
+            markSeen(pool[index..<min(target, pool.count)].map(\.identity.key))
         }
         index = target
         if pool.count - index <= Self.refillThreshold {
@@ -86,14 +86,14 @@ final class DiscoverDeck {
             guard !exhausted.contains(source) else { continue }
             guard let (works, tag) = await fetch(source) else { continue }
 
-            let recent = Set(pool.suffix(Self.repeatGap).map(\.id))
+            let recent = Set(pool.suffix(Self.repeatGap).map(\.identity.key))
             let cooldown = Set(seen.suffix(Self.seenCooldown))
-            let fresh = works.filter { !owned.contains($0.id) && !recent.contains($0.id) && !cooldown.contains($0.id) }
+            let fresh = works.filter { !owned.contains($0.identity.key) && !recent.contains($0.identity.key) && !cooldown.contains($0.identity.key) }
             // Mostly-seen catalogue: let cooled-down titles back in rather than stall.
             let batch = fresh.isEmpty
-                ? works.filter { !owned.contains($0.id) && !recent.contains($0.id) }
+                ? works.filter { !owned.contains($0.identity.key) && !recent.contains($0.identity.key) }
                 : fresh
-            if let tag { for work in batch { reasons[work.id] = tag } }
+            if let tag { for work in batch { reasons[work.identity.key] = tag } }
             pool.append(contentsOf: batch.shuffled().prefix(4))
         }
     }
@@ -118,7 +118,7 @@ final class DiscoverDeck {
             guard let recs = try? await client.recommendations(id: seed.id, type: seed.type.tenrai) else { return nil }
             let because = seed.status == .planToRead ? "PROCHE DE" : "PARCE QUE TU AS AIMÉ"
             let works = recs.data.prefix(16).map { $0.entry.asWork(mediaType: seed.type.tenrai) }
-            for work in works { reasons[work.id] = "\(because) \(seed.title.uppercased())" }
+            for work in works { reasons[work.identity.key] = "\(because) \(seed.title.uppercased())" }
             return (works, nil)
         case .season, .topAnime, .topManga:
             let page = (pages[source] ?? 0) + 1
@@ -169,7 +169,7 @@ final class DiscoverDeck {
         pages = [:]
         exhausted = []
         self.sfw = sfw
-        owned = Set(library.map(\.id))
+        owned = Set(library.map(\.identity.key))
         // Every watched title seeds recommendations (else the "À voir" list),
         // in random order so each session starts from a different angle.
         let engaged = library.filter { $0.status == .completed || $0.status == .reading }
@@ -184,14 +184,14 @@ final class DiscoverDeck {
     func enrichVisibleCards() async {
         for offset in 0...1 {
             let i = index + offset
-            guard pool.indices.contains(i), !enriched.contains(pool[i].id) else { continue }
+            guard pool.indices.contains(i), !enriched.contains(pool[i].identity.key) else { continue }
             let card = pool[i]
-            enriched.insert(card.id)
+            enriched.insert(card.identity.key)
             let needsTrailer = card.type == .anime && card.trailerYouTubeId == nil
             guard card.genres.isEmpty || card.synopsis == nil || needsTrailer,
                   let full = try? await client.details(id: card.id, type: card.type.tenrai) else { continue }
             let detailed = full.data.asWork(mediaType: card.type.tenrai)
-            guard let j = pool.firstIndex(where: { $0.id == card.id }) else { continue }
+            guard let j = pool.firstIndex(where: { $0.identity == card.identity }) else { continue }
             pool[j] = detailed
         }
     }

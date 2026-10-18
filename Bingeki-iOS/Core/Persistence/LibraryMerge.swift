@@ -1,67 +1,113 @@
 import Foundation
+import OSLog
 
-/// A deletion made on this device, so the cloud copy can't resurrect the
-/// work on the next sync. Mirrors `Tombstone` in `src/store/libraryStore.ts`.
+/// Web wire format: { id, type?, deletedAt: epochMilliseconds }.
+/// Missing type is retained until the legacy reference can be resolved uniquely.
 struct Tombstone: Codable, Equatable, Sendable {
+    static let legacyDatesKey = CodingUserInfoKey(rawValue: "bk.legacyTombstoneDates")!
     var id: String
     var deletedAt: Date
-}
+    var type: WorkType? = nil
 
-/// Port of the web's `mergeLibraryData` (`src/utils/dataProtection.ts`):
-/// per-work last-write-wins instead of overwriting the whole document, plus
-/// tombstones so a deletion isn't undone by an older cloud copy.
-enum LibraryMerge {
-    /// Deletions older than this are assumed propagated to every device —
-    /// same TTL as the web (`TOMBSTONE_TTL_MS`).
-    static let tombstoneTTL: TimeInterval = 90 * 24 * 60 * 60
-
-    static func prune(_ tombstones: [Tombstone], now: Date = .now) -> [Tombstone] {
-        tombstones.filter { now.timeIntervalSince($0.deletedAt) < tombstoneTTL }
+    var identity: WorkIdentity? {
+        type.map { WorkIdentity(type: $0, id: id) } ?? WorkIdentity(key: id)
     }
 
-    /// A deletion only wins over a cloud edit that predates it.
+    private enum CodingKeys: String, CodingKey { case id, type, deletedAt }
+
+    init(id: String, deletedAt: Date, type: WorkType? = nil) {
+        self.id = id
+        self.deletedAt = deletedAt
+        self.type = type
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        if let string = try? c.decode(String.self, forKey: .id) {
+            id = string
+        } else {
+            id = String(try c.decode(Int.self, forKey: .id))
+        }
+        type = try c.decodeIfPresent(WorkType.self, forKey: .type)
+        let timestamp = try c.decode(Double.self, forKey: .deletedAt)
+        // v1 native UserDefaults used JSONEncoder's seconds since 2001.
+        if decoder.userInfo[Self.legacyDatesKey] as? Bool == true {
+            deletedAt = Date(timeIntervalSinceReferenceDate: timestamp)
+        } else {
+            deletedAt = Date(timeIntervalSince1970: timestamp / 1000)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encodeIfPresent(type, forKey: .type)
+        try c.encode(deletedAt.timeIntervalSince1970 * 1000, forKey: .deletedAt)
+    }
+}
+
+enum LibraryMerge {
+    /// Keep deletion history indefinitely, matching web: offline clients may return years later.
+    static func prune(_ tombstones: [Tombstone], now: Date = .now) -> [Tombstone] {
+        var result: [Tombstone] = []
+        var indices: [String: Int] = [:]
+        for tombstone in tombstones {
+            let key = tombstone.identity?.key ?? "legacy:\(tombstone.id)"
+            if let index = indices[key] {
+                if result[index].deletedAt < tombstone.deletedAt { result[index] = tombstone }
+            } else {
+                indices[key] = result.count
+                result.append(tombstone)
+            }
+        }
+        return result
+    }
+
+    static func migrate(_ tombstones: [Tombstone], works: [Work]) -> [Tombstone] {
+        prune(tombstones.map { tombstone in
+            guard let identity = tombstone.identity ?? WorkIdentity.resolve(tombstone.id, in: works) else {
+                return tombstone
+            }
+            return Tombstone(id: identity.id, deletedAt: tombstone.deletedAt, type: identity.type)
+        })
+    }
+
+    /// Unresolved legacy deletions are not wildcards: they must never delete both types.
     static func isDeleted(_ work: Work, by tombstones: [Tombstone]) -> Bool {
-        guard let deletedAt = tombstones.filter({ $0.id == work.id }).map(\.deletedAt).max() else {
+        guard let deletedAt = tombstones.filter({ $0.identity == work.identity }).map(\.deletedAt).max() else {
             return false
         }
         return (work.lastUpdated ?? .distantPast) <= deletedAt
     }
 
-    /// Local order preserved, cloud-only additions appended; on a conflict
-    /// the most recently updated copy of a work wins (local on a tie).
+    /// Local order and tie preference match the web; both sides honor deletions.
     static func merge(local: [Work], cloud: [Work], tombstones: [Tombstone]) -> [Work] {
-        let survivingCloud = cloud.filter { !isDeleted($0, by: tombstones) }
-        if survivingCloud.isEmpty { return local }
-        if local.isEmpty { return survivingCloud }
-
-        var byId: [String: Work] = [:]
-        for work in survivingCloud { byId[work.id] = work }
-        for work in local {
-            if let existing = byId[work.id],
+        let deletions = migrate(tombstones, works: local + cloud)
+        var byIdentity: [WorkIdentity: Work] = [:]
+        for work in cloud + local where !isDeleted(work, by: deletions) {
+            if let existing = byIdentity[work.identity],
                (work.lastUpdated ?? .distantPast) < (existing.lastUpdated ?? .distantPast) {
                 continue
             }
-            byId[work.id] = work
+            byIdentity[work.identity] = work
         }
-
-        var merged: [Work] = []
-        var seen = Set<String>()
-        for work in local + survivingCloud where !seen.contains(work.id) {
-            if let upToDate = byId[work.id] {
-                merged.append(upToDate)
-                seen.insert(work.id)
-            }
+        var seen = Set<WorkIdentity>()
+        return (local + cloud).compactMap { work in
+            guard seen.insert(work.identity).inserted else { return nil }
+            return byIdentity[work.identity]
         }
-        return merged
     }
 }
 
-/// Tombstones live on the device only (the web keeps them in its persisted
-/// zustand store too), keyed by account so two users on one phone don't
-/// share deletions.
 struct TombstoneStore {
+    private struct Archive: Codable {
+        var version: Int = 2
+        var tombstones: [Tombstone]
+    }
+
     private let key: String
     private let defaults: UserDefaults
+    private let logger = Logger(subsystem: "com.bingeki.ios", category: "Tombstones")
 
     init(uid: String, defaults: UserDefaults = .standard) {
         self.key = "bk.tombstones.\(uid)"
@@ -69,14 +115,27 @@ struct TombstoneStore {
     }
 
     func load() -> [Tombstone] {
-        guard let data = defaults.data(forKey: key),
-              let decoded = try? JSONDecoder().decode([Tombstone].self, from: data) else { return [] }
-        return LibraryMerge.prune(decoded)
+        guard let data = defaults.data(forKey: key) else { return [] }
+        do {
+            let decoder = JSONDecoder()
+            if let archive = try? decoder.decode(Archive.self, from: data) {
+                guard archive.version == 2 else { throw CocoaError(.coderReadCorrupt) }
+                return LibraryMerge.prune(archive.tombstones)
+            }
+            decoder.userInfo[Tombstone.legacyDatesKey] = true
+            return LibraryMerge.prune(try decoder.decode([Tombstone].self, from: data))
+        } catch {
+            logger.error("Cannot decode deletion history: \(error.localizedDescription)")
+            return []
+        }
     }
 
     func save(_ tombstones: [Tombstone]) {
-        let pruned = LibraryMerge.prune(tombstones)
-        defaults.set(try? JSONEncoder().encode(pruned), forKey: key)
+        do {
+            defaults.set(try JSONEncoder().encode(Archive(tombstones: LibraryMerge.prune(tombstones))), forKey: key)
+        } catch {
+            logger.error("Cannot save deletion history: \(error.localizedDescription)")
+        }
     }
 
     func clear() {

@@ -32,8 +32,8 @@ private final class UnconfiguredLibraryStore: LibraryStoring {
     var works: [Work] = []
     var hasLoaded: Bool { false }
     func upsert(_ work: Work) {}
-    func remove(id: String) {}
-    func work(id: String) -> Work? { nil }
+    func remove(identity: WorkIdentity) {}
+    func work(identity: WorkIdentity) -> Work? { nil }
 }
 
 private final class UnconfiguredUserStore: UserStoring {

@@ -1,4 +1,53 @@
 import Foundation
+import OSLog
+
+/// `id` remains the raw provider ID on the wire; only this pair identifies a work.
+struct WorkIdentity: Hashable, Sendable {
+    let type: WorkType
+    let id: String
+
+    var key: String { "\(type.rawValue):\(id)" }
+
+    init(type: WorkType, id: String) {
+        self.type = type
+        self.id = id
+    }
+
+    init?(key: String) {
+        let parts = key.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2, let type = WorkType(rawValue: String(parts[0])), !parts[1].isEmpty else {
+            return nil
+        }
+        self.init(type: type, id: String(parts[1]))
+    }
+
+    static func resolve(_ reference: String, in works: [Work]) -> WorkIdentity? {
+        if let identity = WorkIdentity(key: reference) { return identity }
+        let matches = Set(works.filter { $0.id == reference }.map(\.identity))
+        if matches.count > 1 {
+            Logger(subsystem: "com.bingeki.ios", category: "Identity")
+                .error("Ambiguous legacy work reference: \(reference, privacy: .public)")
+        }
+        return matches.count == 1 ? matches.first : nil
+    }
+
+    /// Preserve order, missing references and ambiguous legacy values verbatim.
+    static func migrate(_ references: [String], in works: [Work]) -> [String] {
+        references.map { resolve($0, in: works)?.key ?? $0 }
+    }
+
+    static func toggling(_ identity: WorkIdentity, in references: [String], works: [Work]) -> [String] {
+        var references = migrate(references, in: works)
+        if let index = references.firstIndex(of: identity.key) {
+            references.remove(at: index)
+        } else if references.count < 3 {
+            references.append(identity.key)
+        } else {
+            references[2] = identity.key
+        }
+        return references
+    }
+}
 
 /// Mirrors `Work` in `src/store/libraryStore.ts` — keep the two in sync so
 /// Firestore documents read/write identically from web and iOS. Custom
@@ -10,6 +59,7 @@ import Foundation
 /// numbers rather than ISO8601 strings.
 struct Work: Identifiable, Codable, Hashable, Sendable {
     var id: String
+    var identity: WorkIdentity { WorkIdentity(type: type, id: id) }
     var title: String
     var titleEnglish: String?
     var titleJapanese: String?

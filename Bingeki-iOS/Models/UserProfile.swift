@@ -130,6 +130,6 @@ extension UserProfile {
         totalWorksAdded: 77,
         totalWorksCompleted: 41,
         bio: "Shōnen le jour, seinen la nuit.",
-        top3Favorites: [Work.sampleFrieren.id, Work.sampleOnePiece.id]
+        top3Favorites: [Work.sampleFrieren.identity.key, Work.sampleOnePiece.identity.key]
     )
 }

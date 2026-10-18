@@ -15,11 +15,11 @@ struct DiscoverDeckTests {
         let deck = deck(defaults)
 
         deck.setIndex(3)
-        #expect(defaults.stringArray(forKey: "bk.discover.seen") == ["1", "2", "3"])
+        #expect(defaults.stringArray(forKey: "bk.discover.seen") == ["anime:1", "anime:2", "anime:3"])
 
         // Scrolling back up to re-watch doesn't unsee anything or duplicate.
         deck.setIndex(1)
         deck.setIndex(3)
-        #expect(defaults.stringArray(forKey: "bk.discover.seen") == ["1", "2", "3"])
+        #expect(defaults.stringArray(forKey: "bk.discover.seen") == ["anime:1", "anime:2", "anime:3"])
     }
 }
