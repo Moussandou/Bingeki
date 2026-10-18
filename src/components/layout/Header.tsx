@@ -1,7 +1,7 @@
 import { Link } from '@/components/routing/LocalizedLink';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import {
@@ -19,12 +19,10 @@ import {
     CalendarRange,
 } from 'lucide-react';
 
-import { GlobalSearch } from '@/components/search/GlobalSearch';
+const GlobalSearch = lazy(() => import('@/components/search/GlobalSearch').then(module => ({ default: module.GlobalSearch })));
 import { useAuthStore } from '@/store/authStore';
 import { useGamificationStore } from '@/store/gamificationStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { auth } from '@/firebase/config';
-import { Timestamp } from 'firebase/firestore';
 import styles from './Header.module.css';
 import { useTranslation } from 'react-i18next';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -136,7 +134,7 @@ function NotificationDropdown() {
                                                             if (!n.createdAt) return 'Just now';
                                                             if (typeof n.createdAt === 'number') return new Date(n.createdAt).toLocaleDateString();
                                                             // Handle Firestore Timestamp
-                                                            const seconds = n.createdAt instanceof Timestamp ? n.createdAt.seconds : (n.createdAt as { seconds?: number }).seconds;
+                                                            const seconds = n.createdAt.seconds;
                                                             if (seconds) return new Date(seconds * 1000).toLocaleDateString();
                                                             return 'Just now';
                                                         })()}
@@ -200,7 +198,7 @@ export function Header() {
 
                     {/* Left: Logo */}
                     <Link to="/" className={`${styles.logo} text-gradient`}>
-                        <OptimizedImage src="/logo.png" alt="Bingeki Logo" style={{ width: 50, height: 50 }} objectFit="contain" showSkeleton={false} priority />
+                        <OptimizedImage src="/logo-header.png" alt="Bingeki Logo" style={{ width: 50, height: 50 }} objectFit="contain" showSkeleton={false} priority />
                         <div className={styles.logoText}>
                             <span style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)', letterSpacing: '-1px' }}>BINGEKI</span>
                         </div>
@@ -425,6 +423,7 @@ export function Header() {
                                                 <div style={{ height: '1px', background: '#eee', margin: '0.25rem 0' }}></div>
                                                 <button
                                                     onClick={async () => {
+                                                        const { auth } = await import('@/firebase/config');
                                                         await auth.signOut();
                                                         setIsDropdownOpen(false);
                                                         navigate('/'); // Redirect to home
@@ -493,8 +492,9 @@ export function Header() {
                     </nav>
                 )
             }
-            <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+            {isSearchOpen && <Suspense fallback={null}>
+                <GlobalSearch isOpen onClose={() => setIsSearchOpen(false)} />
+            </Suspense>}
         </>
     );
 }
-
