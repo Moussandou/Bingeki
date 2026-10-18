@@ -9,11 +9,13 @@ import Observation
 /// exchanged for a Firebase credential here.
 @MainActor
 @Observable
-final class FirebaseAuthStore: AuthProviding {
+final class FirebaseAuthStore: AuthProviding, AccountDeletionClient {
     private(set) var isSignedIn: Bool
     private(set) var uid: String?
     private(set) var accountLabel: String
     private var handle: AuthStateDidChangeListenerHandle?
+    private let deletionFlow = AccountDeletionFlow()
+    private let oauth = OAuthCredentialProvider()
 
     init() {
         let user = Auth.auth().currentUser
@@ -41,51 +43,85 @@ final class FirebaseAuthStore: AuthProviding {
         return user.email ?? "Compte Bingeki"
     }
 
-    /// Server-side (`deleteOwnAccount` Cloud Function): the rules don't let
-    /// a client delete its own profile document, and the function also
-    /// removes the Auth account, so no "recent login" re-auth is needed.
     func deleteAccount() async throws {
-        guard let uid else { return }
-        _ = try await Functions.functions(region: "europe-west9")
+        try await deletionFlow.run(client: self) { provider in
+            try await self.oauth.credential(for: provider)
+        }
+    }
+
+    var deletionAccount: DeletionAccount? {
+        guard let user = Auth.auth().currentUser else { return nil }
+        let provider = user.providerData.first { $0.providerID == "apple.com" }
+            ?? user.providerData.first { $0.providerID == "google.com" }
+        return DeletionAccount(
+            uid: user.uid,
+            provider: provider.map { $0.providerID == "apple.com" ? .apple : .google },
+            providerUserID: provider?.uid
+        )
+    }
+
+    func deleteRemoteAccount() async throws {
+        let result = try await Functions.functions(region: "europe-west9")
             .httpsCallable("deleteOwnAccount")
             .call()
-        TombstoneStore(uid: uid).clear()
+        try AccountDeletionFlow.requireServerConfirmation(result.data)
+    }
+
+    func reauthenticate(with credential: AuthCredential, account: DeletionAccount) async throws {
+        guard deletionAccount == account, let user = Auth.auth().currentUser else {
+            throw AccountDeletionError.wrongAccount
+        }
+        _ = try await user.reauthenticate(with: firebaseCredential(for: credential))
+    }
+
+    func refreshToken(for account: DeletionAccount) async throws {
+        guard deletionAccount == account, let user = Auth.auth().currentUser else {
+            throw AccountDeletionError.wrongAccount
+        }
+        _ = try await user.getIDTokenForcingRefresh(true)
+    }
+
+    func finishDeletion(for account: DeletionAccount) throws {
+        guard deletionAccount == account else { throw AccountDeletionError.wrongAccount }
         try Auth.auth().signOut()
+        TombstoneStore(uid: account.uid).clear()
     }
 
     func signIn(with credential: AuthCredential) async throws {
+        guard !deletionFlow.isRunning else { throw AccountDeletionError.alreadyRunning }
+        if credential.provider != .anonymous {
+            try await completeSignIn(with: firebaseCredential(for: credential))
+            return
+        }
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            Auth.auth().signInAnonymously { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    private func firebaseCredential(for credential: AuthCredential) throws -> FirebaseAuth.AuthCredential {
         switch credential.provider {
         case .apple:
             guard let idToken = credential.identityToken, let rawNonce = credential.rawNonce else {
-                throw AuthError.providerNotYetSupported("Apple")
+                throw OAuthCredentialError.missingToken
             }
-            let firebaseCredential = OAuthProvider.appleCredential(
+            return OAuthProvider.appleCredential(
                 withIDToken: idToken,
                 rawNonce: rawNonce,
                 fullName: nil
             )
-            try await completeSignIn(with: firebaseCredential)
         case .google:
             guard let idToken = credential.identityToken, let accessToken = credential.accessToken else {
-                throw AuthError.providerNotYetSupported("Google Sign-In")
+                throw OAuthCredentialError.missingToken
             }
-            let firebaseCredential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-            try await completeSignIn(with: firebaseCredential)
+            return GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
         case .anonymous:
-            // Real Firebase Anonymous Auth, not a local fake — a genuine
-            // uid, usable with the same Firestore rules as any other
-            // provider. Needs "Anonymous" enabled once in the Firebase
-            // console (Authentication → Sign-in method); throws
-            // `operation-not-allowed` until then, surfaced as-is below.
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                Auth.auth().signInAnonymously { _, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else {
-                        continuation.resume()
-                    }
-                }
-            }
+            throw AccountDeletionError.unsupportedProvider
         }
     }
 
@@ -102,6 +138,7 @@ final class FirebaseAuthStore: AuthProviding {
     }
 
     func signOut() throws {
+        guard !deletionFlow.isRunning else { throw AccountDeletionError.alreadyRunning }
         try Auth.auth().signOut()
     }
 }
