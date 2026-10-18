@@ -51,12 +51,11 @@ final class NavigationUITests: XCTestCase {
         let biblioTitle = app.staticTexts["Biblio"]
         XCTAssertTrue(biblioTitle.waitForExistence(timeout: 3), "L'écran Biblio doit afficher le titre 'Biblio'")
 
-        // 4. Open and dismiss search modal (top-right button of the visible tab;
-        // other tabs keep theirs in the hierarchy).
-        let searchButton = app.buttons.matching(identifier: "search_button")
-            .allElementsBoundByIndex.first { $0.isHittable }
-        XCTAssertNotNil(searchButton, "Le bouton de recherche doit être en haut à droite")
-        searchButton?.tap()
+        // 4. Open and dismiss the catalogue search from the library header.
+        let searchButton = app.buttons["library_catalog_search"]
+        XCTAssertTrue(searchButton.waitForExistence(timeout: 3), "Le bouton de recherche catalogue doit être présent dans Biblio")
+        XCTAssertTrue(searchButton.isHittable, "Le bouton de recherche catalogue doit être accessible en haut à droite")
+        searchButton.tap()
         let searchField = app.textFields["search_text_field"]
         XCTAssertTrue(searchField.waitForExistence(timeout: 3), "Le champ de recherche doit apparaître dans le modal")
 

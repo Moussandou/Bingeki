@@ -94,7 +94,7 @@ final class TrailerFlowUITests: XCTestCase {
 
         // 4. Search
         mark("scene:search")
-        let search = app.buttons.matching(identifier: "search_button").allElementsBoundByIndex.first { $0.isHittable }
+        let search = app.buttons.matching(identifier: "library_catalog_search").allElementsBoundByIndex.first { $0.isHittable }
         if let search { mark("tap:search:" + coord(search)); search.tap() }
         let field = app.textFields["search_text_field"]
         if field.waitForExistence(timeout: 3) {
