@@ -25,7 +25,8 @@ Ce document a servi de base à l'implémentation ; voici ce qui existe réelleme
 - Feed Découvrir sur de **vraies données Tenrai** : recommandations à partir de la biblio (titres vus, sinon « À voir »), complétées par la saison en cours ; titres passés mémorisés ; filtre `sfw` appliqué partout tant que « Contenu 18+ » est désactivé (comme le web).
 - Board États : 1 onboarding (3 titres aimés), 2 tutoriel des gestes, 3 squelettes, 4 biblio vide, 5 aucun résultat + « Tu voulais dire », 6 bandeau hors ligne avec modifs en attente, 7 erreur du feed, 8 tampon + toast Annuler, 9 « Dans ta biblio », 10 fiche disparue à la source, 11 note de fin de série, 12 level up.
 - Badges du web lus en lecture seule (icônes lucide → SF Symbols), badge vedette sur la licence.
-- `BingekiTests` : tests unitaires Swift Testing couvrant modèles, cache, fusion de bibliothèque, gamification et décodage de badges.
+- La Biblio propose une recherche locale sur les titres principal, anglais et japonais déjà présents, insensible à la casse et aux accents. Elle ne déclenche aucun appel catalogue et reste combinable avec les filtres statut/type et les tris. Effacer la recherche restaure la liste filtrée ; modifier la recherche vide la sélection groupée pour éviter les actions sur des titres masqués. Le bouton de recherche de l'en-tête conserve l'accès explicite au catalogue.
+- `BingekiTests` : tests unitaires Swift Testing couvrant modèles, cache, fusion et recherche locale de bibliothèque, gamification et décodage de badges.
 - `BingekiUITests` : suites XCTest couvrant authentification, navigation, bibliothèque et parcours de démonstration.
 - **Pipeline Qualité & CI** :
   - `scripts/check-ios.sh` : script unifié de validation locale (audit de secrets, génération xcodegen, tests unitaires, tests UI, build de validation en configuration Release).

@@ -9,6 +9,8 @@ struct LibraryListView: View {
     @Environment(\.userStore) private var userStore
     @State private var filter: WorkStatus = .reading
     @State private var typeFilter: WorkType?
+    @State private var query = ""
+    @FocusState private var isSearchFocused: Bool
     @AppStorage("bk.librarySort") private var sort: LibrarySort = .recent
     @State private var sheetWork: Work?
     /// Non-nil while in multi-select mode.
@@ -16,7 +18,9 @@ struct LibraryListView: View {
     @State private var confirmingRemoval = false
 
     private var rows: [Work] {
-        sort.apply(to: library.works(status: filter).filter { typeFilter == nil || $0.type == typeFilter })
+        sort.apply(to: LibrarySearch.filter(
+            library.works(status: filter), query: query, type: typeFilter
+        ))
     }
 
     private var isSelecting: Bool { selection != nil }
@@ -28,6 +32,7 @@ struct LibraryListView: View {
             if library.hasLoaded && library.works.isEmpty {
                 LibraryEmptyState(onDiscover: { selectedTab = .discover }, onSearch: onSearch)
             } else {
+                localSearch
                 statusPills
                 typeTabs
                 list
@@ -38,6 +43,7 @@ struct LibraryListView: View {
         }
         .onChange(of: filter) { if isSelecting { selection = [] } }
         .onChange(of: typeFilter) { if isSelecting { selection = [] } }
+        .onChange(of: query) { if isSelecting { selection = [] } }
         .background(BKColor.background.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: Work.self) { WorkDetailView(work: $0) }
@@ -63,7 +69,11 @@ struct LibraryListView: View {
                     .foregroundStyle(BKColor.textSecondary)
             }
             Spacer()
-            if !isSelecting { BKSearchButton(action: onSearch) }
+            if !isSelecting {
+                BKSearchButton(action: onSearch)
+                    .accessibilityLabel("Rechercher dans le catalogue")
+                    .accessibilityIdentifier("library_catalog_search")
+            }
             if isSelecting {
                 Button("OK") { selection = nil }
                     .font(BKFont.display(15, weight: .heavy))
@@ -98,6 +108,45 @@ struct LibraryListView: View {
             .foregroundStyle(BKColor.textPrimary)
             .background(BKColor.surface)
             .bkInkBorder(BKColor.border)
+    }
+
+    private var localSearch: some View {
+        HStack(spacing: BKSpace.sm) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(BKColor.textSecondary)
+                .accessibilityHidden(true)
+            TextField("Rechercher dans ma biblio", text: $query)
+                .font(.body)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .focused($isSearchFocused)
+                .onSubmit { isSearchFocused = false }
+                .accessibilityLabel("Rechercher dans ma bibliothèque")
+                .accessibilityHint("Filtre les titres déjà présents, sans rechercher dans le catalogue")
+                .accessibilityIdentifier("library_local_search")
+            if !query.isEmpty {
+                Button(action: clearSearch) {
+                    Image(systemName: "xmark.circle.fill")
+                        .frame(minWidth: BKSize.minTapTarget, minHeight: BKSize.minTapTarget)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Effacer la recherche bibliothèque")
+                .accessibilityIdentifier("library_clear_search")
+            }
+        }
+        .foregroundStyle(BKColor.textPrimary)
+        .padding(.horizontal, BKSpace.sm)
+        .frame(minHeight: BKSize.minTapTarget)
+        .background(BKColor.surface)
+        .bkInkBorder(BKColor.border)
+        .padding(.horizontal, BKSpace.screenMargin)
+        .padding(.top, BKSpace.md)
+    }
+
+    private func clearSearch() {
+        query = ""
+        isSearchFocused = false
     }
 
     private func selectionBar(_ selected: Set<String>) -> some View {
@@ -210,12 +259,27 @@ struct LibraryListView: View {
     @ViewBuilder
     private var list: some View {
         if rows.isEmpty {
-            Text(filter == .reading
+            if LibrarySearch.hasQuery(query) {
+                VStack(alignment: .leading, spacing: BKSpace.sm) {
+                    Text("Aucun titre trouvé dans ta biblio")
+                        .font(.headline)
+                        .accessibilityIdentifier("library_search_empty")
+                    Text("Aucun résultat pour « \(query.trimmingCharacters(in: .whitespacesAndNewlines)) » avec les filtres actuels.")
+                        .font(.subheadline)
+                        .foregroundStyle(BKColor.textSecondary)
+                    Button("Effacer la recherche", action: clearSearch)
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minHeight: BKSize.minTapTarget)
+                }
+                .padding(BKSpace.screenMargin)
+            } else {
+                Text(filter == .reading
                  ? "Rien en cours. Lance un titre de ta liste À voir."
                  : "Aucun titre « \(filter.label) » pour l'instant.")
                 .font(.subheadline)
                 .foregroundStyle(BKColor.textSecondary)
                 .padding(BKSpace.screenMargin)
+            }
             Spacer()
         } else {
             ScrollView {
@@ -243,6 +307,7 @@ struct LibraryListView: View {
                 // Clears the floating BKTabBar; in selection mode the selection bar's inset already does.
                 .padding(.bottom, selection == nil ? BKSize.tabBarHeight + BKSpace.xl : 0)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
     }
 }

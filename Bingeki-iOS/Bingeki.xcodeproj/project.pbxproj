@@ -17,6 +17,7 @@
 		1363B54FB627DEF78455D8B8 /* UserStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 466A027E7BE4508F9AF080EC /* UserStoreTests.swift */; };
 		18552B3CF31E9206CCC9A02C /* WorkDetailSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAEC3D048ED8557924D45917 /* WorkDetailSections.swift */; };
 		1EBF2EC86DAE386DBDF3055D /* ProfileEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E551C9747B6F0EB468ABEB7F /* ProfileEditView.swift */; };
+		20432B188DEE0763EBA51720 /* LibrarySearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E3F095EE642B5A1F0CDF5A /* LibrarySearchTests.swift */; };
 		22506DCA23EB1F148E499ACC /* Inter-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F968372235D70402DAF00C0C /* Inter-SemiBold.ttf */; };
 		25B6AFB3E8CC4654BDB98B08 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 25321E8A72F39535785D1D4A /* FirebaseFirestore */; };
 		2737DD5E08D389479DDBC3F3 /* FirebaseGamificationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CDB763F8CA71A2B026CD022 /* FirebaseGamificationStore.swift */; };
@@ -35,6 +36,7 @@
 		4FC811575130D8AF8FC5382A /* UserStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA125CA09008DC97580F50C /* UserStore.swift */; };
 		52B459DA75062ED79BEEADBD /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 43688079ECD7D97E1E426D53 /* FirebaseMessaging */; };
 		545379E073F3427CD5FF028A /* WorkModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E26F1A865A6254438E289DAB /* WorkModelTests.swift */; };
+		5D4A9C96A1C4AC1AF3E7495A /* LibrarySearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D5B25368EF9118D76A67602 /* LibrarySearch.swift */; };
 		6013498C7FA90BEF70F7639C /* BKMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEF5D7CBCC91A5852F4D8AA6 /* BKMenu.swift */; };
 		6452CB586E69A0BEDE32FDC5 /* DiscoverDeckTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3595C25038E7E2AEF473D2E6 /* DiscoverDeckTests.swift */; };
 		6525D0F7F725CAB6A84E822D /* BKToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF947D1A39A04E30C9613EC0 /* BKToast.swift */; };
@@ -145,6 +147,7 @@
 		8A07C49E7D1CD8A0624E5E95 /* Badge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Badge.swift; sourceTree = "<group>"; };
 		8C4398365AA94BD20047CD92 /* AuthFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthFlowUITests.swift; sourceTree = "<group>"; };
 		8CDB763F8CA71A2B026CD022 /* FirebaseGamificationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseGamificationStore.swift; sourceTree = "<group>"; };
+		8D5B25368EF9118D76A67602 /* LibrarySearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySearch.swift; sourceTree = "<group>"; };
 		90CCF382A26F6F96997912EF /* WorkDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkDetailView.swift; sourceTree = "<group>"; };
 		92FC3DC610F8D91EDE591C9C /* TenraiModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TenraiModelTests.swift; sourceTree = "<group>"; };
 		9599F92555AA815FCC86CCEB /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
@@ -159,6 +162,7 @@
 		BF6F12D59B6E880244C07396 /* FirebaseAuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseAuthStore.swift; sourceTree = "<group>"; };
 		BFA125CA09008DC97580F50C /* UserStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserStore.swift; sourceTree = "<group>"; };
 		C20C2CDB21AED59C3617F762 /* Outfit-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Outfit-Bold.ttf"; sourceTree = "<group>"; };
+		C3E3F095EE642B5A1F0CDF5A /* LibrarySearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySearchTests.swift; sourceTree = "<group>"; };
 		C58E52F0FA5AA386AE584223 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		C8239D0FC38D55CFE6C39EB2 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		C87779B546BAB3270F5AA4BB /* XCUIApplication+Intro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCUIApplication+Intro.swift"; sourceTree = "<group>"; };
@@ -352,6 +356,7 @@
 				3595C25038E7E2AEF473D2E6 /* DiscoverDeckTests.swift */,
 				F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */,
 				231BF842D19BCE5015366EB1 /* LibraryMergeTests.swift */,
+				C3E3F095EE642B5A1F0CDF5A /* LibrarySearchTests.swift */,
 				A1F99FE0008DBB478AB4D501 /* ResponseCacheTests.swift */,
 				E00B045072A171569E43BF7B /* StreakTests.swift */,
 				92FC3DC610F8D91EDE591C9C /* TenraiModelTests.swift */,
@@ -366,6 +371,7 @@
 			isa = PBXGroup;
 			children = (
 				D844CDCEC9739476A1EF4122 /* LibraryListView.swift */,
+				8D5B25368EF9118D76A67602 /* LibrarySearch.swift */,
 				BD8712A278CBF747AA96DD10 /* ProgressSheetView.swift */,
 				EAEC3D048ED8557924D45917 /* WorkDetailSections.swift */,
 				90CCF382A26F6F96997912EF /* WorkDetailView.swift */,
@@ -626,6 +632,7 @@
 				6452CB586E69A0BEDE32FDC5 /* DiscoverDeckTests.swift in Sources */,
 				E479F6C1EF060BE5662AB0E4 /* GamificationCoreTests.swift in Sources */,
 				AE6014A3B429C9D4CDA827C4 /* LibraryMergeTests.swift in Sources */,
+				20432B188DEE0763EBA51720 /* LibrarySearchTests.swift in Sources */,
 				3ECB5A4FCC4DC6097F12E7D5 /* ResponseCacheTests.swift in Sources */,
 				DAEBCFA7BA8CB6AEC37FFA93 /* StreakTests.swift in Sources */,
 				ACF36D5B251291192934475B /* TenraiModelTests.swift in Sources */,
@@ -670,6 +677,7 @@
 				8C199761F15E6FFC999A9C97 /* HomeView.swift in Sources */,
 				03F78553DC48B4BEBC34B177 /* LibraryListView.swift in Sources */,
 				44D66A9B102AA763E3D75202 /* LibraryMerge.swift in Sources */,
+				5D4A9C96A1C4AC1AF3E7495A /* LibrarySearch.swift in Sources */,
 				FE3AAFD1AF187BAE460EE492 /* LibraryStore.swift in Sources */,
 				D29D3D7AA54D142FCC060DE0 /* NetworkMonitor.swift in Sources */,
 				0DFE0381EE2BA11EE71827FC /* OnboardingView.swift in Sources */,
