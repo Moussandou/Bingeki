@@ -137,11 +137,19 @@ final class FirebaseLibraryStore: LibraryStoring {
                 }
                 // Offline, this only resolves once the server acks — the
                 // listener tracks local state meanwhile.
-                try await docRef.setData([
-                    "works": encoded,
-                    "lastUpdated": Date.now.timeIntervalSince1970 * 1000,
-                    "version": FieldValue.increment(Int64(1)),
-                ], merge: true)
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                    docRef.setData([
+                        "works": encoded,
+                        "lastUpdated": Date.now.timeIntervalSince1970 * 1000,
+                        "version": FieldValue.increment(Int64(1)),
+                    ], merge: true) { error in
+                        if let error {
+                            continuation.resume(throwing: error)
+                        } else {
+                            continuation.resume()
+                        }
+                    }
+                }
                 syncError = nil
             } catch {
                 syncError = error.localizedDescription
