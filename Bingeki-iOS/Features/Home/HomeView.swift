@@ -92,6 +92,10 @@ struct HomeView: View {
             StreakSheet(days: userStore.profile.streak)
                 .presentationDetents([.height(470)])
         }
+        .task(id: "\(library.hasLoaded)|\(DiscoverDeck.configurationKey(library: library.works, sfw: !userStore.profile.nsfwMode))") {
+            guard library.hasLoaded else { return }
+            await deck.loadIfNeeded(library: library.works, sfw: !userStore.profile.nsfwMode)
+        }
     }
 
     private var header: some View {
@@ -126,7 +130,7 @@ struct HomeView: View {
     /// Teaser into the deck, or into "Parcourir" once every card is seen.
     @ViewBuilder
     private var discoverTeaser: some View {
-        if deck.phase == .loaded && deck.currentCard == nil {
+        if deck.phase == .loaded && deck.currentCard == nil && !deck.hasMore && !deck.hasRefillError {
             exhaustedTeaser
         } else {
             deckTeaser
@@ -161,7 +165,11 @@ struct HomeView: View {
         let upcoming = Array(deck.pool.dropFirst(deck.index).prefix(3))
         let reason = upcoming.first.flatMap { deck.reasons[$0.id] }
         return Button {
-            selectedTab = .discover
+            if deck.hasRefillError {
+                Task { await deck.refill() }
+            } else {
+                selectedTab = .discover
+            }
         } label: {
             HStack(spacing: 14) {
                 ZStack(alignment: .leading) {
@@ -185,7 +193,8 @@ struct HomeView: View {
                     Text(teaserLine(reason))
                         .font(.body.weight(.bold))
                         .multilineTextAlignment(.leading)
-                    Text("SWIPER LA SÉLECTION →").font(BKFont.display(14)).foregroundStyle(BKColor.cyanText)
+                    Text(deck.hasRefillError ? "RÉESSAYER →" : deck.isRefilling ? "CHARGEMENT…" : "SWIPER LA SÉLECTION →")
+                        .font(BKFont.display(14)).foregroundStyle(BKColor.cyanText)
                 }
                 Spacer(minLength: 0)
             }
@@ -198,14 +207,14 @@ struct HomeView: View {
         .bkInkBorder()
         .bkPanelShadow(BKColor.brandCyan)
         .padding(.horizontal, BKSpace.screenMargin)
-        .task(id: library.hasLoaded) {
-            guard library.hasLoaded else { return }
-            await deck.loadIfNeeded(library: library.works, sfw: !userStore.profile.nsfwMode)
-        }
+        .disabled(deck.isRefilling && upcoming.isEmpty)
     }
 
     /// "PARCE QUE TU AS AIMÉ FRIEREN" → "Parce que tu as aimé Frieren".
     private func teaserLine(_ reason: String?) -> String {
+        if deck.hasRefillError { return deck.currentCard == nil ? "La sélection ne répond pas" : "Ta sélection reste disponible, la suite attend" }
+        if deck.phase == .idle || deck.phase == .loading { return "Préparation de ta sélection" }
+        if deck.currentCard == nil { return deck.isRefilling ? "Chargement de la suite" : "D'autres titres à découvrir" }
         guard let reason, reason.hasPrefix("PARCE"), let title = reason.components(separatedBy: "AIMÉ ").last else {
             return "Ta sélection du jour est prête"
         }

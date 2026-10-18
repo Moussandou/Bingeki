@@ -9,18 +9,23 @@ struct SearchView: View {
     @Environment(ToastCenter.self) private var toasts
 
     @State private var query = ""
-    @State private var results: [Work] = []
+    @State private var pager = SearchView.makePager(query: "")
     @State private var suggestion: Work?
+    @State private var suggestionFailed = false
     @State private var typeFilter: WorkType?
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
-    @State private var page = 1
-    @State private var hasMore = false
-    @State private var isLoadingMore = false
     @AppStorage("bk.recentSearches") private var recentSearchesData = ""
     @FocusState private var fieldFocused: Bool
 
     private static let recentLimit = 8
+    private var results: [Work] {
+        let anime = pager.works.filter { $0.type == .anime }
+        let manga = pager.works.filter { $0.type == .manga }
+        return (0..<max(anime.count, manga.count)).flatMap { index in
+            (index < anime.count ? [anime[index]] : []) + (index < manga.count ? [manga[index]] : [])
+        }
+    }
 
     private var recentSearches: [String] {
         (try? JSONDecoder().decode([String].self, from: Data(recentSearchesData.utf8))) ?? []
@@ -64,6 +69,11 @@ struct SearchView: View {
             #endif
         }
         .onChange(of: query) { _, newValue in scheduleSearch(newValue) }
+        .onChange(of: userStore.profile.nsfwMode) { _, _ in scheduleSearch(query) }
+        .onDisappear {
+            searchTask?.cancel()
+            isSearching = false
+        }
     }
 
     private var searchBar: some View {
@@ -139,19 +149,36 @@ struct SearchView: View {
     private var content: some View {
         if query.count < 2 {
             hints
-        } else if isSearching && results.isEmpty {
+        } else if (isSearching || pager.isLoading) && results.isEmpty {
             skeletonRows
-        } else if results.isEmpty {
+        } else if results.isEmpty && pager.failures.isEmpty {
             noResults
         } else {
             ScrollView {
                 LazyVStack(spacing: 0) {
+                    if !pager.failures.isEmpty {
+                        VStack(spacing: BKSpace.sm) {
+                            Text("Source indisponible : \(pager.failures.map(\.rawValue).sorted().joined(separator: ", ")).")
+                                .font(.footnote).foregroundStyle(BKColor.textSecondary)
+                            Button("Réessayer") { loadMore(retry: true) }
+                                .disabled(pager.isLoading)
+                        }
+                        .padding()
+                    }
+                    if !results.isEmpty && filtered.isEmpty {
+                        Text("Aucun résultat pour ce filtre.")
+                            .foregroundStyle(BKColor.textSecondary).padding()
+                        Button("Afficher tous les types") { typeFilter = nil }
+                    }
                     ForEach(filtered, id: \.searchKey) { work in SearchRow(work: work, onAdd: add) }
-                    if hasMore {
+                    if pager.isLoading {
                         ProgressView()
                             .frame(maxWidth: .infinity, minHeight: 64)
-                            .onAppear { loadMore() }
                             .accessibilityLabel("Chargement de la suite")
+                    } else if pager.canLoadMore {
+                        Button("Charger la suite") { loadMore() }
+                            .frame(maxWidth: .infinity, minHeight: 64)
+                            .onAppear { if !filtered.isEmpty { loadMore() } }
                     }
                 }
             }
@@ -238,9 +265,13 @@ struct SearchView: View {
                 VStack(alignment: .leading, spacing: BKSpace.sm) {
                     Text("Tu voulais dire :").font(.subheadline).foregroundStyle(BKColor.textSecondary)
                     SearchRow(work: suggestion, onAdd: add)
-                        .background(BKColor.surface)
-                        .bkInkBorder()
+                        .background(BKColor.surface).bkInkBorder()
                 }
+            }
+            if suggestionFailed {
+                Text("Les suggestions sont temporairement indisponibles.")
+                    .font(.footnote).foregroundStyle(BKColor.textSecondary)
+                Button("Réessayer les suggestions") { scheduleSearch(query) }
             }
             Text("Astuce : le titre japonais ou anglais marche aussi (« Chensō Man »).")
                 .font(.footnote)
@@ -266,72 +297,60 @@ struct SearchView: View {
     private func scheduleSearch(_ text: String) {
         searchTask?.cancel()
         let trimmed = text.trimmingCharacters(in: .whitespaces)
+        pager.reset()
+        suggestion = nil
+        suggestionFailed = false
         guard trimmed.count >= 2 else {
-            results = []
-            suggestion = nil
             isSearching = false
             return
         }
+        pager = Self.makePager(query: trimmed)
+        let current = pager
         isSearching = true
-        page = 1
-        hasMore = false
         searchTask = Task {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
-            let sfw = !userStore.profile.nsfwMode
-            let found = await Self.search(trimmed, page: 1, sfw: sfw)
+            await current.load(sfw: !userStore.profile.nsfwMode)
             guard !Task.isCancelled else { return }
-            results = found.works
-            hasMore = found.hasMore
-            suggestion = found.works.isEmpty ? await Self.suggest(for: trimmed, sfw: sfw) : nil
-            guard !Task.isCancelled else { return }
+            if current.works.isEmpty && current.failures.isEmpty && !current.hasMore {
+                do {
+                    let hit = try await Self.suggest(for: trimmed, sfw: !userStore.profile.nsfwMode)
+                    guard !Task.isCancelled else { return }
+                    suggestion = hit
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    suggestionFailed = true
+                }
+            }
             isSearching = false
         }
     }
 
     /// Next page of both types, appended below; duplicates (same work
     /// returned on two pages) are skipped.
-    private func loadMore() {
-        guard hasMore, !isLoadingMore, !isSearching else { return }
-        let trimmed = query.trimmingCharacters(in: .whitespaces)
-        isLoadingMore = true
-        let nextPage = page + 1
-        Task {
-            let found = await Self.search(trimmed, page: nextPage, sfw: !userStore.profile.nsfwMode)
-            // The query changed while loading: drop the stale page.
-            guard trimmed == query.trimmingCharacters(in: .whitespaces) else { isLoadingMore = false; return }
-            let seen = Set(results.map(\.searchKey))
-            results += found.works.filter { !seen.contains($0.searchKey) }
-            page = nextPage
-            hasMore = found.hasMore
-            isLoadingMore = false
+    private func loadMore(retry: Bool = false) {
+        guard !isSearching else { return }
+        let current = pager
+        Task { await current.load(sfw: !userStore.profile.nsfwMode, retry: retry) }
+    }
+
+    private static func makePager(query: String) -> CatalogPager<TenraiMediaType> {
+        CatalogPager(sources: [.anime, .manga]) { type, page, sfw in
+            let response = try await TenraiClient.shared.search(query: query, type: type, page: page, limit: 10, sfw: sfw)
+            return CatalogPage(works: response.data.map { $0.asWork(mediaType: type) }, hasMore: response.pagination?.hasNextPage ?? false)
         }
     }
 
-    private static func search(_ text: String, page: Int = 1, sfw: Bool) async -> (works: [Work], hasMore: Bool) {
-        async let anime = try? TenraiClient.shared.search(query: text, type: .anime, page: page, limit: 10, sfw: sfw)
-        async let manga = try? TenraiClient.shared.search(query: text, type: .manga, page: page, limit: 10, sfw: sfw)
-        let animeResponse = await anime
-        let mangaResponse = await manga
-        let a = animeResponse?.data.map { $0.asWork(mediaType: .anime) } ?? []
-        let m = mangaResponse?.data.map { $0.asWork(mediaType: .manga) } ?? []
-        // Interleave so both types show above the fold.
-        var merged: [Work] = []
-        for i in 0..<max(a.count, m.count) {
-            if i < a.count { merged.append(a[i]) }
-            if i < m.count { merged.append(m[i]) }
-        }
-        let hasMore = (animeResponse?.pagination?.hasNextPage ?? false) || (mangaResponse?.pagination?.hasNextPage ?? false)
-        return (merged, hasMore)
-    }
-
-    /// Typo recovery: retry with shorter prefixes ("chainsow" → "chains").
-    private static func suggest(for text: String, sfw: Bool) async -> Work? {
+    private static func suggest(for text: String, sfw: Bool) async throws -> Work? {
         var prefix = text
         for _ in 0..<3 {
             prefix = String(prefix.dropLast())
-            guard prefix.count >= 3, !Task.isCancelled else { return nil }
-            if let hit = await search(prefix, sfw: sfw).works.first { return hit }
+            guard prefix.count >= 3 else { return nil }
+            try Task.checkCancellation()
+            let suggestions = makePager(query: prefix)
+            await suggestions.load(sfw: sfw)
+            if !suggestions.failures.isEmpty { throw URLError(.resourceUnavailable) }
+            if let hit = suggestions.works.first { return hit }
         }
         return nil
     }
