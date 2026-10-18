@@ -43,6 +43,9 @@ exports.createWatchPartyFn = require('./interactions').createWatchPartyFn;
 
 const account = require("./account");
 exports.deleteOwnAccount = account.deleteOwnAccount;
+const pushDevices = require('./pushDevices');
+exports.registerPushDevice = pushDevices.registerPushDevice;
+exports.revokePushDevice = pushDevices.revokePushDevice;
 
 // 4. Jikan Proxy & Cache
 const jikanProxy = require("./jikan_proxy");

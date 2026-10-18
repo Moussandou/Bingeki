@@ -211,8 +211,16 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
       }
 
+      // FCM tokens are owner-readable only; all authority belongs to callables.
+      match /pushDevices/{installationId} {
+        allow read: if isOwner(userId)
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && request.auth.token.get('firebase', {}).get('sign_in_provider', '') != 'anonymous';
+        allow write: if false;
+      }
+
       // --- Subcollection: Private (PII) ---
-      // Holds email and any other personally-identifiable data that must NOT live
+      // Holds email and other profile PII (never FCM tokens) that must NOT live
       // on the world-readable profile document. Only the owner or an admin may read it.
       match /private/{docId} {
         allow read, write: if isOwner(userId) || isAdmin();
@@ -510,6 +518,13 @@ service cloud.firestore {
     }
 
     // ==================== LEGACY / ROOT ACCESS ====================
+    match /pushTokenBindings/{tokenHash} {
+      allow read, write: if false;
+    }
+    match /pushDeviceState/{userId} {
+      allow read, write: if false;
+    }
+
     // DELETED: Legacy root collections removed for security.
     // All data must go through users/{userId}/data/ subcollections.
   }
