@@ -245,7 +245,7 @@ export default function Opening() {
                 <header className={styles.heroSection}>
                     <motion.h1
                         className={styles.heroTitle}
-                        initial={{ scale: 0.5, opacity: 0 }}
+                        initial={false}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ type: "spring", stiffness: 100 }}
                     >
@@ -253,14 +253,14 @@ export default function Opening() {
                     </motion.h1>
                     <motion.div
                         className={styles.heroSubtitle}
-                        initial={{ y: 20, opacity: 0 }}
+                        initial={false}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.3 }}
                     >
                         {t('landing.hero.subtitle')}
                     </motion.div>
                     <motion.div
-                        initial={{ opacity: 0 }}
+                        initial={false}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.6 }}
                         style={{ marginTop: '2rem' }}
