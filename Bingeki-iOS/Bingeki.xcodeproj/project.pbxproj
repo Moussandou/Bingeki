@@ -10,6 +10,7 @@
 		011404A777547754C6ABF6E5 /* FirebaseUserStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07E4FC06F6240CF50FCC3200 /* FirebaseUserStore.swift */; };
 		038A492742E070AF169E6731 /* BKAddCornerButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CB0F40A1E9D07E32D64CC1 /* BKAddCornerButton.swift */; };
 		03F78553DC48B4BEBC34B177 /* LibraryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D844CDCEC9739476A1EF4122 /* LibraryListView.swift */; };
+		05B97410F94192C061DD3F27 /* CatalogueCacheSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC581B4300B12286F61966FB /* CatalogueCacheSettingsTests.swift */; };
 		0B6936E7DD57C29EC1CD7432 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CDD58C4F8F4ABFE30A8E791 /* UserProfile.swift */; };
 		0C65D09DA7C0C718887DA1EA /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7E1AC72692F24FC30C9BB9A9 /* Inter-Bold.ttf */; };
 		0DFE0381EE2BA11EE71827FC /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A352B40A24A2D940456B381 /* OnboardingView.swift */; };
@@ -31,6 +32,7 @@
 		3F630710ABFBECAD1093B891 /* Outfit-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D5433D9F6A5B5C93275F00F6 /* Outfit-ExtraBold.ttf */; };
 		44D66A9B102AA763E3D75202 /* LibraryMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2190ABA32DB5DEF92EB2EB95 /* LibraryMerge.swift */; };
 		4697D989B05E33EBB483B295 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E63E1AEA54A14396C58777D1 /* AuthView.swift */; };
+		4B6A8DEB2F410DF159C7BBC3 /* CatalogueCacheUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73856945DBDEDB0939E960ED /* CatalogueCacheUITests.swift */; };
 		4F81623B3DB223F4FBB9CBD2 /* ResponseCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A86BA46B3C6BFF40926AE05F /* ResponseCache.swift */; };
 		4FC811575130D8AF8FC5382A /* UserStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA125CA09008DC97580F50C /* UserStore.swift */; };
 		52B459DA75062ED79BEEADBD /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 43688079ECD7D97E1E426D53 /* FirebaseMessaging */; };
@@ -64,6 +66,7 @@
 		AE6014A3B429C9D4CDA827C4 /* LibraryMergeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 231BF842D19BCE5015366EB1 /* LibraryMergeTests.swift */; };
 		B4A9775DB680334E673D22FC /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = ADAC971F8713AD4E64C628B7 /* FirebaseFunctions */; };
 		B4C55D88D5FAF70755684CA1 /* TenraiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45BF3B49B9F409F61247A973 /* TenraiClient.swift */; };
+		B5724FE5AE19631E35268E2A /* CatalogueCacheSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 829FD818DD3FE073423A5F63 /* CatalogueCacheSection.swift */; };
 		B696B528D9FF68250FECAD6B /* TrailerPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA8A46A25A2A74EA119D104A /* TrailerPlayer.swift */; };
 		BD6C81B169DBD8D5C075057C /* .gitkeep in Resources */ = {isa = PBXBuildFile; fileRef = C58E52F0FA5AA386AE584223 /* .gitkeep */; };
 		BE654124FC48E9FFD4AD2345 /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BC677F926A7597677F20A55F /* Inter-Regular.ttf */; };
@@ -134,6 +137,7 @@
 		478A124F52385B8D794D141A /* BKLevelUpOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKLevelUpOverlay.swift; sourceTree = "<group>"; };
 		52CB0F40A1E9D07E32D64CC1 /* BKAddCornerButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKAddCornerButton.swift; sourceTree = "<group>"; };
 		727DA32165C8E7E06D657EBB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		73856945DBDEDB0939E960ED /* CatalogueCacheUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogueCacheUITests.swift; sourceTree = "<group>"; };
 		750164EF586FFAEAC9D04EFD /* BKContentCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKContentCard.swift; sourceTree = "<group>"; };
 		767AE4DAD1B0204CB56CF764 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		778C1CF8195E424BE2A27872 /* BKTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKTabBar.swift; sourceTree = "<group>"; };
@@ -141,6 +145,7 @@
 		7C568D6A356A90F6CD27378C /* Inter-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Medium.ttf"; sourceTree = "<group>"; };
 		7D923970889969406F93F06A /* Outfit-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Outfit-SemiBold.ttf"; sourceTree = "<group>"; };
 		7E1AC72692F24FC30C9BB9A9 /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
+		829FD818DD3FE073423A5F63 /* CatalogueCacheSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogueCacheSection.swift; sourceTree = "<group>"; };
 		85427ABA93BF886224BF8EE6 /* BKLogoShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKLogoShapes.swift; sourceTree = "<group>"; };
 		8A07C49E7D1CD8A0624E5E95 /* Badge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Badge.swift; sourceTree = "<group>"; };
 		8C4398365AA94BD20047CD92 /* AuthFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthFlowUITests.swift; sourceTree = "<group>"; };
@@ -189,6 +194,7 @@
 		F7D3648604BD3F65C6FAEE3E /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
 		F968372235D70402DAF00C0C /* Inter-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-SemiBold.ttf"; sourceTree = "<group>"; };
 		F9D068412DF07DBD9E96861C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		FC581B4300B12286F61966FB /* CatalogueCacheSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogueCacheSettingsTests.swift; sourceTree = "<group>"; };
 		FDBAF641D0652E141CCDC52F /* TenraiModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TenraiModels.swift; sourceTree = "<group>"; };
 		FF947D1A39A04E30C9613EC0 /* BKToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BKToast.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -349,6 +355,7 @@
 			isa = PBXGroup;
 			children = (
 				2AB573EEB14BE2137BB567E9 /* BadgeDecodingTests.swift */,
+				FC581B4300B12286F61966FB /* CatalogueCacheSettingsTests.swift */,
 				3595C25038E7E2AEF473D2E6 /* DiscoverDeckTests.swift */,
 				F66A6016C7BA6793DE6B84DC /* GamificationCoreTests.swift */,
 				231BF842D19BCE5015366EB1 /* LibraryMergeTests.swift */,
@@ -415,6 +422,7 @@
 			isa = PBXGroup;
 			children = (
 				8C4398365AA94BD20047CD92 /* AuthFlowUITests.swift */,
+				73856945DBDEDB0939E960ED /* CatalogueCacheUITests.swift */,
 				D0C1920C30CE9B0C42FE3C33 /* LibraryFlowUITests.swift */,
 				1EB798273FDCFD980B7752FC /* NavigationUITests.swift */,
 				B1FD174211CAC519B618253D /* TrailerFlowUITests.swift */,
@@ -426,6 +434,7 @@
 		BF7F681558C91FF78C6A6705 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				829FD818DD3FE073423A5F63 /* CatalogueCacheSection.swift */,
 				F9D068412DF07DBD9E96861C /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -611,6 +620,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DD2D891398C60486CD44F852 /* AuthFlowUITests.swift in Sources */,
+				4B6A8DEB2F410DF159C7BBC3 /* CatalogueCacheUITests.swift in Sources */,
 				A337568AE10F6392852A6A94 /* LibraryFlowUITests.swift in Sources */,
 				D88CE8286DDEDCF3EF2536A6 /* NavigationUITests.swift in Sources */,
 				6D56BAC7A4815D11E40ECA45 /* TrailerFlowUITests.swift in Sources */,
@@ -623,6 +633,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D0E1F1F4EF2B89EB688EE3B4 /* BadgeDecodingTests.swift in Sources */,
+				05B97410F94192C061DD3F27 /* CatalogueCacheSettingsTests.swift in Sources */,
 				6452CB586E69A0BEDE32FDC5 /* DiscoverDeckTests.swift in Sources */,
 				E479F6C1EF060BE5662AB0E4 /* GamificationCoreTests.swift in Sources */,
 				AE6014A3B429C9D4CDA827C4 /* LibraryMergeTests.swift in Sources */,
@@ -657,6 +668,7 @@
 				84EE4A22BA6463460A3159A7 /* Badge.swift in Sources */,
 				96E615488A80B9E465B53AC6 /* BingekiApp.swift in Sources */,
 				E74CF9C1CF6651298349FC10 /* BrowseView.swift in Sources */,
+				B5724FE5AE19631E35268E2A /* CatalogueCacheSection.swift in Sources */,
 				798A7B5EFB37DA7FE9E58253 /* DemoData.swift in Sources */,
 				34F1608F0C5EF14558E94844 /* DiscoverDeck.swift in Sources */,
 				2DD7F159EE7E5BBBF53FE1A7 /* DiscoverView.swift in Sources */,

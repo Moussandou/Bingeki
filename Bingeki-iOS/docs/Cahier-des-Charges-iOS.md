@@ -233,6 +233,7 @@ Pas encore implémenté. `FirebaseMessaging` est ajouté comme dépendance SPM m
 
 ## 11. Performance
 
+- Réglages → Cache catalogue : mesure exacte du nombre de payloads `CachedResponse` et de leurs octets, actualisable à la demande. La purge confirmée est idempotente ; les échecs de mesure ou de suppression sont affichés avec une action de réessai. Cette mesure n'est pas l'occupation disque SQLite et exclut les images. La purge ne touche ni bibliothèque, ni profil, ni tombstones, ni écritures Firestore en attente. Hors ligne, les réponses supprimées ne sont plus disponibles ; les consultations réseau suivantes remplissent à nouveau ce cache.
 - Chargement des couvertures via `AsyncImage` (`BKCover`) ; pas de cache disque dédié pour l'instant (repose sur le cache HTTP par défaut d'`URLSession`).
 - Squelettes de chargement à la forme exacte du contenu final (board États #3) — implémenté sur `BrowseView` et la section Similaires de `WorkDetailView` ; pas généralisé partout.
 - Pagination : pas encore implémentée (les résultats Tenrai sont limités à la demande, sans pagination infinie).
