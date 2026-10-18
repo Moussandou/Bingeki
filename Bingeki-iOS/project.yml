@@ -1,0 +1,116 @@
+name: Bingeki
+options:
+  bundleIdPrefix: com.bingeki
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  # French-only app: without this, dates and relative times ("il y a 7 mois")
+  # are formatted in English whatever the device language.
+  developmentLanguage: fr
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+
+packages:
+  # Same "bingeki" Firebase project as the web app (Firestore/Auth/Storage
+  # are shared across every app registered in a project) — §8 of the
+  # handoff doc.
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: 12.4.0
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: 9.0.0
+
+targets:
+  Bingeki:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Core
+      - path: Models
+      - path: Features
+      - path: Resources
+      - path: "Preview Content"
+        buildPhase: resources
+    info:
+      path: Resources/Info.plist
+      properties:
+        # LaunchScreen.storyboard: shown frozen while the process boots.
+        # SplashLogo is rendered from the vector mark (design/logo/render-launch.sh)
+        # at BKSplashView's size, so the splash takes over on an identical frame.
+        UILaunchStoryboardName: LaunchScreen
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSUserTrackingUsageDescription: "Bingeki n'utilise pas le suivi publicitaire."
+        # Google Sign-In returns to the app through the REVERSED_CLIENT_ID
+        # scheme from GoogleService-Info.plist.
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - com.googleusercontent.apps.1079885506084-uptte5s804ugcor57jsqrplonv98ebl9
+        # Outfit (display/CTA) + Inter (body) — OFL-licensed, instantiated as
+        # static weights from Google Fonts' variable sources. See BKFont.swift.
+        UIAppFonts:
+          - Outfit-SemiBold.ttf
+          - Outfit-Bold.ttf
+          - Outfit-ExtraBold.ttf
+          - Outfit-Black.ttf
+          - Inter-Regular.ttf
+          - Inter-Medium.ttf
+          - Inter-SemiBold.ttf
+          - Inter-Bold.ttf
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bingeki.ios
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        DEVELOPMENT_ASSET_PATHS: "\"Preview Content\""
+        ENABLE_PREVIEWS: YES
+        CODE_SIGN_ENTITLEMENTS: Resources/Bingeki.entitlements
+    dependencies:
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseFunctions
+      - package: Firebase
+        product: FirebaseMessaging
+      - package: GoogleSignIn
+        product: GoogleSignIn
+    scheme:
+      testTargets:
+        - BingekiTests
+        - BingekiUITests
+      commandLineArguments:
+        "-BG_MOCK_DATA": true
+  BingekiTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: BingekiTests
+    dependencies:
+      - target: Bingeki
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+  BingekiUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: BingekiUITests
+    dependencies:
+      - target: Bingeki
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Bingeki
