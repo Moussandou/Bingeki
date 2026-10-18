@@ -27,6 +27,9 @@ const LOOKBACK_MS = 30 * ONE_DAY;
 // vidéo créée jusqu'à 6 h avant et 30 min après.
 const MATCH_BEFORE_MS = 6 * 3600_000;
 const MATCH_AFTER_MS = 30 * 60_000;
+// Repli quand « J'ai publié » a été cliqué bien après (ou daté à la main) :
+// toute vidéo créée entre la génération du post et 12 h après le clic.
+const FALLBACK_AFTER_MS = 12 * 3600_000;
 
 function reachFromVideo(video, now) {
     const metrics = [
@@ -58,20 +61,33 @@ async function runTiktokStats() {
                 .filter((d) => d.data().results?.tiktok?.provider === 'manual')
                 .sort((a, b) => b.data().publishedAt - a.data().publishedAt);
 
+            // Les vidéos déjà rattachées ne peuvent pas être reprises par un autre post.
+            for (const doc of posts) {
+                const known = doc.data().reach?.tiktok?.videoId;
+                if (known) used.add(known);
+            }
+
+            const closest = (at, from, to) => {
+                let pick = null;
+                let bestGap = Infinity;
+                for (const v of videos) {
+                    if (used.has(v.id)) continue;
+                    const created = Number(v.create_time) * 1000;
+                    if (created < from || created > to) continue;
+                    const gap = Math.abs(at - created);
+                    if (gap < bestGap) { pick = v; bestGap = gap; }
+                }
+                return pick;
+            };
+
             for (const doc of posts) {
                 const post = doc.data();
                 const at = post.results.tiktok.publishedAt || post.publishedAt;
                 const known = post.reach?.tiktok?.videoId;
                 let best = known ? videos.find((v) => v.id === known) : null;
                 if (!best) {
-                    let bestGap = Infinity;
-                    for (const v of videos) {
-                        if (used.has(v.id)) continue;
-                        const created = Number(v.create_time) * 1000;
-                        if (created < at - MATCH_BEFORE_MS || created > at + MATCH_AFTER_MS) continue;
-                        const gap = Math.abs(at - created);
-                        if (gap < bestGap) { best = v; bestGap = gap; }
-                    }
+                    best = closest(at, at - MATCH_BEFORE_MS, at + MATCH_AFTER_MS)
+                        || closest(at, Math.min(post.createdAt || at, at - MATCH_BEFORE_MS), at + FALLBACK_AFTER_MS);
                 }
                 if (!best) continue;
                 used.add(best.id);
