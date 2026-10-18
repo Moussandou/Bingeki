@@ -6,7 +6,7 @@ import HttpBackend from 'i18next-http-backend';
 // List of namespaces
 export const namespaces = ['translation', 'landing', 'admin', 'changelog', 'legal'];
 
-i18n
+export const languageReady = i18n
     .use(HttpBackend)
     .use(LanguageDetector)
     .use(initReactI18next)
@@ -22,9 +22,7 @@ i18n
             loadPath: '/locales/{{lng}}/{{ns}}.json',
         },
 
-        // During hydration, we MUST match the static shell's language (fr)
-        // to avoid React Error #418 mismatch.
-        lng: typeof document !== 'undefined' && document.body.classList.contains('is-prerendered') ? 'fr' : undefined,
+        lng: typeof document !== 'undefined' ? document.documentElement.lang : undefined,
         
         detection: {
             order: ['htmlTag', 'path', 'localStorage', 'navigator'],

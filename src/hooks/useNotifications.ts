@@ -2,10 +2,13 @@
  * Real-time Firestore notifications listener
  */
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, limit, onSnapshot, doc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
-import { db } from '@/firebase/config';
 import { useAuthStore } from '@/store/authStore';
 import { logger } from '@/utils/logger';
+
+async function notificationBackend() {
+    const [firestore, { db }] = await Promise.all([import('firebase/firestore'), import('@/firebase/config')]);
+    return { firestore, db };
+}
 
 export interface AppNotification {
     id: string;
@@ -31,10 +34,15 @@ export function useNotifications(limitCount = 20) {
             return;
         }
 
-        const notifsRef = collection(db, 'users', user.uid, 'notifications');
-        const q = query(notifsRef, orderBy('createdAt', 'desc'), limit(limitCount));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        let disposed = false;
+        let unsubscribe: (() => void) | undefined;
+        void notificationBackend().then(({ firestore, db }) => {
+            if (disposed) return;
+            const { collection, query, orderBy, limit, onSnapshot } = firestore;
+            const notifsRef = collection(db, 'users', user.uid, 'notifications');
+            const q = query(notifsRef, orderBy('createdAt', 'desc'), limit(limitCount));
+            unsubscribe = onSnapshot(q, (snapshot) => {
+            if (disposed) return;
             const notifs: AppNotification[] = [];
             let unread = 0;
             snapshot.forEach((doc) => {
@@ -46,23 +54,34 @@ export function useNotifications(limitCount = 20) {
             setUnreadCount(unread);
             setLoading(false);
         }, (error) => {
+            if (disposed) return;
             logger.error('[Firestore] Error fetching notifications:', error);
             setLoading(false);
         });
+        }).catch(error => {
+            if (disposed) return;
+            logger.error('[Firestore] Error initializing notifications:', error);
+            setLoading(false);
+        });
 
-
-
-        return () => unsubscribe();
+        return () => {
+            disposed = true;
+            unsubscribe?.();
+        };
     }, [user, limitCount]);
 
     const markAsRead = async (id: string) => {
         if (!user) return;
+        const { firestore: { doc, updateDoc }, db } = await notificationBackend();
+        if (useAuthStore.getState().user?.uid !== user.uid) return;
         const ref = doc(db, 'users', user.uid, 'notifications', id);
         await updateDoc(ref, { read: true });
     };
 
     const markAllAsRead = async () => {
         if (!user) return;
+        const { firestore: { doc, writeBatch }, db } = await notificationBackend();
+        if (useAuthStore.getState().user?.uid !== user.uid) return;
         const batch = writeBatch(db);
         const unreadParams = notifications.filter(n => !n.read);
 
@@ -78,6 +97,8 @@ export function useNotifications(limitCount = 20) {
 
     const deleteNotification = async (id: string) => {
         if (!user) return;
+        const { firestore: { doc, deleteDoc }, db } = await notificationBackend();
+        if (useAuthStore.getState().user?.uid !== user.uid) return;
         await deleteDoc(doc(db, 'users', user.uid, 'notifications', id));
     };
 
