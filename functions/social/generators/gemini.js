@@ -353,7 +353,9 @@ async function generateCaptionFromGemini(type, data, config) {
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
                 generationConfig: {
                     temperature: 0.85,
-                    maxOutputTokens: 800,
+                    // Modèles « thinking » : la réflexion compte dans la limite, une
+                    // limite basse coupait le JSON (légende de secours).
+                    maxOutputTokens: 8192,
                     responseMimeType: 'application/json',
                 },
             }),
@@ -427,7 +429,9 @@ ${JSON.stringify(inputs)}`;
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
                 generationConfig: {
                     temperature: 0.3,
-                    maxOutputTokens: 1400,
+                    // Modèles « thinking » : la réflexion compte dans la limite, une
+                    // limite basse coupait le JSON (légende de secours).
+                    maxOutputTokens: 8192,
                     responseMimeType: 'application/json',
                 },
             }),
@@ -472,7 +476,7 @@ ${JSON.stringify(inputs)}`;
  * source: '', description: '' }.
  */
 /** Appel Gemini qui attend une réponse JSON (avec relances sur 429/5xx). */
-async function geminiJson(prompt, config = {}, maxOutputTokens = 400) {
+async function geminiJson(prompt, config = {}, maxOutputTokens = 4096) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY not set');
     const model = config?.gemini?.model || 'gemini-flash-latest';

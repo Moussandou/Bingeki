@@ -28,7 +28,9 @@ const DIMS = {
 let cachedBrowser = null;
 
 async function getBrowser() {
-    if (cachedBrowser && cachedBrowser.isConnected()) return cachedBrowser;
+    // Puppeteer 22+ expose `connected` ; isConnected() n'existe plus en v25
+    // et faisait planter toutes les slides après la première.
+    if (cachedBrowser?.connected) return cachedBrowser;
     const { default: chromium } = await import('@sparticuz/chromium');
     const puppeteer = await import('puppeteer-core');
     cachedBrowser = await puppeteer.launch({
