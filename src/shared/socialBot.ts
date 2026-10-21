@@ -320,8 +320,10 @@ export interface BufferUsage {
     realAt?: number;
 }
 
-export const BUFFER_LIMIT_30D = 3000;
-export const BUFFER_LIMIT_24H = 250;
+// Offre gratuite Buffer depuis le 27/10/2026 : 1 000 requêtes par chaîne
+// (2 chaînes) et par mois, 600 par 24 h. Les en-têtes de Buffer priment.
+export const BUFFER_LIMIT_30D = 2000;
+export const BUFFER_LIMIT_24H = 600;
 
 /** Doc `social_cron_health/_watchdog` écrit par le cron cronWatchdog. */
 export interface WatchdogStatus {
