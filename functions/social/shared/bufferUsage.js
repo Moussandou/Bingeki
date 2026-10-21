@@ -11,10 +11,8 @@
 const admin = require('firebase-admin');
 const { FieldValue } = require('firebase-admin/firestore');
 
-// Offre gratuite Buffer depuis le 27/10/2026 : 1 000 requêtes par chaîne
-// connectée et par mois (2 chaînes : Instagram + TikTok), 600 par 24 h.
-const LIMIT_30D = 2000;
-const LIMIT_24H = 600;
+const LIMIT_30D = 3000;
+const LIMIT_24H = 250;
 // Les stats s'arrêtent à mi-quota : l'autre moitié reste à la publication.
 const PAUSE_RATIO = 0.5;
 const KEEP_DAYS = 35;

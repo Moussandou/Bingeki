@@ -1,5 +1,5 @@
 /**
- * Quota de l'API Buffer : 2000 requêtes sur 30 jours (1000 par chaîne), 600 par jour.
+ * Quota de l'API Buffer : 3000 requêtes sur 30 jours, 250 par jour.
  * Buffer n'expose pas de compteur, on affiche celui tenu côté serveur
  * (functions/social/shared/bufferUsage.js).
  */
